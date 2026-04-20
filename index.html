@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrazy — Contrat, KYC, signature, caution et paiement en un seul lien</title>
+<meta name="description" content="Contrazy centralise contrat, vérification d'identité, signature électronique, caution et paiement en un seul lien sécurisé. Propulsé par Stripe.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff;--bg-page:#F8F9FB;--bg-warm:#FAFAF8;--navy:#0C1E2F;--navy-mid:#132D46;
+  --teal:#11C9B0;--teal-soft:#E8FAF7;--teal-glow:rgba(17,201,176,.08);
+  --slate:#64748B;--slate-light:#94A3B8;--slate-lighter:#CBD5E1;
+  --green:#22C55E;--green-bg:rgba(34,197,94,.08);--amber:#F59E0B;--amber-bg:rgba(245,158,11,.06);
+  --red:#EF4444;--red-bg:rgba(239,68,68,.06);--blue:#3B82F6;--blue-bg:rgba(59,130,246,.06);
+  --border:#E2E8F0;--border-light:#F1F5F9;
+  --radius:10px;--radius-lg:14px;--radius-xl:20px;
+  --font:'Plus Jakarta Sans',sans-serif;--font-display:'Fraunces',Georgia,serif;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 4px 6px -1px rgba(0,0,0,.06),0 2px 4px -2px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,.07),0 4px 6px -4px rgba(0,0,0,.04);
+  --shadow-xl:0 20px 25px -5px rgba(0,0,0,.08),0 8px 10px -6px rgba(0,0,0,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);color:var(--navy);-webkit-font-smoothing:antialiased;background:var(--bg);}
+a{text-decoration:none;color:inherit;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:64px;background:rgba(12,30,47,.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);transition:background .3s;}
+.nav.light{background:rgba(255,255,255,.95);border-bottom:1px solid var(--border);}
+.logo{display:flex;align-items:center;gap:2px;font-size:22px;font-weight:800;cursor:pointer;letter-spacing:-.5px;color:white;}
+.logo .t{color:var(--teal);}
+.nav.light .logo{color:var(--navy);}
+.nav-r{display:flex;gap:28px;align-items:center;}
+.nl{font-size:14px;color:rgba(255,255,255,.6);cursor:pointer;font-weight:500;background:none;border:none;transition:color .15s;font-family:var(--font);}
+.nl:hover{color:white;}
+.nav.light .nl{color:var(--slate);}
+.nav.light .nl:hover{color:var(--navy);}
+.n-cta{height:36px;padding:0 20px;border-radius:8px;font-size:13px;font-weight:600;background:var(--teal);color:white;border:none;cursor:pointer;transition:all .15s;font-family:var(--font);}
+.n-cta:hover{background:#0EB8A0;transform:translateY(-1px);}
+
+/* BTNS */
+.btn{height:48px;padding:0 28px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;font-family:var(--font);}
+.btn-teal{background:var(--teal);color:white;box-shadow:0 2px 8px rgba(17,201,176,.25);}
+.btn-teal:hover{background:#0EB8A0;transform:translateY(-1px);box-shadow:0 4px 16px rgba(17,201,176,.3);}
+.btn-ghost{background:rgba(255,255,255,.08);color:white;border:1.5px solid rgba(255,255,255,.15);}
+.btn-ghost:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);}
+.btn-white{background:white;color:var(--navy);border:1.5px solid var(--border);}
+.btn-white:hover{border-color:var(--teal);color:var(--teal);}
+.btn-dark{background:var(--navy);color:white;}
+.btn-dark:hover{background:var(--navy-mid);transform:translateY(-1px);}
+.btn-sm{height:40px;padding:0 20px;font-size:13px;border-radius:8px;}
+.btn-full{width:100%;}
+
+/* PAGE */
+.page{display:none;}
+.page.active{display:block;}
+
+/* HERO */
+.hero{background:var(--navy);padding:140px 48px 100px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-200px;right:-200px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(17,201,176,.08),transparent 70%);pointer-events:none;}
+.hero::after{content:'';position:absolute;bottom:-300px;left:-100px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.05),transparent 70%);pointer-events:none;}
+.hero-inner{max-width:1140px;margin:0 auto;position:relative;}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;font-size:12px;background:rgba(17,201,176,.1);border:1px solid rgba(17,201,176,.2);color:var(--teal);font-weight:600;margin-bottom:28px;letter-spacing:.3px;}
+.hero-badge-d{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero h1{font-family:var(--font-display);font-size:46px;font-weight:700;line-height:1.15;margin-bottom:24px;letter-spacing:-1px;color:white;}
+.hero h1 em{font-style:italic;color:var(--teal);}
+.hero-p{font-size:17px;color:rgba(255,255,255,.55);line-height:1.75;margin-bottom:36px;max-width:480px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.h-m{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius-lg);padding:24px;transition:all .2s;}
+.h-m:hover{background:rgba(255,255,255,.06);border-color:rgba(17,201,176,.2);}
+.h-m-v{font-size:28px;font-weight:800;color:white;margin-bottom:4px;}
+.h-m-l{font-size:12px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+
+/* TRUST */
+.trust{background:var(--bg);border-bottom:1px solid var(--border);padding:24px 48px;}
+.trust-in{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;}
+.trust-i{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--slate);font-weight:500;}
+.trust-d{width:8px;height:8px;border-radius:50%;background:var(--teal);}
+
+/* SECTIONS */
+.sec{padding:96px 48px;max-width:1140px;margin:0 auto;}
+.sec-bg{background:var(--bg-page);}
+.sec-dark{background:var(--navy);padding:96px 48px;}
+.sec-dark-in{max-width:1140px;margin:0 auto;}
+.eye{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--teal);font-weight:700;margin-bottom:14px;}
+.stl{font-family:var(--font-display);font-size:36px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px;line-height:1.2;}
+.stl em{font-style:italic;color:var(--teal);}
+.stl.wh{color:white;}
+.sd{font-size:16px;color:var(--slate);max-width:480px;line-height:1.7;margin-bottom:48px;}
+.sd.wh{color:rgba(255,255,255,.5);}
+
+/* WORKFLOW */
+.wf{display:grid;grid-template-columns:repeat(5,1fr);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--border);}
+.wf-s{background:var(--bg);padding:32px 20px;text-align:center;border-right:1px solid var(--border);transition:all .2s;}
+.wf-s:last-child{border-right:none;}
+.wf-s:hover{background:var(--teal-soft);}
+.wf-n{font-size:11px;font-weight:700;color:var(--teal);letter-spacing:2px;margin-bottom:12px;}
+.wf-i{font-size:28px;margin-bottom:14px;}
+.wf-s h4{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--navy);}
+.wf-s p{font-size:11.5px;color:var(--slate-light);line-height:1.5;}
+
+/* FEATURES */
+.fg3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.fc{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;transition:all .25s;}
+.fc:hover{border-color:rgba(17,201,176,.3);box-shadow:var(--shadow);transform:translateY(-3px);}
+.fc-ic{font-size:22px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.fc h3{font-size:15px;font-weight:700;margin-bottom:8px;}
+.fc p{font-size:13px;color:var(--slate);line-height:1.65;}
+.fc-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-top:14px;text-transform:uppercase;letter-spacing:.8px;}
+
+/* USE CASES */
+.uc4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.uc{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 20px;text-align:center;transition:all .2s;}
+.uc:hover{border-color:rgba(17,201,176,.3);transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+.uc-i{font-size:32px;margin-bottom:12px;}
+.uc h3{font-size:13px;font-weight:700;margin-bottom:4px;}
+.uc p{font-size:11.5px;color:var(--slate-light);line-height:1.5;}
+
+/* DARK CARDS */
+.dk{background:var(--navy-mid);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius-lg);padding:28px;transition:all .2s;}
+.dk:hover{border-color:rgba(17,201,176,.25);}
+.dk h3{font-size:15px;font-weight:700;color:white;margin-bottom:8px;}
+.dk p{font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;}
+
+/* REGULATORY */
+.reg{background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--radius-lg);padding:32px;margin-top:48px;}
+.reg h3{font-size:16px;font-weight:700;margin-bottom:14px;}
+.reg>p{font-size:14px;color:var(--slate);line-height:1.7;}
+.reg-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+.reg-i{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--slate);line-height:1.6;}
+.reg-d{width:6px;height:6px;border-radius:50%;background:var(--amber);margin-top:7px;flex-shrink:0;}
+
+/* PRICING */
+.pg3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;}
+.pc{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-xl);padding:36px;position:relative;transition:all .25s;}
+.pc.ft{border:2px solid var(--teal);box-shadow:0 0 0 4px rgba(17,201,176,.08);}
+.pc:hover{transform:translateY(-4px);box-shadow:var(--shadow-xl);}
+.pc-pop{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--teal);color:white;font-size:11px;font-weight:700;padding:4px 16px;border-radius:100px;}
+.pc-n{font-size:18px;font-weight:700;margin-bottom:4px;}
+.pc-f{font-size:12px;color:var(--slate-light);margin-bottom:24px;}
+.pc-a{font-size:42px;font-weight:800;letter-spacing:-1px;}
+.pc-a span{font-size:15px;color:var(--slate);font-weight:400;}
+.pc-per{font-size:12px;color:var(--slate-light);margin-bottom:28px;}
+.pc-inc{font-size:11px;color:var(--slate);font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:1.5px;}
+.pc-list{list-style:none;margin-bottom:24px;}
+.pc-list li{font-size:14px;color:var(--slate);padding:5px 0;display:flex;align-items:flex-start;gap:10px;}
+.pc-list li::before{content:'✓';color:var(--teal);font-weight:700;}
+.pc-ext{border-top:1px solid var(--border);padding-top:16px;margin-top:4px;}
+.pc-ext-t{font-size:11px;color:var(--slate-light);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:700;}
+.pc-ext-i{font-size:12px;color:var(--slate-light);padding:2px 0;}
+
+/* CTA */
+.cta-b{background:linear-gradient(135deg,var(--navy),var(--navy-mid));padding:80px 48px;text-align:center;position:relative;overflow:hidden;}
+.cta-b::before{content:'';position:absolute;top:-100px;right:10%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(17,201,176,.1),transparent 70%);pointer-events:none;}
+.cta-b h2{font-family:var(--font-display);font-size:32px;font-weight:700;color:white;margin-bottom:14px;letter-spacing:-.5px;}
+.cta-b p{font-size:16px;color:rgba(255,255,255,.5);margin-bottom:32px;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.7;}
+.cta-btns{display:flex;gap:12px;justify-content:center;}
+
+/* BLOG */
+.blog-feat{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:48px;cursor:pointer;transition:all .25s;}
+.blog-feat:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.blog-feat-img{min-height:320px;background:linear-gradient(135deg,var(--navy),var(--navy-mid));display:flex;align-items:center;justify-content:center;font-size:72px;}
+.blog-feat-body{padding:48px;display:flex;flex-direction:column;justify-content:center;}
+.blog-g{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.blog-c{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:all .25s;cursor:pointer;}
+.blog-c:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);}
+.blog-img{height:180px;background:var(--bg-page);display:flex;align-items:center;justify-content:center;font-size:48px;border-bottom:1px solid var(--border);}
+.blog-body{padding:24px;}
+.blog-cat{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);font-weight:700;margin-bottom:10px;}
+.blog-title{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px;line-height:1.35;}
+.blog-excerpt{font-size:13px;color:var(--slate);line-height:1.6;margin-bottom:14px;}
+.blog-meta{font-size:12px;color:var(--slate-light);display:flex;align-items:center;gap:8px;}
+
+/* FOOTER */
+.footer{border-top:1px solid var(--border);padding:60px 48px 40px;background:var(--bg);}
+.footer-in{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;}
+.footer-col h4{font-size:13px;font-weight:700;margin-bottom:16px;}
+.footer-col a{display:block;font-size:13px;color:var(--slate);padding:4px 0;cursor:pointer;transition:color .15s;}
+.footer-col a:hover{color:var(--teal);}
+.footer-brand{font-size:14px;color:var(--slate);line-height:1.7;margin-top:16px;max-width:280px;}
+.footer-bottom{max-width:1140px;margin:32px auto 0;padding-top:24px;border-top:1px solid var(--border);font-size:12px;color:var(--slate-light);text-align:center;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(12,30,47,.6);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg);border-radius:var(--radius-xl);width:500px;max-height:88vh;overflow-y:auto;padding:36px;box-shadow:var(--shadow-xl);}
+.m-h{font-size:20px;font-weight:800;margin-bottom:6px;}
+.m-d{font-size:13px;color:var(--slate);margin-bottom:24px;line-height:1.65;}
+.fg{margin-bottom:16px;}
+.fl{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--slate);}
+.fi{width:100%;height:44px;padding:0 14px;border-radius:8px;font-size:14px;background:var(--bg-page);border:1px solid var(--border);color:var(--navy);outline:none;font-family:var(--font);transition:all .15s;}
+.fi:focus{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-glow);background:white;}
+.fi::placeholder{color:var(--slate-light);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.prog{height:3px;background:var(--bg-page);border-radius:2px;margin-bottom:24px;overflow:hidden;}
+.prog-f{height:100%;background:var(--teal);border-radius:2px;transition:width .4s ease;}
+.pills{display:flex;gap:4px;margin-bottom:18px;}
+.pill{font-size:11px;padding:4px 10px;border-radius:6px;font-weight:500;cursor:pointer;}
+.doc-i{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-page);border-radius:10px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;margin-bottom:8px;}
+.doc-i:hover{border-color:var(--teal);}
+.doc-i.dn{border-color:var(--green);background:var(--green-bg);}
+.doc-c{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all .15s;}
+.doc-c.ok{background:var(--green);border-color:var(--green);color:white;}
+.doc-l{font-size:13px;flex:1;color:var(--navy);font-weight:600;}
+.doc-s{font-size:11px;color:var(--slate-light);}
+.doc-st{font-size:11px;color:var(--slate-light);margin-left:auto;}
+.si-b{font-size:10px;color:var(--teal);background:var(--teal-soft);padding:2px 8px;border-radius:4px;font-weight:700;}
+.ctx{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px;max-height:180px;overflow-y:auto;}
+.ctx h4{font-size:14px;margin-bottom:10px;font-weight:700;}
+.ctx p{font-size:12px;color:var(--slate);line-height:1.75;margin-bottom:4px;}
+.sig{width:100%;height:90px;border:1.5px dashed var(--border);border-radius:var(--radius);background:var(--bg-page);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;margin-bottom:12px;font-family:var(--font);font-size:13px;color:var(--slate-light);}
+.sig.sd{border-style:solid;border-color:var(--green);background:var(--green-bg);font-family:var(--font-display);font-size:26px;color:var(--navy);font-style:italic;}
+.sp-r{display:flex;gap:12px;margin-bottom:16px;}
+.sp-b{flex:1;padding:16px;background:var(--bg-page);border-radius:10px;border:1px solid var(--border);}
+.sp-l{font-size:10px;color:var(--slate-light);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.sp-v{font-size:22px;font-weight:800;}
+.sp-n{font-size:11px;margin-top:3px;}
+.ok-sc{text-align:center;padding:20px 0;}
+.ok-ic{font-size:52px;margin-bottom:16px;}
+.ok-h{font-size:18px;font-weight:700;margin-bottom:6px;}
+.ok-p{font-size:13px;color:var(--slate);line-height:1.65;margin-bottom:20px;}
+.ok-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--bg-page);border-radius:10px;padding:16px;text-align:left;margin-bottom:16px;}
+.ok-g div{font-size:13px;}
+.ok-g span{color:var(--slate-light);display:block;font-size:11px;margin-bottom:1px;}
+
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr!important;}
+  .hero h1{font-size:30px;}
+  .fg3,.pg3,.blog-g{grid-template-columns:1fr;}
+  .wf{grid-template-columns:1fr;}
+  .uc4{grid-template-columns:1fr 1fr;}
+  .nav-r{display:none;}
+  .fr{grid-template-columns:1fr;}
+  .modal{width:95%;padding:24px;}
+  .reg-g{grid-template-columns:1fr;}
+  .trust-in{gap:16px;}
+  .sp-r{flex-direction:column;}
+  .nav,.hero,.trust,.sec,.sec-dark,.cta-b,.footer{padding-left:20px;padding-right:20px;}
+  .hero{padding-top:120px;padding-bottom:60px;}
+  .footer-in{grid-template-columns:1fr 1fr;}
+  .blog-feat{grid-template-columns:1fr;}
+  .blog-feat-img{min-height:200px;}
+  .hero-metrics{margin-top:40px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="navbar">
+  <span class="logo" onclick="showPage('landing')">C<span class="t">on</span>trazy</span>
+  <div class="nav-r">
+    <button class="nl" onclick="showPage('landing')">Plateforme</button>
+    <button class="nl" onclick="showPage('landing')">Tarifs</button>
+    <button class="nl" onclick="showPage('blog')">Blog</button>
+    <button class="nl" onclick="showPage('dash')">Dashboard</button>
+    <button class="n-cta" onclick="showPage('dash')">Essai gratuit</button>
+  </div>
+</nav>
+
+<!-- ===================== LANDING PAGE ===================== -->
+<div class="page active" id="page-landing">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-badge"><span class="hero-badge-d"></span>Plateforme transactionnelle sécurisée</div>
+          <h1>Contrat, KYC, signature, caution et paiement — <em>en un seul lien</em></h1>
+          <p class="hero-p">Envoyez un lien à votre client. Il crée son profil, ses pièces sont vérifiées, le contrat se génère, il signe et il paie. Vous gérez tout depuis un tableau de bord unique.</p>
+          <div class="hero-btns">
+            <button class="btn btn-teal" onclick="showPage('dash')">Essai gratuit 7 jours →</button>
+            <button class="btn btn-ghost" onclick="openFlow()">Voir le parcours client</button>
+          </div>
+        </div>
+        <div class="hero-metrics">
+          <div class="h-m"><div class="h-m-v">0 %</div><div class="h-m-l">Commission caution</div></div>
+          <div class="h-m"><div class="h-m-v">&lt; 3 min</div><div class="h-m-l">Dossier complet</div></div>
+          <div class="h-m"><div class="h-m-v">120+</div><div class="h-m-l">Pays couverts KYC</div></div>
+          <div class="h-m"><div class="h-m-v">eIDAS</div><div class="h-m-l">Signature conforme</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST BAR -->
+  <div class="trust">
+    <div class="trust-in">
+      <div class="trust-i"><span class="trust-d"></span>Stripe Connect</div>
+      <div class="trust-i"><span class="trust-d"></span>Stripe Identity</div>
+      <div class="trust-i"><span class="trust-d"></span>3D Secure · DSP2</div>
+      <div class="trust-i"><span class="trust-d"></span>Signature eIDAS</div>
+      <div class="trust-i"><span class="trust-d"></span>RGPD compliant</div>
+    </div>
+  </div>
+
+  <!-- WORKFLOW -->
+  <div class="sec-bg">
+    <section class="sec">
+      <div class="eye">Parcours</div>
+      <div class="stl">Un lien, <em>cinq étapes</em>, trois minutes</div>
+      <div class="sd">Votre client reçoit un lien unique. Il complète son dossier sans créer de compte.</div>
+      <div class="wf">
+        <div class="wf-s"><div class="wf-n">01</div><div class="wf-i">📨</div><h4>Lien envoyé</h4><p>SMS · Email · WhatsApp</p></div>
+        <div class="wf-s"><div class="wf-n">02</div><div class="wf-i">👤</div><h4>Profil client</h4><p>Pré-rempli si récurrent</p></div>
+        <div class="wf-s"><div class="wf-n">03</div><div class="wf-i">🪪</div><h4>KYC automatique</h4><p>Document + selfie · IA</p></div>
+        <div class="wf-s"><div class="wf-n">04</div><div class="wf-i">✍️</div><h4>Contrat + signature</h4><p>Auto-généré · eIDAS</p></div>
+        <div class="wf-s"><div class="wf-n">05</div><div class="wf-i">💳</div><h4>Paiement / caution</h4><p>Stripe · Empreinte bancaire</p></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="sec">
+    <div class="eye">Plateforme</div>
+    <div class="stl">La couche <em>confiance</em> qui manquait</div>
+    <div class="sd">Chaque brique s'appuie sur des partenaires certifiés.</div>
+    <div class="fg3">
+      <div class="fc"><div class="fc-ic" style="background:var(--teal-soft)">🪪</div><h3>Vérification d'identité</h3><p>Document + selfie, vérifiés via Stripe Identity. 120+ pays. Le vendeur paramètre les pièces exigées.</p><span class="fc-tag" style="color:var(--teal);background:var(--teal-soft)">STRIPE IDENTITY</span></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--blue-bg)">📝</div><h3>Contrats auto-générés</h3><p>Le vendeur configure son modèle. Le moteur injecte les données du profil client. PDF signable en 1 clic.</p><span class="fc-tag" style="color:var(--blue);background:var(--blue-bg)">MOTEUR INTERNE</span></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--green-bg)">✍️</div><h3>Signature électronique</h3><p>Conforme eIDAS. OTP par SMS, horodatage, dossier de preuve archivé et téléchargeable.</p><span class="fc-tag" style="color:var(--green);background:var(--green-bg)">eIDAS</span></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--amber-bg)">💳</div><h3>Paiements & cautions</h3><p>Paiement immédiat, acompte ou empreinte bancaire sans débit. Capture partielle ou totale.</p><span class="fc-tag" style="color:var(--teal);background:var(--teal-soft)">STRIPE CONNECT</span></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--red-bg)">⚖️</div><h3>Gestion des litiges</h3><p>Le vendeur déclenche une retenue avec motif et preuves. Le client est notifié. Historique horodaté.</p><span class="fc-tag" style="color:var(--blue);background:var(--blue-bg)">MOTEUR INTERNE</span></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--teal-soft)">👤</div><h3>Profil client réutilisable</h3><p>Documents et données conservés. Prochaine transaction : parcours de 3 min à 30 secondes.</p><span class="fc-tag" style="color:var(--teal);background:var(--teal-soft)">DIFFÉRENCIATEUR</span></div>
+    </div>
+  </section>
+
+  <!-- USE CASES -->
+  <div class="sec-bg">
+    <section class="sec">
+      <div class="eye">Cas d'usage</div>
+      <div class="stl">Pour toute activité <em>qui encaisse</em></div>
+      <div class="sd">Un moteur, des règles personnalisables par vendeur.</div>
+      <div class="uc4">
+        <div class="uc"><div class="uc-i">🏠</div><h3>Location</h3><p>Caution, contrat, identité.</p></div>
+        <div class="uc"><div class="uc-i">🔧</div><h3>Prestations</h3><p>Devis signé, acompte, solde.</p></div>
+        <div class="uc"><div class="uc-i">🚗</div><h3>Location de biens</h3><p>Permis, selfie, garantie.</p></div>
+        <div class="uc"><div class="uc-i">🏛️</div><h3>Collectivités</h3><p>Salles, équipements.</p></div>
+        <div class="uc"><div class="uc-i">🎉</div><h3>Événementiel</h3><p>Arrhes, anti no-show.</p></div>
+        <div class="uc"><div class="uc-i">💼</div><h3>B2B / Artisans</h3><p>Facture, encaissement.</p></div>
+        <div class="uc"><div class="uc-i">🏗️</div><h3>Matériel</h3><p>Garantie, assurance.</p></div>
+        <div class="uc"><div class="uc-i">📦</div><h3>Vente + acompte</h3><p>Commande, solde.</p></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- VENDOR -->
+  <section class="sec">
+    <div class="eye">Côté vendeur</div>
+    <div class="stl">Vous <em>configurez</em>, Contrazy <em>exécute</em></div>
+    <div class="sd">Chaque vendeur paramètre ses propres règles.</div>
+    <div class="fg3">
+      <div class="fc"><div class="fc-ic" style="background:var(--blue-bg)">📄</div><h3>Modèles de contrat</h3><p>Variables dynamiques : nom, dates, montants. PDF généré à la volée.</p></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--green-bg)">✅</div><h3>Checklist documentaire</h3><p>Pièces exigées par type de transaction : identité, permis, selfie, attestation.</p></div>
+      <div class="fc"><div class="fc-ic" style="background:var(--amber-bg)">⚙️</div><h3>Règles de garantie</h3><p>Montant, durée de blocage, conditions de retenue, relances automatiques.</p></div>
+    </div>
+  </section>
+
+  <!-- REGULATORY -->
+  <div class="sec-bg">
+    <section class="sec">
+      <div class="eye">Cadre juridique</div>
+      <div class="stl">Conçu pour être <em>conforme</em></div>
+      <div class="sd">Architecture sans besoin d'agrément d'établissement de paiement.</div>
+      <div class="reg">
+        <h3>⚠️ Architecture réglementaire</h3>
+        <p>Contrazy ne détient jamais de fonds pour le compte de tiers. La plateforme orchestre des pré-autorisations Stripe avec capture différée.</p>
+        <div class="reg-g">
+          <div class="reg-i"><span class="reg-d"></span><span><strong>Pas de séquestre</strong> — Empreinte bancaire. Aucune détention de fonds.</span></div>
+          <div class="reg-i"><span class="reg-d"></span><span><strong>Caution = pré-autorisation</strong> — Blocage 7 jours max.</span></div>
+          <div class="reg-i"><span class="reg-d"></span><span><strong>eIDAS</strong> — Signature renforcée + OTP + dossier de preuve.</span></div>
+          <div class="reg-i"><span class="reg-d"></span><span><strong>RGPD</strong> — Stockage chiffré, durée limitée.</span></div>
+          <div class="reg-i"><span class="reg-d"></span><span><strong>3D Secure / DSP2</strong> — Authentification forte dès 30 €.</span></div>
+          <div class="reg-i"><span class="reg-d"></span><span><strong>Stripe Connect</strong> — Comptes connectés. Flux conformes.</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PRICING -->
+  <section class="sec">
+    <div class="eye">Tarifs</div>
+    <div class="stl">Abonnement + <em>usage</em></div>
+    <div class="sd">L'abonnement donne accès à la plateforme. Coûts variables absorbés dans les quotas.</div>
+    <div class="pg3">
+      <div class="pc">
+        <div class="pc-n">Solo</div><div class="pc-f">Indépendants · 1 utilisateur</div>
+        <div class="pc-a">19€ <span>HT</span></div><div class="pc-per">/ mois sans engagement</div>
+        <div class="pc-inc">Inclus</div>
+        <ul class="pc-list"><li>30 transactions</li><li>10 vérifications d'identité</li><li>1 modèle de contrat</li><li>Signature électronique</li><li>Envoi par email</li></ul>
+        <div class="pc-ext"><div class="pc-ext-t">Extras</div><div class="pc-ext-i">Vérif. supp. : 1,50 €</div><div class="pc-ext-i">Pack 100 SMS : 9 €</div></div>
+        <button class="btn btn-white btn-full btn-sm">Commencer</button>
+      </div>
+      <div class="pc ft">
+        <div class="pc-pop">Recommandé</div>
+        <div class="pc-n">Pro</div><div class="pc-f">Gestionnaires · Équipes</div>
+        <div class="pc-a">49€ <span>HT</span></div><div class="pc-per">/ mois sans engagement</div>
+        <div class="pc-inc">Inclus</div>
+        <ul class="pc-list"><li>Transactions illimitées</li><li>50 vérifications d'identité</li><li>Contrats illimités</li><li>SMS + WhatsApp</li><li>Profils clients persistants</li><li>Workflow litiges</li><li>3 utilisateurs</li></ul>
+        <div class="pc-ext"><div class="pc-ext-t">Extras</div><div class="pc-ext-i">Utilisateur supp. : 10 €/mois</div><div class="pc-ext-i">Vérif. supp. : 1 €</div></div>
+        <button class="btn btn-teal btn-full btn-sm">Essai gratuit 7 jours</button>
+      </div>
+      <div class="pc">
+        <div class="pc-n">Business</div><div class="pc-f">Agences · API · Marque blanche</div>
+        <div class="pc-a">Sur devis</div><div class="pc-per">facturation annuelle</div>
+        <div class="pc-inc">Tout Pro +</div>
+        <ul class="pc-list"><li>API REST + webhooks</li><li>Marque blanche complète</li><li>Scoring documentaire</li><li>Connecteur PMS / CRM</li><li>Utilisateurs illimités</li><li>SLA + support dédié</li></ul>
+        <button class="btn btn-white btn-full btn-sm">Nous contacter</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <div class="sec-dark">
+    <div class="sec-dark-in">
+      <div class="eye">Stack technique</div>
+      <div class="stl wh">Construit sur <em>Stripe</em></div>
+      <div class="sd wh">La plateforme exploite l'écosystème Stripe pour se concentrer sur la couche métier.</div>
+      <div class="fg3">
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">💳</div><h3>Stripe Connect</h3><p>Flux vendeur/client. Comptes connectés. Onboarding KYB.</p></div>
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">🪪</div><h3>Stripe Identity</h3><p>Vérification documents + correspondance faciale. 120+ pays.</p></div>
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">💰</div><h3>Stripe Billing</h3><p>Abonnements vendeurs. Prélèvement automatique.</p></div>
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">🔐</div><h3>Auth + Capture</h3><p>PaymentIntent capture_method=manual. Empreinte sans débit.</p></div>
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">🔔</div><h3>Webhooks</h3><p>Notifications temps réel : paiement, identité, expiration.</p></div>
+        <div class="dk"><div style="font-size:24px;margin-bottom:12px">🌐</div><h3>Next.js + PostgreSQL</h3><p>Front performant, API robuste, hébergement sécurisé.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-b">
+    <h2>Prêt à sécuriser vos transactions ?</h2>
+    <p>Créez votre compte en 2 minutes. Aucune carte bancaire requise pendant l'essai.</p>
+    <div class="cta-btns">
+      <button class="btn btn-teal" onclick="showPage('dash')">Essai gratuit 7 jours →</button>
+      <button class="btn btn-ghost" onclick="openFlow()">Voir la démo</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-in">
+      <div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="footer-brand">La plateforme qui centralise contrat, KYC, signature, caution et paiement en un seul lien sécurisé.</p></div>
+      <div class="footer-col"><h4>Produit</h4><a onclick="showPage('landing')">Fonctionnalités</a><a onclick="showPage('landing')">Tarifs</a><a onclick="showPage('dash')">Dashboard</a><a onclick="openFlow()">Démo client</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a onclick="showPage('blog')">Blog</a><a>Documentation API</a><a>Centre d'aide</a><a>Statut</a></div>
+      <div class="footer-col"><h4>Légal</h4><a>CGV</a><a>Politique de confidentialité</a><a>Mentions légales</a><a>RGPD</a></div>
+    </div>
+    <div class="footer-bottom">© 2026 Contrazy · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity · Aucune détention de fonds</div>
+  </footer>
+
+</div>
+
+<!-- ===================== BLOG PAGE ===================== -->
+<div class="page" id="page-blog" style="background:var(--bg-page);min-height:100vh;padding-top:64px">
+  <section class="sec">
+    <div class="eye">Blog</div>
+    <div class="stl">Ressources & <em>guides</em></div>
+    <div class="sd">Guides pratiques, décryptages juridiques et bonnes pratiques pour sécuriser vos transactions.</div>
+
+    <div class="blog-feat">
+      <div class="blog-feat-img">📋</div>
+      <div class="blog-feat-body">
+        <div class="blog-cat">Guide</div>
+        <div class="blog-title" style="font-size:24px;margin-bottom:12px">Comment sécuriser vos cautions en ligne en 2026</div>
+        <div class="blog-excerpt" style="font-size:15px;margin-bottom:20px">Les méthodes traditionnelles de caution (chèque, espèces, virement) sont risquées et chronophages. Découvrez comment l'empreinte bancaire via pré-autorisation Stripe révolutionne la gestion des garanties.</div>
+        <div class="blog-meta"><span>18 avril 2026</span><span>·</span><span>7 min de lecture</span></div>
+      </div>
+    </div>
+
+    <div class="blog-g" id="blog-grid"></div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-in">
+      <div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="footer-brand">La plateforme qui centralise contrat, KYC, signature, caution et paiement en un seul lien sécurisé.</p></div>
+      <div class="footer-col"><h4>Produit</h4><a onclick="showPage('landing')">Fonctionnalités</a><a onclick="showPage('landing')">Tarifs</a><a onclick="showPage('dash')">Dashboard</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a onclick="showPage('blog')">Blog</a><a>Documentation API</a><a>Centre d'aide</a></div>
+      <div class="footer-col"><h4>Légal</h4><a>CGV</a><a>Confidentialité</a><a>Mentions légales</a></div>
+    </div>
+    <div class="footer-bottom">© 2026 Contrazy · Plateforme de sécurisation transactionnelle</div>
+  </footer>
+</div>
+
+<!-- ===================== DASHBOARD PAGE ===================== -->
+<div class="page" id="page-dash" style="min-height:100vh;padding-top:64px;background:var(--bg-page);display:none;">
+  <div style="display:flex;min-height:calc(100vh - 64px)">
+    <aside class="sb">
+      <div class="sb-l">Principal</div>
+      <button class="sb-i on">📊 Tableau de bord</button>
+      <button class="sb-i">💳 Transactions</button>
+      <button class="sb-i">📝 Contrats</button>
+      <button class="sb-i">👥 Clients</button>
+      <button class="sb-i">🪪 Vérifications</button>
+      <button class="sb-i">⚖️ Litiges</button>
+      <div class="sb-d"></div>
+      <div class="sb-l">Configuration</div>
+      <button class="sb-i">📄 Modèles contrats</button>
+      <button class="sb-i">✅ Checklists pièces</button>
+      <button class="sb-i">🔗 Liens permanents</button>
+      <div class="sb-d"></div>
+      <button class="sb-i">⚙️ Paramètres</button>
+      <button class="sb-i">🏦 Stripe Connect</button>
+    </aside>
+    <main class="main">
+      <div class="d-top">
+        <div><div class="d-h">Tableau de bord</div><div class="d-sub">Bienvenue, Aziz</div></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-white btn-sm" onclick="openFlow()">👁️ Côté client</button>
+          <button class="btn btn-dark btn-sm">+ Nouvelle transaction</button>
+        </div>
+      </div>
+      <div class="kpi-r">
+        <div class="kpi"><div class="kpi-l">💰 Encaissé (avril)</div><div class="kpi-v">12 450 €</div><div class="kpi-c up">↑ +23%</div></div>
+        <div class="kpi"><div class="kpi-l">🔒 Cautions actives</div><div class="kpi-v">8 400 €</div><div class="kpi-c up">14 en cours</div></div>
+        <div class="kpi"><div class="kpi-l">✍️ Contrats signés</div><div class="kpi-v">47</div><div class="kpi-c up">↑ +12 / sem</div></div>
+        <div class="kpi"><div class="kpi-l">🪪 Vérif. auto</div><div class="kpi-v">98%</div><div class="kpi-c">taux validation</div></div>
+      </div>
+      <div class="tbl">
+        <div class="tbl-h">
+          <div class="tbl-t">Dossiers récents</div>
+          <div class="tbl-tabs">
+            <button class="tt on" onclick="filterTable('all',this)">Tous</button>
+            <button class="tt" onclick="filterTable('Caution',this)">Cautions</button>
+            <button class="tt" onclick="filterTable('Paiement',this)">Paiements</button>
+            <button class="tt" onclick="filterTable('wt',this)">En attente</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Client</th><th>Référence</th><th>Type</th><th>Montant</th><th>Pièces</th><th>Statut</th></tr></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===================== PAYER FLOW MODAL ===================== -->
+<div class="modal-bg" id="flow-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="pills" id="flow-pills"></div>
+      <button onclick="closeFlow()" style="background:none;border:none;color:var(--slate-light);cursor:pointer;font-size:18px">✕</button>
+    </div>
+    <div class="prog"><div class="prog-f" id="flow-prog" style="width:20%"></div></div>
+    <div id="flow-content"></div>
+  </div>
+</div>
+
+<script>
+// ---- ROUTING ----
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const nav=document.getElementById('navbar');
+  if(id==='landing'){nav.classList.remove('light');}else{nav.classList.add('light');}
+  window.scrollTo(0,0);
+}
+
+// ---- BLOG ----
+const blogPosts=[
+  {cat:"Juridique",icon:"⚖️",title:"eIDAS et signature électronique : quel niveau de preuve choisir ?",excerpt:"Signature simple, avancée ou qualifiée — chaque niveau a ses usages. On vous explique comment choisir le bon pour vos contrats.",date:"15 avril 2026",read:"5 min"},
+  {cat:"Stripe",icon:"💳",title:"Stripe Connect : gérer les flux vendeur/client sans agrément ACPR",excerpt:"La pré-autorisation avec capture différée permet d'orchestrer des cautions sans détenir de fonds. Voici l'architecture conforme.",date:"12 avril 2026",read:"8 min"},
+  {cat:"KYC",icon:"🪪",title:"Vérification d'identité automatique : Stripe Identity vs solutions tierces",excerpt:"Comparatif des solutions de KYC pour les plateformes de services. Couverture pays, coûts, taux de validation.",date:"10 avril 2026",read:"6 min"},
+  {cat:"Business",icon:"💰",title:"Modèle SaaS par abonnement : comment fixer ses prix en 2026",excerpt:"Freemium, abo + usage, commission — analyse des modèles qui fonctionnent pour les plateformes B2B2C.",date:"8 avril 2026",read:"5 min"},
+  {cat:"Produit",icon:"🔗",title:"Le profil payeur réutilisable : l'avantage concurrentiel décisif",excerpt:"Pourquoi un profil client persistant avec documents pré-vérifiés réduit le taux d'abandon de 60%.",date:"5 avril 2026",read:"4 min"},
+  {cat:"RGPD",icon:"🔒",title:"Stocker des pièces d'identité : obligations RGPD et bonnes pratiques",excerpt:"Durée de conservation, chiffrement, consentement explicite — tout ce qu'il faut savoir.",date:"3 avril 2026",read:"6 min"},
+  {cat:"Location",icon:"🏠",title:"Gestion des litiges en location courte durée : guide complet",excerpt:"De la constatation des dégradations à la capture de la caution : processus et délais.",date:"1 avril 2026",read:"8 min"},
+  {cat:"Tech",icon:"🔔",title:"Webhooks Stripe : automatiser vos notifications en temps réel",excerpt:"Configurer les webhooks pour être alerté dès qu'un paiement est validé ou une identité vérifiée.",date:"28 mars 2026",read:"7 min"},
+];
+function renderBlog(){
+  const g=document.getElementById('blog-grid');
+  g.innerHTML=blogPosts.map(p=>`<div class="blog-c"><div class="blog-img">${p.icon}</div><div class="blog-body"><div class="blog-cat">${p.cat}</div><div class="blog-title">${p.title}</div><div class="blog-excerpt">${p.excerpt}</div><div class="blog-meta"><span>${p.date}</span><span>·</span><span>${p.read}</span></div></div></div>`).join('');
+}
+renderBlog();
+
+// ---- DASHBOARD TABLE ----
+const txns=[
+  {cl:"Marie Dupont",em:"marie@gmail.com",ty:"Caution",a:"800 €",st:"ok",docs:"3/3",ref:"Réservation #412",color:"#0C1E2F"},
+  {cl:"Jean-Pierre Martin",em:"jp.martin@free.fr",ty:"Paiement",a:"1 250 €",st:"sg",docs:"2/2",ref:"Prestation #89",color:"#11C9B0"},
+  {cl:"Sarah Cohen",em:"s.cohen@outlook.com",ty:"Retenue",a:"350 €",st:"wt",docs:"1/3",ref:"Dossier #201",color:"#F59E0B"},
+  {cl:"Ahmed Benali",em:"ahmed.b@gmail.com",ty:"Caution",a:"500 €",st:"ok",docs:"3/3",ref:"Réservation #410",color:"#EF4444"},
+  {cl:"Laura Rossi",em:"l.rossi@it.com",ty:"Paiement",a:"2 100 €",st:"er",docs:"—",ref:"Facture #77",color:"#3B82F6"},
+];
+const stL={ok:"Encaissé",wt:"En attente",er:"Échoué",sg:"Signé"};
+function renderTable(filter){
+  const f=filter==='all'?txns:filter==='wt'?txns.filter(t=>t.st==='wt'):txns.filter(t=>t.ty===filter);
+  document.getElementById('tbl-body').innerHTML=f.map(t=>{
+    const initials=t.cl.split(' ').map(n=>n[0]).join('');
+    const docsHtml=t.docs!=='—'?`<span style="color:var(--green);font-size:12px;font-weight:600">✓ ${t.docs}</span>`:`<span style="color:var(--slate-light)">—</span>`;
+    return `<tr><td><div class="cl-i"><div class="av" style="background:${t.color}">${initials}</div><div><div class="cl-n">${t.cl}</div><div class="cl-e">${t.em}</div></div></div></td><td style="font-size:12px">${t.ref}</td><td>${t.ty}</td><td style="font-weight:700;color:var(--navy)">${t.a}</td><td>${docsHtml}</td><td><span class="bdg ${t.st}"><span class="bdg-d"></span>${stL[t.st]}</span></td></tr>`;
+  }).join('');
+}
+function filterTable(filter,el){
+  document.querySelectorAll('.tt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderTable(filter);
+}
+renderTable('all');
+
+// ---- PAYER FLOW ----
+let flowStep=0;
+const flowDocs={id:false,permit:false,selfie:false};
+let flowSigned=false,flowPaid=false;
+const pillNames=["Profil","KYC","Contrat","Paiement"];
+const progressVals=[20,40,65,85,100];
+
+function openFlow(){flowStep=0;flowDocs.id=false;flowDocs.permit=false;flowDocs.selfie=false;flowSigned=false;flowPaid=false;document.getElementById('flow-modal').classList.add('open');renderFlow();}
+function closeFlow(){document.getElementById('flow-modal').classList.remove('open');}
+
+function renderPills(){
+  document.getElementById('flow-pills').innerHTML=pillNames.map((p,i)=>{
+    const bg=flowStep===i?'var(--teal-soft)':'transparent';
+    const color=flowStep===i?'var(--teal)':flowStep>i?'var(--green)':'var(--slate-light)';
+    const fw=flowStep===i?600:400;
+    const prefix=flowStep>i?'✓ ':'';
+    return `<span class="pill" style="background:${bg};color:${color};font-weight:${fw};cursor:${i<flowStep?'pointer':'default'}" ${i<flowStep?`onclick="flowStep=${i};renderFlow()"`:''} >${prefix}${p}</span>`;
+  }).join('');
+}
+
+function renderFlow(){
+  renderPills();
+  document.getElementById('flow-prog').style.width=progressVals[flowStep]+'%';
+  const c=document.getElementById('flow-content');
+
+  if(flowStep===0){
+    c.innerHTML=`<div class="m-h">Complétez votre profil</div><div class="m-d">Le vendeur vous demande de renseigner vos informations.</div>
+    <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" placeholder="Dupont"></div></div>
+    <div class="fg"><label class="fl">Email</label><input class="fi" placeholder="jean.dupont@email.com"></div>
+    <div class="fr"><div class="fg"><label class="fl">Téléphone</label><input class="fi" placeholder="+33 6 12 34 56 78"></div><div class="fg"><label class="fl">Date de naissance</label><input class="fi" type="date"></div></div>
+    <div class="fg"><label class="fl">Adresse</label><input class="fi" placeholder="12 rue de la Paix, 06000 Nice"></div>
+    <button class="btn btn-teal btn-full" onclick="flowStep=1;renderFlow()">Continuer →</button>`;
+  }
+  else if(flowStep===1){
+    const allDone=flowDocs.id&&flowDocs.permit&&flowDocs.selfie;
+    c.innerHTML=`<div class="m-h">Vérification KYC</div><div class="m-d">Pièces vérifiées automatiquement. <span class="si-b">Stripe Identity</span></div>
+    ${[{k:'id',ic:'🪪',l:"Pièce d'identité",s:"CNI, passeport ou titre de séjour"},{k:'permit',ic:'📄',l:"Permis de conduire",s:"Ou autre pièce exigée"},{k:'selfie',ic:'🤳',l:"Selfie de vérification",s:"Correspondance faciale auto"}].map(d=>`<div class="doc-i ${flowDocs[d.k]?'dn':''}" onclick="flowDocs.${d.k}=!flowDocs.${d.k};renderFlow()"><div class="doc-c ${flowDocs[d.k]?'ok':''}">${flowDocs[d.k]?'✓':''}</div><div style="flex:1"><div class="doc-l">${d.ic} ${d.l}</div><div class="doc-s">${d.s}</div></div><div class="doc-st">${flowDocs[d.k]?'<span style="color:var(--green);font-weight:600">✓ Vérifié</span>':'Uploader'}</div></div>`).join('')}
+    <div style="margin-top:14px"></div>
+    <button class="btn btn-teal btn-full" style="opacity:${allDone?1:.4}" ${allDone?'onclick="flowStep=2;renderFlow()"':''}>${allDone?'KYC validé — Continuer →':'Vérifiez tous les documents'}</button>`;
+  }
+  else if(flowStep===2){
+    c.innerHTML=`<div class="m-h">Votre contrat</div><div class="m-d">Généré automatiquement à partir de votre profil.</div>
+    <div class="ctx"><h4>CONTRAT DE PRESTATION</h4><p><strong>Prestataire :</strong> [Nom du vendeur] · [Adresse] · [SIRET]</p><p><strong>Client :</strong> Jean Dupont · 12 rue de la Paix, 06000 Nice</p><p><strong>Objet :</strong> [Description]</p><p><strong>Période :</strong> Du 20/04/2026 au 27/04/2026</p><p><strong>Prix :</strong> 420,00 € TTC · <strong>Caution :</strong> 800,00 € (empreinte bancaire)</p><p>Le client reconnaît avoir pris connaissance des conditions générales...</p></div>
+    <div class="sig ${flowSigned?'sd':''}" onclick="flowSigned=true;renderFlow()">${flowSigned?'Jean Dupont':'Cliquer pour signer électroniquement'}</div>
+    ${flowSigned?`<div style="font-size:11px;color:var(--green);margin-bottom:12px">✓ Signé · OTP vérifié · ${new Date().toLocaleString('fr-FR')} · Dossier de preuve archivé</div>`:''}
+    <button class="btn btn-teal btn-full" style="opacity:${flowSigned?1:.4}" ${flowSigned?'onclick="flowStep=3;renderFlow()"':''}>Contrat signé — Paiement →</button>`;
+  }
+  else if(flowStep===3&&!flowPaid){
+    c.innerHTML=`<div class="m-h">Paiement & caution</div><div class="m-d">Sécurisé par Stripe. La caution est une empreinte bancaire.</div>
+    <div class="sp-r"><div class="sp-b"><div class="sp-l">Paiement</div><div class="sp-v">420 €</div><div class="sp-n" style="color:var(--slate-light)">Débit immédiat</div></div><div class="sp-b"><div class="sp-l">Caution</div><div class="sp-v">800 €</div><div class="sp-n" style="color:var(--amber)">Empreinte · 7 jours</div></div></div>
+    <div class="fg"><label class="fl">Numéro de carte</label><input class="fi" placeholder="4242 4242 4242 4242"></div>
+    <div class="fr"><div class="fg"><label class="fl">Expiration</label><input class="fi" placeholder="12/28"></div><div class="fg"><label class="fl">CVC</label><input class="fi" placeholder="123"></div></div>
+    <button class="btn btn-teal btn-full" onclick="flowPaid=true;renderFlow()">🔒 Payer 420 € et déposer la caution</button>
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--slate-light)">Stripe · 3D Secure · DSP2 · Pré-autorisation</div>`;
+  }
+  else if(flowStep===3&&flowPaid){
+    c.innerHTML=`<div class="ok-sc">
+    <div class="ok-ic">✅</div><div class="ok-h">Dossier complet</div>
+    <div class="ok-p">Paiement encaissé · Caution bloquée · Contrat signé · Identité vérifiée<br>Votre profil est enregistré pour vos prochaines transactions.</div>
+    <div class="ok-g">
+      <div><span>Réf.</span>CTZ-0413</div><div><span>Date</span>20/04/2026</div>
+      <div><span>Contrat</span><span style="color:var(--green)">✓ Signé eIDAS</span></div><div><span>KYC</span><span style="color:var(--green)">✓ 3/3 vérifiées</span></div>
+      <div><span>Paiement</span><span style="color:var(--green)">✓ 420 € encaissé</span></div><div><span>Caution</span><span style="color:var(--amber)">🔒 800 € · 7j</span></div>
+    </div>
+    <button class="btn btn-white btn-full" onclick="closeFlow()">Fermer</button></div>`;
+  }
+}
+
+// Close modal on bg click
+document.getElementById('flow-modal').addEventListener('click',function(e){if(e.target===this)closeFlow();});
+</script>
+
+</body>
+</html>
