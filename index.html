@@ -301,9 +301,9 @@ tr:hover td{background:var(--bg2);}
     <button class="nl" onclick="scrollTo_('tarifs')">Tarifs</button>
     <button class="nl" onclick="go('blog')">Blog</button>
     <button class="nl" onclick="go('faq')">FAQ</button>
-    <button class="nl" onclick="go('dash')">Dashboard</button>
     <button class="nl" onclick="go('contact')">Contact</button>
-    <button class="ncta" onclick="go('dash')">Essai gratuit</button>
+    <button class="nl" onclick="go('connexion')" style="font-weight:600">Se connecter</button>
+    <button class="ncta" onclick="go('inscription')">Essai gratuit 7j</button>
   </div>
 </nav>
 
@@ -315,7 +315,7 @@ tr:hover td{background:var(--bg2);}
   <div class="hbdg"><span class="hbdg-d"></span>Plateforme transactionnelle sécurisée</div>
   <h1>Contrat, KYC, signature, caution et paiement — <em>en un seul lien</em></h1>
   <p class="hp">Envoyez un lien ou un QR code à votre client. Il crée son profil, ses pièces sont vérifiées, le contrat se génère, il signe et il paie. Tout en un.</p>
-  <div class="hbs"><button class="btn bt" onclick="go('dash')">Essai gratuit 7 jours →</button><button class="btn bg" onclick="openFlow()">Voir le parcours client</button></div>
+  <div class="hbs"><button class="btn bt" onclick="go('inscription')">Essai gratuit 7 jours →</button><button class="btn bg" onclick="go('demo')">Voir la démo →</button></div>
 </div>
 <div class="hms">
   <div class="hm"><div class="hm-v">0 %</div><div class="hm-l">Commission caution</div></div>
@@ -431,16 +431,16 @@ tr:hover td{background:var(--bg2);}
   <div class="stl wh">Construit sur <em>Stripe</em></div>
   <div class="sd wh">La plateforme exploite l'écosystème Stripe pour se concentrer sur la couche métier.</div>
   <div class="g3">
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">💳</div><h3>Stripe Connect</h3><p>Flux vendeur/client. Comptes connectés.</p></div>
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">🪪</div><h3>Stripe Identity</h3><p>Vérification documents + selfie. 120+ pays.</p></div>
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">💰</div><h3>Stripe Billing</h3><p>Abonnements vendeurs automatiques.</p></div>
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">🔐</div><h3>Auth + Capture</h3><p>Empreinte CB sans débit. Capture différée.</p></div>
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">🔔</div><h3>Webhooks</h3><p>Notifications temps réel.</p></div>
-    <div class="dk"><div style="font-size:24px;margin-bottom:10px">🌐</div><h3>Next.js + PostgreSQL</h3><p>Front performant, API robuste.</p></div>
+    <div class="dk"><img src="img-connect.jpg" alt="Stripe Connect" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Connect</h3><p>Flux vendeur/client. Comptes connectés.</p></div>
+    <div class="dk"><img src="img-identity.jpg" alt="Stripe Identity" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Identity</h3><p>Vérification documents + selfie. 120+ pays.</p></div>
+    <div class="dk"><img src="img-billing.jpg" alt="Stripe Billing" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Billing</h3><p>Abonnements vendeurs automatiques.</p></div>
+    <div class="dk"><img src="img-auth.jpg" alt="Auth Capture" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Auth + Capture</h3><p>Empreinte CB sans débit. Capture différée.</p></div>
+    <div class="dk"><img src="img-webhooks.jpg" alt="Webhooks" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Webhooks</h3><p>Notifications temps réel.</p></div>
+    <div class="dk"><img src="img-postgres.jpg" alt="PostgreSQL" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Next.js + PostgreSQL</h3><p>Front performant, API robuste.</p></div>
   </div>
 </div></div>
 
-<div class="cta"><h2>Prêt à sécuriser vos transactions ?</h2><p>Créez votre compte en 2 minutes. Aucune CB requise pendant l'essai.</p><div style="display:flex;gap:12px;justify-content:center"><button class="btn bt" onclick="go('dash')">Essai gratuit 7 jours →</button><button class="btn bg" onclick="openFlow()">Voir la démo</button></div></div>
+<div class="cta"><h2>Prêt à sécuriser vos transactions ?</h2><p>Créez votre compte en 2 minutes. Aucune CB requise pendant l'essai.</p><div style="display:flex;gap:12px;justify-content:center"><button class="btn bt" onclick="go('inscription')">Essai gratuit 7 jours →</button><button class="btn bg" onclick="go('demo')">Voir la démo →</button></div></div>
 </div>
 
 <!-- ========== BLOG ========== -->
@@ -496,7 +496,7 @@ tr:hover td{background:var(--bg2);}
   </aside>
   <main class="mn">
     <div class="dtp"><div><div class="dh">Tableau de bord</div><div class="dsb">Bienvenue, Aziz</div></div>
-      <div style="display:flex;gap:10px"><button class="btn bw bsm" onclick="openFlow()">👁️ Côté client</button><button class="btn bd bsm">+ Nouvelle transaction</button></div>
+      <div style="display:flex;gap:10px"><button class="btn bw bsm" onclick="openFlow()">👁️ Parcours client</button><button class="btn bd bsm">+ Nouvelle transaction</button></div>
     </div>
     <div class="kpir">
       <div class="kpi"><div class="kpil">💰 Encaissé (avril)</div><div class="kpiv">12 450 €</div><div class="kpic up">↑ +23%</div></div>
@@ -520,6 +520,51 @@ tr:hover td{background:var(--bg2);}
 <div class="pg" id="p-api" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Développeurs</div><div class="stl">Documentation <em>API</em></div><div class="sd">Notre API REST vous permet d'intégrer Contrazy dans vos propres applications.</div><div class="legal-content"><h2>Bientôt disponible</h2><p>La documentation API complète sera disponible prochainement. Vous pourrez intégrer les fonctionnalités de Contrazy directement dans vos systèmes : création de liens, vérification KYC, génération de contrats, signature, paiements et gestion des cautions.</p><p>Pour un accès anticipé, contactez-nous à <strong>api@contrazy.com</strong>.</p></div></section></div>
 <div class="pg" id="p-aide" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Support</div><div class="stl">Centre <em>d'aide</em></div><div class="sd">Retrouvez toutes les réponses à vos questions.</div><div class="legal-content"><h2>Comment démarrer ?</h2><p>1. Créez votre compte Contrazy (essai gratuit 7 jours).<br>2. Connectez votre compte Stripe via notre assistant.<br>3. Configurez vos modèles de contrat et vos checklists documentaires.<br>4. Générez votre premier lien ou QR code de transaction.<br>5. Envoyez-le par SMS, email ou WhatsApp à votre client.</p><h2>Besoin d'aide supplémentaire ?</h2><p>Notre équipe est disponible par email à <strong>support@contrazy.com</strong> ou via le chat en ligne du lundi au vendredi de 9h à 18h.</p></div></section></div>
 <div class="pg" id="p-statut" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Infrastructure</div><div class="stl">Statut des <em>services</em></div><div class="sd">État en temps réel de nos systèmes.</div><div class="g3"><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>Plateforme Contrazy</h3><p>Opérationnel — 99,98% de disponibilité sur les 30 derniers jours.</p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>API Stripe</h3><p>Opérationnel — Aucun incident en cours. <a href="https://status.stripe.com" target="_blank" style="color:var(--teal)">status.stripe.com</a></p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>E-Signature</h3><p>Opérationnel — Temps de réponse moyen : 0,8s.</p></div></div></section></div>
+
+<!-- ========== INSCRIPTION ========== -->
+<div class="pg" id="p-inscription" style="background:var(--navy);min-height:100vh;display:none;align-items:center;justify-content:center;padding:100px 20px 60px">
+<div style="max-width:440px;margin:0 auto;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
+  <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px;line-height:1.6">Créez votre compte et commencez votre essai gratuit de 7 jours. Aucune carte bancaire requise.</p></div>
+  <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" placeholder="Dupont"></div></div>
+  <div class="fg"><label class="fl">Email professionnel</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
+  <div class="fg"><label class="fl">Téléphone</label><input class="fi" placeholder="+33 6 12 34 56 78"></div>
+  <div class="fg"><label class="fl">Nom de votre entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
+  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Minimum 8 caractères"></div>
+  <div style="margin-bottom:20px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
+  <button class="btn bt bf" onclick="go('dash')">Créer mon compte →</button>
+  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600">Se connecter</a></p>
+</div>
+</div>
+
+<!-- ========== CONNEXION ========== -->
+<div class="pg" id="p-connexion" style="background:var(--navy);min-height:100vh;display:none;align-items:center;justify-content:center;padding:100px 20px 60px">
+<div style="max-width:420px;margin:0 auto;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
+  <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px">Connectez-vous à votre espace vendeur.</p></div>
+  <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
+  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Votre mot de passe"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600">Mot de passe oublié ?</a></div>
+  <button class="btn bt bf" onclick="go('dash')">Se connecter</button>
+  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600">Essai gratuit 7 jours</a></p>
+</div>
+</div>
+
+<!-- ========== DEMO ========== -->
+<div class="pg" id="p-demo" style="background:var(--bg2);min-height:100vh;padding-top:64px">
+<div style="background:var(--navy);padding:48px;text-align:center">
+  <div style="max-width:600px;margin:0 auto"><div class="eye">Démo interactive</div><h2 style="font-family:var(--fd);font-size:28px;font-weight:700;color:#fff;margin-bottom:12px">Explorez Contrazy <em style="color:var(--teal);font-style:italic">en action</em></h2><p style="font-size:15px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px">Découvrez le tableau de bord vendeur et le parcours client complet. Données fictives — aucun compte nécessaire.</p>
+  <div style="display:flex;gap:12px;justify-content:center"><button class="btn bt bsm" onclick="go('dash')">📊 Voir le Dashboard</button><button class="btn bg bsm" onclick="openFlow()">👤 Parcours client</button></div></div>
+</div>
+<section class="sc">
+  <div class="stl" style="text-align:center">Comment ça <em>fonctionne</em></div>
+  <div class="sd" style="text-align:center;margin:0 auto 48px">Voici les 3 étapes pour commencer à utiliser Contrazy.</div>
+  <div class="g3">
+    <div class="fc" style="text-align:center"><div style="font-size:40px;margin-bottom:16px">1️⃣</div><h3>Créez votre compte</h3><p>Inscription en 2 minutes. Connectez votre compte Stripe via notre assistant guidé. Configurez vos modèles de contrat et vos checklists documentaires.</p></div>
+    <div class="fc" style="text-align:center"><div style="font-size:40px;margin-bottom:16px">2️⃣</div><h3>Envoyez un lien ou QR code</h3><p>Générez un lien de transaction et envoyez-le par SMS, email ou WhatsApp. Ou imprimez un QR code sur vos supports. Votre client reçoit tout en un clic.</p></div>
+    <div class="fc" style="text-align:center"><div style="font-size:40px;margin-bottom:16px">3️⃣</div><h3>Suivez en temps réel</h3><p>KYC validé, contrat signé, paiement reçu, caution bloquée — chaque étape est tracée dans votre tableau de bord avec notifications.</p></div>
+  </div>
+  <div style="text-align:center;margin-top:48px"><button class="btn bt" onclick="go('inscription')">Essai gratuit 7 jours →</button></div>
+</section>
+</div>
 
 <!-- ========== PAYER FLOW MODAL ========== -->
 <div class="mbg" id="flow-modal"><div class="mbox"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div class="pills" id="fpills"></div><button onclick="closeFlow()" style="background:none;border:none;color:var(--sl2);cursor:pointer;font-size:18px">✕</button></div><div class="prog"><div class="progf" id="fprog" style="width:20%"></div></div><div id="fc"></div></div></div>
@@ -565,11 +610,12 @@ const faqData=[
 
 // ======= ROUTING =======
 function go(id){
-  document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');});
+  document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');p.style.display='';});
   const el=document.getElementById('p-'+id);
-  if(el){el.classList.add('on');}
+  if(el){el.classList.add('on');if(id==='inscription'||id==='connexion'){el.style.display='flex';}}
   const nav=document.getElementById('navbar');
-  nav.className=id==='landing'?'nav nav--dark':'nav nav--light';
+  const darkPages=['landing','inscription','connexion'];
+  nav.className=darkPages.includes(id)?'nav nav--dark':'nav nav--light';
   window.scrollTo(0,0);
 }
 function scrollTo_(id){
@@ -596,10 +642,10 @@ renderTbl('all');
 let annual=false;
 function togglePricing(){annual=!annual;document.getElementById('ptog-btn').classList.toggle('on',annual);document.getElementById('ptog-m').style.fontWeight=annual?'500':'700';document.getElementById('ptog-m').style.color=annual?'var(--sl)':'var(--navy)';document.getElementById('ptog-a').style.fontWeight=annual?'700':'500';document.getElementById('ptog-a').style.color=annual?'var(--navy)':'var(--sl)';renderPricing();}
 function renderPricing(){
-  const m=[19,49,'Sur devis'];const a=[Math.round(19*.85),Math.round(49*.85),'Sur devis'];const p=annual?a:m;
+  const soloM=19,proM=49,soloA=Math.round(19*12*.85),proA=Math.round(49*12*.85);
   document.getElementById('pricing-grid').innerHTML=`
-  <div class="pc"><div class="pcn">Solo</div><div class="pcf">Indépendants · 1 utilisateur</div><div class="pca">${annual?`<span class="old">${m[0]}€</span>`:``}${p[0]}€ <span>HT</span></div><div class="pcper">/ mois · ${annual?'facturé annuellement':'sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>30 transactions</li><li>10 vérifications KYC</li><li>1 modèle de contrat</li><li>E-Signature eIDAS</li><li>QR Codes dynamiques</li><li>Envoi par email</li></ul><button class="btn bw bf bsm">Commencer</button></div>
-  <div class="pc ft"><div class="pcp">Recommandé</div><div class="pcn">Pro</div><div class="pcf">Gestionnaires · Équipes</div><div class="pca">${annual?`<span class="old">${m[1]}€</span>`:``}${p[1]}€ <span>HT</span></div><div class="pcper">/ mois · ${annual?'facturé annuellement':'sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>Transactions illimitées</li><li>50 vérifications KYC</li><li>Contrats illimités</li><li>E-Signatures illimitées</li><li>SMS + WhatsApp</li><li>Profils clients persistants</li><li>Workflow litiges</li><li>QR Codes illimités</li><li>3 utilisateurs</li></ul><button class="btn bt bf bsm">Essai gratuit 7 jours</button></div>
+  <div class="pc"><div class="pcn">Solo</div><div class="pcf">Indépendants · 1 utilisateur</div><div class="pca">${annual?`<span class="old">${soloM*12}€</span>${soloA}€ <span>HT</span>`:`${soloM}€ <span>HT</span>`}</div><div class="pcper">${annual?'/ an · soit '+(soloA/12).toFixed(0)+'€/mois':'/ mois · sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>30 transactions / mois</li><li>10 vérifications KYC / mois</li><li>1 modèle de contrat</li><li>E-Signature eIDAS</li><li>QR Codes dynamiques</li><li>Envoi par email</li></ul><button class="btn bw bf bsm" onclick="go('inscription')">Commencer</button></div>
+  <div class="pc ft"><div class="pcp">Recommandé</div><div class="pcn">Pro</div><div class="pcf">Gestionnaires · Équipes</div><div class="pca">${annual?`<span class="old">${proM*12}€</span>${proA}€ <span>HT</span>`:`${proM}€ <span>HT</span>`}</div><div class="pcper">${annual?'/ an · soit '+(proA/12).toFixed(0)+'€/mois':'/ mois · sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>Transactions illimitées</li><li>50 vérifications KYC / mois</li><li>Contrats illimités</li><li>E-Signatures illimitées</li><li>SMS + WhatsApp</li><li>Profils clients persistants</li><li>Workflow litiges</li><li>QR Codes illimités</li><li>3 utilisateurs</li></ul><button class="btn bt bf bsm" onclick="go('inscription')">Essai gratuit 7 jours</button></div>
   <div class="pc"><div class="pcn">Business</div><div class="pcf">Agences · API · Marque blanche</div><div class="pca">Sur devis</div><div class="pcper">facturation annuelle</div><div class="pcinc">Tout Pro +</div><ul class="pcl"><li>API REST + webhooks</li><li>Marque blanche complète</li><li>Scoring documentaire</li><li>Connecteur PMS / CRM</li><li>Utilisateurs illimités</li><li>SLA + support dédié</li></ul><button class="btn bw bf bsm" onclick="go('contact')">Nous contacter</button></div>`;
 }
 renderPricing();
@@ -614,7 +660,7 @@ document.getElementById('confidentialite-content').innerHTML=`<h2>1. Responsable
 document.getElementById('rgpd-content').innerHTML=`<h2>Notre engagement RGPD</h2><p>Contrazy s'engage à respecter le Règlement Général sur la Protection des Données (RGPD) dans l'ensemble de ses traitements de données personnelles.</p><h2>Mesures techniques</h2><p>Chiffrement des données au repos (AES-256) et en transit (TLS 1.3). Accès restreint aux données sensibles par contrôle d'accès basé sur les rôles. Journalisation de tous les accès aux données personnelles. Sauvegardes chiffrées quotidiennes avec rétention limitée.</p><h2>Mesures organisationnelles</h2><p>Désignation d'un Délégué à la Protection des Données (DPO) joignable à dpo@contrazy.com. Formation régulière de l'équipe aux bonnes pratiques RGPD. Registre des traitements tenu à jour. Analyses d'impact (DPIA) réalisées pour les traitements à risque élevé (KYC, pièces d'identité).</p><h2>Sous-traitants</h2><p>Tous nos sous-traitants (Stripe, Vercel, prestataire e-signature) sont conformes RGPD et font l'objet de clauses contractuelles types ou de garanties équivalentes.</p><h2>Pièces d'identité</h2><p>Les documents d'identité uploadés par les clients sont traités par Stripe Identity, certifié SOC 2 Type II. Contrazy ne stocke pas les images des documents. Seul le résultat de la vérification (validé/refusé) et les métadonnées sont conservés.</p><h2>Droit à l'effacement</h2><p>Tout client peut demander la suppression de ses données personnelles en contactant le vendeur concerné ou directement Contrazy à dpo@contrazy.com. La suppression est effective sous 30 jours.</p><p style="margin-top:24px;font-size:12px;color:var(--sl2)">Dernière mise à jour : 20 avril 2026</p>`;
 
 // ======= FOOTER (inject into all pages) =======
-const footerHTML=`<footer class="ft"><div class="fti"><div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="ftbr">La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.</p></div><div class="ftc"><h4>Produit</h4><a onclick="go('landing')">Fonctionnalités</a><a onclick="scrollTo_('tarifs')">Tarifs</a><a onclick="go('dash')">Dashboard</a><a onclick="openFlow()">Démo client</a></div><div class="ftc"><h4>Ressources</h4><a onclick="go('blog')">Blog</a><a onclick="go('faq')">FAQ</a><a onclick="go('api')">Documentation API</a><a onclick="go('aide')">Centre d'aide</a><a onclick="go('statut')">Statut</a></div><div class="ftc"><h4>Légal</h4><a onclick="go('cgv')">CGV</a><a onclick="go('confidentialite')">Politique de confidentialité</a><a onclick="go('mentions')">Mentions légales</a><a onclick="go('rgpd')">RGPD</a><a onclick="go('contact')">Contact</a></div></div><div class="ftb">© 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity<br>Aucune détention de fonds pour compte de tiers · Tous droits réservés</div></footer>`;
+const footerHTML=`<footer class="ft"><div class="fti"><div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="ftbr">La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.</p></div><div class="ftc"><h4>Produit</h4><a onclick="go('landing')">Fonctionnalités</a><a onclick="scrollTo_('tarifs')">Tarifs</a><a onclick="go('demo')">Démo</a><a onclick="go('inscription')">Essai gratuit</a></div><div class="ftc"><h4>Ressources</h4><a onclick="go('blog')">Blog</a><a onclick="go('faq')">FAQ</a><a onclick="go('api')">Documentation API</a><a onclick="go('aide')">Centre d'aide</a><a onclick="go('statut')">Statut</a></div><div class="ftc"><h4>Légal</h4><a onclick="go('cgv')">CGV</a><a onclick="go('confidentialite')">Politique de confidentialité</a><a onclick="go('mentions')">Mentions légales</a><a onclick="go('rgpd')">RGPD</a><a onclick="go('contact')">Contact</a></div></div><div class="ftb">© 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity<br>Aucune détention de fonds pour compte de tiers · Tous droits réservés</div></footer>`;
 document.querySelectorAll('.pg').forEach(p=>{if(!p.querySelector('.ft')){const d=document.createElement('div');d.innerHTML=footerHTML;p.appendChild(d.firstElementChild);}});
 
 // ======= PAYER FLOW =======
