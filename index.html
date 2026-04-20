@@ -504,33 +504,18 @@ tr:hover td{background:var(--bg2);}
 </section>
 </div>
 
-<!-- ========== DASHBOARD ========== -->
+<!-- ========== DASHBOARD (redirect to backoffice) ========== -->
 <div class="pg" id="p-dash" style="background:var(--bg2);min-height:100vh;padding-top:64px">
-<div class="dash">
-  <aside class="sb">
-    <div class="sbl">Principal</div>
-    <button class="sbi on">📊 Tableau de bord</button><button class="sbi">💳 Transactions</button><button class="sbi">📝 Contrats</button><button class="sbi">👥 Clients</button><button class="sbi">🪪 Vérifications</button><button class="sbi">✍️ E-Signatures</button><button class="sbi">⚖️ Litiges</button>
-    <div class="sbd"></div><div class="sbl">Configuration</div>
-    <button class="sbi">📄 Modèles contrats</button><button class="sbi">✅ Checklists pièces</button><button class="sbi">🔗 Liens & QR Codes</button>
-    <div class="sbd"></div>
-    <button class="sbi">⚙️ Paramètres</button><button class="sbi">🏦 Stripe Connect</button>
-  </aside>
-  <main class="mn">
-    <div class="dtp"><div><div class="dh">Tableau de bord</div><div class="dsb">Bienvenue, Aziz</div></div>
-      <div style="display:flex;gap:10px"><button class="btn bw bsm" onclick="openFlow()">👁️ Parcours client</button><button class="btn bd bsm">+ Nouvelle transaction</button></div>
-    </div>
-    <div class="kpir">
-      <div class="kpi"><div class="kpil">💰 Encaissé (avril)</div><div class="kpiv">12 450 €</div><div class="kpic up">↑ +23%</div></div>
-      <div class="kpi"><div class="kpil">🔒 Cautions actives</div><div class="kpiv">8 400 €</div><div class="kpic up">14 en cours</div></div>
-      <div class="kpi"><div class="kpil">✍️ Contrats signés</div><div class="kpiv">47</div><div class="kpic up">↑ +12 / sem</div></div>
-      <div class="kpi"><div class="kpil">🪪 Vérif. auto</div><div class="kpiv">98%</div><div class="kpic">taux validation</div></div>
-    </div>
-    <div class="tbl">
-      <div class="tblh"><div class="tblt">Dossiers récents</div><div class="tbtabs"><button class="tbt on" onclick="ftbl('all',this)">Tous</button><button class="tbt" onclick="ftbl('Caution',this)">Cautions</button><button class="tbt" onclick="ftbl('Paiement',this)">Paiements</button><button class="tbt" onclick="ftbl('wt',this)">En attente</button></div></div>
-      <table><thead><tr><th>Client</th><th>Réf.</th><th>Type</th><th>Montant</th><th>KYC</th><th>Statut</th></tr></thead><tbody id="tbl-b"></tbody></table>
-    </div>
-  </main>
-</div>
+<section class="sc" style="text-align:center;padding-top:120px">
+  <div style="font-size:48px;margin-bottom:20px">🔐</div>
+  <div class="stl">Accédez à votre <em>back-office</em></div>
+  <p style="font-size:15px;color:var(--sl);max-width:400px;margin:16px auto 32px;line-height:1.7">Connectez-vous ou créez votre compte pour accéder à votre tableau de bord vendeur.</p>
+  <div style="display:flex;gap:12px;justify-content:center">
+    <button class="btn bt" onclick="go('inscription')">Essai gratuit 7 jours →</button>
+    <button class="btn bw" onclick="go('connexion')">Se connecter</button>
+  </div>
+  <p style="font-size:13px;color:var(--sl2);margin-top:24px">Ou accédez directement au <a onclick="window.location.href='contrazy-backoffice.html'" style="color:var(--teal);font-weight:600;cursor:pointer">backoffice de démonstration →</a></p>
+</section>
 </div>
 
 <!-- ========== LEGAL PAGES ========== -->
@@ -553,7 +538,7 @@ tr:hover td{background:var(--bg2);}
   <div class="fg"><label class="fl">Nom de votre entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
   <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Minimum 8 caractères"></div>
   <div style="margin-bottom:20px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
-  <button class="btn bt bf" onclick="go('dash')">Créer mon compte →</button>
+  <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'">Créer mon compte →</button>
   <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">Se connecter</a></p>
 </div>
 </div>
@@ -567,7 +552,7 @@ tr:hover td{background:var(--bg2);}
   <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
   <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Votre mot de passe"></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600;cursor:pointer">Mot de passe oublié ?</a></div>
-  <button class="btn bt bf" onclick="go('dash')">Se connecter</button>
+  <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'">Se connecter</button>
   <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600;cursor:pointer">Essai gratuit 7 jours</a></p>
 </div>
 </div>
@@ -577,7 +562,7 @@ tr:hover td{background:var(--bg2);}
 <div class="pg" id="p-demo" style="background:var(--bg2);min-height:100vh;padding-top:64px">
 <div style="background:var(--navy);padding:48px;text-align:center">
   <div style="max-width:600px;margin:0 auto"><div class="eye">Démo interactive</div><h2 style="font-family:var(--fd);font-size:28px;font-weight:700;color:#fff;margin-bottom:12px">Explorez Contrazy <em style="color:var(--teal);font-style:italic">en action</em></h2><p style="font-size:15px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:20px">Découvrez le tableau de bord vendeur et le parcours client complet. Données fictives — aucun compte nécessaire.</p>
-  <div style="display:flex;gap:12px;justify-content:center"><button class="btn bt bsm" onclick="go('dash')">📊 Voir le Dashboard</button><button class="btn bg bsm" onclick="openFlow()">👤 Parcours client</button></div></div>
+  <div style="display:flex;gap:12px;justify-content:center"><button class="btn bt bsm" onclick="window.location.href='contrazy-backoffice.html'">📊 Voir le Dashboard</button><button class="btn bg bsm" onclick="openFlow()">👤 Parcours client</button></div></div>
 </div>
 <section class="sc">
   <div class="stl" style="text-align:center">Comment ça <em>fonctionne</em></div>
@@ -655,13 +640,7 @@ document.getElementById('blog-grid').innerHTML=blogPosts.map(p=>`<div class="blc
 document.getElementById('faq-list').innerHTML=faqData.map((f,i)=>`<div class="faq-item" onclick="toggleFaq(this)"><button class="faq-q">${f.q}<span class="faq-arr">▼</span></button><div class="faq-a"><p>${f.a}</p></div></div>`).join('');
 function toggleFaq(el){el.classList.toggle('open');}
 
-// ======= TABLE =======
-function renderTbl(filter){
-  const f=filter==='all'?txns:filter==='wt'?txns.filter(t=>t.st==='wt'):txns.filter(t=>t.ty===filter);
-  document.getElementById('tbl-b').innerHTML=f.map(t=>`<tr><td><div class="cli"><div class="av" style="background:${t.c}">${t.cl.split(' ').map(n=>n[0]).join('')}</div><div><div class="cln">${t.cl}</div><div class="cle">${t.em}</div></div></div></td><td style="font-size:12px">${t.ref}</td><td>${t.ty}</td><td style="font-weight:700;color:var(--navy)">${t.a}</td><td>${t.docs!=='—'?`<span style="color:var(--grn);font-size:12px;font-weight:600">✓ ${t.docs}</span>`:`<span style="color:var(--sl2)">—</span>`}</td><td><span class="bdg ${t.st}"><span class="bdgd"></span>${stL[t.st]}</span></td></tr>`).join('');
-}
-function ftbl(f,el){document.querySelectorAll('.tbt').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderTbl(f);}
-renderTbl('all');
+// ======= (dashboard is now in contrazy-backoffice.html) =======
 
 // ======= PRICING =======
 let annual=false;

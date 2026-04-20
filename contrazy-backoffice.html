@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Contrazy — Back Office Vendeur</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--bg2:#F8F9FB;--navy:#0C1E2F;--navy2:#132D46;--teal:#11C9B0;--teal-s:#E8FAF7;--teal-g:rgba(17,201,176,.08);--sl:#64748B;--sl2:#94A3B8;--sl3:#CBD5E1;--grn:#22C55E;--grn-b:rgba(34,197,94,.08);--amb:#F59E0B;--amb-b:rgba(245,158,11,.06);--red:#EF4444;--red-b:rgba(239,68,68,.06);--blu:#3B82F6;--blu-b:rgba(59,130,246,.06);--bdr:#E2E8F0;--r:10px;--rl:14px;--rx:20px;--f:'Plus Jakarta Sans',sans-serif;--sh:0 4px 6px -1px rgba(0,0,0,.06);--shl:0 10px 15px -3px rgba(0,0,0,.07);}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--f);color:var(--navy);background:var(--bg2);-webkit-font-smoothing:antialiased;}
+.top{position:fixed;top:0;left:0;right:0;z-index:50;height:56px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+.top-logo{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;}.top-logo .t{color:var(--teal);}
+.top-r{display:flex;align-items:center;gap:16px;}
+.top-r span{font-size:13px;color:rgba(255,255,255,.6);}
+.top-r button{height:32px;padding:0 14px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:var(--f);}
+.top-r .bt2{background:var(--teal);color:#fff;}.top-r .bw2{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);}
+.wrap{display:flex;padding-top:56px;min-height:100vh;}
+.sb{width:220px;background:var(--bg);border-right:1px solid var(--bdr);padding:16px 10px;position:fixed;top:56px;left:0;bottom:0;overflow-y:auto;}
+.sb-l{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--sl2);padding:10px 10px 4px;font-weight:700;}
+.sb-i{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;font-size:13px;color:var(--sl);cursor:pointer;border:none;background:none;text-align:left;width:100%;font-weight:500;font-family:var(--f);transition:all .1s;}
+.sb-i:hover{background:var(--bg2);color:var(--navy);}
+.sb-i.on{background:var(--teal-s);color:var(--teal);font-weight:600;}
+.sb-i .cnt{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;}
+.sb-d{height:1px;background:var(--bdr);margin:6px 6px;}
+.mn{flex:1;margin-left:220px;padding:24px 28px;}
+.pg{display:none;}.pg.on{display:block;}
+
+/* COMPONENTS */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
+.hdr h1{font-size:22px;font-weight:800;}.hdr p{font-size:13px;color:var(--sl2);margin-top:2px;}
+.hdr-btns{display:flex;gap:8px;}
+.btn{height:40px;padding:0 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;font-family:var(--f);}
+.bt{background:var(--teal);color:#fff;}.bt:hover{background:#0EB8A0;}
+.bd{background:var(--navy);color:#fff;}.bd:hover{background:var(--navy2);}
+.bw{background:#fff;color:var(--navy);border:1.5px solid var(--bdr);}.bw:hover{border-color:var(--teal);color:var(--teal);}
+.br{background:var(--red);color:#fff;}.br:hover{background:#DC2626;}
+
+/* KPI */
+.kpi-r{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.kpi{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;}
+.kpi-l{font-size:12px;color:var(--sl2);margin-bottom:6px;}
+.kpi-v{font-size:26px;font-weight:800;}
+.kpi-c{font-size:11px;margin-top:4px;font-weight:600;}
+.kpi-c.up{color:var(--grn);}.kpi-c.dn{color:var(--red);}
+
+/* TABLE */
+.tbl{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;margin-bottom:24px;}
+.tbl-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--bdr);}
+.tbl-t{font-size:15px;font-weight:700;}
+.tbl-tabs{display:flex;gap:2px;}
+.tt{padding:4px 10px;border-radius:6px;font-size:12px;color:var(--sl2);cursor:pointer;border:none;background:transparent;font-weight:500;font-family:var(--f);}
+.tt.on{background:var(--teal-s);color:var(--teal);font-weight:600;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:10px 18px;font-size:11px;color:var(--sl2);text-transform:uppercase;letter-spacing:1.2px;border-bottom:1px solid var(--bdr);font-weight:700;}
+td{padding:11px 18px;font-size:13px;border-bottom:1px solid #F1F5F9;color:var(--sl);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg2);}
+tr{cursor:pointer;}
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:600;}
+.bdg.ok{background:var(--grn-b);color:var(--grn);}.bdg.wt{background:var(--amb-b);color:var(--amb);}.bdg.er{background:var(--red-b);color:var(--red);}.bdg.sg{background:var(--blu-b);color:var(--blu);}.bdg.dr{background:var(--bg2);color:var(--sl2);}
+.bdg-d{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.cli{display:flex;align-items:center;gap:10px;}.cln{font-weight:600;color:var(--navy);font-size:13px;}.cle{font-size:11px;color:var(--sl2);}
+
+/* DETAIL PANEL */
+.detail{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rl);padding:28px;margin-bottom:24px;}
+.detail h2{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;}
+.detail-item{background:var(--bg2);border-radius:8px;padding:14px;}
+.detail-item label{font-size:11px;color:var(--sl2);text-transform:uppercase;letter-spacing:1px;font-weight:700;display:block;margin-bottom:4px;}
+.detail-item span{font-size:15px;font-weight:600;color:var(--navy);}
+.timeline{border-left:2px solid var(--bdr);margin:24px 0;padding-left:20px;}
+.tl-item{position:relative;margin-bottom:16px;}
+.tl-item::before{content:'';position:absolute;left:-25px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid var(--bg);}
+.tl-item.pending::before{background:var(--sl3);}
+.tl-item .tl-t{font-size:13px;font-weight:600;color:var(--navy);}
+.tl-item .tl-d{font-size:12px;color:var(--sl2);margin-top:2px;}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding-top:20px;border-top:1px solid var(--bdr);}
+
+/* CARDS */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.card{background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rl);padding:24px;transition:all .2s;cursor:pointer;}
+.card:hover{border-color:rgba(17,201,176,.3);box-shadow:var(--sh);transform:translateY(-2px);}
+.card h3{font-size:15px;font-weight:700;margin-bottom:6px;}
+.card p{font-size:13px;color:var(--sl);line-height:1.5;}
+.card-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-top:10px;text-transform:uppercase;letter-spacing:.8px;}
+.card-meta{font-size:11px;color:var(--sl2);margin-top:8px;}
+
+/* ALERTS */
+.alert-bar{display:flex;gap:12px;margin-bottom:24px;}
+.alert{flex:1;padding:14px 18px;border-radius:var(--r);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;}
+.alert.warn{background:var(--amb-b);color:#92400E;border:1px solid rgba(245,158,11,.15);}
+.alert.info{background:var(--blu-b);color:#1E40AF;border:1px solid rgba(59,130,246,.15);}
+.alert.err{background:var(--red-b);color:#991B1B;border:1px solid rgba(239,68,68,.15);}
+.alert-ic{font-size:18px;}
+
+@media(max-width:900px){
+  .sb{display:none;}.mn{margin-left:0;}
+  .kpi-r{grid-template-columns:1fr 1fr;}
+  .detail-grid{grid-template-columns:1fr;}
+  .card-grid{grid-template-columns:1fr;}
+  .alert-bar{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="top-logo">C<span class="t">on</span>trazy <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.4);margin-left:6px">Back Office</span></span>
+  <div class="top-r">
+    <span>Aziz · LOCAZ SARL</span>
+    <button class="bw2" onclick="window.location.href='index.html'">← Retour au site</button>
+    <button class="bw2">⚙️ Paramètres</button>
+    <button class="bt2" onclick="sbNav('cockpit')">📊 Cockpit</button>
+  </div>
+</div>
+
+<div class="wrap">
+<aside class="sb">
+  <div class="sb-l">Cockpit</div>
+  <button class="sb-i on" onclick="sbNav('cockpit')">📊 Tableau de bord</button>
+  <button class="sb-i" onclick="sbNav('today')">📋 Actions du jour<span class="cnt">5</span></button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Transactions</div>
+  <button class="sb-i" onclick="sbNav('transactions')">💳 Toutes les transactions</button>
+  <button class="sb-i" onclick="sbNav('txn-detail')">🔍 Détail transaction</button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Documents</div>
+  <button class="sb-i" onclick="sbNav('contrats')">📝 Modèles de contrats</button>
+  <button class="sb-i" onclick="sbNav('checklists')">✅ Checklists pièces</button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Vérifications</div>
+  <button class="sb-i" onclick="sbNav('kyc')">🪪 KYC / Identity</button>
+  <button class="sb-i" onclick="sbNav('signatures')">✍️ E-Signatures</button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Finance</div>
+  <button class="sb-i" onclick="sbNav('cautions')">🔒 Cautions / Autorisations</button>
+  <button class="sb-i" onclick="sbNav('paiements')">💰 Paiements encaissés</button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Support</div>
+  <button class="sb-i" onclick="sbNav('litiges')">⚖️ Litiges<span class="cnt">2</span></button>
+  <button class="sb-i" onclick="sbNav('clients')">👥 Clients</button>
+  <div class="sb-d"></div>
+  <button class="sb-i" onclick="sbNav('liens')">🔗 Liens & QR Codes</button>
+  <button class="sb-i" onclick="sbNav('webhooks')">🔔 Logs webhooks</button>
+  <button class="sb-i" onclick="sbNav('stripe')">🏦 Stripe Connect</button>
+</aside>
+
+<main class="mn">
+
+<!-- ===== COCKPIT ===== -->
+<div class="pg on" id="v-cockpit">
+  <div class="hdr"><div><h1>Tableau de bord</h1><p>Vue d'ensemble de votre activité · Dernière mise à jour il y a 3 min</p></div><div class="hdr-btns"><button class="btn bw">📥 Exporter</button><button class="btn bd">+ Nouvelle transaction</button></div></div>
+
+  <div class="alert-bar">
+    <div class="alert warn"><span class="alert-ic">⚠️</span>3 cautions expirent dans les prochaines 24h — <strong style="margin-left:4px;cursor:pointer" onclick="sbNav('cautions')">Voir</strong></div>
+    <div class="alert info"><span class="alert-ic">🪪</span>2 vérifications KYC en attente de documents — <strong style="margin-left:4px;cursor:pointer" onclick="sbNav('kyc')">Traiter</strong></div>
+    <div class="alert err"><span class="alert-ic">⚖️</span>1 litige ouvert non traité — <strong style="margin-left:4px;cursor:pointer" onclick="sbNav('litiges')">Répondre</strong></div>
+  </div>
+
+  <div class="kpi-r">
+    <div class="kpi"><div class="kpi-l">💰 Encaissé (avril)</div><div class="kpi-v">12 450 €</div><div class="kpi-c up">↑ +23% vs mars</div></div>
+    <div class="kpi"><div class="kpi-l">🔒 Cautions actives</div><div class="kpi-v">8 400 €</div><div class="kpi-c">14 en cours</div></div>
+    <div class="kpi"><div class="kpi-l">✍️ Contrats signés</div><div class="kpi-v">47</div><div class="kpi-c up">↑ +12 cette semaine</div></div>
+    <div class="kpi"><div class="kpi-l">🪪 Taux KYC auto</div><div class="kpi-v">98%</div><div class="kpi-c">2 manuels ce mois</div></div>
+  </div>
+
+  <div class="tbl">
+    <div class="tbl-h"><div class="tbl-t">Dernières transactions</div><div class="tbl-tabs"><button class="tt on">Toutes</button><button class="tt">Cautions</button><button class="tt">Paiements</button><button class="tt">En attente</button></div></div>
+    <table><thead><tr><th>Client</th><th>Réf.</th><th>Type</th><th>Montant</th><th>KYC</th><th>Contrat</th><th>Statut</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr onclick="sbNav('txn-detail')"><td><div class="cli"><div class="av" style="background:#0C1E2F">MD</div><div><div class="cln">Marie Dupont</div><div class="cle">marie@gmail.com</div></div></div></td><td style="font-family:monospace;font-size:12px">CTZ-0412</td><td>Caution</td><td style="font-weight:700">800 €</td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td><span class="bdg sg"><span class="bdg-d"></span>Signé</span></td><td><span class="bdg ok"><span class="bdg-d"></span>Sécurisée</span></td><td style="font-size:12px;color:var(--sl2)">17/04</td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#11C9B0">JM</div><div><div class="cln">Jean-Pierre Martin</div><div class="cle">jp.martin@free.fr</div></div></div></td><td style="font-family:monospace;font-size:12px">CTZ-0411</td><td>Paiement</td><td style="font-weight:700">1 250 €</td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td><span class="bdg sg"><span class="bdg-d"></span>Signé</span></td><td><span class="bdg ok"><span class="bdg-d"></span>Encaissé</span></td><td style="font-size:12px;color:var(--sl2)">16/04</td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#F59E0B">SC</div><div><div class="cln">Sarah Cohen</div><div class="cle">s.cohen@outlook.com</div></div></div></td><td style="font-family:monospace;font-size:12px">CTZ-0410</td><td>Caution</td><td style="font-weight:700">350 €</td><td><span class="bdg wt"><span class="bdg-d"></span>En attente</span></td><td><span class="bdg dr"><span class="bdg-d"></span>Draft</span></td><td><span class="bdg wt"><span class="bdg-d"></span>KYC requis</span></td><td style="font-size:12px;color:var(--sl2)">16/04</td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#EF4444">AB</div><div><div class="cln">Ahmed Benali</div><div class="cle">ahmed.b@gmail.com</div></div></div></td><td style="font-family:monospace;font-size:12px">CTZ-0409</td><td>Caution</td><td style="font-weight:700">500 €</td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td><span class="bdg sg"><span class="bdg-d"></span>Signé</span></td><td><span class="bdg ok"><span class="bdg-d"></span>Sécurisée</span></td><td style="font-size:12px;color:var(--sl2)">15/04</td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#3B82F6">LR</div><div><div class="cln">Laura Rossi</div><div class="cle">l.rossi@it.com</div></div></div></td><td style="font-family:monospace;font-size:12px">CTZ-0408</td><td>Paiement</td><td style="font-weight:700">2 100 €</td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td><span class="bdg sg"><span class="bdg-d"></span>Signé</span></td><td><span class="bdg er"><span class="bdg-d"></span>Échoué</span></td><td style="font-size:12px;color:var(--sl2)">15/04</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== ACTIONS DU JOUR ===== -->
+<div class="pg" id="v-today">
+  <div class="hdr"><div><h1>📋 Actions du jour</h1><p>5 actions requièrent votre attention</p></div></div>
+  <div class="tbl"><table><thead><tr><th>Priorité</th><th>Action</th><th>Client</th><th>Réf.</th><th>Échéance</th><th></th></tr></thead><tbody>
+    <tr><td><span class="bdg er"><span class="bdg-d"></span>Urgent</span></td><td>Caution expire dans 6h</td><td>Marie Dupont</td><td style="font-family:monospace;font-size:12px">CTZ-0412</td><td>17/04 18h</td><td><button class="btn bt" style="height:32px;padding:0 12px;font-size:11px">Capturer</button></td></tr>
+    <tr><td><span class="bdg er"><span class="bdg-d"></span>Urgent</span></td><td>Caution expire dans 12h</td><td>Ahmed Benali</td><td style="font-family:monospace;font-size:12px">CTZ-0409</td><td>17/04 23h</td><td><button class="btn bw" style="height:32px;padding:0 12px;font-size:11px">Libérer</button></td></tr>
+    <tr><td><span class="bdg wt"><span class="bdg-d"></span>Important</span></td><td>KYC en attente de documents</td><td>Sarah Cohen</td><td style="font-family:monospace;font-size:12px">CTZ-0410</td><td>—</td><td><button class="btn bw" style="height:32px;padding:0 12px;font-size:11px">Relancer</button></td></tr>
+    <tr><td><span class="bdg wt"><span class="bdg-d"></span>Important</span></td><td>Litige ouvert — réponse requise</td><td>Laura Rossi</td><td style="font-family:monospace;font-size:12px">CTZ-0408</td><td>19/04</td><td><button class="btn bw" style="height:32px;padding:0 12px;font-size:11px">Traiter</button></td></tr>
+    <tr><td><span class="bdg dr"><span class="bdg-d"></span>Normal</span></td><td>Paiement échoué — relancer</td><td>Laura Rossi</td><td style="font-family:monospace;font-size:12px">CTZ-0408</td><td>—</td><td><button class="btn bw" style="height:32px;padding:0 12px;font-size:11px">Renvoyer lien</button></td></tr>
+  </tbody></table></div>
+</div>
+
+<!-- ===== TRANSACTION DETAIL ===== -->
+<div class="pg" id="v-txn-detail">
+  <div class="hdr"><div><h1>🔍 Détail transaction CTZ-0412</h1><p>Marie Dupont · marie@gmail.com · Caution · 800 €</p></div><div class="hdr-btns"><button class="btn bw">📄 PDF</button><button class="btn bw">🔗 Lien</button><button class="btn bd">📨 Relancer</button></div></div>
+
+  <div class="detail">
+    <h2>📊 Informations du dossier</h2>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Client</label><span>Marie Dupont</span></div>
+      <div class="detail-item"><label>Type</label><span>Caution (empreinte CB)</span></div>
+      <div class="detail-item"><label>Montant</label><span>800,00 €</span></div>
+      <div class="detail-item"><label>Statut global</label><span><span class="bdg ok"><span class="bdg-d"></span>Sécurisée</span></span></div>
+      <div class="detail-item"><label>KYC</label><span><span class="bdg ok"><span class="bdg-d"></span>3/3 validés</span></span></div>
+      <div class="detail-item"><label>Contrat</label><span><span class="bdg sg"><span class="bdg-d"></span>Signé eIDAS</span></span></div>
+      <div class="detail-item"><label>Modèle contrat</label><span>Location véhicule v3</span></div>
+      <div class="detail-item"><label>Capture expire</label><span style="color:var(--amb);font-weight:700">17/04 à 18h00</span></div>
+      <div class="detail-item"><label>Stripe PaymentIntent</label><span style="font-family:monospace;font-size:12px">pi_3QfK...x7Yz</span></div>
+    </div>
+
+    <h2>📅 Timeline</h2>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-t">Lien envoyé par SMS</div><div class="tl-d">10/04/2026 · 09:14 · +33 6 •• •• 42</div></div>
+      <div class="tl-item"><div class="tl-t">Client a ouvert le lien</div><div class="tl-d">10/04/2026 · 09:31 · iPhone · Nice, FR</div></div>
+      <div class="tl-item"><div class="tl-t">Profil complété</div><div class="tl-d">10/04/2026 · 09:33</div></div>
+      <div class="tl-item"><div class="tl-t">KYC · CNI vérifiée ✓</div><div class="tl-d">10/04/2026 · 09:35 · Stripe Identity · vs_3Qf...</div></div>
+      <div class="tl-item"><div class="tl-t">KYC · Permis vérifié ✓</div><div class="tl-d">10/04/2026 · 09:36</div></div>
+      <div class="tl-item"><div class="tl-t">KYC · Selfie correspondance ✓</div><div class="tl-d">10/04/2026 · 09:37</div></div>
+      <div class="tl-item"><div class="tl-t">Contrat généré (Location véhicule v3)</div><div class="tl-d">10/04/2026 · 09:37 · PDF · 3 pages</div></div>
+      <div class="tl-item"><div class="tl-t">E-Signature eIDAS · OTP validé</div><div class="tl-d">10/04/2026 · 09:39 · Code envoyé au +33 6 •• •• 42</div></div>
+      <div class="tl-item"><div class="tl-t">Empreinte bancaire autorisée · 800 €</div><div class="tl-d">10/04/2026 · 09:41 · Visa •••• 4242 · 3DS ✓</div></div>
+      <div class="tl-item pending"><div class="tl-t" style="color:var(--amb)">⏳ En attente de capture ou libération</div><div class="tl-d">Expire le 17/04/2026 à 18h00</div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn bt">✅ Capturer (tout ou partie)</button>
+      <button class="btn bw">🔓 Libérer la caution</button>
+      <button class="btn bw">📨 Relancer le client</button>
+      <button class="btn bw">🔗 Renvoyer le lien</button>
+      <button class="btn bw">📄 Re-générer le contrat</button>
+      <button class="btn bw">✍️ Demander nouvelle signature</button>
+      <button class="btn bw">🪪 Demander document supp.</button>
+      <button class="btn bw" style="color:var(--amb)">⚖️ Ouvrir un litige</button>
+      <button class="btn bw" style="color:var(--red)">❌ Annuler la transaction</button>
+      <button class="btn bw">📁 Archiver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TRANSACTIONS ===== -->
+<div class="pg" id="v-transactions">
+  <div class="hdr"><div><h1>💳 Transactions</h1><p>Toutes les transactions triées par date</p></div><div class="hdr-btns"><button class="btn bw">🔍 Filtrer</button><button class="btn bw">📥 Export CSV</button><button class="btn bd">+ Nouvelle</button></div></div>
+  <div class="kpi-r">
+    <div class="kpi"><div class="kpi-l">Total ce mois</div><div class="kpi-v">23</div></div>
+    <div class="kpi"><div class="kpi-l">Complétées</div><div class="kpi-v" style="color:var(--grn)">18</div></div>
+    <div class="kpi"><div class="kpi-l">En cours</div><div class="kpi-v" style="color:var(--amb)">3</div></div>
+    <div class="kpi"><div class="kpi-l">Échouées</div><div class="kpi-v" style="color:var(--red)">2</div></div>
+  </div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Machine d'états</div></div>
+    <table><thead><tr><th>Statut</th><th>Description</th><th>Nb</th></tr></thead><tbody>
+      <tr><td><span class="bdg dr"><span class="bdg-d"></span>draft</span></td><td>Transaction créée, lien non envoyé</td><td>1</td></tr>
+      <tr><td><span class="bdg wt"><span class="bdg-d"></span>link_sent</span></td><td>Lien envoyé au client</td><td>2</td></tr>
+      <tr><td><span class="bdg wt"><span class="bdg-d"></span>customer_started</span></td><td>Client a ouvert le lien</td><td>0</td></tr>
+      <tr><td><span class="bdg wt"><span class="bdg-d"></span>docs_submitted</span></td><td>Documents uploadés</td><td>1</td></tr>
+      <tr><td><span class="bdg sg"><span class="bdg-d"></span>kyc_verified</span></td><td>KYC validé par Stripe Identity</td><td>0</td></tr>
+      <tr><td><span class="bdg sg"><span class="bdg-d"></span>contract_generated</span></td><td>Contrat PDF généré</td><td>0</td></tr>
+      <tr><td><span class="bdg sg"><span class="bdg-d"></span>signed</span></td><td>Contrat signé (eIDAS)</td><td>0</td></tr>
+      <tr><td><span class="bdg ok"><span class="bdg-d"></span>payment_authorized</span></td><td>Paiement/caution autorisé</td><td>3</td></tr>
+      <tr><td><span class="bdg ok"><span class="bdg-d"></span>completed</span></td><td>Dossier complet, clôturé</td><td>14</td></tr>
+      <tr><td><span class="bdg er"><span class="bdg-d"></span>cancelled</span></td><td>Annulé par le vendeur</td><td>1</td></tr>
+      <tr><td><span class="bdg er"><span class="bdg-d"></span>disputed</span></td><td>Litige ouvert</td><td>1</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== CONTRATS ===== -->
+<div class="pg" id="v-contrats">
+  <div class="hdr"><div><h1>📝 Modèles de contrats</h1><p>Bibliothèque de vos modèles — variables dynamiques, clauses activables</p></div><div class="hdr-btns"><button class="btn bd">+ Nouveau modèle</button></div></div>
+  <div class="card-grid">
+    <div class="card"><div style="font-size:28px;margin-bottom:12px">🚗</div><h3>Location véhicule v3</h3><p>Contrat de mise à disposition de véhicule avec conditions de restitution, assurance et pénalités.</p><div class="card-meta">12 variables · 5 clauses · FR · Dernière modif. 14/04</div><div class="card-tag" style="color:var(--grn);background:var(--grn-b)">ACTIF · 34 UTILISATIONS</div></div>
+    <div class="card"><div style="font-size:28px;margin-bottom:12px">🏠</div><h3>Location saisonnière</h3><p>État des lieux, inventaire, conditions d'annulation, montant de la caution et règles de restitution.</p><div class="card-meta">15 variables · 7 clauses · FR · Dernière modif. 10/04</div><div class="card-tag" style="color:var(--grn);background:var(--grn-b)">ACTIF · 12 UTILISATIONS</div></div>
+    <div class="card"><div style="font-size:28px;margin-bottom:12px">🔧</div><h3>Devis prestation</h3><p>Devis avec description des travaux, conditions de paiement (acompte + solde) et délais.</p><div class="card-meta">8 variables · 3 clauses · FR · Dernière modif. 08/04</div><div class="card-tag" style="color:var(--amb);background:var(--amb-b)">BROUILLON</div></div>
+  </div>
+</div>
+
+<!-- ===== CHECKLISTS ===== -->
+<div class="pg" id="v-checklists">
+  <div class="hdr"><div><h1>✅ Checklists documentaires</h1><p>Pièces exigées par type de transaction</p></div><div class="hdr-btns"><button class="btn bd">+ Nouvelle checklist</button></div></div>
+  <div class="card-grid">
+    <div class="card"><h3>Location véhicule</h3><p>CNI/Passeport · Permis de conduire · Selfie avec permis</p><div class="card-meta">3 pièces obligatoires · Selfie activé</div></div>
+    <div class="card"><h3>Location saisonnière</h3><p>CNI/Passeport · Justificatif de domicile</p><div class="card-meta">2 pièces obligatoires</div></div>
+    <div class="card"><h3>Prestation standard</h3><p>CNI/Passeport</p><div class="card-meta">1 pièce obligatoire</div></div>
+  </div>
+</div>
+
+<!-- ===== KYC ===== -->
+<div class="pg" id="v-kyc">
+  <div class="hdr"><div><h1>🪪 Vérifications KYC</h1><p>Résultats Stripe Identity — vérifications automatiques et manuelles</p></div><div class="hdr-btns"><button class="btn bw">🔍 Filtrer</button><button class="btn bw">📥 Export</button></div></div>
+  <div class="kpi-r">
+    <div class="kpi"><div class="kpi-l">Total ce mois</div><div class="kpi-v">52</div></div>
+    <div class="kpi"><div class="kpi-l">Validés auto</div><div class="kpi-v" style="color:var(--grn)">49</div></div>
+    <div class="kpi"><div class="kpi-l">En attente</div><div class="kpi-v" style="color:var(--amb)">2</div></div>
+    <div class="kpi"><div class="kpi-l">Échoués</div><div class="kpi-v" style="color:var(--red)">1</div></div>
+  </div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Vérifications récentes</div></div>
+    <table><thead><tr><th>Client</th><th>Document</th><th>Pays</th><th>Selfie</th><th>Résultat</th><th>Date</th><th>Session ID</th></tr></thead><tbody>
+      <tr><td>Marie Dupont</td><td>CNI</td><td>🇫🇷 FR</td><td><span class="bdg ok">✓ Match</span></td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td style="font-size:12px">10/04 09:35</td><td style="font-family:monospace;font-size:11px;color:var(--sl2)">vs_3Qf...kL2</td></tr>
+      <tr><td>Jean-Pierre Martin</td><td>Passeport</td><td>🇫🇷 FR</td><td><span class="bdg ok">✓ Match</span></td><td><span class="bdg ok"><span class="bdg-d"></span>Validé</span></td><td style="font-size:12px">09/04 14:22</td><td style="font-family:monospace;font-size:11px;color:var(--sl2)">vs_7Rk...pM4</td></tr>
+      <tr><td>Sarah Cohen</td><td>CNI</td><td>🇫🇷 FR</td><td><span class="bdg wt">En attente</span></td><td><span class="bdg wt"><span class="bdg-d"></span>Docs manquants</span></td><td style="font-size:12px">16/04 11:05</td><td style="font-family:monospace;font-size:11px;color:var(--sl2)">vs_9Tn...qW1</td></tr>
+      <tr><td>Laura Rossi</td><td>Carta d'identità</td><td>🇮🇹 IT</td><td><span class="bdg er">✗ No match</span></td><td><span class="bdg er"><span class="bdg-d"></span>Échoué</span></td><td style="font-size:12px">15/04 16:47</td><td style="font-family:monospace;font-size:11px;color:var(--sl2)">vs_2Xp...hJ8</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== E-SIGNATURES ===== -->
+<div class="pg" id="v-signatures">
+  <div class="hdr"><div><h1>✍️ E-Signatures</h1><p>Suivi des signatures électroniques eIDAS</p></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Signatures récentes</div></div>
+    <table><thead><tr><th>Client</th><th>Document</th><th>OTP</th><th>Statut</th><th>Horodatage</th><th>Preuve</th></tr></thead><tbody>
+      <tr><td>Marie Dupont</td><td>Location véhicule v3</td><td>✓ Vérifié</td><td><span class="bdg ok"><span class="bdg-d"></span>Signé</span></td><td style="font-size:12px">10/04 09:39</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">📥 Preuve</button></td></tr>
+      <tr><td>Jean-Pierre Martin</td><td>Prestation #89</td><td>✓ Vérifié</td><td><span class="bdg ok"><span class="bdg-d"></span>Signé</span></td><td style="font-size:12px">09/04 14:30</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">📥 Preuve</button></td></tr>
+      <tr><td>Sarah Cohen</td><td>—</td><td>—</td><td><span class="bdg dr"><span class="bdg-d"></span>En attente KYC</span></td><td>—</td><td>—</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== CAUTIONS ===== -->
+<div class="pg" id="v-cautions">
+  <div class="hdr"><div><h1>🔒 Cautions & Autorisations</h1><p>Empreintes bancaires, captures et libérations</p></div></div>
+  <div class="kpi-r">
+    <div class="kpi"><div class="kpi-l">Actives</div><div class="kpi-v">14</div><div class="kpi-c">8 400 € bloqués</div></div>
+    <div class="kpi"><div class="kpi-l">Capturées ce mois</div><div class="kpi-v">3</div><div class="kpi-c">1 250 € encaissés</div></div>
+    <div class="kpi"><div class="kpi-l">Libérées ce mois</div><div class="kpi-v">9</div></div>
+    <div class="kpi"><div class="kpi-l">Expirent sous 24h</div><div class="kpi-v" style="color:var(--red)">3</div><div class="kpi-c dn">⚠️ Action requise</div></div>
+  </div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Détail des cautions</div></div>
+    <table><thead><tr><th>Client</th><th>Montant</th><th>Type</th><th>Statut</th><th>Expire le</th><th>Actions</th></tr></thead><tbody>
+      <tr><td>Marie Dupont</td><td style="font-weight:700">800 €</td><td>Empreinte CB</td><td><span class="bdg wt"><span class="bdg-d"></span>Sécurisée</span></td><td style="color:var(--red);font-weight:600">17/04 18h</td><td><button class="btn bt" style="height:28px;padding:0 10px;font-size:11px">Capturer</button> <button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Libérer</button></td></tr>
+      <tr><td>Ahmed Benali</td><td style="font-weight:700">500 €</td><td>Empreinte CB</td><td><span class="bdg wt"><span class="bdg-d"></span>Sécurisée</span></td><td style="color:var(--amb);font-weight:600">18/04 10h</td><td><button class="btn bt" style="height:28px;padding:0 10px;font-size:11px">Capturer</button> <button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Libérer</button></td></tr>
+      <tr><td>Thomas Müller</td><td style="font-weight:700">600 €</td><td>Empreinte CB</td><td><span class="bdg ok"><span class="bdg-d"></span>Libérée</span></td><td style="color:var(--sl2)">Libérée 14/04</td><td style="color:var(--sl2)">—</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== PAIEMENTS ===== -->
+<div class="pg" id="v-paiements">
+  <div class="hdr"><div><h1>💰 Paiements encaissés</h1><p>Historique des encaissements réels via Stripe</p></div><div class="hdr-btns"><button class="btn bw">📥 Export comptable</button></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Encaissements</div></div>
+    <table><thead><tr><th>Client</th><th>Réf.</th><th>Type</th><th>Brut</th><th>Frais Stripe</th><th>Net</th><th>Date</th></tr></thead><tbody>
+      <tr><td>Jean-Pierre Martin</td><td style="font-family:monospace;font-size:12px">CTZ-0411</td><td>Paiement</td><td>1 250 €</td><td style="color:var(--red)">-21,13 €</td><td style="font-weight:700;color:var(--grn)">1 228,87 €</td><td style="font-size:12px">16/04</td></tr>
+      <tr><td>Ahmed Benali</td><td style="font-family:monospace;font-size:12px">CTZ-0405</td><td>Capture caution</td><td>200 €</td><td style="color:var(--red)">-3,55 €</td><td style="font-weight:700;color:var(--grn)">196,45 €</td><td style="font-size:12px">12/04</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== LITIGES ===== -->
+<div class="pg" id="v-litiges">
+  <div class="hdr"><div><h1>⚖️ Litiges</h1><p>Case management — motifs, preuves, décisions</p></div><div class="hdr-btns"><button class="btn bd">+ Ouvrir un litige</button></div></div>
+  <div class="detail">
+    <h2>⚖️ Litige #LIT-001 · Laura Rossi · CTZ-0408</h2>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Motif</label><span>Paiement échoué — contestation carte</span></div>
+      <div class="detail-item"><label>Montant concerné</label><span>2 100 €</span></div>
+      <div class="detail-item"><label>Statut</label><span><span class="bdg er"><span class="bdg-d"></span>Ouvert</span></span></div>
+      <div class="detail-item"><label>Ouvert le</label><span>15/04/2026</span></div>
+      <div class="detail-item"><label>Échéance réponse</label><span style="color:var(--red);font-weight:700">19/04/2026</span></div>
+      <div class="detail-item"><label>Pièces jointes</label><span>2 fichiers</span></div>
+    </div>
+
+    <h2 style="font-size:15px">📎 Pièces justificatives</h2>
+    <div style="display:flex;gap:10px;margin:12px 0 20px">
+      <div style="padding:10px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;font-size:13px;cursor:pointer">📄 contrat_signé_rossi.pdf</div>
+      <div style="padding:10px 16px;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;font-size:13px;cursor:pointer">📸 photo_dégradation.jpg</div>
+      <button class="btn bw" style="height:36px;font-size:12px">+ Ajouter pièce</button>
+    </div>
+
+    <h2 style="font-size:15px">💬 Historique</h2>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-t">Litige ouvert par le vendeur</div><div class="tl-d">15/04/2026 · 17:02 · Motif : contestation carte après échec paiement</div></div>
+      <div class="tl-item"><div class="tl-t">Pièces ajoutées : contrat signé + photo</div><div class="tl-d">15/04/2026 · 17:05</div></div>
+      <div class="tl-item pending"><div class="tl-t" style="color:var(--amb)">⏳ En attente de décision</div><div class="tl-d">Échéance : 19/04/2026</div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn bt">✅ Marquer comme résolu</button>
+      <button class="btn bw">📨 Contacter le client</button>
+      <button class="btn bw">📥 Exporter le dossier</button>
+      <button class="btn br">❌ Clôturer sans suite</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CLIENTS ===== -->
+<div class="pg" id="v-clients">
+  <div class="hdr"><div><h1>👥 Clients</h1><p>Profils clients avec KYC, contrats et historique</p></div><div class="hdr-btns"><button class="btn bw">📥 Export</button></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Tous les clients</div></div>
+    <table><thead><tr><th>Client</th><th>KYC</th><th>Transactions</th><th>Dernier dossier</th><th>Profil réutilisable</th></tr></thead><tbody>
+      <tr><td><div class="cli"><div class="av" style="background:#0C1E2F">MD</div><div><div class="cln">Marie Dupont</div><div class="cle">marie@gmail.com · +33 6 •• •• 42</div></div></div></td><td><span class="bdg ok">✓ 3/3</span></td><td>4</td><td>CTZ-0412</td><td><span class="bdg ok">✓ Actif</span></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#11C9B0">JM</div><div><div class="cln">Jean-Pierre Martin</div><div class="cle">jp.martin@free.fr</div></div></div></td><td><span class="bdg ok">✓ 2/2</span></td><td>2</td><td>CTZ-0411</td><td><span class="bdg ok">✓ Actif</span></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#F59E0B">SC</div><div><div class="cln">Sarah Cohen</div><div class="cle">s.cohen@outlook.com</div></div></div></td><td><span class="bdg wt">1/3</span></td><td>1</td><td>CTZ-0410</td><td><span class="bdg dr">Incomplet</span></td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== LIENS & QR ===== -->
+<div class="pg" id="v-liens">
+  <div class="hdr"><div><h1>🔗 Liens & QR Codes</h1><p>Liens permanents et QR codes dynamiques</p></div><div class="hdr-btns"><button class="btn bd">+ Nouveau lien</button><button class="btn bw">📱 Générer QR</button></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Liens actifs</div></div>
+    <table><thead><tr><th>Nom</th><th>Type</th><th>Montant</th><th>QR</th><th>Utilisations</th><th>URL</th></tr></thead><tbody>
+      <tr><td style="font-weight:600">Caution location véhicule</td><td>Caution</td><td>800 €</td><td>✅</td><td>34</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">ctz.link/loc-vehicule</td></tr>
+      <tr><td style="font-weight:600">Acompte prestation</td><td>Paiement</td><td>Libre</td><td>✅</td><td>12</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">ctz.link/acompte</td></tr>
+      <tr><td style="font-weight:600">Location saisonnière Nice</td><td>Caution + Paiement</td><td>1 200 €</td><td>✅</td><td>8</td><td style="font-family:monospace;font-size:11px;color:var(--teal)">ctz.link/nice-loc</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== WEBHOOKS ===== -->
+<div class="pg" id="v-webhooks">
+  <div class="hdr"><div><h1>🔔 Logs Webhooks Stripe</h1><p>Journal des événements reçus de Stripe</p></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Derniers événements</div></div>
+    <table><thead><tr><th>Événement</th><th>Objet</th><th>Statut</th><th>Heure</th></tr></thead><tbody>
+      <tr><td style="font-family:monospace;font-size:12px">payment_intent.amount_capturable_updated</td><td style="font-family:monospace;font-size:11px">pi_3QfK...x7Yz</td><td><span class="bdg ok">✓ 200</span></td><td style="font-size:12px">17/04 09:41</td></tr>
+      <tr><td style="font-family:monospace;font-size:12px">identity.verification_session.verified</td><td style="font-family:monospace;font-size:11px">vs_3Qf...kL2</td><td><span class="bdg ok">✓ 200</span></td><td style="font-size:12px">17/04 09:37</td></tr>
+      <tr><td style="font-family:monospace;font-size:12px">account.updated</td><td style="font-family:monospace;font-size:11px">acct_1Qf...mN9</td><td><span class="bdg ok">✓ 200</span></td><td style="font-size:12px">16/04 22:15</td></tr>
+      <tr><td style="font-family:monospace;font-size:12px">invoice.payment_succeeded</td><td style="font-family:monospace;font-size:11px">in_1Qf...pR3</td><td><span class="bdg ok">✓ 200</span></td><td style="font-size:12px">16/04 00:01</td></tr>
+      <tr><td style="font-family:monospace;font-size:12px">payment_intent.payment_failed</td><td style="font-family:monospace;font-size:11px">pi_2Rg...vK1</td><td><span class="bdg er">⚠ Retry</span></td><td style="font-size:12px">15/04 16:50</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== STRIPE CONNECT ===== -->
+<div class="pg" id="v-stripe">
+  <div class="hdr"><div><h1>🏦 Stripe Connect</h1><p>Statut de votre compte connecté</p></div></div>
+  <div class="detail">
+    <div class="detail-grid">
+      <div class="detail-item"><label>Account ID</label><span style="font-family:monospace;font-size:13px">acct_1Qf...mN9</span></div>
+      <div class="detail-item"><label>charges_enabled</label><span style="color:var(--grn);font-weight:700">✓ true</span></div>
+      <div class="detail-item"><label>payouts_enabled</label><span style="color:var(--grn);font-weight:700">✓ true</span></div>
+      <div class="detail-item"><label>Type</label><span>Express</span></div>
+      <div class="detail-item"><label>Pays</label><span>🇫🇷 France</span></div>
+      <div class="detail-item"><label>Devise</label><span>EUR</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn bw">🔗 Ouvrir le dashboard Stripe</button>
+      <button class="btn bw">📄 Voir les frais Stripe</button>
+      <button class="btn bw">⚙️ Mettre à jour le compte</button>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function sbNav(id){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById('v-'+id).classList.add('on');
+  document.querySelectorAll('.sb-i').forEach(b=>b.classList.remove('on'));
+  event.target.closest('.sb-i')?.classList.add('on');
+}
+</script>
+</body>
+</html>
