@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Contrazy — Contrat, KYC, signature, caution et paiement en un seul lien</title>
 <meta name="description" content="Contrazy centralise contrat, vérification d'identité, signature électronique, caution et paiement en un seul lien sécurisé. Propulsé par Stripe.">
+<meta name="theme-color" content="#0C1E2F">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230C1E2F'/%3E%3Ctext x='7' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%23fff'%3EC%3C/text%3E%3Ctext x='24' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%2311C9B0'%3Ez%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0C1E2F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230C1E2F'/%3E%3Ctext x='8' y='46' font-family='Arial,sans-serif' font-weight='800' font-size='38' fill='white'%3EC%3C/text%3E%3Ctext x='25' y='46' font-family='Arial,sans-serif' font-weight='800' font-size='38' fill='%2311C9B0'%3Ez%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230C1E2F'/%3E%3Ctext x='20' y='128' font-family='Arial,sans-serif' font-weight='800' font-size='110' fill='white'%3EC%3C/text%3E%3Ctext x='72' y='128' font-family='Arial,sans-serif' font-weight='800' font-size='110' fill='%2311C9B0'%3Ez%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
 <style>
@@ -27,6 +36,35 @@ a{text-decoration:none;color:inherit;cursor:pointer;}
 .nav--light .nl{color:var(--sl);}.nav--light .nl:hover{color:var(--navy);}
 .ncta{height:36px;padding:0 18px;border-radius:8px;font-size:13px;font-weight:600;background:var(--teal);color:#fff;border:none;cursor:pointer;font-family:var(--f);transition:all .15s;}
 .ncta:hover{background:#0EB8A0;}
+
+/* HAMBURGER */
+.burger{display:none;background:none;border:none;cursor:pointer;padding:4px;flex-direction:column;gap:5px;z-index:200;}
+.burger span{display:block;width:22px;height:2px;border-radius:2px;transition:all .2s;}
+.nav--dark .burger span{background:#fff;}.nav--light .burger span{background:var(--navy);}
+.burger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
+.burger.open span:nth-child(2){opacity:0;}
+.burger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px);}
+
+/* MOBILE MENU */
+.mob-menu{position:fixed;top:64px;left:0;right:0;bottom:0;z-index:90;background:var(--navy);display:none;flex-direction:column;padding:24px;gap:4px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.mob-menu.open{display:flex;}
+.mob-link{display:block;padding:14px 16px;border-radius:10px;font-size:16px;color:rgba(255,255,255,.7);font-weight:500;background:none;border:none;text-align:left;width:100%;cursor:pointer;font-family:var(--f);transition:all .15s;}
+.mob-link:hover,.mob-link:active{background:rgba(255,255,255,.06);color:#fff;}
+.mob-divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0;}
+.mob-cta{display:block;width:100%;padding:14px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:var(--f);margin-top:8px;}
+.mob-cta.teal{background:var(--teal);color:#fff;}
+.mob-cta.ghost{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12);margin-top:8px;}
+/* (old hamburger removed - using .burger class now) */
+.mobile-menu{display:none;position:fixed;top:64px;left:0;right:0;bottom:0;z-index:99;padding:24px;flex-direction:column;gap:4px;overflow-y:auto;}
+.nav--dark+.mobile-menu,.mobile-menu.dark{background:var(--navy);}
+.mobile-menu.light{background:var(--bg);}
+.mobile-menu.open{display:flex;}
+.mobile-menu .ml{display:block;padding:14px 16px;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer;border:none;text-align:left;width:100%;font-family:var(--f);transition:all .15s;}
+.mobile-menu.dark .ml{background:none;color:rgba(255,255,255,.7);}.mobile-menu.dark .ml:hover{background:rgba(255,255,255,.06);color:#fff;}
+.mobile-menu.light .ml{background:none;color:var(--sl);}.mobile-menu.light .ml:hover{background:var(--bg2);color:var(--navy);}
+.mobile-menu .ml-cta{background:var(--teal);color:#fff;text-align:center;border-radius:10px;margin-top:8px;font-weight:600;}
+.mobile-menu .ml-sec{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);text-align:center;border-radius:10px;margin-top:4px;font-weight:600;}
+.mobile-menu.light .ml-sec{background:var(--bg2);color:var(--navy);}
 
 /* BUTTONS */
 .btn{height:48px;padding:0 28px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;font-family:var(--f);}
@@ -304,19 +342,26 @@ tr:hover td{background:var(--bg2);}
   .hero h1{font-size:28px;}.g3,.pg3,.blg{grid-template-columns:1fr;}
   .g6{grid-template-columns:repeat(3,1fr);}
   .g4{grid-template-columns:1fr 1fr;}.kpir{grid-template-columns:1fr 1fr;}
-  .nav-r{display:none;}.sb{display:none;}
+  .nav-r{display:none!important;}
+  .burger{display:flex!important;}
+  .sb{display:none;}
   .fr,.rgg{grid-template-columns:1fr;}.mbox{width:95%;padding:24px;}
-  .tru-i{gap:16px;}.spr{flex-direction:column;}
+  .tru-i{gap:12px;font-size:12px;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;}.tri{white-space:nowrap;font-size:11px;}
+  .spr{flex-direction:column;}
   .nav,.hero,.tru,.sc,.scd,.cta,.ft{padding-left:20px;padding-right:20px;}
+  .nav{padding:0 16px;}
   .hero{padding-top:120px;padding-bottom:60px;}
-  .fti{grid-template-columns:1fr 1fr;}.blf-img{min-height:200px;}.hms{margin-top:40px;}
+  .fti{grid-template-columns:1fr 1fr;gap:24px;}.blf-img{min-height:200px;}.hms{margin-top:40px;}
+  .alert-bar{flex-direction:column;}
+  .chat-box{width:calc(100vw - 32px);right:16px;bottom:80px;}
+  .auth-wrap{padding:80px 16px 40px;}
 }
 </style>
 </head>
 <body>
 
 <nav class="nav nav--dark" id="navbar">
-  <span class="logo" onclick="go('landing')">C<span class="t">on</span>trazy</span>
+  <span class="logo" onclick="go('landing');closeMob();">C<span class="t">on</span>trazy</span>
   <div class="nav-r">
     <button class="nl" onclick="go('landing')">Plateforme</button>
     <button class="nl" onclick="scrollTo_('tarifs')">Tarifs</button>
@@ -326,7 +371,22 @@ tr:hover td{background:var(--bg2);}
     <button class="nl" onclick="go('connexion')" style="font-weight:600">Se connecter</button>
     <button class="ncta" onclick="go('inscription')">Essai gratuit 7j</button>
   </div>
+  <button class="burger" id="burger-btn" onclick="toggleMob()"><span></span><span></span><span></span></button>
 </nav>
+<div class="mob-menu" id="mob-menu">
+  <button class="mob-link" onclick="go('landing');closeMob();">🏠 Plateforme</button>
+  <button class="mob-link" onclick="closeMob();scrollTo_('tarifs');">💰 Tarifs</button>
+  <button class="mob-link" onclick="go('blog');closeMob();">📰 Blog</button>
+  <button class="mob-link" onclick="go('faq');closeMob();">❓ FAQ</button>
+  <button class="mob-link" onclick="go('contact');closeMob();">📧 Contact</button>
+  <button class="mob-link" onclick="go('demo');closeMob();">🎯 Démo</button>
+  <div class="mob-divider"></div>
+  <button class="mob-link" onclick="go('aide');closeMob();">📖 Centre d'aide</button>
+  <button class="mob-link" onclick="go('statut');closeMob();">🟢 Statut</button>
+  <div class="mob-divider"></div>
+  <button class="mob-cta teal" onclick="go('inscription');closeMob();">Essai gratuit 7 jours</button>
+  <button class="mob-cta ghost" onclick="go('connexion');closeMob();">Se connecter</button>
+</div>
 
 <!-- ========== LANDING ========== -->
 <div class="pg on" id="p-landing">
@@ -618,21 +678,37 @@ const faqData=[
   {q:"Quelles sont les obligations RGPD ?",a:"Contrazy est conforme au RGPD. Les pièces d'identité sont stockées de manière chiffrée avec une durée de conservation limitée. Le consentement explicite du client est requis avant tout traitement de données personnelles. Vous pouvez consulter notre politique de confidentialité pour plus de détails."},
 ];
 
+// ======= MOBILE MENU =======
+function toggleMob(){
+  const m=document.getElementById('mob-menu');
+  const b=document.getElementById('burger-btn');
+  m.classList.toggle('open');b.classList.toggle('open');
+  document.body.style.overflow=m.classList.contains('open')?'hidden':'';
+}
+function closeMob(){
+  document.getElementById('mob-menu').classList.remove('open');
+  document.getElementById('burger-btn').classList.remove('open');
+  document.body.style.overflow='';
+}
+
 // ======= ROUTING =======
 function go(id){
   document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');});
   const el=document.getElementById('p-'+id);
   if(el){el.classList.add('on');}
   const nav=document.getElementById('navbar');
+  const mm=document.getElementById('mobile-menu');
   const darkPages=['landing','inscription','connexion'];
-  nav.className=darkPages.includes(id)?'nav nav--dark':'nav nav--light';
+  const isDark=darkPages.includes(id);
+  nav.className=isDark?'nav nav--dark':'nav nav--light';
+  mm.className=isDark?'mobile-menu dark':'mobile-menu light';
+  mm.classList.remove('open');
   window.scrollTo(0,0);
 }
 function scrollTo_(id){
   go('landing');
   setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'});},100);
 }
-
 // ======= BLOG =======
 document.getElementById('blog-grid').innerHTML=blogPosts.map(p=>`<div class="blc"><div class="blc-img">${p.ic}</div><div class="blc-body"><div class="blcat">${p.cat}</div><div class="blt">${p.t}</div><div class="blex">${p.ex}</div><div class="blm">${p.d} · ${p.r}</div></div></div>`).join('');
 
