@@ -42,6 +42,27 @@ a{text-decoration:none;color:inherit;cursor:pointer;}
 
 /* PAGES */
 .pg{display:none;}.pg.on{display:block;}
+.pg.auth{min-height:100vh;display:none;flex-direction:column;}
+.pg.auth.on{display:flex;}
+.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:100px 20px 60px;}
+
+/* CHAT BUBBLE */
+.chat-bubble{position:fixed;bottom:24px;right:24px;z-index:150;width:56px;height:56px;border-radius:50%;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(17,201,176,.3);transition:all .2s;font-family:var(--f);}
+.chat-bubble:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(17,201,176,.4);}
+.chat-box{position:fixed;bottom:92px;right:24px;z-index:150;width:360px;max-height:480px;background:var(--bg);border:1px solid var(--bdr);border-radius:var(--rx);box-shadow:var(--shx);display:none;flex-direction:column;overflow:hidden;}
+.chat-box.open{display:flex;}
+.chat-head{background:var(--navy);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+.chat-head-t{color:#fff;font-size:15px;font-weight:700;}
+.chat-head-s{color:rgba(255,255,255,.5);font-size:12px;}
+.chat-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:18px;}
+.chat-msgs{flex:1;padding:16px;overflow-y:auto;max-height:320px;display:flex;flex-direction:column;gap:10px;}
+.chat-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;}
+.chat-msg.bot{background:var(--bg2);color:var(--navy);align-self:flex-start;border-bottom-left-radius:4px;}
+.chat-msg.user{background:var(--teal);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.chat-input{display:flex;border-top:1px solid var(--bdr);padding:10px;}
+.chat-input input{flex:1;border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;font-size:13px;font-family:var(--f);outline:none;}
+.chat-input input:focus{border-color:var(--teal);}
+.chat-input button{margin-left:8px;background:var(--teal);color:#fff;border:none;border-radius:8px;padding:0 16px;cursor:pointer;font-size:14px;font-family:var(--f);font-weight:600;}
 
 /* HERO */
 .hero{background:var(--navy);padding:140px 48px 100px;position:relative;overflow:hidden;}
@@ -522,8 +543,9 @@ tr:hover td{background:var(--bg2);}
 <div class="pg" id="p-statut" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Infrastructure</div><div class="stl">Statut des <em>services</em></div><div class="sd">État en temps réel de nos systèmes.</div><div class="g3"><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>Plateforme Contrazy</h3><p>Opérationnel — 99,98% de disponibilité sur les 30 derniers jours.</p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>API Stripe</h3><p>Opérationnel — Aucun incident en cours. <a href="https://status.stripe.com" target="_blank" style="color:var(--teal)">status.stripe.com</a></p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>E-Signature</h3><p>Opérationnel — Temps de réponse moyen : 0,8s.</p></div></div></section></div>
 
 <!-- ========== INSCRIPTION ========== -->
-<div class="pg" id="p-inscription" style="background:var(--navy);min-height:100vh;display:none;align-items:center;justify-content:center;padding:100px 20px 60px">
-<div style="max-width:440px;margin:0 auto;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
+<div class="pg auth" id="p-inscription" style="background:var(--navy)">
+<div class="auth-wrap">
+<div style="max-width:440px;width:100%;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
   <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px;line-height:1.6">Créez votre compte et commencez votre essai gratuit de 7 jours. Aucune carte bancaire requise.</p></div>
   <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" placeholder="Dupont"></div></div>
   <div class="fg"><label class="fl">Email professionnel</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
@@ -532,19 +554,22 @@ tr:hover td{background:var(--bg2);}
   <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Minimum 8 caractères"></div>
   <div style="margin-bottom:20px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
   <button class="btn bt bf" onclick="go('dash')">Créer mon compte →</button>
-  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600">Se connecter</a></p>
+  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">Se connecter</a></p>
+</div>
 </div>
 </div>
 
 <!-- ========== CONNEXION ========== -->
-<div class="pg" id="p-connexion" style="background:var(--navy);min-height:100vh;display:none;align-items:center;justify-content:center;padding:100px 20px 60px">
-<div style="max-width:420px;margin:0 auto;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
+<div class="pg auth" id="p-connexion" style="background:var(--navy)">
+<div class="auth-wrap">
+<div style="max-width:420px;width:100%;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
   <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px">Connectez-vous à votre espace vendeur.</p></div>
   <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
   <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Votre mot de passe"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600">Mot de passe oublié ?</a></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600;cursor:pointer">Mot de passe oublié ?</a></div>
   <button class="btn bt bf" onclick="go('dash')">Se connecter</button>
-  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600">Essai gratuit 7 jours</a></p>
+  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600;cursor:pointer">Essai gratuit 7 jours</a></p>
+</div>
 </div>
 </div>
 
@@ -610,9 +635,9 @@ const faqData=[
 
 // ======= ROUTING =======
 function go(id){
-  document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');p.style.display='';});
+  document.querySelectorAll('.pg').forEach(p=>{p.classList.remove('on');});
   const el=document.getElementById('p-'+id);
-  if(el){el.classList.add('on');if(id==='inscription'||id==='connexion'){el.style.display='flex';}}
+  if(el){el.classList.add('on');}
   const nav=document.getElementById('navbar');
   const darkPages=['landing','inscription','connexion'];
   nav.className=darkPages.includes(id)?'nav nav--dark':'nav nav--light';
@@ -661,7 +686,28 @@ document.getElementById('rgpd-content').innerHTML=`<h2>Notre engagement RGPD</h2
 
 // ======= FOOTER (inject into all pages) =======
 const footerHTML=`<footer class="ft"><div class="fti"><div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="ftbr">La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.</p></div><div class="ftc"><h4>Produit</h4><a onclick="go('landing')">Fonctionnalités</a><a onclick="scrollTo_('tarifs')">Tarifs</a><a onclick="go('demo')">Démo</a><a onclick="go('inscription')">Essai gratuit</a></div><div class="ftc"><h4>Ressources</h4><a onclick="go('blog')">Blog</a><a onclick="go('faq')">FAQ</a><a onclick="go('api')">Documentation API</a><a onclick="go('aide')">Centre d'aide</a><a onclick="go('statut')">Statut</a></div><div class="ftc"><h4>Légal</h4><a onclick="go('cgv')">CGV</a><a onclick="go('confidentialite')">Politique de confidentialité</a><a onclick="go('mentions')">Mentions légales</a><a onclick="go('rgpd')">RGPD</a><a onclick="go('contact')">Contact</a></div></div><div class="ftb">© 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity<br>Aucune détention de fonds pour compte de tiers · Tous droits réservés</div></footer>`;
-document.querySelectorAll('.pg').forEach(p=>{if(!p.querySelector('.ft')){const d=document.createElement('div');d.innerHTML=footerHTML;p.appendChild(d.firstElementChild);}});
+document.querySelectorAll('.pg:not(.auth)').forEach(p=>{if(!p.querySelector('.ft')){const d=document.createElement('div');d.innerHTML=footerHTML;p.appendChild(d.firstElementChild);}});
+
+// ======= CHAT WIDGET =======
+(function(){
+  const bubble=document.createElement('button');
+  bubble.className='chat-bubble';bubble.innerHTML='💬';bubble.id='chat-btn';
+  document.body.appendChild(bubble);
+  const box=document.createElement('div');
+  box.className='chat-box';box.id='chat-box';
+  box.innerHTML=`<div class="chat-head"><div><div class="chat-head-t">Contrazy Support</div><div class="chat-head-s">En ligne · Répond en &lt; 5 min</div></div><button class="chat-close" onclick="document.getElementById('chat-box').classList.remove('open')">✕</button></div><div class="chat-msgs" id="chat-msgs"><div class="chat-msg bot">Bonjour ! 👋 Bienvenue sur Contrazy. Comment puis-je vous aider aujourd'hui ?</div><div class="chat-msg bot">Vous pouvez me poser des questions sur nos fonctionnalités, les tarifs, l'intégration Stripe ou la conformité réglementaire.</div></div><div class="chat-input"><input id="chat-in" placeholder="Votre message..." onkeydown="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">→</button></div>`;
+  document.body.appendChild(box);
+  bubble.onclick=function(){box.classList.toggle('open');};
+  window.sendChat=function(){
+    const inp=document.getElementById('chat-in');const msg=inp.value.trim();if(!msg)return;
+    const msgs=document.getElementById('chat-msgs');
+    msgs.innerHTML+=`<div class="chat-msg user">${msg}</div>`;inp.value='';
+    setTimeout(()=>{msgs.innerHTML+=`<div class="chat-msg bot">Merci pour votre message ! Notre équipe vous répondra très prochainement. En attendant, consultez notre <a onclick="go('faq')" style="color:var(--teal);cursor:pointer;font-weight:600">FAQ</a> ou notre <a onclick="go('aide')" style="color:var(--teal);cursor:pointer;font-weight:600">Centre d'aide</a>.</div>`;msgs.scrollTop=msgs.scrollHeight;},800);
+    msgs.scrollTop=msgs.scrollHeight;
+  };
+  // Auto-open after 3s on first visit
+  setTimeout(()=>{if(!box.classList.contains('open'))box.classList.add('open');},3000);
+})();
 
 // ======= PAYER FLOW =======
 let fs=0,fd={id:false,permit:false,selfie:false},fsg=false,fpd=false;
