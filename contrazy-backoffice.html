@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Contrazy — Back Office Vendeur</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230C1E2F'/%3E%3Ctext x='7' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%23fff'%3EC%3C/text%3E%3Ctext x='24' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%2311C9B0'%3Ez%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0C1E2F">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#fff;--bg2:#F8F9FB;--navy:#0C1E2F;--navy2:#132D46;--teal:#11C9B0;--teal-s:#E8FAF7;--teal-g:rgba(17,201,176,.08);--sl:#64748B;--sl2:#94A3B8;--sl3:#CBD5E1;--grn:#22C55E;--grn-b:rgba(34,197,94,.08);--amb:#F59E0B;--amb-b:rgba(245,158,11,.06);--red:#EF4444;--red-b:rgba(239,68,68,.06);--blu:#3B82F6;--blu-b:rgba(59,130,246,.06);--bdr:#E2E8F0;--r:10px;--rl:14px;--rx:20px;--f:'Plus Jakarta Sans',sans-serif;--sh:0 4px 6px -1px rgba(0,0,0,.06);--shl:0 10px 15px -3px rgba(0,0,0,.07);}
@@ -94,19 +96,31 @@ tr{cursor:pointer;}
 .alert.err{background:var(--red-b);color:#991B1B;border:1px solid rgba(239,68,68,.15);}
 .alert-ic{font-size:18px;}
 
+.top-ham{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:4px;}
+.top-ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;}
+.sb-overlay.open{display:block;}
 @media(max-width:900px){
-  .sb{display:none;}.mn{margin-left:0;}
+  .sb{display:none;position:fixed;z-index:40;top:56px;left:0;bottom:0;width:260px;box-shadow:var(--shl);}
+  .sb.open{display:block;}
+  .mn{margin-left:0;}
   .kpi-r{grid-template-columns:1fr 1fr;}
   .detail-grid{grid-template-columns:1fr;}
   .card-grid{grid-template-columns:1fr;}
   .alert-bar{flex-direction:column;}
+  .top-ham{display:flex!important;}
+  .hdr{flex-direction:column;gap:12px;}
+  .hdr-btns{flex-wrap:wrap;}
 }
 </style>
 </head>
 <body>
 
 <div class="top">
-  <span class="top-logo">C<span class="t">on</span>trazy <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.4);margin-left:6px">Back Office</span></span>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="top-ham" onclick="document.getElementById('bo-sb').classList.toggle('open');document.getElementById('bo-ov').classList.toggle('open')"><span></span><span></span><span></span></button>
+    <span class="top-logo">C<span class="t">on</span>trazy <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.4);margin-left:6px">Back Office</span></span>
+  </div>
   <div class="top-r">
     <span>Aziz · LOCAZ SARL</span>
     <button class="bw2" onclick="window.location.href='index.html'">← Retour au site</button>
@@ -116,7 +130,8 @@ tr{cursor:pointer;}
 </div>
 
 <div class="wrap">
-<aside class="sb">
+<div class="sb-overlay" id="bo-ov" onclick="document.getElementById('bo-sb').classList.remove('open');this.classList.remove('open')"></div>
+<aside class="sb" id="bo-sb">
   <div class="sb-l">Cockpit</div>
   <button class="sb-i on" onclick="sbNav('cockpit')">📊 Tableau de bord</button>
   <button class="sb-i" onclick="sbNav('today')">📋 Actions du jour<span class="cnt">5</span></button>
@@ -447,6 +462,10 @@ function sbNav(id){
   document.getElementById('v-'+id).classList.add('on');
   document.querySelectorAll('.sb-i').forEach(b=>b.classList.remove('on'));
   event.target.closest('.sb-i')?.classList.add('on');
+  // Close mobile sidebar
+  var sb=document.getElementById('bo-sb');if(sb)sb.classList.remove('open');
+  var ov=document.getElementById('bo-ov');if(ov)ov.classList.remove('open');
+  window.scrollTo(0,0);
 }
 </script>
 </body>
