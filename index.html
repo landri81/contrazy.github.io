@@ -66,9 +66,47 @@ a{text-decoration:none;color:inherit;cursor:pointer;}
 
 /* PAGES */
 .pg{display:none;}.pg.on{display:block;}
-.pg.auth{min-height:100vh;display:none;flex-direction:column;}
+.pg.auth{min-height:100vh;display:none;}
 .pg.auth.on{display:flex;}
-.auth-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:100px 20px 60px;}
+.auth-shell{display:flex;width:100%;min-height:100vh;}
+.auth-left{width:440px;background:var(--navy);display:flex;flex-direction:column;justify-content:center;padding:48px;position:relative;overflow:hidden;flex-shrink:0;}
+.auth-left::before{content:'';position:absolute;top:-150px;right:-150px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(17,201,176,.08),transparent 70%);}
+.auth-logo-l{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:28px;position:relative;z-index:1;}.auth-logo-l .t{color:var(--teal);}
+.auth-tagline{font-size:20px;font-weight:700;color:#fff;line-height:1.35;margin-bottom:14px;position:relative;z-index:1;}
+.auth-desc-l{font-size:14px;color:rgba(255,255,255,.4);line-height:1.7;margin-bottom:32px;position:relative;z-index:1;}
+.auth-feats{list-style:none;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;}
+.auth-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.5);}
+.auth-feat-ic{width:30px;height:30px;border-radius:8px;background:rgba(17,201,176,.1);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.auth-right{flex:1;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:40px;overflow-y:auto;}
+.auth-card{width:100%;max-width:400px;}
+.auth-card .logo-c{font-size:22px;font-weight:800;text-align:center;margin-bottom:6px;}
+.auth-card .logo-c .t{color:var(--teal);}
+.auth-t{font-size:20px;font-weight:800;text-align:center;margin-bottom:6px;}
+.auth-s{font-size:14px;color:var(--sl);text-align:center;margin-bottom:24px;line-height:1.6;}
+.btn-ggl{width:100%;height:46px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;border:1.5px solid var(--bdr);background:#fff;color:var(--navy);font-family:var(--f);transition:all .15s;}
+.btn-ggl:hover{background:var(--bg2);border-color:var(--sl3);}
+.auth-div{display:flex;align-items:center;gap:14px;margin:18px 0;font-size:12px;color:var(--sl2);}
+.auth-div::before,.auth-div::after{content:'';flex:1;height:1px;background:var(--bdr);}
+.fi-pw{position:relative;}.fi-pw input{padding-right:44px;}
+.fi-pw button{position:absolute;right:1px;top:1px;bottom:1px;width:42px;background:none;border:none;cursor:pointer;color:var(--sl2);font-size:15px;border-radius:0 7px 7px 0;font-family:var(--f);}
+.pw-str{height:4px;border-radius:2px;background:var(--bdr);margin-top:6px;overflow:hidden;}
+.pw-bar-s{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;}
+.pw-lbl{font-size:11px;margin-top:4px;font-weight:500;color:var(--sl2);}
+.role-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;}
+.role-card{padding:14px 10px;border-radius:var(--rl);border:1.5px solid var(--bdr);cursor:pointer;text-align:center;transition:all .15s;background:var(--bg);}
+.role-card:hover{border-color:var(--sl3);}
+.role-card.on{border-color:var(--teal);background:var(--teal-s);}
+.role-ic{font-size:22px;margin-bottom:6px;}
+.role-name{font-size:12px;font-weight:700;}
+.role-desc{font-size:10px;color:var(--sl2);margin-top:2px;}
+.otp-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px;}
+.otp-row input{width:100%;height:50px;text-align:center;font-size:22px;font-weight:700;border-radius:10px;border:1.5px solid var(--bdr);background:var(--bg2);outline:none;font-family:var(--f);transition:all .15s;}
+.otp-row input:focus{border-color:var(--teal);background:#fff;}
+.auth-msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;line-height:1.5;display:none;}
+.auth-msg.show{display:block;}
+.auth-msg.ok{background:var(--grn-b);color:var(--grn);}
+.auth-msg.er{background:var(--red-b);color:var(--red);}
+.success-ic{width:64px;height:64px;border-radius:50%;background:var(--grn-b);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;border:2px solid var(--grn);}
 
 /* CHAT BUBBLE */
 .chat-bubble{position:fixed;bottom:24px;right:24px;z-index:150;width:56px;height:56px;border-radius:50%;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(17,201,176,.3);transition:all .2s;font-family:var(--f);}
@@ -339,9 +377,11 @@ tr:hover td{background:var(--bg2);}
   .hero{padding-top:120px;padding-bottom:60px;}
   .fti{grid-template-columns:1fr 1fr;gap:24px;}.blf-img{min-height:200px;}.hms{margin-top:40px;}
   #pricing-grid{grid-template-columns:1fr!important;}
+  .auth-left{display:none!important;}
+  .auth-right{padding:24px;}
   .alert-bar{flex-direction:column;}
   .chat-box{width:calc(100vw - 32px);right:16px;bottom:80px;}
-  .auth-wrap{padding:80px 16px 40px;}
+  .auth-right{padding:24px;}
 }
 </style>
 </head>
@@ -581,34 +621,145 @@ tr:hover td{background:var(--bg2);}
 <div class="pg" id="p-aide" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Support</div><div class="stl">Centre <em>d'aide</em></div><div class="sd">Retrouvez toutes les réponses à vos questions.</div><div class="legal-content"><h2>Comment démarrer ?</h2><p>1. Créez votre compte Contrazy (essai gratuit 7 jours).<br>2. Connectez votre compte Stripe via notre assistant.<br>3. Configurez vos modèles de contrat et vos checklists documentaires.<br>4. Générez votre premier lien ou QR code de transaction.<br>5. Envoyez-le par SMS, email ou WhatsApp à votre client.</p><h2>Besoin d'aide supplémentaire ?</h2><p>Notre équipe est disponible par email à <strong>support@contrazy.com</strong> ou via le chat en ligne du lundi au vendredi de 9h à 18h.</p></div></section></div>
 <div class="pg" id="p-statut" style="background:var(--bg2);min-height:100vh;padding-top:64px"><section class="sc"><div class="eye">Infrastructure</div><div class="stl">Statut des <em>services</em></div><div class="sd">État en temps réel de nos systèmes.</div><div class="g3"><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>Plateforme Contrazy</h3><p>Opérationnel — 99,98% de disponibilité sur les 30 derniers jours.</p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>API Stripe</h3><p>Opérationnel — Aucun incident en cours. <a href="https://status.stripe.com" target="_blank" style="color:var(--teal)">status.stripe.com</a></p></div><div class="fc"><div class="fci" style="background:var(--grn-b)">✅</div><h3>E-Signature</h3><p>Opérationnel — Temps de réponse moyen : 0,8s.</p></div></div></section></div>
 
-<!-- ========== INSCRIPTION ========== -->
-<div class="pg auth" id="p-inscription" style="background:var(--navy)">
-<div class="auth-wrap">
-<div style="max-width:440px;width:100%;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
-  <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px;line-height:1.6">Créez votre compte et commencez votre essai gratuit de 7 jours. Aucune carte bancaire requise.</p></div>
-  <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" placeholder="Dupont"></div></div>
-  <div class="fg"><label class="fl">Email professionnel</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
-  <div class="fg"><label class="fl">Téléphone</label><input class="fi" placeholder="+33 6 12 34 56 78"></div>
-  <div class="fg"><label class="fl">Nom de votre entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
-  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Minimum 8 caractères"></div>
-  <div style="margin-bottom:20px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
-  <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'">Créer mon compte →</button>
-  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">Se connecter</a></p>
-</div>
+<!-- ========== CONNEXION ========== -->
+<div class="pg auth" id="p-connexion">
+<div class="auth-shell">
+  <div class="auth-left">
+    <div class="auth-logo-l">C<span class="t">on</span>trazy</div>
+    <div class="auth-tagline">Sécurisez toute la transaction, pas seulement le paiement.</div>
+    <div class="auth-desc-l">Contrat, KYC, e-signature, caution et paiement — en un seul lien ou QR code.</div>
+    <div class="auth-feats">
+      <div class="auth-feat"><div class="auth-feat-ic">🪪</div>Vérification d'identité automatique</div>
+      <div class="auth-feat"><div class="auth-feat-ic">📝</div>Contrats auto-générés et signés</div>
+      <div class="auth-feat"><div class="auth-feat-ic">💳</div>Cautions et paiements sécurisés</div>
+      <div class="auth-feat"><div class="auth-feat-ic">📱</div>QR Codes dynamiques</div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="logo-c">C<span class="t">on</span>trazy</div>
+      <div class="auth-t">Connexion</div>
+      <div class="auth-s">Accédez à votre espace vendeur</div>
+      <div class="auth-msg er" id="login-err">Email ou mot de passe incorrect.</div>
+      <button class="btn-ggl" onclick="window.location.href='contrazy-backoffice.html'"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuer avec Google</button>
+      <div class="auth-div">ou</div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="login-email" type="email" placeholder="jean@monentreprise.com"></div>
+      <div class="fg"><label class="fl">Mot de passe</label><div class="fi-pw"><input class="fi" id="login-pw" type="password" placeholder="Votre mot de passe"><button onclick="tPw(this)">👁</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600;cursor:pointer" onclick="go('forgot')">Mot de passe oublié ?</a></div>
+      <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'">Se connecter</button>
+      <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:18px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600;cursor:pointer">Créer un compte</a></p>
+    </div>
+  </div>
 </div>
 </div>
 
-<!-- ========== CONNEXION ========== -->
-<div class="pg auth" id="p-connexion" style="background:var(--navy)">
-<div class="auth-wrap">
-<div style="max-width:420px;width:100%;background:var(--bg);border-radius:var(--rx);padding:40px;box-shadow:var(--shx)">
-  <div style="text-align:center;margin-bottom:28px"><span class="logo" style="color:var(--navy);font-size:26px">C<span class="t">on</span>trazy</span><p style="font-size:14px;color:var(--sl);margin-top:10px">Connectez-vous à votre espace vendeur.</p></div>
-  <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
-  <div class="fg"><label class="fl">Mot de passe</label><input class="fi" type="password" placeholder="Votre mot de passe"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl);cursor:pointer"><input type="checkbox"> Se souvenir de moi</label><a style="font-size:12px;color:var(--teal);font-weight:600;cursor:pointer">Mot de passe oublié ?</a></div>
-  <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'">Se connecter</button>
-  <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:16px">Pas encore de compte ? <a onclick="go('inscription')" style="color:var(--teal);font-weight:600;cursor:pointer">Essai gratuit 7 jours</a></p>
+<!-- ========== INSCRIPTION ========== -->
+<div class="pg auth" id="p-inscription">
+<div class="auth-shell">
+  <div class="auth-left">
+    <div class="auth-logo-l">C<span class="t">on</span>trazy</div>
+    <div class="auth-tagline">Essai gratuit 7 jours. Aucune CB requise.</div>
+    <div class="auth-desc-l">Créez votre compte, configurez vos modèles et envoyez votre premier lien en 5 minutes.</div>
+    <div class="auth-feats">
+      <div class="auth-feat"><div class="auth-feat-ic">✅</div>Aucun engagement</div>
+      <div class="auth-feat"><div class="auth-feat-ic">⚡</div>Configuration en 2 minutes</div>
+      <div class="auth-feat"><div class="auth-feat-ic">🔒</div>Données chiffrées, RGPD</div>
+      <div class="auth-feat"><div class="auth-feat-ic">💬</div>Support 7j/7</div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="logo-c">C<span class="t">on</span>trazy</div>
+      <div class="auth-t">Créer un compte</div>
+      <div class="auth-s">Choisissez votre profil</div>
+      <div class="auth-msg er" id="reg-err"></div>
+      <div class="role-grid">
+        <div class="role-card on" onclick="selRole(this,'vendeur')"><div class="role-ic">🏪</div><div class="role-name">Vendeur</div><div class="role-desc">Loueur, prestataire</div></div>
+        <div class="role-card" onclick="selRole(this,'client')"><div class="role-ic">👤</div><div class="role-name">Client</div><div class="role-desc">Particulier</div></div>
+        <div class="role-card" onclick="selRole(this,'admin')"><div class="role-ic">🛡️</div><div class="role-name">Admin</div><div class="role-desc">Gestionnaire</div></div>
+      </div>
+      <button class="btn-ggl" onclick="go('verify')"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>S'inscrire avec Google</button>
+      <div class="auth-div">ou par email</div>
+      <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" id="reg-first" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" id="reg-last" placeholder="Dupont"></div></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="reg-email" type="email" placeholder="jean@monentreprise.com"></div>
+      <div class="fg"><label class="fl">Téléphone</label><input class="fi" placeholder="+33 6 12 34 56 78"></div>
+      <div class="fg" id="reg-co-wrap"><label class="fl">Entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
+      <div class="fg"><label class="fl">Mot de passe</label><div class="fi-pw"><input class="fi" id="reg-pw" type="password" placeholder="Min. 8 caractères" oninput="chkPw(this.value)"><button onclick="tPw(this)">👁</button></div><div class="pw-str"><div class="pw-bar-s" id="pw-b"></div></div><div class="pw-lbl" id="pw-l">—</div></div>
+      <div class="fg"><label class="fl">Confirmer</label><div class="fi-pw"><input class="fi" id="reg-pw2" type="password" placeholder="Retapez le mot de passe"><button onclick="tPw(this)">👁</button></div></div>
+      <div style="margin-bottom:16px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" id="reg-terms" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
+      <button class="btn bt bf" onclick="doReg()">Créer mon compte →</button>
+      <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:18px">Déjà un compte ? <a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">Se connecter</a></p>
+    </div>
+  </div>
 </div>
+</div>
+
+<!-- ========== MOT DE PASSE OUBLIÉ ========== -->
+<div class="pg auth" id="p-forgot">
+<div class="auth-shell">
+  <div class="auth-left"><div class="auth-logo-l">C<span class="t">on</span>trazy</div><div class="auth-tagline">Réinitialisation du mot de passe</div><div class="auth-desc-l">Entrez votre email et nous vous enverrons un lien de récupération sécurisé.</div></div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="logo-c">C<span class="t">on</span>trazy</div>
+      <div class="auth-t">Mot de passe oublié</div>
+      <div class="auth-s">Entrez votre email pour recevoir un lien de réinitialisation</div>
+      <div class="auth-msg ok" id="forgot-ok">Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception et vos spams.</div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" placeholder="jean@monentreprise.com"></div>
+      <button class="btn bt bf" onclick="document.getElementById('forgot-ok').classList.add('show')">Envoyer le lien</button>
+      <p style="text-align:center;font-size:13px;color:var(--sl);margin-top:18px"><a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">← Retour à la connexion</a></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== NOUVEAU MDP ========== -->
+<div class="pg auth" id="p-reset">
+<div class="auth-shell">
+  <div class="auth-left"><div class="auth-logo-l">C<span class="t">on</span>trazy</div><div class="auth-tagline">Nouveau mot de passe</div><div class="auth-desc-l">Choisissez un mot de passe sécurisé pour votre compte.</div></div>
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="logo-c">C<span class="t">on</span>trazy</div>
+      <div class="auth-t">Nouveau mot de passe</div>
+      <div class="auth-s">Choisissez un mot de passe fort et unique</div>
+      <div class="fg"><label class="fl">Nouveau mot de passe</label><div class="fi-pw"><input class="fi" type="password" placeholder="Min. 8 caractères" oninput="chkPw(this.value)"><button onclick="tPw(this)">👁</button></div></div>
+      <div class="fg"><label class="fl">Confirmer</label><div class="fi-pw"><input class="fi" type="password" placeholder="Retapez le mot de passe"><button onclick="tPw(this)">👁</button></div></div>
+      <button class="btn bt bf" onclick="go('connexion')">Enregistrer</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== VÉRIFICATION EMAIL OTP ========== -->
+<div class="pg auth" id="p-verify">
+<div class="auth-shell">
+  <div class="auth-left"><div class="auth-logo-l">C<span class="t">on</span>trazy</div><div class="auth-tagline">Vérification de votre email</div><div class="auth-desc-l">Nous vous avons envoyé un code à 6 chiffres. Vérifiez votre boîte de réception.</div></div>
+  <div class="auth-right">
+    <div class="auth-card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:14px">📧</div>
+      <div class="auth-t">Vérifiez votre email</div>
+      <div class="auth-s">Code à 6 chiffres envoyé à<br><strong id="verify-email">jean@exemple.com</strong></div>
+      <div class="otp-row" id="otp-row"><input maxlength="1" oninput="otpN(this,0)" onkeydown="otpB(event,this,0)"><input maxlength="1" oninput="otpN(this,1)" onkeydown="otpB(event,this,1)"><input maxlength="1" oninput="otpN(this,2)" onkeydown="otpB(event,this,2)"><input maxlength="1" oninput="otpN(this,3)" onkeydown="otpB(event,this,3)"><input maxlength="1" oninput="otpN(this,4)" onkeydown="otpB(event,this,4)"><input maxlength="1" oninput="otpN(this,5)" onkeydown="otpB(event,this,5)"></div>
+      <div style="font-size:13px;color:var(--sl);margin-bottom:18px">Pas reçu ? <a id="resend-lnk" onclick="this.textContent='✓ Envoyé !';setTimeout(()=>this.textContent='Renvoyer',3000)" style="color:var(--teal);font-weight:600;cursor:pointer">Renvoyer</a></div>
+      <button class="btn bt bf" onclick="go('success')">Vérifier</button>
+      <p style="font-size:13px;color:var(--sl);margin-top:18px"><a onclick="go('connexion')" style="color:var(--teal);font-weight:600;cursor:pointer">← Retour à la connexion</a></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========== SUCCÈS ========== -->
+<div class="pg auth" id="p-success">
+<div class="auth-shell">
+  <div class="auth-left"><div class="auth-logo-l">C<span class="t">on</span>trazy</div><div class="auth-tagline">Bienvenue !</div><div class="auth-desc-l">Votre compte est activé. Configurez vos modèles de contrat et envoyez votre premier lien.</div></div>
+  <div class="auth-right">
+    <div class="auth-card" style="text-align:center">
+      <div class="success-ic">✓</div>
+      <div class="auth-t">Compte créé avec succès !</div>
+      <div class="auth-s">Votre email a été vérifié. Votre essai gratuit de 7 jours commence maintenant.</div>
+      <button class="btn bt bf" onclick="window.location.href='contrazy-backoffice.html'" style="margin-bottom:10px">Accéder à mon espace →</button>
+      <button class="btn bw bf" onclick="go('connexion')">Se connecter plus tard</button>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -672,6 +823,30 @@ const faqData=[
   {q:"Quelles sont les obligations RGPD ?",a:"Contrazy est conforme au RGPD. Les pièces d'identité sont stockées de manière chiffrée avec une durée de conservation limitée. Le consentement explicite du client est requis avant tout traitement de données personnelles. Vous pouvez consulter notre politique de confidentialité pour plus de détails."},
 ];
 
+// ======= AUTH =======
+function tPw(btn){const inp=btn.parentElement.querySelector('input');inp.type=inp.type==='password'?'text':'password';btn.textContent=inp.type==='password'?'👁':'🔒';}
+function chkPw(v){
+  let s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[A-Z]/.test(v))s++;if(/[0-9]/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;
+  const c=['#EF4444','#F59E0B','#F59E0B','#22C55E','#22C55E'],l=['Très faible','Faible','Moyen','Fort','Très fort'],w=['20%','40%','60%','80%','100%'],i=Math.min(s,4);
+  const bar=document.getElementById('pw-b'),lbl=document.getElementById('pw-l');
+  if(bar){bar.style.width=v?w[i]:'0';bar.style.background=v?c[i]:'';}
+  if(lbl){lbl.textContent=v?l[i]:'—';lbl.style.color=v?c[i]:'var(--sl2)';}
+}
+let selRoleVal='vendeur';
+function selRole(el,role){document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');selRoleVal=role;const w=document.getElementById('reg-co-wrap');if(w)w.style.display=role==='client'?'none':'block';}
+function otpN(el,i){if(el.value.length===1){const inputs=document.querySelectorAll('#otp-row input');if(i<5)inputs[i+1].focus();}}
+function otpB(e,el,i){if(e.key==='Backspace'&&!el.value&&i>0){document.querySelectorAll('#otp-row input')[i-1].focus();}}
+function doReg(){
+  const f=document.getElementById('reg-first'),e=document.getElementById('reg-email'),p=document.getElementById('reg-pw'),p2=document.getElementById('reg-pw2'),t=document.getElementById('reg-terms'),err=document.getElementById('reg-err');
+  if(!f.value||!e.value||!p.value){err.textContent='Remplissez tous les champs.';err.classList.add('show');return;}
+  if(p.value.length<8){err.textContent='Le mot de passe doit avoir au moins 8 caractères.';err.classList.add('show');return;}
+  if(p.value!==p2.value){err.textContent='Les mots de passe ne correspondent pas.';err.classList.add('show');return;}
+  if(!t.checked){err.textContent='Acceptez les CGV.';err.classList.add('show');return;}
+  err.classList.remove('show');
+  document.getElementById('verify-email').textContent=e.value;
+  go('verify');
+}
+
 // ======= MOBILE MENU =======
 function toggleMob(){
   const m=document.getElementById('mob-menu');
@@ -692,8 +867,9 @@ function go(id){
   const el=document.getElementById('p-'+id);
   if(el){el.classList.add('on');}
   const nav=document.getElementById('navbar');
-  const darkPages=['landing','inscription','connexion'];
-  nav.className=darkPages.includes(id)?'nav nav--dark':'nav nav--light';
+  const authPages=['inscription','connexion','forgot','reset','verify','success'];
+  const darkPages=['landing',...authPages];
+  if(authPages.includes(id)){nav.style.display='none';}else{nav.style.display='';nav.className=id==='landing'?'nav nav--dark':'nav nav--light';}
   window.scrollTo(0,0);
 }
 function scrollTo_(id){
