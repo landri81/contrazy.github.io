@@ -92,13 +92,6 @@ a{text-decoration:none;color:inherit;cursor:pointer;}
 .pw-str{height:4px;border-radius:2px;background:var(--bdr);margin-top:6px;overflow:hidden;}
 .pw-bar-s{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;}
 .pw-lbl{font-size:11px;margin-top:4px;font-weight:500;color:var(--sl2);}
-.role-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;}
-.role-card{padding:14px 10px;border-radius:var(--rl);border:1.5px solid var(--bdr);cursor:pointer;text-align:center;transition:all .15s;background:var(--bg);}
-.role-card:hover{border-color:var(--sl3);}
-.role-card.on{border-color:var(--teal);background:var(--teal-s);}
-.role-ic{font-size:22px;margin-bottom:6px;}
-.role-name{font-size:12px;font-weight:700;}
-.role-desc{font-size:10px;color:var(--sl2);margin-top:2px;}
 .otp-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px;}
 .otp-row input{width:100%;height:50px;text-align:center;font-size:22px;font-weight:700;border-radius:10px;border:1.5px solid var(--bdr);background:var(--bg2);outline:none;font-family:var(--f);transition:all .15s;}
 .otp-row input:focus{border-color:var(--teal);background:#fff;}
@@ -671,19 +664,14 @@ tr:hover td{background:var(--bg2);}
     <div class="auth-card">
       <div class="logo-c">C<span class="t">on</span>trazy</div>
       <div class="auth-t">Créer un compte</div>
-      <div class="auth-s">Choisissez votre profil</div>
+      <div class="auth-s">Créez votre espace vendeur en 2 minutes</div>
       <div class="auth-msg er" id="reg-err"></div>
-      <div class="role-grid">
-        <div class="role-card on" onclick="selRole(this,'vendeur')"><div class="role-ic">🏪</div><div class="role-name">Vendeur</div><div class="role-desc">Loueur, prestataire</div></div>
-        <div class="role-card" onclick="selRole(this,'client')"><div class="role-ic">👤</div><div class="role-name">Client</div><div class="role-desc">Particulier</div></div>
-        <div class="role-card" onclick="selRole(this,'admin')"><div class="role-ic">🛡️</div><div class="role-name">Admin</div><div class="role-desc">Gestionnaire</div></div>
-      </div>
       <button class="btn-ggl" onclick="go('verify')"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>S'inscrire avec Google</button>
       <div class="auth-div">ou par email</div>
       <div class="fr"><div class="fg"><label class="fl">Prénom</label><input class="fi" id="reg-first" placeholder="Jean"></div><div class="fg"><label class="fl">Nom</label><input class="fi" id="reg-last" placeholder="Dupont"></div></div>
       <div class="fg"><label class="fl">Email</label><input class="fi" id="reg-email" type="email" placeholder="jean@monentreprise.com"></div>
       <div class="fg"><label class="fl">Téléphone</label><input class="fi" placeholder="+33 6 12 34 56 78"></div>
-      <div class="fg" id="reg-co-wrap"><label class="fl">Entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
+      <div class="fg"><label class="fl">Entreprise</label><input class="fi" placeholder="Mon Entreprise SARL"></div>
       <div class="fg"><label class="fl">Mot de passe</label><div class="fi-pw"><input class="fi" id="reg-pw" type="password" placeholder="Min. 8 caractères" oninput="chkPw(this.value)"><button onclick="tPw(this)">👁</button></div><div class="pw-str"><div class="pw-bar-s" id="pw-b"></div></div><div class="pw-lbl" id="pw-l">—</div></div>
       <div class="fg"><label class="fl">Confirmer</label><div class="fi-pw"><input class="fi" id="reg-pw2" type="password" placeholder="Retapez le mot de passe"><button onclick="tPw(this)">👁</button></div></div>
       <div style="margin-bottom:16px"><label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sl);line-height:1.5;cursor:pointer"><input type="checkbox" id="reg-terms" style="margin-top:3px"> J'accepte les <a onclick="go('cgv')" style="color:var(--teal);font-weight:600">CGV</a> et la <a onclick="go('confidentialite')" style="color:var(--teal);font-weight:600">politique de confidentialité</a></label></div>
@@ -832,8 +820,6 @@ function chkPw(v){
   if(bar){bar.style.width=v?w[i]:'0';bar.style.background=v?c[i]:'';}
   if(lbl){lbl.textContent=v?l[i]:'—';lbl.style.color=v?c[i]:'var(--sl2)';}
 }
-let selRoleVal='vendeur';
-function selRole(el,role){document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');selRoleVal=role;const w=document.getElementById('reg-co-wrap');if(w)w.style.display=role==='client'?'none':'block';}
 function otpN(el,i){if(el.value.length===1){const inputs=document.querySelectorAll('#otp-row input');if(i<5)inputs[i+1].focus();}}
 function otpB(e,el,i){if(e.key==='Backspace'&&!el.value&&i>0){document.querySelectorAll('#otp-row input')[i-1].focus();}}
 function doReg(){
