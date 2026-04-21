@@ -338,6 +338,7 @@ tr:hover td{background:var(--bg2);}
   .nav{padding:0 16px;}
   .hero{padding-top:120px;padding-bottom:60px;}
   .fti{grid-template-columns:1fr 1fr;gap:24px;}.blf-img{min-height:200px;}.hms{margin-top:40px;}
+  #pricing-grid{grid-template-columns:1fr!important;}
   .alert-bar{flex-direction:column;}
   .chat-box{width:calc(100vw - 32px);right:16px;bottom:80px;}
   .auth-wrap{padding:80px 16px 40px;}
@@ -481,15 +482,21 @@ tr:hover td{background:var(--bg2);}
 <!-- PRICING -->
 <section class="sc" id="tarifs">
   <div class="eye">Tarifs</div>
-  <div class="stl">Abonnement + <em>usage</em></div>
-  <div class="sd">L'abonnement donne accès à la plateforme. Coûts variables absorbés dans les quotas.</div>
+  <div class="stl"><em>0 % de commission</em> sur les paiements</div>
+  <div class="sd">Abonnement simple + extras à l'usage. Les frais de paiement sont supportés par le vendeur via son compte Stripe.</div>
   <div class="ptog">
     <span id="ptog-m" style="font-weight:700;color:var(--navy)">Mensuel</span>
     <button class="ptog-sw" id="ptog-btn" onclick="togglePricing()"></button>
     <span id="ptog-a">Annuel</span>
     <span class="ptog-badge">-15%</span>
   </div>
-  <div class="pg3" id="pricing-grid"></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" id="pricing-grid"></div>
+  <div class="reg" style="margin-top:32px;border-left-color:var(--teal)"><h3>💳 Frais transactionnels (payés par le vendeur)</h3><p style="margin-top:8px">
+    <strong>Caution libérée (non retenue)</strong> : <span style="color:var(--grn);font-weight:700">0 €</span> · Aucun frais pour le vendeur ni le client<br>
+    <strong>Caution capturée (retenue totale ou partielle)</strong> : <span style="font-weight:700">2 % + 0,25 €</span> du montant retenu · Frais de service Contrazy + frais Stripe (1,5 % + 0,25 €)<br>
+    <strong>Paiement encaissé</strong> : frais Stripe standards (1,5 % + 0,25 €) · Prélevé directement par Stripe<br>
+    <strong>KYC supplémentaire</strong> : 1,50 € (Starter) · 1 € (Pro/Business) par vérification au-delà du quota
+  </p></div>
 </section>
 
 <!-- STACK -->
@@ -508,6 +515,7 @@ tr:hover td{background:var(--bg2);}
 </div></div>
 
 <div class="cta"><h2>Prêt à sécuriser vos transactions ?</h2><p>Créez votre compte en 2 minutes. Aucune CB requise pendant l'essai.</p><div style="display:flex;gap:12px;justify-content:center"><button class="btn bt" onclick="go('inscription')">Essai gratuit 7 jours →</button><button class="btn bg" onclick="go('demo')">Voir la démo →</button></div></div>
+<footer class="ft"><div class="fti"><div><span class="logo" style="color:var(--navy)">C<span class="t">on</span>trazy</span><p class="ftbr">La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.</p></div><div class="ftc"><h4>Produit</h4><a onclick="go('landing')">Fonctionnalités</a><a onclick="scrollTo_('tarifs')">Tarifs</a><a onclick="go('demo')">Démo</a><a onclick="go('inscription')">Essai gratuit</a></div><div class="ftc"><h4>Ressources</h4><a onclick="go('blog')">Blog</a><a onclick="go('faq')">FAQ</a><a onclick="go('api')">Documentation API</a><a onclick="go('aide')">Centre d'aide</a><a onclick="go('statut')">Statut</a></div><div class="ftc"><h4>Légal</h4><a onclick="go('cgv')">CGV</a><a onclick="go('confidentialite')">Politique de confidentialité</a><a onclick="go('mentions')">Mentions légales</a><a onclick="go('rgpd')">RGPD</a><a onclick="go('contact')">Contact</a></div></div><div class="ftb">© 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity<br>Aucune détention de fonds pour compte de tiers · Tous droits réservés</div></footer>
 </div>
 
 <!-- ========== BLOG ========== -->
@@ -705,11 +713,15 @@ function toggleFaq(el){el.classList.toggle('open');}
 let annual=false;
 function togglePricing(){annual=!annual;document.getElementById('ptog-btn').classList.toggle('on',annual);document.getElementById('ptog-m').style.fontWeight=annual?'500':'700';document.getElementById('ptog-m').style.color=annual?'var(--sl)':'var(--navy)';document.getElementById('ptog-a').style.fontWeight=annual?'700':'500';document.getElementById('ptog-a').style.color=annual?'var(--navy)':'var(--sl)';renderPricing();}
 function renderPricing(){
-  const soloM=19,proM=49,soloA=Math.round(19*12*.85),proA=Math.round(49*12*.85);
+  const sM=9,pM=24,bM=49;
+  const sA=Math.round(sM*12*.85),pA=Math.round(pM*12*.85),bA=Math.round(bM*12*.85);
+  function pr(m,a){return annual?`<span class="old">${m*12}€</span>${a}€ <span>HT</span>`:`${m}€ <span>HT</span>`;}
+  function pe(a,m){return annual?'/ an · soit '+Math.round(a/12)+'€/mois':'/ mois · sans engagement';}
   document.getElementById('pricing-grid').innerHTML=`
-  <div class="pc"><div class="pcn">Solo</div><div class="pcf">Indépendants · 1 utilisateur</div><div class="pca">${annual?`<span class="old">${soloM*12}€</span>${soloA}€ <span>HT</span>`:`${soloM}€ <span>HT</span>`}</div><div class="pcper">${annual?'/ an · soit '+(soloA/12).toFixed(0)+'€/mois':'/ mois · sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>30 transactions / mois</li><li>10 vérifications KYC / mois</li><li>1 modèle de contrat</li><li>E-Signature eIDAS</li><li>QR Codes dynamiques</li><li>Envoi par email</li></ul><button class="btn bw bf bsm" onclick="go('inscription')">Commencer</button></div>
-  <div class="pc ft"><div class="pcp">Recommandé</div><div class="pcn">Pro</div><div class="pcf">Gestionnaires · Équipes</div><div class="pca">${annual?`<span class="old">${proM*12}€</span>${proA}€ <span>HT</span>`:`${proM}€ <span>HT</span>`}</div><div class="pcper">${annual?'/ an · soit '+(proA/12).toFixed(0)+'€/mois':'/ mois · sans engagement'}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>Transactions illimitées</li><li>50 vérifications KYC / mois</li><li>Contrats illimités</li><li>E-Signatures illimitées</li><li>SMS + WhatsApp</li><li>Profils clients persistants</li><li>Workflow litiges</li><li>QR Codes illimités</li><li>3 utilisateurs</li></ul><button class="btn bt bf bsm" onclick="go('inscription')">Essai gratuit 7 jours</button></div>
-  <div class="pc"><div class="pcn">Business</div><div class="pcf">Agences · API · Marque blanche</div><div class="pca">Sur devis</div><div class="pcper">facturation annuelle</div><div class="pcinc">Tout Pro +</div><ul class="pcl"><li>API REST + webhooks</li><li>Marque blanche complète</li><li>Scoring documentaire</li><li>Connecteur PMS / CRM</li><li>Utilisateurs illimités</li><li>SLA + support dédié</li></ul><button class="btn bw bf bsm" onclick="go('contact')">Nous contacter</button></div>`;
+  <div class="pc"><div class="pcn">Starter</div><div class="pcf">Indépendants · 1 utilisateur</div><div class="pca">${pr(sM,sA)}</div><div class="pcper">${pe(sA,sM)}</div><div class="pcinc">Inclus</div><ul class="pcl"><li>Cautions + paiements illimités</li><li>E-Signature OTP eIDAS</li><li>QR Codes dynamiques</li><li>1 modèle de contrat</li><li>Envoi par email</li><li>Libération caution : gratuit</li></ul><button class="btn bw bf bsm" onclick="go('inscription')">Commencer</button></div>
+  <div class="pc"><div class="pcn">Pro</div><div class="pcf">Loueurs · Prestataires</div><div class="pca">${pr(pM,pA)}</div><div class="pcper">${pe(pA,pM)}</div><div class="pcinc">Tout Starter +</div><ul class="pcl"><li>10 vérifications KYC / mois</li><li>Contrats auto-générés</li><li>SMS + WhatsApp (10/mois)</li><li>Profils clients persistants</li><li>Libération caution : gratuit</li></ul><button class="btn bt bf bsm" onclick="go('inscription')">Essai gratuit 7 jours</button></div>
+  <div class="pc ft"><div class="pcp">Recommandé</div><div class="pcn">Business</div><div class="pcf">Gestionnaires · Équipes</div><div class="pca">${pr(bM,bA)}</div><div class="pcper">${pe(bA,bM)}</div><div class="pcinc">Tout Pro +</div><ul class="pcl"><li>25 vérifications KYC / mois</li><li>Contrats illimités</li><li>SMS + WhatsApp (25/mois)</li><li>Workflow litiges</li><li>3 utilisateurs</li><li>Libération caution : gratuit</li></ul><button class="btn bt bf bsm" onclick="go('inscription')">Essai gratuit 7 jours</button></div>
+  <div class="pc"><div class="pcn">Enterprise</div><div class="pcf">API · Marque blanche</div><div class="pca">Sur devis</div><div class="pcper">facturation annuelle</div><div class="pcinc">Tout Business +</div><ul class="pcl"><li>API REST + webhooks</li><li>Marque blanche complète</li><li>KYC illimité</li><li>Utilisateurs illimités</li><li>SLA + support dédié</li><li>Commission capture négociable</li></ul><button class="btn bw bf bsm" onclick="go('contact')">Nous contacter</button></div>`;
 }
 renderPricing();
 
