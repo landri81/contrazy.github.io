@@ -422,7 +422,7 @@ tr:hover td{background:var(--bg2);}
   <div class="hm"><div class="hm-v">0 %</div><div class="hm-l">Commission caution</div></div>
   <div class="hm"><div class="hm-v">&lt; 3 min</div><div class="hm-l">Dossier complet</div></div>
   <div class="hm"><div class="hm-v">120+</div><div class="hm-l">Pays couverts KYC</div></div>
-  <div class="hm"><div class="hm-v">eIDAS</div><div class="hm-l">E-signature conforme</div></div>
+  <div class="hm"><div class="hm-v">SES</div><div class="hm-l">Signature simple eIDAS</div></div>
 </div>
 </div></div>
 </section>
@@ -431,9 +431,9 @@ tr:hover td{background:var(--bg2);}
   <div class="tri"><span class="trd"></span>Stripe Connect</div>
   <div class="tri"><span class="trd"></span>Stripe Identity</div>
   <div class="tri"><span class="trd"></span>3D Secure · DSP2</div>
-  <div class="tri"><span class="trd"></span>E-Signature eIDAS</div>
+  <div class="tri"><span class="trd"></span>E-Signature simple eIDAS</div>
   <div class="tri"><span class="trd"></span>QR Codes dynamiques</div>
-  <div class="tri"><span class="trd"></span>RGPD compliant</div>
+  <div class="tri"><span class="trd"></span>Conçu pour la conformité RGPD</div>
 </div></div>
 
 <!-- WORKFLOW with e-signature -->
@@ -446,7 +446,7 @@ tr:hover td{background:var(--bg2);}
     <div class="wfs"><div class="wfn">02</div><div class="wfi">👤</div><h4>Profil client</h4><p>Pré-rempli si récurrent</p></div>
     <div class="wfs"><div class="wfn">03</div><div class="wfi">🪪</div><h4>KYC automatique</h4><p>ID + selfie · Stripe Identity</p></div>
     <div class="wfs"><div class="wfn">04</div><div class="wfi">📝</div><h4>Contrat auto-généré</h4><p>Données injectées</p></div>
-    <div class="wfs"><div class="wfn">05</div><div class="wfi">✍️</div><h4>E-Signature</h4><p>eIDAS · OTP · Preuve</p></div>
+    <div class="wfs"><div class="wfn">05</div><div class="wfi">✍️</div><h4>E-Signature</h4><p>OTP SMS · Horodatée</p></div>
     <div class="wfs"><div class="wfn">06</div><div class="wfi">💳</div><h4>Paiement / caution</h4><p>Stripe · Empreinte CB</p></div>
   </div>
 </section></div>
@@ -457,9 +457,9 @@ tr:hover td{background:var(--bg2);}
   <div class="stl">La couche <em>confiance</em> qui manquait</div>
   <div class="sd">Chaque brique s'appuie sur des partenaires certifiés.</div>
   <div class="g3">
-    <div class="fc"><div class="fci" style="background:var(--teal-s)">🪪</div><h3>Vérification d'identité (KYC)</h3><p>Document officiel + selfie, vérifiés via Stripe Identity. 120+ pays. Pièces exigées paramétrables.</p><span class="ftg" style="color:var(--teal);background:var(--teal-s)">STRIPE IDENTITY</span></div>
+    <div class="fc"><div class="fci" style="background:var(--teal-s)">🪪</div><h3>Vérification documentaire</h3><p>Upload de pièces d'identité, permis, justificatifs. Le vendeur paramètre les documents exigés. KYC automatique disponible en option.</p><span class="ftg" style="color:var(--teal);background:var(--teal-s)">CONFIGURABLE</span></div>
     <div class="fc"><div class="fci" style="background:var(--blu-b)">📝</div><h3>Contrats auto-générés</h3><p>Le vendeur configure son modèle. Le moteur injecte les données du profil. PDF signable en 1 clic.</p><span class="ftg" style="color:var(--blu);background:var(--blu-b)">MOTEUR INTERNE</span></div>
-    <div class="fc"><div class="fci" style="background:var(--grn-b)">✍️</div><h3>E-Signature électronique</h3><p>Conforme eIDAS. OTP par SMS, horodatage, dossier de preuve archivé et téléchargeable.</p><span class="ftg" style="color:var(--grn);background:var(--grn-b)">eIDAS</span></div>
+    <div class="fc"><div class="fci" style="background:var(--grn-b)">✍️</div><h3>E-Signature électronique</h3><p>Signature simple au sens eIDAS. Code OTP par SMS, horodatage, dossier de preuve archivé et téléchargeable.</p><span class="ftg" style="color:var(--grn);background:var(--grn-b)">SIGNATURE SIMPLE</span></div>
     <div class="fc"><div class="fci" style="background:var(--amb-b)">💳</div><h3>Paiements & cautions</h3><p>Paiement immédiat, acompte ou empreinte bancaire sans débit. Capture partielle ou totale.</p><span class="ftg" style="color:var(--teal);background:var(--teal-s)">STRIPE CONNECT</span></div>
     <div class="fc"><div class="fci" style="background:var(--red-b)">⚖️</div><h3>Gestion des litiges</h3><p>Retenue avec motif et preuves. Client notifié. Historique horodaté complet.</p><span class="ftg" style="color:var(--blu);background:var(--blu-b)">MOTEUR INTERNE</span></div>
     <div class="fc"><div class="fci" style="background:var(--teal-s)">🔗</div><h3>QR Codes dynamiques</h3><p>Générez des QR codes modifiables pointant vers vos liens de transaction. Imprimables, traçables.</p><span class="ftg" style="color:var(--teal);background:var(--teal-s)">DIFFÉRENCIATEUR</span></div>
@@ -503,10 +503,10 @@ tr:hover td{background:var(--bg2);}
   <div class="reg"><h3>⚠️ Architecture réglementaire</h3><p>Contrazy ne détient jamais de fonds pour le compte de tiers. La plateforme orchestre des pré-autorisations Stripe avec capture différée.</p>
     <div class="rgg">
       <div class="rgi"><span class="rgd"></span><span><strong>Pas de séquestre</strong> — Empreinte bancaire. Aucune détention de fonds.</span></div>
-      <div class="rgi"><span class="rgd"></span><span><strong>Caution = pré-autorisation</strong> — Blocage 7 jours max.</span></div>
-      <div class="rgi"><span class="rgd"></span><span><strong>eIDAS</strong> — E-Signature renforcée + OTP + dossier de preuve.</span></div>
+      <div class="rgi"><span class="rgd"></span><span><strong>Caution = pré-autorisation</strong> — Jusqu'à 7 jours selon la banque du client.</span></div>
+      <div class="rgi"><span class="rgd"></span><span><strong>Signature simple eIDAS</strong> — OTP SMS + horodatage + dossier de preuve.</span></div>
       <div class="rgi"><span class="rgd"></span><span><strong>RGPD</strong> — Stockage chiffré, durée limitée.</span></div>
-      <div class="rgi"><span class="rgd"></span><span><strong>3D Secure / DSP2</strong> — Authentification forte dès 30 €.</span></div>
+      <div class="rgi"><span class="rgd"></span><span><strong>3D Secure / DSP2</strong> — Authentification forte selon les règles Stripe.</span></div>
       <div class="rgi"><span class="rgd"></span><span><strong>Stripe Connect</strong> — Comptes connectés. Flux conformes.</span></div>
     </div>
   </div>
@@ -539,7 +539,7 @@ tr:hover td{background:var(--bg2);}
   <div class="sd wh">La plateforme exploite l'écosystème Stripe pour se concentrer sur la couche métier.</div>
   <div class="g3">
     <div class="dk"><img src="img-connect.jpg" alt="Stripe Connect" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Connect</h3><p>Flux vendeur/client. Comptes connectés.</p></div>
-    <div class="dk"><img src="img-identity.jpg" alt="Stripe Identity" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Identity</h3><p>Vérification documents + selfie. 120+ pays.</p></div>
+    <div class="dk"><img src="img-identity.jpg" alt="Stripe Identity" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Identity</h3><p>Vérification documents + selfie. Disponible en option (plans Pro+).</p></div>
     <div class="dk"><img src="img-billing.jpg" alt="Stripe Billing" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Stripe Billing</h3><p>Abonnements vendeurs automatiques.</p></div>
     <div class="dk"><img src="img-auth.jpg" alt="Auth Capture" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Auth + Capture</h3><p>Empreinte CB sans débit. Capture différée.</p></div>
     <div class="dk"><img src="img-webhooks.jpg" alt="Webhooks" style="width:100%;height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;background:rgba(255,255,255,.06);padding:12px"><h3>Webhooks</h3><p>Notifications temps réel.</p></div>
@@ -800,8 +800,8 @@ const faqData=[
   {q:"Contrazy, c'est quoi ?",a:"Contrazy est une plateforme de sécurisation transactionnelle qui centralise contrat, KYC (vérification d'identité), e-signature électronique, caution et paiement en un seul lien ou QR code. Vos clients n'ont pas besoin de créer de compte."},
   {q:"Contrazy s'adresse à qui ?",a:"Aux loueurs (courte durée, véhicules, matériel), prestataires de services, artisans, collectivités, organisateurs d'événements, et toute entreprise ayant besoin de sécuriser une transaction avec contrat, identité et/ou garantie financière."},
   {q:"Contrazy collecte-t-il mes fonds ?",a:"Non. Contrazy ne détient jamais de fonds pour le compte de tiers. Les flux financiers transitent directement entre votre client et votre compte Stripe Connect. Contrazy orchestre la pré-autorisation et la capture, mais ne touche pas à l'argent."},
-  {q:"Comment fonctionne la caution ?",a:"La caution est une empreinte bancaire via pré-autorisation Stripe. Le montant est bloqué sur la carte de votre client pendant 7 jours maximum sans être débité. En cas de dégradation, vous pouvez capturer tout ou partie du montant depuis votre tableau de bord. Sans action de votre part, l'autorisation est automatiquement libérée."},
-  {q:"Qu'est-ce que la e-signature Contrazy ?",a:"Contrazy propose une e-signature conforme eIDAS. Votre client signe le contrat généré automatiquement via un code OTP envoyé par SMS. Un dossier de preuve horodaté et chiffré est archivé pour chaque signature, garantissant sa valeur juridique."},
+  {q:"Comment fonctionne la caution ?",a:"La caution est une empreinte bancaire via pré-autorisation Stripe. Le montant est bloqué sur la carte de votre client sans être débité, généralement jusqu'à 7 jours selon la banque émettrice. En cas de dégradation, vous pouvez capturer tout ou partie du montant depuis votre tableau de bord. Sans action de votre part, l'autorisation est automatiquement libérée."},
+  {q:"Qu'est-ce que la e-signature Contrazy ?",a:"Contrazy propose une signature électronique simple au sens du règlement eIDAS. Votre client signe le contrat généré automatiquement via un code OTP envoyé par SMS. Un dossier de preuve horodaté (hash du document, IP, user-agent, code OTP) est archivé pour chaque signature. Ce niveau convient aux contrats de location, devis, bons de commande et CGV."},
   {q:"Mon client doit-il créer un compte ?",a:"Non. Votre client reçoit un lien (par SMS, email, WhatsApp) ou scanne un QR code. Il remplit son profil, uploade ses pièces, signe le contrat et paie — tout ça sans créer de compte Contrazy."},
   {q:"Comment fonctionne la vérification d'identité (KYC) ?",a:"Contrazy utilise Stripe Identity pour vérifier automatiquement les pièces d'identité de vos clients. Le vendeur paramètre les pièces exigées (CNI, passeport, permis, selfie). L'IA vérifie l'authenticité du document et la correspondance faciale en quelques secondes. Plus de 120 pays sont couverts."},
   {q:"Puis-je utiliser des QR codes ?",a:"Oui. Vous pouvez générer des QR codes dynamiques pointant vers vos liens de transaction. Imprimez-les sur vos supports (flyers, comptoir, email de confirmation) et modifiez leur contenu à tout moment sans réimprimer le code."},
@@ -946,7 +946,7 @@ function rFlow(){
   } else if(fs===4&&!fpd){
     c.innerHTML=`<div class="mh">Paiement & caution</div><div class="md">Sécurisé par Stripe. La caution est une empreinte bancaire : aucun débit sauf retenue justifiée.</div><div class="spr"><div class="spb"><div class="spl">Paiement</div><div class="spv">420 €</div><div class="spn" style="color:var(--sl2)">Débit immédiat</div></div><div class="spb"><div class="spl">Caution</div><div class="spv">800 €</div><div class="spn" style="color:var(--amb)">Empreinte · 7 jours</div></div></div><div class="fg"><label class="fl">Numéro de carte</label><input class="fi" placeholder="4242 4242 4242 4242"></div><div class="fr"><div class="fg"><label class="fl">Expiration</label><input class="fi" placeholder="12/28"></div><div class="fg"><label class="fl">CVC</label><input class="fi" placeholder="123"></div></div><button class="btn bt bf" onclick="fpd=true;rFlow()">🔒 Payer 420 € et déposer la caution</button><div style="text-align:center;margin-top:10px;font-size:11px;color:var(--sl2)">Stripe · 3D Secure · DSP2 · Pré-autorisation</div>`;
   } else if(fs===4&&fpd){
-    c.innerHTML=`<div style="text-align:center;padding:20px 0"><div style="font-size:52px;margin-bottom:16px">✅</div><div style="font-size:18px;font-weight:700;margin-bottom:6px">Dossier complet</div><div style="font-size:13px;color:var(--sl);line-height:1.65;margin-bottom:20px">Paiement encaissé · Caution bloquée · Contrat signé · Identité vérifiée<br>Votre profil est enregistré pour vos prochaines transactions.</div><div class="ok-g"><div><span>Réf.</span>CTZ-0413</div><div><span>Date</span>20/04/2026</div><div><span>Contrat</span><span style="color:var(--grn)">✓ Signé eIDAS</span></div><div><span>KYC</span><span style="color:var(--grn)">✓ 3/3 vérifiées</span></div><div><span>Paiement</span><span style="color:var(--grn)">✓ 420 € encaissé</span></div><div><span>Caution</span><span style="color:var(--amb)">🔒 800 € · 7j</span></div></div><button class="btn bw bf" onclick="closeFlow()">Fermer</button></div>`;
+    c.innerHTML=`<div style="text-align:center;padding:20px 0"><div style="font-size:52px;margin-bottom:16px">✅</div><div style="font-size:18px;font-weight:700;margin-bottom:6px">Dossier complet</div><div style="font-size:13px;color:var(--sl);line-height:1.65;margin-bottom:20px">Paiement encaissé · Caution bloquée · Contrat signé · Identité vérifiée<br>Votre profil est enregistré pour vos prochaines transactions.</div><div class="ok-g"><div><span>Réf.</span>CTZ-0413</div><div><span>Date</span>20/04/2026</div><div><span>Contrat</span><span style="color:var(--grn)">✓ Signé</span></div><div><span>KYC</span><span style="color:var(--grn)">✓ 3/3 vérifiées</span></div><div><span>Paiement</span><span style="color:var(--grn)">✓ 420 € encaissé</span></div><div><span>Caution</span><span style="color:var(--amb)">🔒 800 € · 7j</span></div></div><button class="btn bw bf" onclick="closeFlow()">Fermer</button></div>`;
   }
 }
 </script>
