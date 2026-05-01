@@ -1,0 +1,187 @@
+"use client"
+
+import { useState } from "react"
+import type { ContractTemplate } from "@prisma/client"
+import { FileText, Plus, Trash2, Edit } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+export function ContractTemplateList({ 
+  initialTemplates,
+  vendorId
+}: { 
+  initialTemplates: ContractTemplate[]
+  vendorId: string
+}) {
+  const [templates, setTemplates] = useState(initialTemplates)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Form State
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [content, setContent] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  function openNewDialog() {
+    setName("")
+    setDescription("")
+    setContent("This is a contract between {{vendorName}} and {{clientName}}...")
+    setEditingId(null)
+    setIsDialogOpen(true)
+  }
+
+  function openEditDialog(t: ContractTemplate) {
+    setName(t.name)
+    setDescription(t.description || "")
+    setContent(t.content)
+    setEditingId(t.id)
+    setIsDialogOpen(true)
+  }
+
+  async function handleSave() {
+    setIsSaving(true)
+    try {
+      const url = editingId ? `/api/vendor/contracts/${editingId}` : '/api/vendor/contracts'
+      const method = editingId ? 'PUT' : 'POST'
+      
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, content })
+      })
+      
+      if (res.ok) {
+        const saved = await res.json()
+        if (editingId) {
+          setTemplates(templates.map(t => t.id === saved.id ? saved : t))
+        } else {
+          setTemplates([saved, ...templates])
+        }
+        setIsDialogOpen(false)
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this template?")) return
+    
+    try {
+      const res = await fetch(`/api/vendor/contracts/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTemplates(templates.filter(t => t.id !== id))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openNewDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Template
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{editingId ? 'Edit Template' : 'Create Template'}</DialogTitle>
+              <DialogDescription>
+                Define the legal terms for your transactions. Use placeholders to inject dynamic data.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Template Name</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Standard Car Rental Agreement" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description (optional)</Label>
+                <Input id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief note about when to use this" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="content">Contract Terms</Label>
+                <Textarea 
+                  id="content" 
+                  className="min-h-[250px] font-mono text-sm"
+                  value={content} 
+                  onChange={e => setContent(e.target.value)} 
+                />
+                <p className="text-xs text-muted-foreground">
+                  Available placeholders: {'{{clientName}}, {{clientEmail}}, {{clientPhone}}, {{clientCompany}}, {{vendorName}}, {{transactionReference}}, {{paymentAmount}}, {{depositAmount}}'}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+              <Button onClick={handleSave} disabled={isSaving || !name || !content}>
+                {isSaving ? "Saving..." : "Save Template"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {templates.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-4 text-lg font-semibold">No templates yet</h3>
+            <p className="text-sm text-muted-foreground mt-2 max-w-sm">
+              Create your first contract template to speed up transaction creation.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {templates.map(template => (
+            <Card key={template.id}>
+              <CardHeader className="pb-3">
+                <CardTitle className="line-clamp-1">{template.name}</CardTitle>
+                {template.description && (
+                  <CardDescription className="line-clamp-1">{template.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent className="pb-3">
+                <p className="text-xs text-muted-foreground line-clamp-3 bg-muted/50 p-2 rounded border font-mono">
+                  {template.content}
+                </p>
+              </CardContent>
+              <CardFooter className="flex justify-between border-t pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Updated {new Date(template.updatedAt).toLocaleDateString()}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

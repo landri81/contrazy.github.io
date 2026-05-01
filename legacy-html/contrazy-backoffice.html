@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Contrazy — Back Office Vendeur</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230C1E2F'/%3E%3Ctext x='7' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%23fff'%3EC%3C/text%3E%3Ctext x='24' y='46' font-family='system-ui' font-weight='800' font-size='38' fill='%2311C9B0'%3Ez%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0C1E2F">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#fff;--bg2:#F8F9FB;--navy:#0C1E2F;--navy2:#132D46;--teal:#11C9B0;--teal-s:#E8FAF7;--teal-g:rgba(17,201,176,.08);--sl:#64748B;--sl2:#94A3B8;--sl3:#CBD5E1;--grn:#22C55E;--grn-b:rgba(34,197,94,.08);--amb:#F59E0B;--amb-b:rgba(245,158,11,.06);--red:#EF4444;--red-b:rgba(239,68,68,.06);--blu:#3B82F6;--blu-b:rgba(59,130,246,.06);--bdr:#E2E8F0;--r:10px;--rl:14px;--rx:20px;--f:'Plus Jakarta Sans',sans-serif;--sh:0 4px 6px -1px rgba(0,0,0,.06);--shl:0 10px 15px -3px rgba(0,0,0,.07);}
@@ -86,6 +88,13 @@ tr{cursor:pointer;}
 .card-tag{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-top:10px;text-transform:uppercase;letter-spacing:.8px;}
 .card-meta{font-size:11px;color:var(--sl2);margin-top:8px;}
 
+/* FORMS */
+.fg{margin-bottom:12px;}
+.fl{display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--sl);}
+.fi{width:100%;height:44px;padding:0 14px;border-radius:8px;font-size:14px;background:var(--bg2);border:1px solid var(--bdr);color:var(--navy);outline:none;font-family:var(--f);transition:all .15s;}
+.fi:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(17,201,176,.08);background:#fff;}
+.fi::placeholder{color:var(--sl2);}
+
 /* ALERTS */
 .alert-bar{display:flex;gap:12px;margin-bottom:24px;}
 .alert{flex:1;padding:14px 18px;border-radius:var(--r);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;}
@@ -94,28 +103,42 @@ tr{cursor:pointer;}
 .alert.err{background:var(--red-b);color:#991B1B;border:1px solid rgba(239,68,68,.15);}
 .alert-ic{font-size:18px;}
 
+.top-ham{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:4px;}
+.top-ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;}
+.sb-overlay.open{display:block;}
 @media(max-width:900px){
-  .sb{display:none;}.mn{margin-left:0;}
+  .sb{display:none;position:fixed;z-index:40;top:56px;left:0;bottom:0;width:260px;box-shadow:var(--shl);}
+  .sb.open{display:block;}
+  .mn{margin-left:0;}
   .kpi-r{grid-template-columns:1fr 1fr;}
   .detail-grid{grid-template-columns:1fr;}
   .card-grid{grid-template-columns:1fr;}
   .alert-bar{flex-direction:column;}
+  .top-ham{display:flex!important;}
+  .hdr{flex-direction:column;gap:12px;}
+  .hdr-btns{flex-wrap:wrap;}
 }
 </style>
 </head>
 <body>
 
 <div class="top">
-  <span class="top-logo">C<span class="t">on</span>trazy <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.4);margin-left:6px">Back Office</span></span>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="top-ham" onclick="document.getElementById('bo-sb').classList.toggle('open');document.getElementById('bo-ov').classList.toggle('open')"><span></span><span></span><span></span></button>
+    <span class="top-logo">C<span class="t">on</span>trazy <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.4);margin-left:6px">Back Office</span></span>
+  </div>
   <div class="top-r">
     <span>Aziz · LOCAZ SARL</span>
+    <button class="bw2" onclick="window.location.href='/'">← Retour au site</button>
     <button class="bw2">⚙️ Paramètres</button>
     <button class="bt2" onclick="sbNav('cockpit')">📊 Cockpit</button>
   </div>
 </div>
 
 <div class="wrap">
-<aside class="sb">
+<div class="sb-overlay" id="bo-ov" onclick="document.getElementById('bo-sb').classList.remove('open');this.classList.remove('open')"></div>
+<aside class="sb" id="bo-sb">
   <div class="sb-l">Cockpit</div>
   <button class="sb-i on" onclick="sbNav('cockpit')">📊 Tableau de bord</button>
   <button class="sb-i" onclick="sbNav('today')">📋 Actions du jour<span class="cnt">5</span></button>
@@ -143,6 +166,13 @@ tr{cursor:pointer;}
   <button class="sb-i" onclick="sbNav('liens')">🔗 Liens & QR Codes</button>
   <button class="sb-i" onclick="sbNav('webhooks')">🔔 Logs webhooks</button>
   <button class="sb-i" onclick="sbNav('stripe')">🏦 Stripe Connect</button>
+  <div class="sb-d"></div>
+  <div class="sb-l">Administration</div>
+  <button class="sb-i" onclick="sbNav('users')">👥 Utilisateurs<span class="cnt">95</span></button>
+  <button class="sb-i" onclick="sbNav('invites')">📨 Invitations</button>
+  <button class="sb-i" onclick="sbNav('roles')">🛡️ Rôles</button>
+  <button class="sb-i" onclick="sbNav('logs')">📋 Journal activité</button>
+  <button class="sb-i" onclick="sbNav('sessions')">🔐 Sessions</button>
 </aside>
 
 <main class="mn">
@@ -437,16 +467,184 @@ tr{cursor:pointer;}
   </div>
 </div>
 
+<!-- ===== UTILISATEURS ===== -->
+<div class="pg" id="v-users">
+  <div class="hdr"><div><h1>👥 Utilisateurs</h1><p>Gérez tous les comptes de la plateforme</p></div><div class="hdr-btns"><button class="btn bw">📥 Export CSV</button><button class="btn bd" onclick="document.getElementById('inv-modal').style.display='flex'">+ Inviter</button></div></div>
+  <div class="kpi-r">
+    <div class="kpi"><div class="kpi-l">Total vendeurs</div><div class="kpi-v">93</div></div>
+    <div class="kpi"><div class="kpi-l">Actifs</div><div class="kpi-v" style="color:var(--grn)">87</div></div>
+    <div class="kpi"><div class="kpi-l">En attente</div><div class="kpi-v" style="color:var(--amb)">4</div></div>
+    <div class="kpi"><div class="kpi-l">Admins</div><div class="kpi-v">2</div></div>
+  </div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Tous les utilisateurs</div><div class="tbl-tabs"><button class="tt on">Tous</button><button class="tt">Vendeurs</button><button class="tt">Admins</button><button class="tt">Suspendus</button></div></div>
+    <table><thead><tr><th>Utilisateur</th><th>Rôle</th><th>Plan</th><th>Statut</th><th>Connexion</th><th>Inscription</th><th>Actions</th></tr></thead><tbody>
+      <tr><td><div class="cli"><div class="av" style="background:#0C1E2F">AZ</div><div><div class="cln">Aziz Landri</div><div class="cle">aziz@contrazy.com</div></div></div></td><td><span class="bdg sg"><span class="bdg-d"></span>Admin</span></td><td>—</td><td><span class="bdg ok"><span class="bdg-d"></span>Actif</span></td><td style="font-size:12px">5 min</td><td style="font-size:12px">01/01/26</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px" onclick="sbNav('user-detail')">Voir</button></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#11C9B0">MD</div><div><div class="cln">Marie Dupont</div><div class="cle">marie@locavacances.fr</div></div></div></td><td><span class="bdg ok"><span class="bdg-d"></span>Vendeur</span></td><td>Business 49€</td><td><span class="bdg ok"><span class="bdg-d"></span>Actif</span></td><td style="font-size:12px">2h</td><td style="font-size:12px">15/02/26</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Voir</button></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#3B82F6">JP</div><div><div class="cln">Jean-Pierre Martin</div><div class="cle">jp.martin@free.fr</div></div></div></td><td><span class="bdg ok"><span class="bdg-d"></span>Vendeur</span></td><td>Pro 24€</td><td><span class="bdg ok"><span class="bdg-d"></span>Actif</span></td><td style="font-size:12px">Hier</td><td style="font-size:12px">20/02/26</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Voir</button></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#F59E0B">TM</div><div><div class="cln">Thomas Müller</div><div class="cle">t.muller@gmail.com</div></div></div></td><td><span class="bdg ok"><span class="bdg-d"></span>Vendeur</span></td><td>Pro 24€</td><td><span class="bdg wt"><span class="bdg-d"></span>Email non vérifié</span></td><td style="font-size:12px">—</td><td style="font-size:12px">16/04/26</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Voir</button> <button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Relancer</button></td></tr>
+      <tr><td><div class="cli"><div class="av" style="background:#EF4444">LR</div><div><div class="cln">Laura Rossi</div><div class="cle">l.rossi@it.com</div></div></div></td><td><span class="bdg ok"><span class="bdg-d"></span>Vendeur</span></td><td>Starter 9€</td><td><span class="bdg er"><span class="bdg-d"></span>Suspendu</span></td><td style="font-size:12px">10/04</td><td style="font-size:12px">01/03/26</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Voir</button> <button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Réactiver</button></td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== USER DETAIL ===== -->
+<div class="pg" id="v-user-detail">
+  <div class="hdr"><div><h1>👤 Marie Dupont</h1><p>marie@locavacances.fr · Vendeur · Business 49€</p></div><div class="hdr-btns"><button class="btn bw" onclick="sbNav('users')">← Retour</button></div></div>
+  <div class="detail">
+    <h2>Informations du compte</h2>
+    <div class="detail-grid">
+      <div class="detail-item"><label>ID</label><span style="font-family:monospace;font-size:12px">usr_Qf3...kL2</span></div>
+      <div class="detail-item"><label>Rôle</label><span><span class="bdg ok"><span class="bdg-d"></span>Vendeur</span></span></div>
+      <div class="detail-item"><label>Plan</label><span>Business · 49€/mois</span></div>
+      <div class="detail-item"><label>Email</label><span>marie@locavacances.fr</span></div>
+      <div class="detail-item"><label>Email vérifié</label><span style="color:var(--grn)">✓ Oui · 15/02/2026</span></div>
+      <div class="detail-item"><label>Téléphone</label><span>+33 6 12 34 56 78</span></div>
+      <div class="detail-item"><label>Entreprise</label><span>LocaVacances SARL</span></div>
+      <div class="detail-item"><label>Stripe Connect</label><span style="color:var(--grn)">✓ acct_1Qf...mN9</span></div>
+      <div class="detail-item"><label>Méthode connexion</label><span>Email + Google SSO</span></div>
+      <div class="detail-item"><label>Inscription</label><span>15/02/2026</span></div>
+      <div class="detail-item"><label>Dernière connexion</label><span>Il y a 2h · Nice, FR</span></div>
+      <div class="detail-item"><label>Essai gratuit</label><span>Terminé · Converti 22/02</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn bw">✏️ Modifier rôle</button>
+      <button class="btn bw">📧 Renvoyer vérification</button>
+      <button class="btn bw">🔄 Réinitialiser MDP</button>
+      <button class="btn bw">🏦 Voir Stripe</button>
+      <button class="btn bw" style="color:var(--amb)">⏸ Suspendre</button>
+      <button class="btn bw" style="color:var(--red)">🗑️ Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INVITATIONS ===== -->
+<div class="pg" id="v-invites">
+  <div class="hdr"><div><h1>📨 Invitations</h1><p>Invitez par email ou par lien</p></div><div class="hdr-btns"><button class="btn bd" onclick="document.getElementById('inv-modal').style.display='flex'">+ Inviter</button></div></div>
+  <div class="detail" style="margin-bottom:20px">
+    <h2>🔗 Lien d'invitation permanent</h2>
+    <p style="font-size:13px;color:var(--sl);margin-bottom:12px">Partagez ce lien pour permettre à de nouveaux vendeurs de s'inscrire.</p>
+    <div style="display:flex;gap:8px;align-items:center"><input class="fi" value="https://contrazy.com/invite/xK9f2mL" readonly style="font-family:monospace;font-size:13px;color:var(--teal);flex:1"><button class="btn bw" style="height:40px" onclick="this.textContent='✓ Copié';setTimeout(()=>this.textContent='Copier',2000)">Copier</button><button class="btn bw" style="height:40px">🔄</button></div>
+  </div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Invitations envoyées</div></div>
+    <table><thead><tr><th>Email</th><th>Rôle</th><th>Envoyé le</th><th>Statut</th><th>Actions</th></tr></thead><tbody>
+      <tr><td>ahmed.b@gmail.com</td><td>Vendeur</td><td>16/04</td><td><span class="bdg ok"><span class="bdg-d"></span>Acceptée</span></td><td>—</td></tr>
+      <tr><td>sophie.l@orange.fr</td><td>Vendeur</td><td>15/04</td><td><span class="bdg wt"><span class="bdg-d"></span>En attente</span></td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Relancer</button> <button class="btn bw" style="height:28px;padding:0 10px;font-size:11px;color:var(--red)">Annuler</button></td></tr>
+      <tr><td>marc.d@company.com</td><td>Admin</td><td>14/04</td><td><span class="bdg wt"><span class="bdg-d"></span>En attente</span></td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Relancer</button></td></tr>
+      <tr><td>julie.r@startup.io</td><td>Vendeur</td><td>12/04</td><td><span class="bdg er"><span class="bdg-d"></span>Expirée</span></td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px">Renvoyer</button></td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== RÔLES ===== -->
+<div class="pg" id="v-roles">
+  <div class="hdr"><div><h1>🛡️ Rôles & Permissions</h1><p>2 rôles — Le client n'a pas de compte, il reçoit un lien</p></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="detail"><h2>🛡️ Admin</h2><p style="font-size:13px;color:var(--sl);margin-bottom:14px">Accès total à la plateforme.</p><div style="font-size:13px;color:var(--sl);line-height:2.2">✅ Gestion utilisateurs<br>✅ Modification rôles<br>✅ Invitations<br>✅ Logs et sessions<br>✅ Config SSO<br>✅ Suspension/suppression<br>✅ Stripe Connect admin<br>✅ Export données</div></div>
+    <div class="detail"><h2>🏪 Vendeur</h2><p style="font-size:13px;color:var(--sl);margin-bottom:14px">Gère ses transactions et clients.</p><div style="font-size:13px;color:var(--sl);line-height:2.2">✅ Créer transactions<br>✅ Gérer contrats/modèles<br>✅ Voir ses clients<br>✅ Gérer cautions<br>✅ KYC et signatures<br>✅ Liens et QR codes<br>✅ Son Stripe Connect<br>❌ Voir autres vendeurs<br>❌ Modifier rôles</div></div>
+  </div>
+</div>
+
+<!-- ===== JOURNAL ACTIVITÉ ===== -->
+<div class="pg" id="v-logs">
+  <div class="hdr"><div><h1>📋 Journal d'activité</h1><p>Actions sensibles · 30 derniers jours</p></div><div class="hdr-btns"><button class="btn bw">📥 Exporter</button></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">Activité récente</div></div>
+    <table><thead><tr><th>Heure</th><th>Utilisateur</th><th>Action</th><th>IP</th><th>Détail</th></tr></thead><tbody>
+      <tr><td style="font-size:12px">17/04 14:32</td><td>Aziz Landri</td><td>Connexion SSO Google</td><td style="font-family:monospace;font-size:11px">92.184.xx.xx</td><td>Chrome · Nice</td></tr>
+      <tr><td style="font-size:12px">17/04 14:28</td><td>Marie Dupont</td><td>Connexion email+mdp</td><td style="font-family:monospace;font-size:11px">86.215.xx.xx</td><td>Safari · Nice</td></tr>
+      <tr><td style="font-size:12px">17/04 13:45</td><td>Aziz Landri</td><td style="color:var(--red)">Suspension utilisateur</td><td style="font-family:monospace;font-size:11px">92.184.xx.xx</td><td>Laura Rossi</td></tr>
+      <tr><td style="font-size:12px">17/04 12:10</td><td>Système</td><td>Invitation envoyée</td><td>—</td><td>sophie.l@orange.fr</td></tr>
+      <tr><td style="font-size:12px">17/04 10:05</td><td>Jean-Pierre M.</td><td>Réinit. MDP</td><td style="font-family:monospace;font-size:11px">78.192.xx.xx</td><td>Par email</td></tr>
+      <tr><td style="font-size:12px">16/04 23:58</td><td>Sarah Cohen</td><td style="color:var(--amb)">Vérif. email échouée</td><td style="font-family:monospace;font-size:11px">91.168.xx.xx</td><td>OTP expiré</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- ===== SESSIONS ===== -->
+<div class="pg" id="v-sessions">
+  <div class="hdr"><div><h1>🔐 Sessions actives</h1><p>Toutes les sessions ouvertes</p></div><div class="hdr-btns"><button class="btn br">Tout déconnecter</button></div></div>
+  <div class="tbl"><div class="tbl-h"><div class="tbl-t">12 sessions actives</div></div>
+    <table><thead><tr><th>Utilisateur</th><th>Appareil</th><th>Localisation</th><th>Depuis</th><th></th></tr></thead><tbody>
+      <tr><td>Aziz Landri</td><td>Chrome · macOS</td><td>Nice, FR</td><td>5 min</td><td><span class="bdg sg">Actuelle</span></td></tr>
+      <tr><td>Marie Dupont</td><td>Safari · iOS 18</td><td>Nice, FR</td><td>2h</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px;color:var(--red)">Révoquer</button></td></tr>
+      <tr><td>Jean-Pierre M.</td><td>Firefox · Windows</td><td>Paris, FR</td><td>Hier</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px;color:var(--red)">Révoquer</button></td></tr>
+      <tr><td>Thomas Müller</td><td>Chrome · Android</td><td>Berlin, DE</td><td>1h</td><td><button class="btn bw" style="height:28px;padding:0 10px;font-size:11px;color:var(--red)">Révoquer</button></td></tr>
+    </tbody></table>
+  </div>
+</div>
+
 </main>
 </div>
 
+<!-- MODAL INVITATION -->
+<div id="inv-modal" style="display:none;position:fixed;inset:0;background:rgba(12,30,47,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(6px)">
+  <div style="background:var(--bg);border-radius:var(--rx);width:460px;padding:28px;box-shadow:0 20px 40px rgba(0,0,0,.15)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3 style="font-size:18px;font-weight:700">📨 Inviter un utilisateur</h3><button onclick="document.getElementById('inv-modal').style.display='none'" style="background:none;border:none;color:var(--sl2);cursor:pointer;font-size:20px">✕</button></div>
+    <div class="fg"><label class="fl">Email</label><input class="fi" placeholder="sophie@exemple.com"></div>
+    <div class="fg"><label class="fl">Rôle</label><select class="fi"><option>Vendeur</option><option>Admin</option></select></div>
+    <div class="fg"><label class="fl">Message (optionnel)</label><textarea class="fi" style="height:80px;padding:12px;resize:vertical" placeholder="Rejoignez Contrazy..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:16px"><button class="btn bt" style="flex:1" onclick="document.getElementById('inv-modal').style.display='none'">Envoyer l'invitation</button><button class="btn bw" style="flex:1" onclick="document.getElementById('inv-modal').style.display='none'">Annuler</button></div>
+  </div>
+</div>
+
 <script>
-function sbNav(id){
-  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-  document.getElementById('v-'+id).classList.add('on');
-  document.querySelectorAll('.sb-i').forEach(b=>b.classList.remove('on'));
-  event.target.closest('.sb-i')?.classList.add('on');
+function availableAdminSections(){
+  return Array.from(document.querySelectorAll('.pg[id^="v-"]')).map(section=>section.id.replace("v-",""));
 }
+
+function normalizeAdminPath(path){
+  if(!path||path==="/") return "/";
+  return path.replace(/\/+$/,"");
+}
+
+function resolveAdminBasePath(){
+  const parts=normalizeAdminPath(window.location.pathname).split("/").filter(Boolean);
+  if(parts[0]==="backoffice"){return "/backoffice";}
+  return "/super-admin";
+}
+
+function resolveAdminSectionFromPath(){
+  const sections=availableAdminSections();
+  const parts=normalizeAdminPath(window.location.pathname).split("/").filter(Boolean);
+  const sectionFromPath=parts[1];
+  if(sectionFromPath&&sections.includes(sectionFromPath)){return sectionFromPath;}
+  return "cockpit";
+}
+
+function syncAdminPath(section,replace){
+  const basePath=resolveAdminBasePath();
+  const nextPath=section==="cockpit"?basePath:`${basePath}/${section}`;
+  const currentPath=normalizeAdminPath(window.location.pathname);
+  if(currentPath===nextPath) return;
+  if(replace){history.replaceState({section:section},"",nextPath);}
+  else{history.pushState({section:section},"",nextPath);}
+}
+
+function sbNav(id,eventArg,options){
+  const sectionId=document.getElementById('v-'+id)?id:"cockpit";
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById('v-'+sectionId).classList.add('on');
+  document.querySelectorAll('.sb-i').forEach(b=>b.classList.remove('on'));
+  const clickedButton=eventArg&&eventArg.target?eventArg.target.closest('.sb-i'):null;
+  if(clickedButton){clickedButton.classList.add('on');}
+  else{
+    const fallbackButton=document.querySelector(`.sb-i[onclick*="sbNav('${sectionId}')"]`);
+    if(fallbackButton){fallbackButton.classList.add('on');}
+  }
+  var sb=document.getElementById('bo-sb');if(sb)sb.classList.remove('open');
+  var ov=document.getElementById('bo-ov');if(ov)ov.classList.remove('open');
+  const shouldUpdateHistory=!(options&&options.updateHistory===false);
+  if(shouldUpdateHistory){syncAdminPath(sectionId,Boolean(options&&options.replaceHistory));}
+  window.scrollTo(0,0);
+}
+
+function syncAdminSectionFromPath(replaceHistory){
+  const section=resolveAdminSectionFromPath();
+  sbNav(section,null,{updateHistory:true,replaceHistory:replaceHistory!==false});
+}
+
+document.getElementById('inv-modal').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
+window.addEventListener('popstate',function(){syncAdminSectionFromPath(false);});
+syncAdminSectionFromPath(true);
 </script>
 </body>
 </html>
