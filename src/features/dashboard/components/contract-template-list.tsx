@@ -30,6 +30,10 @@ const mergeFields = [
   { label: "Deposit amount", token: "{{depositAmount}}" },
 ] as const
 
+function applyMergeFieldPreview(content: string) {
+  return mergeFields.reduce((acc, field) => acc.replaceAll(field.token, `[${field.label}]`), content)
+}
+
 export function ContractTemplateList({ 
   initialTemplates,
   canEdit,
@@ -63,6 +67,10 @@ export function ContractTemplateList({
     setContent(t.content)
     setEditingId(t.id)
     setIsDialogOpen(true)
+  }
+
+  function insertMergeField(token: string) {
+    setContent((current) => `${current}${current ? " " : ""}${token}`)
   }
 
   async function handleSave() {
@@ -143,12 +151,14 @@ export function ContractTemplateList({
                 <Label htmlFor="content">Contract Terms</Label>
                 <Textarea 
                   id="content" 
-                  className="min-h-[250px] font-mono text-sm"
+                  className="min-h-[250px] text-sm"
                   value={content} 
                   onChange={e => setContent(e.target.value)} 
                 />
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Insert merge fields for the details you want filled automatically.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Insert the details you want filled automatically when the client opens the transaction.
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {mergeFields.map((field) => (
                       <Button
@@ -156,7 +166,7 @@ export function ContractTemplateList({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setContent((current) => `${current}${current ? " " : ""}${field.token}`)}
+                        onClick={() => insertMergeField(field.token)}
                       >
                         {field.label}
                       </Button>
@@ -196,8 +206,8 @@ export function ContractTemplateList({
                 )}
               </CardHeader>
               <CardContent className="pb-3">
-                <p className="text-xs text-muted-foreground line-clamp-3 bg-muted/50 p-2 rounded border font-mono">
-                  {template.content}
+                <p className="line-clamp-3 rounded border bg-muted/50 p-2 text-xs text-muted-foreground">
+                  {applyMergeFieldPreview(template.content)}
                 </p>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-3">

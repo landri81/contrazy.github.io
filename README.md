@@ -67,6 +67,14 @@ legacy-html/
 
 Copy `.env.example` to `.env.local` and set real values.
 
+For Playwright and isolated Prisma migration checks, generate a dedicated test environment:
+
+```bash
+npm run e2e:env
+```
+
+This creates `.env.test.local` from `.env.local`, points the app to `http://127.0.0.1:3100`, and switches Prisma to a disposable `contrazy_e2e` schema on the same PostgreSQL server. You can edit `.env.test.local` afterward if you prefer a separate test database.
+
 Required keys:
 
 - `DATABASE_URL`
@@ -92,7 +100,22 @@ Required keys:
 
 ```bash
 npm ci
+npm run prisma:migrate:deploy
 npm run prisma:generate
+npm run dev
+```
+
+Playwright and test database preparation:
+
+```bash
+npm run e2e:env
+npm run prisma:migrate:deploy:test
+npm run test:e2e
+```
+
+Fallback for local schema sync only:
+
+```bash
 npm run prisma:push
 npm run dev
 ```
@@ -102,14 +125,20 @@ npm run dev
 The current repo state passes:
 
 - `npm ci`
+- `npm run prisma:migrate:deploy`
 - `npm run prisma:generate`
+- `npm run test:e2e`
 - `npm run typecheck`
 - `npm run lint`
 - `npm run build`
 
+The existing `.env.local` development schema has been baselined into Prisma migration history. New environments should use `prisma migrate deploy` from the start rather than `prisma db push`.
+
+If `npm run prisma:generate` fails on Windows with an `EPERM` rename error under `node_modules/.prisma/client/query_engine-windows.dll.node`, close any running Next.js or Prisma processes and re-run it from a clean shell. That lock issue is environmental, not a schema or application error.
+
 ## External Deployment Work
 
-The local implementation is ready for environment-level verification. The remaining non-code work is:
+The remaining non-code work is:
 
 - Vercel deployment
 - production callback URL configuration

@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -13,11 +14,13 @@ export function ContractReviewForm({ token, content }: { token: string, content:
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [reviewed, setReviewed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!reviewed) return
     setIsPending(true)
+    setError(null)
 
     try {
       const res = await fetch(`/api/client/${token}/contract`, {
@@ -29,23 +32,40 @@ export function ContractReviewForm({ token, content }: { token: string, content:
       if (res.ok) {
         const payload = await res.json()
         router.push(`/t/${token}/${payload.nextStep ?? "sign"}`)
+      } else {
+        const payload = await res.json().catch(() => null)
+        setError(payload?.message ?? "Unable to continue right now.")
       }
     } catch (err) {
       console.error(err)
+      setError("Unable to continue right now.")
     } finally {
       setIsPending(false)
     }
   }
 
   return (
-    <Card>
+    <Card className="border-border/70 bg-card/95 shadow-sm">
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6 pt-6">
-          <div className="bg-muted/30 border rounded-lg p-6 h-[400px] overflow-y-auto whitespace-pre-wrap font-mono text-sm">
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <p>{error}</p>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+          <div className="h-[400px] overflow-y-auto rounded-xl border border-border/70 bg-muted/30 p-6 font-mono text-sm whitespace-pre-wrap">
             {content}
           </div>
 
-          <div className="flex items-start space-x-3 p-4 border rounded-lg bg-primary/5">
+          <div className="flex items-start space-x-3 rounded-xl border border-border/70 bg-primary/5 p-4">
             <Checkbox 
               id="reviewed" 
               checked={reviewed} 
@@ -62,7 +82,11 @@ export function ContractReviewForm({ token, content }: { token: string, content:
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isPending || !reviewed}>
+          <Button
+            type="submit"
+            className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+            disabled={isPending || !reviewed}
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Continue to Signature
           </Button>

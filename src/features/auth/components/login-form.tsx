@@ -1,6 +1,7 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Eye, EyeOff, Loader2, LogIn } from "lucide-react"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -9,6 +10,7 @@ import { useState } from "react"
 import { loginSchema } from "@/features/auth/schemas/auth.schema"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { GoogleIcon } from "@/components/ui/google-icon"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getRoleHomePath } from "@/lib/auth/pathing"
@@ -17,8 +19,10 @@ export function LoginForm() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const [isGooglePending, setIsGooglePending] = useState(false)
 
   async function handleCredentialsSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -58,9 +62,37 @@ export function LoginForm() {
     }
   }
 
+  function handleGoogleSignIn() {
+    setIsGooglePending(true)
+    signIn("google", { callbackUrl: "/auth-complete" })
+  }
+
   return (
-    <Card className="border-border bg-card/80 py-6 shadow-sm">
+    <Card className="border-border/70 bg-card/70 py-6 shadow-none">
       <CardContent>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full justify-center gap-3 border-border/70 bg-background/80 font-medium shadow-sm hover:bg-background"
+          onClick={handleGoogleSignIn}
+          disabled={isGooglePending || isPending}
+        >
+          <span className="flex size-6 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
+            {isGooglePending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="size-4" />
+            )}
+          </span>
+          {isGooglePending ? "Redirecting to Google..." : "Continue with Google"}
+        </Button>
+
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <form className="space-y-4" onSubmit={handleCredentialsSignIn}>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -74,52 +106,72 @@ export function LoginForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="************"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Forgot?
+              </Link>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="************"
+                className="pr-10"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Hide characters" : "Show characters"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
           </div>
 
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <AnimatePresence>
+            {error ? (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="text-sm text-destructive"
+              >
+                {error}
+              </motion.p>
+            ) : null}
+          </AnimatePresence>
 
-          <Button type="submit" className="h-10 w-full" disabled={isPending}>
+          <Button
+            type="submit"
+            className="h-11 w-full gap-2 bg-[var(--contrazy-navy)] font-medium text-white hover:bg-[var(--contrazy-navy-soft)]"
+            disabled={isPending || isGooglePending}
+          >
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
                 Signing in...
               </>
             ) : (
-              "Sign In"
+              <>
+                <LogIn className="size-4" />
+                Sign In
+              </>
             )}
           </Button>
         </form>
-
-        <div className="mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 w-full"
-            onClick={() => signIn("google", { callbackUrl: "/auth-complete" })}
-          >
-            Continue with Google
-          </Button>
-        </div>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
           No account yet?{" "}
           <Link href="/register" className="font-medium text-primary hover:underline">
             Create vendor account
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-xs text-muted-foreground">
-          Forgot password?{" "}
-          <Link href="/forgot-password" className="font-medium text-primary hover:underline">
-            Reset access
           </Link>
         </p>
       </CardContent>

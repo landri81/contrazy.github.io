@@ -1,6 +1,46 @@
 # Conntrazy Handover Checklist
 
-## Environment Variables
+## Environment Layout
+
+### Local development
+
+Set these in `.env.local`:
+
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_CONNECT_CLIENT_ID`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `SUPER_ADMIN_EMAIL`
+- `SUPER_ADMIN_PASSWORD`
+- `JWT_ENCRYPTION_SECRET`
+
+### Disposable E2E environment
+
+Generate `.env.test.local` from `.env.local` with:
+
+```bash
+npm run e2e:env
+```
+
+Defaults:
+
+- app URL changes to `http://127.0.0.1:3100`
+- Prisma uses the `contrazy_e2e` schema for isolated migrations and seeded browser tests
+
+If you prefer a separate PostgreSQL database instead of a dedicated schema, update `DATABASE_URL` in `.env.test.local` after generation.
+
+### Production on Vercel
 
 Set these in Vercel for the production project:
 
@@ -54,6 +94,31 @@ Recommended events:
 - Set `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` in production.
 - This login path is env-backed and is intended for bootstrap/admin access.
 - Normal admin and vendor records remain database-backed.
+
+## Release Workflow
+
+Local development default:
+
+```bash
+npm ci
+npm run prisma:migrate:deploy
+npm run prisma:generate
+npm run dev
+```
+
+Playwright closeout:
+
+```bash
+npm run e2e:env
+npm run prisma:migrate:deploy:test
+npm run test:e2e
+```
+
+Production deployment path:
+
+- use Prisma migrations with `prisma migrate deploy`
+- do not rely on `prisma db push` for production release
+- the current local development schema has already been baselined so future deploys track the checked-in migration history
 
 ## Stripe Test Data
 

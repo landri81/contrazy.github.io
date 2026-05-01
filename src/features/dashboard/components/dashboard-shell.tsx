@@ -1,5 +1,6 @@
 "use client"
 
+import { motion } from "framer-motion"
 import {
   Activity,
   BadgeCheck,
@@ -78,7 +79,7 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-[var(--contrazy-bg-muted)]">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[var(--contrazy-navy)] text-white">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[linear-gradient(180deg,rgba(12,30,47,0.98),rgba(12,30,47,0.94))] text-white backdrop-blur-md">
         <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <div className="lg:hidden">
@@ -103,24 +104,31 @@ export function DashboardShell({
           </div>
 
           <div className="flex items-center gap-3">
-            <p className="hidden text-sm text-white/60 sm:block">{actorLabel}</p>
+            <div className="hidden rounded-full border border-white/10 bg-white/6 px-3 py-1 text-sm text-white/70 sm:block">
+              {actorLabel}
+            </div>
             <SignOutButton />
           </div>
         </div>
       </header>
 
       <div className="flex pt-14">
-        <aside className="hidden w-64 shrink-0 border-r border-border bg-background lg:block">
+        <aside className="hidden w-64 shrink-0 border-r border-border bg-background/95 lg:block">
           <DashboardSidebar navigation={navigation} pathname={pathname} />
         </aside>
         <main className="min-w-0 flex-1">
-          <div className="px-4 py-6 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="px-4 py-6 sm:px-6 lg:px-8"
+          >
             <div className="mb-6">
               <p className="text-xs font-semibold tracking-[0.2em] text-[var(--contrazy-teal)] uppercase">{title}</p>
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{subtitle}</h1>
             </div>
             {children}
-          </div>
+          </motion.div>
         </main>
       </div>
     </div>
@@ -151,9 +159,9 @@ function DashboardSidebar({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
                     isActive
-                      ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
+                      ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] shadow-[inset_0_0_0_1px_rgba(17,201,176,0.12)]"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >

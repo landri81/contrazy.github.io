@@ -8,15 +8,25 @@
 
 ## Current Status
 
-Local MVP implementation is complete and verified on the current branch.
+Core MVP implementation and local closeout are complete on the current branch.
 
 Verified locally:
 
 - `npm ci`
+- `npm run prisma:migrate:deploy`
 - `npm run prisma:generate`
+- `npm run test:e2e`
 - `npm run typecheck`
 - `npm run lint`
 - `npm run build`
+
+Completed closeout work:
+
+- dedicated Playwright env generated from `.env.local` as `.env.test.local`
+- isolated E2E migration and seed path using the `contrazy_e2e` schema
+- migration-first release scripts and docs
+- public development schema baselined into Prisma migration history
+- final repo docs aligned to migration-first and Playwright-based closeout
 
 Not yet verified from this repo alone:
 

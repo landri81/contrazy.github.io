@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { Loader2, UploadCloud, CheckCircle2 } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2, UploadCloud } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -18,20 +19,26 @@ export function ClientUploadsForm({
 }) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
-  const [uploads, setUploads] = useState<Record<string, { secure_url: string, public_id: string, original_filename: string }>>({})
+  const [error, setError] = useState<string | null>(null)
+  const [uploads, setUploads] = useState<
+    Record<string, { secure_url: string; public_id: string; original_filename: string }>
+  >({})
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({})
 
   // If there are no requirements, we should ideally skip this step
   if (requirements.length === 0) {
     return (
-      <Card>
+      <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardContent className="pt-6">
           <p className="text-center text-muted-foreground">No uploads required.</p>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={() => {
-            router.push(`/t/${token}/${skipStep}`)
-          }}>
+          <Button
+            className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+            onClick={() => {
+              router.push(`/t/${token}/${skipStep}`)
+            }}
+          >
             Continue
           </Button>
         </CardFooter>
@@ -40,10 +47,15 @@ export function ClientUploadsForm({
   }
 
   async function handleFileChange(reqId: string, file: File) {
+    setError(null)
     setUploadingState(prev => ({ ...prev, [reqId]: true }))
     try {
       // 1. Get signature from our backend
       const sigRes = await fetch("/api/integrations/cloudinary/sign-upload")
+      if (!sigRes.ok) {
+        setError("Upload signing is unavailable right now. Please try again.")
+        return
+      }
       const { timestamp, signature, apiKey, cloudName } = await sigRes.json()
 
       // 2. Upload directly to Cloudinary
@@ -70,9 +82,12 @@ export function ClientUploadsForm({
             original_filename: file.name
           }
         }))
+      } else {
+        setError(uploadData?.error?.message ?? "Upload failed. Please try again.")
       }
     } catch (e) {
       console.error(e)
+      setError("Upload failed. Please try again.")
     } finally {
       setUploadingState(prev => ({ ...prev, [reqId]: false }))
     }
@@ -81,6 +96,7 @@ export function ClientUploadsForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsPending(true)
+    setError(null)
 
     // Map the uploads object into an array for the API
     const docsPayload = Object.keys(uploads).map(reqId => {
@@ -103,9 +119,13 @@ export function ClientUploadsForm({
       if (res.ok) {
         const payload = await res.json()
         router.push(`/t/${token}/${payload.nextStep ?? "kyc"}`)
+      } else {
+        const payload = await res.json().catch(() => null)
+        setError(payload?.message ?? "Unable to save documents right now.")
       }
     } catch (err) {
       console.error(err)
+      setError("Unable to save documents right now.")
     } finally {
       setIsPending(false)
     }
@@ -117,11 +137,24 @@ export function ClientUploadsForm({
     .every(r => uploads[r.id])
 
   return (
-    <Card>
+    <Card className="border-border/70 bg-card/95 shadow-sm">
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4 pt-6">
+          <AnimatePresence initial={false}>
+            {error ? (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <p>{error}</p>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
           {requirements.map((req) => (
-            <div key={req.id} className="border rounded-lg p-4 bg-muted/20">
+            <div key={req.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h4 className="font-medium text-sm">
@@ -137,7 +170,7 @@ export function ClientUploadsForm({
               </div>
 
               {uploads[req.id] ? (
-                <div className="text-xs bg-green-50 text-green-700 p-2 rounded truncate border border-green-200">
+                <div className="truncate rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-700">
                   {uploads[req.id].original_filename}
                 </div>
               ) : (
@@ -153,7 +186,7 @@ export function ClientUploadsForm({
                     disabled={uploadingState[req.id]}
                     accept={req.type === 'PHOTO' ? 'image/*' : 'image/*,.pdf'}
                   />
-                  <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/70 p-4 text-center transition-colors hover:bg-muted/50">
                     {uploadingState[req.id] ? (
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     ) : (
@@ -172,7 +205,11 @@ export function ClientUploadsForm({
           ))}
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isPending || !allRequiredMet}>
+          <Button
+            type="submit"
+            className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+            disabled={isPending || !allRequiredMet}
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Continue
           </Button>

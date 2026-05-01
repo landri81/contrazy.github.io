@@ -1,5 +1,6 @@
 import { requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 
@@ -35,6 +36,8 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
   if (!transaction) {
     notFound()
   }
+
+  const shareLink = transaction.link ? `${getAppBaseUrl()}/t/${transaction.link.token}` : null
 
   return (
     <div className="space-y-6">
@@ -118,10 +121,16 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Secure link</p>
-              <Link href={`/t/${transaction.link.token}`} className="break-all text-[var(--contrazy-teal)] hover:underline">
-                {`/t/${transaction.link.token}`}
+              <p className="font-medium text-foreground">Customer link</p>
+              <Link
+                href={shareLink ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center text-[var(--contrazy-teal)] hover:underline"
+              >
+                Open secure client flow
               </Link>
+              <p className="mt-2 text-xs">Reference: {transaction.reference}</p>
             </div>
             {transaction.link.qrCodeSvg ? (
               <div

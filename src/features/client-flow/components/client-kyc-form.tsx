@@ -32,7 +32,7 @@ export function ClientKycForm({ token }: { token: string }) {
   }
 
   return (
-    <Card>
+    <Card className="border-border/70 bg-card/95 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ShieldCheck className="h-5 w-5" />
@@ -54,7 +54,11 @@ export function ClientKycForm({ token }: { token: string }) {
         </p>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleVerify} className="w-full" disabled={isPending}>
+        <Button
+          onClick={handleVerify}
+          className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+          disabled={isPending}
+        >
           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Start Verification
         </Button>

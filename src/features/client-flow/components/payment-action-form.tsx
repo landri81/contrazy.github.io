@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { Loader2, CreditCard, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ export function PaymentActionForm({
   pendingConfirmation?: boolean
 }) {
   const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -32,6 +34,7 @@ export function PaymentActionForm({
 
   async function handleCheckout() {
     setIsPending(true)
+    setError(null)
 
     try {
       const res = await fetch(`/api/client/${token}/checkout`, { method: "POST" })
@@ -39,9 +42,12 @@ export function PaymentActionForm({
 
       if (data.url) {
         window.location.href = data.url
+      } else {
+        setError(data?.message ?? "Unable to start checkout right now.")
       }
     } catch (err) {
       console.error(err)
+      setError("Unable to start checkout right now.")
     } finally {
       setIsPending(false)
     }
@@ -55,8 +61,20 @@ export function PaymentActionForm({
       : "Authorize Deposit Hold"
 
   return (
-    <Card>
+    <Card className="border-border/70 bg-card/95 shadow-sm">
       <CardContent className="space-y-6 pt-6">
+        <AnimatePresence initial={false}>
+          {error ? (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              {error}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         {pendingConfirmation ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             We are confirming your previous Stripe step. This page will refresh automatically once the transaction is updated.
@@ -106,7 +124,11 @@ export function PaymentActionForm({
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleCheckout} className="w-full" disabled={isPending || pendingConfirmation}>
+        <Button
+          onClick={handleCheckout}
+          className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+          disabled={isPending || pendingConfirmation}
+        >
           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {ctaLabel}
         </Button>
