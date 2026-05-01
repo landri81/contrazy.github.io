@@ -15,6 +15,7 @@ export function StripeConnectCard({ profile }: { profile: VendorProfile | null |
 
   const isConnected = profile?.stripeConnectionStatus === "CONNECTED"
   const isPending = profile?.stripeConnectionStatus === "PENDING"
+  const isApproved = profile?.reviewStatus === "APPROVED"
 
   async function handleConnect() {
     setIsLoading(true)
@@ -33,7 +34,7 @@ export function StripeConnectCard({ profile }: { profile: VendorProfile | null |
         setError(data.message || "Failed to initialize Stripe connection")
         setIsLoading(false)
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
@@ -83,10 +84,20 @@ export function StripeConnectCard({ profile }: { profile: VendorProfile | null |
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You must connect a Stripe account before you can create transactions with payment or deposit requirements.
-            </p>
-            <Button onClick={handleConnect} disabled={isLoading} className="w-full sm:w-auto">
+            {!isApproved ? (
+              <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                <AlertTitle>Approval required</AlertTitle>
+                <AlertDescription>
+                  Finish your business profile review before connecting Stripe for live customer flows.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                You must connect a Stripe account before you can create transactions with payment or deposit requirements.
+              </p>
+            )}
+            <Button onClick={handleConnect} disabled={isLoading || !isApproved} className="w-full sm:w-auto">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Connect with Stripe
             </Button>

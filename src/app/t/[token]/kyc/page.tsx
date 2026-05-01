@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
+import { getNextClientStep, getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
 import { ClientKycForm } from "@/features/client-flow/components/client-kyc-form"
 
 export default async function ClientKycPage(props: { params: Promise<{ token: string }> }) {
@@ -14,12 +14,12 @@ export default async function ClientKycPage(props: { params: Promise<{ token: st
 
   // If KYC is not required, auto-skip
   if (!transaction.requiresKyc) {
-    redirect(`/t/${token}/contract`)
+    redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 
   // If already verified, auto-skip
   if (transaction.kycVerification?.status === 'VERIFIED') {
-    redirect(`/t/${token}/contract`)
+    redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 
   return (

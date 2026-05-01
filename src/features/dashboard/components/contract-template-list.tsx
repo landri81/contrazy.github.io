@@ -5,6 +5,7 @@ import type { ContractTemplate } from "@prisma/client"
 import { FileText, Plus, Trash2, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,15 +17,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
+
+const mergeFields = [
+  { label: "Client name", token: "{{clientName}}" },
+  { label: "Client email", token: "{{clientEmail}}" },
+  { label: "Client phone", token: "{{clientPhone}}" },
+  { label: "Client company", token: "{{clientCompany}}" },
+  { label: "Business name", token: "{{vendorName}}" },
+  { label: "Reference", token: "{{transactionReference}}" },
+  { label: "Service amount", token: "{{paymentAmount}}" },
+  { label: "Deposit amount", token: "{{depositAmount}}" },
+] as const
 
 export function ContractTemplateList({ 
   initialTemplates,
-  vendorId
+  canEdit,
+  blockedMessage,
 }: { 
   initialTemplates: ContractTemplate[]
-  vendorId: string
+  canEdit: boolean
+  blockedMessage: string
 }) {
   const [templates, setTemplates] = useState(initialTemplates)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -39,7 +52,7 @@ export function ContractTemplateList({
   function openNewDialog() {
     setName("")
     setDescription("")
-    setContent("This is a contract between {{vendorName}} and {{clientName}}...")
+    setContent("This agreement is entered into between {{vendorName}} and {{clientName}}.")
     setEditingId(null)
     setIsDialogOpen(true)
   }
@@ -53,6 +66,10 @@ export function ContractTemplateList({
   }
 
   async function handleSave() {
+    if (!canEdit) {
+      return
+    }
+
     setIsSaving(true)
     try {
       const url = editingId ? `/api/vendor/contracts/${editingId}` : '/api/vendor/contracts'
@@ -79,6 +96,7 @@ export function ContractTemplateList({
   }
 
   async function handleDelete(id: string) {
+    if (!canEdit) return
     if (!confirm("Are you sure you want to delete this template?")) return
     
     try {
@@ -93,19 +111,23 @@ export function ContractTemplateList({
 
   return (
     <div className="space-y-4">
+      {!canEdit ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+          <AlertTitle>Editing unavailable</AlertTitle>
+          <AlertDescription>{blockedMessage}</AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNewDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Template
-            </Button>
-          </DialogTrigger>
+          <Button onClick={openNewDialog} disabled={!canEdit}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Template
+          </Button>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>{editingId ? 'Edit Template' : 'Create Template'}</DialogTitle>
               <DialogDescription>
-                Define the legal terms for your transactions. Use placeholders to inject dynamic data.
+                Define the agreement text for your transactions and insert merge fields where customer or payment details should appear.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -125,9 +147,22 @@ export function ContractTemplateList({
                   value={content} 
                   onChange={e => setContent(e.target.value)} 
                 />
-                <p className="text-xs text-muted-foreground">
-                  Available placeholders: {'{{clientName}}, {{clientEmail}}, {{clientPhone}}, {{clientCompany}}, {{vendorName}}, {{transactionReference}}, {{paymentAmount}}, {{depositAmount}}'}
-                </p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Insert merge fields for the details you want filled automatically.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {mergeFields.map((field) => (
+                      <Button
+                        key={field.token}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setContent((current) => `${current}${current ? " " : ""}${field.token}`)}
+                      >
+                        {field.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -170,10 +205,10 @@ export function ContractTemplateList({
                   Updated {new Date(template.updatedAt).toLocaleDateString()}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(template)} disabled={!canEdit}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)} disabled={!canEdit}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

@@ -2,97 +2,36 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle2, ChevronRight } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import { getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
-import { stripe } from "@/lib/integrations/stripe"
-import { prisma } from "@/lib/db/prisma"
-import { sendTransactionCompletedEmail, sendVendorDepositAlert } from "@/lib/integrations/resend"
+import { buttonVariants } from "@/components/ui/button"
+import { ClientProcessingCard } from "@/features/client-flow/components/client-processing-card"
+import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
+import { cn } from "@/lib/utils"
 
-export default async function ClientCompletePage({ 
-  params,
-  searchParams
-}: { 
-  params: { token: string }
-  searchParams: { session_id?: string }
+export default async function ClientCompletePage(props: {
+  params: Promise<{ token: string }>
+  searchParams: Promise<{ session_id?: string; stage?: string }>
 }) {
-  const transaction = await getTransactionByToken(params.token)
+  const { token } = await props.params
+  const searchParams = await props.searchParams
+  const transaction = await getTransactionByToken(token)
   
   if (!transaction) {
     redirect("/")
   }
 
-  // If returning from Stripe Checkout, verify and finalize the transaction status
-  if (searchParams.session_id && transaction.status !== 'COMPLETED') {
-    try {
-      const session = await stripe.checkout.sessions.retrieve(searchParams.session_id, {
-        stripeAccount: transaction.vendor?.stripeAccountId || undefined
-      })
-
-      if (session.payment_status === "paid" || session.status === "complete") {
-        
-        // Finalize standard payment record
-        if (transaction.amount && transaction.amount > 0) {
-          await prisma.payment.create({
-            data: {
-              transactionId: transaction.id,
-              kind: "SERVICE_PAYMENT",
-              status: "SUCCEEDED",
-              amount: transaction.amount,
-              currency: transaction.currency,
-              stripeIntentId: session.payment_intent as string,
-              processedAt: new Date()
-            }
-          })
-        }
-
-        // Finalize deposit authorization record
-        if (transaction.depositAmount && transaction.depositAmount > 0) {
-          await prisma.depositAuthorization.create({
-            data: {
-              transactionId: transaction.id,
-              status: "AUTHORIZED",
-              amount: transaction.depositAmount,
-              currency: transaction.currency,
-              stripeIntentId: session.payment_intent as string,
-              authorizedAt: new Date()
-            }
-          })
-        }
-
-        // Mark complete
-        await prisma.transaction.update({
-          where: { id: transaction.id },
-          data: { status: "COMPLETED" }
-        })
-
-        // Also update link timestamp
-        await prisma.transactionLink.update({
-          where: { transactionId: transaction.id },
-          data: { completedAt: new Date() }
-        })
-
-        // Trigger emails
-        if (transaction.clientProfile?.email && transaction.vendor?.businessName) {
-          await sendTransactionCompletedEmail(
-            transaction.clientProfile.email,
-            transaction.clientProfile.fullName,
-            transaction.vendor.businessName,
-            transaction.reference
-          )
-        }
-
-        if (transaction.depositAmount && transaction.depositAmount > 0 && transaction.vendor?.businessEmail && transaction.clientProfile?.fullName) {
-          await sendVendorDepositAlert(
-            transaction.vendor.businessEmail,
-            transaction.vendor.businessName || "Vendor",
-            transaction.clientProfile.fullName,
-            transaction.depositAmount
-          )
-        }
-      }
-    } catch (e) {
-      console.error("Complete verification error:", e)
+  if (transaction.status !== "COMPLETED") {
+    if (searchParams.session_id) {
+      return (
+        <div className="mx-auto max-w-lg space-y-6 py-12">
+          <ClientProcessingCard
+            title="Final confirmation in progress"
+            description="We are confirming the last Stripe step before marking this transaction as complete."
+          />
+        </div>
+      )
     }
+
+    redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 
   return (
@@ -114,11 +53,12 @@ export default async function ClientCompletePage({
         <p className="text-sm text-muted-foreground mb-4">
           A receipt and a copy of your signed agreement will be emailed to you shortly.
         </p>
-        <Button variant="outline" asChild>
-          <Link href="/">
-            Return Home <ChevronRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        <Link
+          href="/"
+          className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}
+        >
+          Return Home <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
       </div>
     </div>
   )

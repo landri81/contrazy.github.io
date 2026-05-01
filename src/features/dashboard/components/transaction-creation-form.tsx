@@ -24,11 +24,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 export function TransactionCreationForm({ 
   contracts, 
   checklists,
-  hasStripe
+  hasStripe,
+  canLaunch,
+  blockedMessage,
 }: { 
   contracts: ContractTemplate[]
   checklists: ChecklistTemplate[]
   hasStripe: boolean
+  canLaunch: boolean
+  blockedMessage: string
 }) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
@@ -48,6 +52,12 @@ export function TransactionCreationForm({
     e.preventDefault()
     setError(null)
     setIsPending(true)
+
+    if (!canLaunch) {
+      setError(blockedMessage)
+      setIsPending(false)
+      return
+    }
 
     if (!hasStripe && (amount || depositAmount || requiresKyc)) {
       setError("You must connect Stripe before requiring payments, deposits, or identity verification.")
@@ -77,8 +87,8 @@ export function TransactionCreationForm({
         return
       }
 
-      setSuccessLink(`${window.location.origin}/t/${data.link.token}/profile`)
-    } catch (err) {
+      setSuccessLink(`${window.location.origin}/t/${data.link.token}`)
+    } catch {
       setError("An unexpected error occurred.")
     } finally {
       setIsPending(false)
@@ -150,6 +160,14 @@ export function TransactionCreationForm({
             </Alert>
           )}
 
+          {!canLaunch && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+              <AlertTitle>Account review in progress</AlertTitle>
+              <AlertDescription>{blockedMessage}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="title">Transaction Title <span className="text-destructive">*</span></Label>
@@ -204,7 +222,7 @@ export function TransactionCreationForm({
                   placeholder="0.00" 
                   value={amount} 
                   onChange={e => setAmount(e.target.value)}
-                  disabled={!hasStripe}
+                  disabled={!hasStripe || !canLaunch}
                 />
               </div>
               <div className="grid gap-2">
@@ -217,7 +235,7 @@ export function TransactionCreationForm({
                   placeholder="0.00" 
                   value={depositAmount} 
                   onChange={e => setDepositAmount(e.target.value)}
-                  disabled={!hasStripe}
+                  disabled={!hasStripe || !canLaunch}
                 />
               </div>
             </div>
@@ -232,7 +250,7 @@ export function TransactionCreationForm({
               <Switch 
                 checked={requiresKyc} 
                 onCheckedChange={setRequiresKyc} 
-                disabled={!hasStripe}
+                disabled={!hasStripe || !canLaunch}
               />
             </div>
 
@@ -248,7 +266,7 @@ export function TransactionCreationForm({
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isPending || !title}>
+          <Button type="submit" className="w-full" disabled={isPending || !title || !canLaunch}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
             Generate Secure Link
           </Button>

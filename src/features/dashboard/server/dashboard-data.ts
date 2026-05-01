@@ -1,8 +1,7 @@
-import { nanoid } from "nanoid"
+import { PaymentKind } from "@prisma/client"
 
 import { prisma } from "@/lib/db/prisma"
-
-export const DEMO_TRANSACTION_ID = "ctz-0412"
+import { getAppBaseUrl } from "@/lib/integrations/stripe"
 
 export type SummaryKpi = {
   label: string
@@ -63,7 +62,7 @@ export type WorkspaceRecord = {
   payments: { client: string; reference: string; amount: string; status: string; date: string }[]
   disputes: { client: string; reference: string; status: string; summary: string }[]
   clients: { name: string; email: string; status: string; lastTransaction: string }[]
-  links: { reference: string; token: string; shortCode: string; state: string }[]
+  links: { reference: string; shareLink: string; shortCode: string; qrStatus: string; state: string }[]
   webhooks: { provider: string; eventType: string; status: string; date: string }[]
 }
 
@@ -105,89 +104,28 @@ export type AdminUserDetailRecord = {
   }
 }
 
-const demoTransactionDetail: TransactionDetailRecord = {
-  reference: "CTZ-0412",
-  title: "Transaction detail",
-  summaryLine: "Marie Dupont · Deposit · EUR 800",
-  facts: [
-    { label: "Client", value: "Marie Dupont" },
-    { label: "Type", value: "Deposit authorization" },
-    { label: "Amount", value: "EUR 800.00" },
-    { label: "Global status", value: "Secured" },
-    { label: "KYC", value: "3 of 3 verified" },
-    { label: "Contract", value: "Signed" },
-    { label: "Contract template", value: "Vehicle rental agreement v3" },
-    { label: "Capture window", value: "Apr 17, 18:00" },
-    { label: "Stripe reference", value: "pi_3QfK_demo_x7Yz" },
-  ],
-  timeline: [
-    { title: "Link sent by SMS", detail: "Apr 10, 09:14 · +33 6 00 00 42" },
-    { title: "Client opened the link", detail: "Apr 10, 09:31 · iPhone · Nice, FR" },
-    { title: "Profile completed", detail: "Apr 10, 09:33" },
-    { title: "Identity document verified", detail: "Apr 10, 09:35 · Stripe Identity" },
-    { title: "Driver license verified", detail: "Apr 10, 09:36" },
-    { title: "Selfie match verified", detail: "Apr 10, 09:37" },
-    { title: "Contract generated", detail: "Apr 10, 09:37 · 3 pages" },
-    { title: "Signature completed", detail: "Apr 10, 09:39 · Built-in OTP" },
-    { title: "Deposit authorized", detail: "Apr 10, 09:41 · Visa ending 4242" },
-    { title: "Waiting for release or capture", detail: "Expires Apr 17, 18:00", pending: true },
-  ],
-}
-
-const demoAdminWorkspace: AdminWorkspaceRecord = {
-  kpis: [
-    { label: "Vendors", value: "95", detail: "Across the current sample", tone: "neutral" },
-    { label: "Pending reviews", value: "8", detail: "Need admin action", tone: "warning" },
-    { label: "Connected Stripe accounts", value: "62", detail: "Operational", tone: "success" },
-    { label: "Webhook alerts", value: "3", detail: "Needs inspection", tone: "danger" },
-  ],
-  vendors: [
-    { id: "vendor-locaz", userId: "user-vendor-aziz", businessName: "LOCAZ SARL", businessEmail: "operations@locaz.example", reviewStatus: "APPROVED", stripeConnectionStatus: "CONNECTED" },
-    { id: "vendor-hotel", userId: "user-vendor-azure", businessName: "Azure Stay", businessEmail: "ops@azurestay.example", reviewStatus: "PENDING", stripeConnectionStatus: "PENDING" },
-    { id: "vendor-service", userId: "user-vendor-flow", businessName: "Flow Services", businessEmail: "team@flowservices.example", reviewStatus: "APPROVED", stripeConnectionStatus: "CONNECTED" },
-  ],
-  users: [
-    { id: "user-vendor-aziz", name: "Aziz Landri", email: "aziz@locaz.example", role: "VENDOR", company: "LOCAZ SARL", status: "Approved" },
-    { id: "user-admin-julia", name: "Julia Laurent", email: "julia@conntrazy.example", role: "ADMIN", company: "Conntrazy", status: "Active" },
-    { id: "user-client-marie", name: "Marie Dupont", email: "marie@gmail.com", role: "CLIENT", company: "Independent", status: "Active" },
-  ],
-  invites: [
-    { id: nanoid(), email: "ops@azurestay.example", role: "VENDOR", status: "Pending", expiresAt: "May 7, 2026" },
-    { id: nanoid(), email: "admin@conntrazy.example", role: "ADMIN", status: "Accepted", expiresAt: "Completed" },
-  ],
-  rolePolicies: [
-    {
-      title: "SUPER_ADMIN",
-      description: "Reserved access for the account owner to manage platform-wide decisions and sensitive actions.",
-      tag: "Privileged",
-    },
-    {
-      title: "ADMIN",
-      description: "Internal team access for vendor review, invitations, activity checks, and day-to-day platform management.",
-      tag: "Staff",
-    },
-    {
-      title: "VENDOR",
-      description: "Workspace access for business setup, customer journeys, agreements, payments, and deposits.",
-      tag: "Workspace",
-    },
-    {
-      title: "CLIENT",
-      description: "Optional account access for future use, while most customer journeys continue from a secure link.",
-      tag: "Optional",
-    },
-  ],
-  logs: [
-    { actor: "Julia Laurent", action: "Approved vendor", entity: "LOCAZ SARL", date: "Apr 17, 09:10" },
-    { actor: "System", action: "Processed webhook", entity: "payment_intent.succeeded", date: "Apr 16, 11:22" },
-    { actor: "Aziz Landri", action: "Created transaction", entity: "CTZ-0412", date: "Apr 10, 09:14" },
-  ],
-  sessions: [
-    { user: "Julia Laurent", role: "ADMIN", state: "Active", lastSeen: "2 min ago" },
-    { user: "Aziz Landri", role: "VENDOR", state: "Active", lastSeen: "8 min ago" },
-    { user: "Env Super Admin", role: "SUPER_ADMIN", state: "Active", lastSeen: "14 min ago" },
-  ],
-}
+const rolePolicies: AdminWorkspaceRecord["rolePolicies"] = [
+  {
+    title: "SUPER_ADMIN",
+    description: "Reserved access for the account owner to manage platform-wide decisions and sensitive actions.",
+    tag: "Privileged",
+  },
+  {
+    title: "ADMIN",
+    description: "Internal team access for vendor review, invitations, activity checks, and day-to-day platform management.",
+    tag: "Staff",
+  },
+  {
+    title: "VENDOR",
+    description: "Workspace access for business setup, customer journeys, agreements, payments, and deposits.",
+    tag: "Workspace",
+  },
+  {
+    title: "CLIENT",
+    description: "Optional account access for future use, while most customer journeys continue from a secure link.",
+    tag: "Optional",
+  },
+]
 
 function formatMoney(cents: number | null | undefined, currency = "EUR") {
   if (cents == null) {
@@ -197,8 +135,24 @@ function formatMoney(cents: number | null | undefined, currency = "EUR") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(cents / 100)
+}
+
+function formatDate(date: Date | null | undefined) {
+  if (!date) {
+    return "Not available"
+  }
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+function formatDateTime(date: Date | null | undefined) {
+  if (!date) {
+    return "Not available"
+  }
+
+  return date.toLocaleString("en-US")
 }
 
 function getFilledCount(values: Array<string | null | undefined>) {
@@ -224,6 +178,48 @@ function getProfileCompletion(profile: {
   ])
 
   return Math.round((filled / total) * 100)
+}
+
+function mapToneFromStatus(status: string): AlertRecord["tone"] {
+  const normalized = status.toLowerCase()
+
+  if (normalized.includes("not_connected") || normalized.includes("not connected")) {
+    return "warning"
+  }
+
+  if (normalized.includes("fail") || normalized.includes("reject") || normalized.includes("open") || normalized.includes("suspend")) {
+    return "danger"
+  }
+
+  if (normalized.includes("pending") || normalized.includes("wait")) {
+    return "warning"
+  }
+
+  if (
+    normalized.includes("connect") ||
+    normalized.includes("verify") ||
+    normalized.includes("success") ||
+    normalized.includes("approve") ||
+    normalized.includes("signed") ||
+    normalized.includes("complete") ||
+    normalized.includes("active") ||
+    normalized.includes("processed") ||
+    normalized.includes("captured") ||
+    normalized.includes("released")
+  ) {
+    return "success"
+  }
+
+  return "neutral"
+}
+
+async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await query()
+  } catch (error) {
+    console.error("Dashboard data query failed", error)
+    return fallback
+  }
 }
 
 function buildVendorSummary(user: {
@@ -270,7 +266,7 @@ function buildVendorAlerts(summary: WorkspaceRecord["summary"]): AlertRecord[] {
   if (summary.reviewStatus === "PENDING") {
     alerts.push({
       title: "Your account is under review",
-      description: "You can complete your setup now. Access to live operations will follow once the review is approved.",
+      description: "You can continue preparing templates and transactions while the review is pending.",
       tone: "info",
     })
   }
@@ -278,7 +274,7 @@ function buildVendorAlerts(summary: WorkspaceRecord["summary"]): AlertRecord[] {
   if (summary.stripeConnectionStatus === "NOT_CONNECTED" || summary.stripeConnectionStatus === "PENDING") {
     alerts.push({
       title: "Payout setup is still incomplete",
-      description: "Connect your payout account so future customer payments and deposit holds can be activated.",
+      description: "Connect your payout account so customer payments and deposit holds can be activated.",
       tone: "neutral",
       href: "/vendor/stripe",
       hrefLabel: "Review payouts",
@@ -391,54 +387,14 @@ function createEmptyAdminWorkspace(): AdminWorkspaceRecord {
       { label: "Vendors", value: "0", detail: "No vendor accounts yet", tone: "neutral" },
       { label: "Pending reviews", value: "0", detail: "Nothing waiting", tone: "neutral" },
       { label: "Connected payouts", value: "0", detail: "No connected accounts", tone: "neutral" },
-      { label: "Open alerts", value: "0", detail: "No recent issues", tone: "neutral" },
+      { label: "User accounts", value: "0", detail: "No users yet", tone: "neutral" },
     ],
     vendors: [],
     users: [],
     invites: [],
-    rolePolicies: demoAdminWorkspace.rolePolicies,
+    rolePolicies,
     logs: [],
     sessions: [],
-  }
-}
-
-function mapToneFromStatus(status: string): AlertRecord["tone"] {
-  const normalized = status.toLowerCase()
-
-  if (normalized.includes("not_connected") || normalized.includes("not connected")) {
-    return "warning"
-  }
-
-  if (normalized.includes("fail") || normalized.includes("reject") || normalized.includes("open")) {
-    return "danger"
-  }
-
-  if (normalized.includes("pending") || normalized.includes("wait")) {
-    return "warning"
-  }
-
-  if (
-    normalized.includes("connect") ||
-    normalized.includes("verify") ||
-    normalized.includes("success") ||
-    normalized.includes("approve") ||
-    normalized.includes("signed") ||
-    normalized.includes("complete") ||
-    normalized.includes("active") ||
-    normalized.includes("processed")
-  ) {
-    return "success"
-  }
-
-  return "neutral"
-}
-
-async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await query()
-  } catch (error) {
-    console.error("Dashboard data query failed", error)
-    return fallback
   }
 }
 
@@ -482,23 +438,31 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     })
   }
 
-  const vendorProfile = user.vendorProfile
   const summary = buildVendorSummary({
     name: user.name,
     email: user.email,
-    vendorProfile,
+    vendorProfile: user.vendorProfile,
   })
 
-  const vendorId = vendorProfile.id
+  const vendorId = user.vendorProfile.id
 
   const [transactions, contracts, checklists, webhooks, clients] = await Promise.all([
     safeQuery(
       () =>
         prisma.transaction.findMany({
           where: { vendorId },
-          include: { clientProfile: true },
+          include: {
+            clientProfile: true,
+            contractTemplate: true,
+            kycVerification: true,
+            signatureRecord: true,
+            depositAuthorization: true,
+            payments: true,
+            dispute: true,
+            link: true,
+          },
           orderBy: { createdAt: "desc" },
-          take: 10,
+          take: 20,
         }),
       []
     ),
@@ -526,7 +490,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
         prisma.webhookEvent.findMany({
           where: { vendorId },
           orderBy: { createdAt: "desc" },
-          take: 6,
+          take: 10,
         }),
       []
     ),
@@ -535,15 +499,11 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
         prisma.clientProfile.findMany({
           where: { vendorId },
           orderBy: { updatedAt: "desc" },
-          take: 6,
+          take: 10,
         }),
       []
     ),
   ])
-
-  if (transactions.length === 0 && contracts.length === 0 && checklists.length === 0 && webhooks.length === 0 && clients.length === 0) {
-    return createEmptyVendorWorkspace(summary)
-  }
 
   const mappedTransactions = transactions.map((transaction) => ({
     id: transaction.id,
@@ -551,70 +511,123 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
     clientEmail: transaction.clientProfile?.email ?? "No email",
     kind: transaction.kind.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()),
-    amount: formatMoney(transaction.amount ?? transaction.depositAmount, transaction.currency),
-    kyc: transaction.requiresKyc ? "Required" : "Not required",
-    contract: transaction.contractTemplateId ? "Attached" : "Pending",
+    amount: formatMoney(
+      transaction.amount != null && transaction.amount > 0 ? transaction.amount : transaction.depositAmount,
+      transaction.currency
+    ),
+    kyc: transaction.requiresKyc ? transaction.kycVerification?.status ?? "Required" : "Not required",
+    contract: transaction.contractTemplate ? (transaction.signatureRecord ? "Signed" : "Attached") : "Not required",
     status: transaction.status,
-    date: transaction.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    date: formatDate(transaction.createdAt),
   }))
+
+  const latestTransactionByClient = new Map<string, string>()
+  transactions.forEach((transaction) => {
+    if (transaction.clientProfileId && !latestTransactionByClient.has(transaction.clientProfileId)) {
+      latestTransactionByClient.set(transaction.clientProfileId, transaction.reference)
+    }
+  })
 
   return {
     ...createEmptyVendorWorkspace(summary),
     summary,
     alerts: buildVendorAlerts(summary),
-    actionItems: buildVendorActionItems(summary),
     kpis: buildVendorKpis({
-      transactionCount: mappedTransactions.length,
+      transactionCount: transactions.length,
       clientCount: clients.length,
       reviewStatus: summary.reviewStatus,
       stripeConnectionStatus: summary.stripeConnectionStatus,
       profileCompletion: summary.profileCompletion,
     }),
+    actionItems: buildVendorActionItems(summary),
     transactions: mappedTransactions,
-    contractTemplates:
-      contracts.length > 0
-        ? contracts.map((contract) => ({
-            title: contract.name,
-            description: contract.description ?? "Reusable contract template.",
-            tag: contract.isDefault ? "Default" : "Template",
-            meta: `Updated ${contract.updatedAt.toLocaleDateString("en-US")}`,
-          }))
-        : [],
-    checklistTemplates:
-      checklists.length > 0
-        ? checklists.map((checklist) => ({
-            title: checklist.name,
-            description: checklist.description ?? `${checklist.items.length} requirement items attached to this template.`,
-            tag: `${checklist.items.length} items`,
-            meta: `Updated ${checklist.updatedAt.toLocaleDateString("en-US")}`,
-          }))
-        : [],
-    clients:
-      clients.length > 0
-        ? clients.map((client) => ({
-            name: client.fullName,
-            email: client.email,
-            status: "Tracked",
-            lastTransaction: "Recent",
-          }))
-        : [],
-    webhooks:
-      webhooks.length > 0
-        ? webhooks.map((webhook) => ({
-            provider: webhook.provider,
-            eventType: webhook.eventType,
-            status: webhook.status,
-            date: webhook.createdAt.toLocaleString("en-US"),
-          }))
-        : [],
+    contractTemplates: contracts.map((contract) => ({
+      title: contract.name,
+      description: contract.description ?? "Reusable contract template.",
+      tag: contract.isDefault ? "Default" : "Template",
+      meta: `Updated ${formatDate(contract.updatedAt)}`,
+    })),
+    checklistTemplates: checklists.map((checklist) => ({
+      title: checklist.name,
+      description: checklist.description ?? `${checklist.items.length} requirement items attached to this template.`,
+      tag: `${checklist.items.length} items`,
+      meta: `Updated ${formatDate(checklist.updatedAt)}`,
+    })),
+    kycCases: transactions
+      .filter((transaction) => transaction.requiresKyc || transaction.kycVerification)
+      .map((transaction) => ({
+        client: transaction.clientProfile?.fullName ?? "Client pending",
+        reference: transaction.reference,
+        status: transaction.kycVerification?.status ?? "PENDING",
+        provider: transaction.kycVerification?.provider ?? "Stripe Identity",
+        note: transaction.kycVerification?.summary ?? "Verification linked to the live transaction flow.",
+      })),
+    signatures: transactions
+      .filter((transaction) => transaction.signatureRecord)
+      .map((transaction) => ({
+        signer: transaction.signatureRecord?.signerName ?? transaction.clientProfile?.fullName ?? "Client",
+        reference: transaction.reference,
+        status: transaction.signatureRecord?.status ?? "PENDING",
+        template: transaction.contractTemplate?.name ?? "Agreement",
+        date: formatDateTime(transaction.signatureRecord?.signedAt ?? transaction.signatureRecord?.createdAt),
+      })),
+    deposits: transactions
+      .filter((transaction) => transaction.depositAuthorization)
+      .map((transaction) => ({
+        client: transaction.clientProfile?.fullName ?? "Client pending",
+        reference: transaction.reference,
+        amount: formatMoney(transaction.depositAuthorization?.amount, transaction.depositAuthorization?.currency ?? transaction.currency),
+        status: transaction.depositAuthorization?.status ?? "PENDING",
+        date: formatDateTime(
+          transaction.depositAuthorization?.capturedAt ??
+            transaction.depositAuthorization?.releasedAt ??
+            transaction.depositAuthorization?.authorizedAt
+        ),
+      })),
+    payments: transactions.flatMap((transaction) =>
+      transaction.payments
+        .filter((payment) => payment.kind !== PaymentKind.DEPOSIT_AUTHORIZATION)
+        .map((payment) => ({
+          client: transaction.clientProfile?.fullName ?? "Client pending",
+          reference: transaction.reference,
+          amount: formatMoney(payment.amount, payment.currency),
+          status: payment.status,
+          date: formatDateTime(payment.processedAt ?? payment.createdAt),
+        }))
+    ),
+    disputes: transactions
+      .filter((transaction) => transaction.dispute)
+      .map((transaction) => ({
+        client: transaction.clientProfile?.fullName ?? "Client pending",
+        reference: transaction.reference,
+        status: transaction.dispute?.status ?? "OPEN",
+        summary: transaction.dispute?.summary ?? "Customer issue linked to this workflow.",
+      })),
+    clients: clients.map((client) => ({
+      name: client.fullName,
+      email: client.email,
+      status: "Tracked",
+      lastTransaction: latestTransactionByClient.get(client.id) ?? "Recent",
+    })),
+    links: transactions
+      .filter((transaction) => transaction.link)
+      .map((transaction) => ({
+        reference: transaction.reference,
+        shareLink: `${getAppBaseUrl()}/t/${transaction.link?.token ?? ""}`,
+        shortCode: transaction.link?.shortCode ?? "Not set",
+        qrStatus: transaction.link?.qrCodeSvg ? "Ready" : "Unavailable",
+        state: transaction.link?.completedAt ? "Completed" : transaction.link?.openedAt ? "Opened" : "Issued",
+      })),
+    webhooks: webhooks.map((webhook) => ({
+      provider: webhook.provider,
+      eventType: webhook.eventType,
+      status: webhook.status,
+      date: formatDateTime(webhook.createdAt),
+    })),
   }
 }
 
 export async function getVendorTransactionDetail(transactionId: string): Promise<TransactionDetailRecord | null> {
-  if (transactionId === DEMO_TRANSACTION_ID || transactionId === demoTransactionDetail.reference.toLowerCase()) {
-    return demoTransactionDetail
-  }
-
   const transaction = await safeQuery(
     () =>
       prisma.transaction.findFirst({
@@ -627,6 +640,10 @@ export async function getVendorTransactionDetail(transactionId: string): Promise
           kycVerification: true,
           signatureRecord: true,
           depositAuthorization: true,
+          payments: true,
+          events: {
+            orderBy: { occurredAt: "asc" },
+          },
         },
       }),
     null
@@ -638,7 +655,7 @@ export async function getVendorTransactionDetail(transactionId: string): Promise
 
   return {
     reference: transaction.reference,
-    title: "Transaction detail",
+    title: transaction.title,
     summaryLine: `${transaction.clientProfile?.fullName ?? "Client pending"} · ${transaction.kind} · ${formatMoney(
       transaction.amount ?? transaction.depositAmount,
       transaction.currency
@@ -651,22 +668,28 @@ export async function getVendorTransactionDetail(transactionId: string): Promise
       { label: "KYC", value: transaction.kycVerification?.status ?? (transaction.requiresKyc ? "Required" : "Not required") },
       { label: "Contract", value: transaction.contractTemplate?.name ?? "No template attached" },
       { label: "Signature", value: transaction.signatureRecord?.status ?? "Pending" },
-      { label: "Stripe reference", value: transaction.stripePaymentIntentId ?? "Not set" },
-      { label: "Updated", value: transaction.updatedAt.toLocaleString("en-US") },
-    ],
-    timeline: [
-      { title: "Transaction created", detail: transaction.createdAt.toLocaleString("en-US") },
       {
-        title: "Current status",
-        detail: transaction.status,
-        pending: !["COMPLETED", "SIGNED"].includes(transaction.status),
+        label: "Deposit",
+        value: transaction.depositAuthorization ? `${transaction.depositAuthorization.status} · ${formatMoney(transaction.depositAuthorization.amount, transaction.depositAuthorization.currency)}` : "Not used",
       },
+      { label: "Updated", value: formatDateTime(transaction.updatedAt) },
     ],
+    timeline:
+      transaction.events.length > 0
+        ? transaction.events.map((event) => ({
+            title: event.title,
+            detail: event.detail ? `${formatDateTime(event.occurredAt)} · ${event.detail}` : formatDateTime(event.occurredAt),
+            pending: event.type === "DEPOSIT_AUTHORIZED" && transaction.depositAuthorization?.status === "AUTHORIZED",
+          }))
+        : [
+            { title: "Transaction created", detail: formatDateTime(transaction.createdAt) },
+            { title: "Current status", detail: transaction.status, pending: transaction.status !== "COMPLETED" },
+          ],
   }
 }
 
 export async function getAdminWorkspace(): Promise<AdminWorkspaceRecord> {
-  const [vendors, users, invites, logs] = await Promise.all([
+  const [vendors, users, invites, logs, sessions, transactions, webhooks] = await Promise.all([
     safeQuery(
       () =>
         prisma.vendorProfile.findMany({
@@ -708,64 +731,97 @@ export async function getAdminWorkspace(): Promise<AdminWorkspaceRecord> {
         }),
       []
     ),
+    safeQuery(
+      () =>
+        prisma.session.findMany({
+          include: {
+            user: {
+              include: { vendorProfile: true },
+            },
+          },
+          orderBy: { expires: "desc" },
+          take: 20,
+        }),
+      []
+    ),
+    safeQuery(() => prisma.transaction.findMany({ take: 200 }), []),
+    safeQuery(
+      () =>
+        prisma.webhookEvent.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        }),
+      []
+    ),
   ])
 
-  if (vendors.length === 0 && users.length === 0 && invites.length === 0 && logs.length === 0) {
+  if (vendors.length === 0 && users.length === 0 && invites.length === 0 && logs.length === 0 && sessions.length === 0 && webhooks.length === 0) {
     return createEmptyAdminWorkspace()
   }
 
   const pendingReviews = vendors.filter((vendor) => vendor.reviewStatus === "PENDING").length
   const connectedAccounts = vendors.filter((vendor) => vendor.stripeConnectionStatus === "CONNECTED").length
 
+  const combinedLogs = [
+    ...logs.map((log) => ({
+      actor: log.actorType === "SYSTEM" ? "System" : log.actorId ?? "User",
+      action: log.action,
+      entity: `${log.entityType}${log.entityId ? ` · ${log.entityId}` : ""}`,
+      createdAt: log.createdAt,
+    })),
+    ...webhooks.map((webhook) => ({
+      actor: "System",
+      action: `Processed ${webhook.eventType}`,
+      entity: `${webhook.provider} webhook`,
+      createdAt: webhook.createdAt,
+    })),
+  ]
+    .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+    .slice(0, 20)
+
   return {
-    ...createEmptyAdminWorkspace(),
     kpis: [
       { label: "Vendors", value: `${vendors.length}`, detail: "Tracked vendor accounts", tone: "neutral" },
       { label: "Pending reviews", value: `${pendingReviews}`, detail: pendingReviews > 0 ? "Need review" : "Nothing waiting", tone: pendingReviews > 0 ? "warning" : "neutral" },
       { label: "Connected payouts", value: `${connectedAccounts}`, detail: "Ready for payments", tone: connectedAccounts > 0 ? "success" : "neutral" },
-      { label: "User accounts", value: `${users.length}`, detail: "Across all roles", tone: "neutral" },
+      { label: "Transactions", value: `${transactions.length}`, detail: "Across all workspaces", tone: "neutral" },
     ],
-    vendors:
-      vendors.length > 0
-        ? vendors.map((vendor) => ({
-            id: vendor.id,
-            userId: vendor.userId,
-            businessName: vendor.businessName ?? "Unnamed vendor",
-            businessEmail: vendor.businessEmail ?? "No business email",
-            reviewStatus: vendor.reviewStatus,
-            stripeConnectionStatus: vendor.stripeConnectionStatus,
-          }))
-        : [],
-    users:
-      users.length > 0
-        ? users.map((user) => ({
-            id: user.id,
-            name: user.name ?? "Unnamed user",
-            email: user.email,
-            role: user.role,
-            company: user.vendorProfile?.businessName ?? "Conntrazy",
-            status: user.vendorProfile?.reviewStatus ?? "Active",
-          }))
-        : [],
-    invites:
-      invites.length > 0
-        ? invites.map((invite) => ({
-            id: invite.id,
-            email: invite.email,
-            role: invite.role,
-            status: invite.status,
-            expiresAt: invite.expiresAt.toLocaleDateString("en-US"),
-          }))
-        : [],
-    logs:
-      logs.length > 0
-        ? logs.map((log) => ({
-            actor: log.actorType === "SYSTEM" ? "System" : log.actorId ?? "User",
-            action: log.action,
-            entity: `${log.entityType}${log.entityId ? ` · ${log.entityId}` : ""}`,
-            date: log.createdAt.toLocaleString("en-US"),
-          }))
-        : [],
+    vendors: vendors.map((vendor) => ({
+      id: vendor.id,
+      userId: vendor.userId,
+      businessName: vendor.businessName ?? "Unnamed vendor",
+      businessEmail: vendor.businessEmail ?? "No business email",
+      reviewStatus: vendor.reviewStatus,
+      stripeConnectionStatus: vendor.stripeConnectionStatus,
+    })),
+    users: users.map((user) => ({
+      id: user.id,
+      name: user.name ?? "Unnamed user",
+      email: user.email,
+      role: user.role,
+      company: user.vendorProfile?.businessName ?? "Conntrazy",
+      status: user.vendorProfile?.reviewStatus ?? "Active",
+    })),
+    invites: invites.map((invite) => ({
+      id: invite.id,
+      email: invite.email,
+      role: invite.role,
+      status: invite.status,
+      expiresAt: formatDate(invite.expiresAt),
+    })),
+    rolePolicies,
+    logs: combinedLogs.map((log) => ({
+      actor: log.actor,
+      action: log.action,
+      entity: log.entity,
+      date: formatDateTime(log.createdAt),
+    })),
+    sessions: sessions.map((session) => ({
+      user: session.user?.name ?? session.user?.email ?? "Unknown user",
+      role: session.user?.role ?? "UNKNOWN",
+      state: session.expires > new Date() ? "Active" : "Expired",
+      lastSeen: formatDateTime(session.expires),
+    })),
   }
 }
 

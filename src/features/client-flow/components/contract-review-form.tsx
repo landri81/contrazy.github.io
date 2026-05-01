@@ -12,23 +12,23 @@ import { Label } from "@/components/ui/label"
 export function ContractReviewForm({ token, content }: { token: string, content: string }) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
-  const [agreed, setAgreed] = useState(false)
+  const [reviewed, setReviewed] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed) return
+    if (!reviewed) return
     setIsPending(true)
 
     try {
-      const res = await fetch(`/api/client/${token}/sign`, {
+      const res = await fetch(`/api/client/${token}/contract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agreed: true })
+        body: JSON.stringify({ reviewed: true })
       })
 
       if (res.ok) {
-        router.push(`/t/${token}/payment`)
-        router.refresh()
+        const payload = await res.json()
+        router.push(`/t/${token}/${payload.nextStep ?? "sign"}`)
       }
     } catch (err) {
       console.error(err)
@@ -47,24 +47,24 @@ export function ContractReviewForm({ token, content }: { token: string, content:
 
           <div className="flex items-start space-x-3 p-4 border rounded-lg bg-primary/5">
             <Checkbox 
-              id="terms" 
-              checked={agreed} 
-              onCheckedChange={(c: boolean) => setAgreed(c)} 
+              id="reviewed" 
+              checked={reviewed} 
+              onCheckedChange={(c: boolean) => setReviewed(c)} 
             />
             <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="terms" className="text-base font-medium">
-                I agree to the terms and conditions
+              <Label htmlFor="reviewed" className="text-base font-medium">
+                I have reviewed this agreement
               </Label>
               <p className="text-sm text-muted-foreground">
-                By checking this box, you are electronically signing this agreement.
+                Continue to the next step when you are ready to sign.
               </p>
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isPending || !agreed}>
+          <Button type="submit" className="w-full" disabled={isPending || !reviewed}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign and Continue
+            Continue to Signature
           </Button>
         </CardFooter>
       </form>

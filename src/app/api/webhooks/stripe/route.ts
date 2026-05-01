@@ -1,63 +1,93 @@
 import { NextResponse } from "next/server"
-import { stripe } from "@/lib/integrations/stripe"
+import type Stripe from "stripe"
+
+import {
+  syncTransactionFinanceState,
+  upsertDepositAuthorization,
+  upsertServicePayment,
+} from "@/features/transactions/server/transaction-finance"
+import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
+import { stripe } from "@/lib/integrations/stripe"
 
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get("stripe-signature")
 
-  let event
+  let event: Stripe.Event
 
   try {
     if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
       throw new Error("Missing signature or webhook secret")
     }
+
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const errorMessage = err instanceof Error ? err.message : "Unknown error"
     console.error("Webhook signature verification failed.", errorMessage)
     return NextResponse.json({ error: errorMessage }, { status: 400 })
   }
 
   try {
-    // We mainly care about connect account events and checkout sessions
+    let vendorId: string | null = null
+    let transactionId: string | null = null
+
     switch (event.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {
-        const session = event.data.object as import("stripe").Stripe.Checkout.Session
+        const session = event.data.object as Stripe.Checkout.Session
+        vendorId = session.metadata?.vendorId ?? null
+        transactionId = session.metadata?.transactionId ?? null
 
-        const transactionId = session.metadata?.transactionId
-        
         if (transactionId) {
-          // This is a backup to the inline update in complete/page.tsx
-          // Ensures we mark it paid even if they close browser
-          const tx = await prisma.transaction.findUnique({ where: { id: transactionId }})
-          if (tx && tx.status !== "COMPLETED") {
-             // In a fully robust system we'd process payment records here too.
-             // For the MVP, we rely on the redirect for immediate UX, and use this as backup
-             await prisma.transaction.update({
-               where: { id: transactionId },
-               data: { status: "COMPLETED" }
-             })
-          }
+          await prisma.$transaction(async (tx) => {
+            const financeStage = session.metadata?.financeStage
+
+            if (financeStage === "deposit_authorization") {
+              await upsertDepositAuthorization(tx, transactionId!, session)
+            } else {
+              await upsertServicePayment(tx, transactionId!, session)
+            }
+
+            await recordTransactionEvent(tx, {
+              transactionId: transactionId!,
+              type: "WEBHOOK_PROCESSED",
+              title: "Stripe webhook processed",
+              detail: `${event.type} handled successfully.`,
+              dedupeKey: `event:webhook:${event.id}`,
+              metadata: {
+                eventId: event.id,
+                eventType: event.type,
+              },
+            })
+          })
+
+          await syncTransactionFinanceState(prisma, transactionId)
         }
+
         break
       }
-      // Add handlers for deposit release/capture later if needed
+      default:
+        break
     }
 
-    // Log the event
     await prisma.webhookEvent.create({
       data: {
+        vendorId,
         provider: "stripe",
         eventType: event.type,
-        status: "PROCESSED"
-      }
+        status: "PROCESSED",
+        payload: {
+          id: event.id,
+          type: event.type,
+          transactionId,
+        },
+      },
     })
 
     return NextResponse.json({ received: true })
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    const errorMessage = err instanceof Error ? err.message : "Unknown error"
     console.error("Webhook processing failed.", errorMessage)
     return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 })
   }

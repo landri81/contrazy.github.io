@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { vendorReviewSchema } from "@/features/dashboard/schemas/vendor-profile.schema"
+import { sendVendorReviewStatusEmail } from "@/lib/integrations/resend"
 import { canAccessAdminScope } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
@@ -42,6 +43,18 @@ export async function PATCH(
         reviewStatus: parsedBody.data.reviewStatus,
       },
     })
+
+    if (
+      parsedBody.data.reviewStatus === "APPROVED" ||
+      parsedBody.data.reviewStatus === "REJECTED" ||
+      parsedBody.data.reviewStatus === "SUSPENDED"
+    ) {
+      await sendVendorReviewStatusEmail(
+        user.vendorProfile.businessEmail ?? user.email,
+        user.vendorProfile.businessName ?? user.name ?? "Vendor",
+        parsedBody.data.reviewStatus
+      )
+    }
 
     try {
       const actor = await prisma.user.findUnique({

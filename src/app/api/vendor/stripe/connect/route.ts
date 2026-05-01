@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
-import { stripe } from "@/lib/integrations/stripe"
+import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export async function POST() {
   try {
-    const { session, dbUser } = await requireVendorAccess()
+    const { dbUser, vendorProfile } = await requireVendorProfileAccess()
+    const blockedResponse = ensureVendorApproved(vendorProfile)
 
-    if (!dbUser?.vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 })
+    if (blockedResponse) {
+      return blockedResponse
     }
 
-    const profileId = dbUser.vendorProfile.id
-    let stripeAccountId = dbUser.vendorProfile.stripeAccountId
+    const profileId = vendorProfile.id
+    let stripeAccountId = vendorProfile.stripeAccountId
 
     // If the vendor does not have a connected Stripe account yet, create one
     if (!stripeAccountId) {
@@ -20,7 +21,7 @@ export async function POST() {
         type: "standard",
         email: dbUser.email,
         business_profile: {
-          name: dbUser.vendorProfile.businessName || undefined,
+          name: vendorProfile.businessName || undefined,
         },
       })
 
@@ -34,7 +35,7 @@ export async function POST() {
     }
 
     // Generate account link for onboarding
-    const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const origin = getAppBaseUrl()
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
       refresh_url: `${origin}/vendor/stripe/refresh`,

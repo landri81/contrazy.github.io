@@ -1,17 +1,17 @@
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { getVendorStatusMessage, isVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { TransactionCreationForm } from "@/features/dashboard/components/transaction-creation-form"
 
 export default async function VendorActionsPage() {
-  const { dbUser } = await requireVendorAccess()
+  const { vendorProfile } = await requireVendorProfileAccess()
 
   const contracts = await prisma.contractTemplate.findMany({
-    where: { vendorId: dbUser.vendorProfile?.id },
+    where: { vendorId: vendorProfile.id },
     orderBy: { name: 'asc' }
   })
 
   const checklists = await prisma.checklistTemplate.findMany({
-    where: { vendorId: dbUser.vendorProfile?.id },
+    where: { vendorId: vendorProfile.id },
     orderBy: { name: 'asc' }
   })
 
@@ -28,7 +28,9 @@ export default async function VendorActionsPage() {
         <TransactionCreationForm 
           contracts={contracts} 
           checklists={checklists} 
-          hasStripe={dbUser.vendorProfile?.stripeConnectionStatus === 'CONNECTED'} 
+          hasStripe={vendorProfile.stripeConnectionStatus === 'CONNECTED'}
+          canLaunch={isVendorApproved(vendorProfile)}
+          blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
         />
       </div>
     </div>

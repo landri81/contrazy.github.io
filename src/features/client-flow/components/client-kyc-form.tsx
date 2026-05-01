@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Loader2, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -9,7 +8,6 @@ import { Card, CardContent, CardFooter, CardDescription, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function ClientKycForm({ token }: { token: string }) {
-  const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +25,7 @@ export function ClientKycForm({ token }: { token: string }) {
         setError(data.message || "Failed to initialize verification")
         setIsPending(false)
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred. Please try again.")
       setIsPending(false)
     }

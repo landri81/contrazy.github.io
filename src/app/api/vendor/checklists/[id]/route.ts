@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 
 export async function DELETE(
@@ -8,10 +8,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const { session, dbUser } = await requireVendorAccess()
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
-    if (!dbUser?.vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 })
+    if (blockedResponse) {
+      return blockedResponse
     }
 
     const templateId = id
@@ -21,7 +22,7 @@ export async function DELETE(
       where: { id: templateId },
     })
 
-    if (!existing || existing.vendorId !== dbUser.vendorProfile.id) {
+    if (!existing || existing.vendorId !== vendorProfile.id) {
       return NextResponse.json({ success: false, message: "Template not found" }, { status: 404 })
     }
 

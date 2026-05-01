@@ -1,90 +1,150 @@
-import { NextResponse } from "next/server"
 import { randomBytes } from "crypto"
-import { requireVendorAccess } from "@/lib/auth/guards"
+
+import { NextResponse } from "next/server"
+import QRCode from "qrcode"
+import { StripeConnectionStatus } from "@prisma/client"
+
+import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { getAppBaseUrl } from "@/lib/integrations/stripe"
 
 export async function POST(request: Request) {
   try {
-    const { session, dbUser } = await requireVendorAccess()
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const blockedResponse = ensureVendorApproved(vendorProfile)
 
-    if (!dbUser?.vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 })
+    if (blockedResponse) {
+      return blockedResponse
     }
-
     const body = await request.json()
-    const { 
-      title, 
-      notes, 
-      contractTemplateId, 
-      checklistTemplateId, 
-      amount, 
-      depositAmount, 
-      requiresKyc 
+    const {
+      title,
+      notes,
+      contractTemplateId,
+      checklistTemplateId,
+      amount,
+      depositAmount,
+      requiresKyc,
     } = body
 
     if (!title) {
       return NextResponse.json({ success: false, message: "Title is required" }, { status: 400 })
     }
 
-    const vendorId = dbUser.vendorProfile.id
-    const reference = `TX-${randomBytes(4).toString('hex').toUpperCase()}`
-    const token = randomBytes(16).toString('hex')
+    const normalizedAmount = typeof amount === "number" ? amount : null
+    const normalizedDepositAmount = typeof depositAmount === "number" ? depositAmount : null
 
-    // Determine transaction kind
+    if (normalizedAmount !== null && (!Number.isInteger(normalizedAmount) || normalizedAmount < 0)) {
+      return NextResponse.json({ success: false, message: "Service payment amount must be a positive whole-cent value" }, { status: 422 })
+    }
+
+    if (normalizedDepositAmount !== null && (!Number.isInteger(normalizedDepositAmount) || normalizedDepositAmount < 0)) {
+      return NextResponse.json({ success: false, message: "Deposit amount must be a positive whole-cent value" }, { status: 422 })
+    }
+
+    if (normalizedAmount === 0 || normalizedDepositAmount === 0) {
+      return NextResponse.json({ success: false, message: "Amounts must be greater than zero when provided" }, { status: 422 })
+    }
+
+    if (normalizedAmount === null && normalizedDepositAmount === null && requiresKyc) {
+      return NextResponse.json(
+        { success: false, message: "Identity verification requires a connected Stripe account and a live transaction setup." },
+        { status: 422 }
+      )
+    }
+
+    const needsStripe = Boolean(normalizedAmount || normalizedDepositAmount || requiresKyc)
+
+    if (
+      needsStripe &&
+      (vendorProfile.stripeConnectionStatus !== StripeConnectionStatus.CONNECTED || !vendorProfile.stripeAccountId)
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Connect Stripe before enabling payments, deposit holds, or identity verification." },
+        { status: 422 }
+      )
+    }
+
+    const [contractTemplate, checklistTemplate] = await Promise.all([
+      contractTemplateId
+        ? prisma.contractTemplate.findFirst({
+            where: { id: contractTemplateId, vendorId: vendorProfile.id },
+          })
+        : Promise.resolve(null),
+      checklistTemplateId
+        ? prisma.checklistTemplate.findFirst({
+            where: { id: checklistTemplateId, vendorId: vendorProfile.id },
+            include: { items: true },
+          })
+        : Promise.resolve(null),
+    ])
+
+    if (contractTemplateId && !contractTemplate) {
+      return NextResponse.json({ success: false, message: "Selected contract template was not found for this account" }, { status: 422 })
+    }
+
+    if (checklistTemplateId && !checklistTemplate) {
+      return NextResponse.json({ success: false, message: "Selected checklist was not found for this account" }, { status: 422 })
+    }
+
+    const reference = `TX-${randomBytes(4).toString("hex").toUpperCase()}`
+    const token = randomBytes(16).toString("hex")
+    const baseUrl = getAppBaseUrl()
+    const secureLink = `${baseUrl}/t/${token}`
+    const qrCodeSvg = await QRCode.toString(secureLink, { type: "svg", margin: 1 })
+
     let kind: "PAYMENT" | "DEPOSIT" | "HYBRID" = "HYBRID"
-    if (amount && !depositAmount) kind = "PAYMENT"
-    if (!amount && depositAmount) kind = "DEPOSIT"
-    
-    // Begin creation logic
+    if (normalizedAmount && !normalizedDepositAmount) kind = "PAYMENT"
+    if (!normalizedAmount && normalizedDepositAmount) kind = "DEPOSIT"
+
     const transaction = await prisma.$transaction(async (tx) => {
-      // Create base transaction
-      const newTx = await tx.transaction.create({
+      const newTransaction = await tx.transaction.create({
         data: {
-          vendorId,
+          vendorId: vendorProfile.id,
           reference,
           title,
           notes,
           kind,
-          amount: amount || null,
-          depositAmount: depositAmount || null,
-          requiresKyc: !!requiresKyc,
-          contractTemplateId: contractTemplateId || null,
-          checklistTemplateId: checklistTemplateId || null,
-          status: "LINK_SENT" // Move to sent automatically since we generate the link immediately
-        }
+          amount: normalizedAmount,
+          depositAmount: normalizedDepositAmount,
+          requiresKyc: Boolean(requiresKyc),
+          contractTemplateId: contractTemplate?.id ?? null,
+          checklistTemplateId: checklistTemplate?.id ?? null,
+          status: "LINK_SENT",
+        },
       })
 
-      // Create the secure link
       const link = await tx.transactionLink.create({
         data: {
-          transactionId: newTx.id,
+          transactionId: newTransaction.id,
           token,
-          // Generate a 6 character short code for potential future SMS use
-          shortCode: randomBytes(3).toString('hex').toUpperCase(),
-        }
+          shortCode: randomBytes(3).toString("hex").toUpperCase(),
+          qrCodeSvg,
+        },
       })
 
-      // If a checklist was selected, copy its items into the transaction requirements
-      if (checklistTemplateId) {
-        const template = await tx.checklistTemplate.findUnique({
-          where: { id: checklistTemplateId },
-          include: { items: true }
-        })
-
-        if (template && template.items.length > 0) {
+      if (checklistTemplate?.items.length) {
           await tx.transactionRequirement.createMany({
-            data: template.items.map(item => ({
-              transactionId: newTx.id,
+            data: checklistTemplate.items.map((item) => ({
+              transactionId: newTransaction.id,
               label: item.label,
               instructions: item.description,
               type: item.type,
               required: item.required,
-            }))
+            })),
           })
-        }
       }
 
-      return { ...newTx, link }
+      await recordTransactionEvent(tx, {
+        transactionId: newTransaction.id,
+        type: "LINK_CREATED",
+        title: "Secure link created",
+        detail: "The customer workflow is ready to be shared.",
+        dedupeKey: `event:link-created:${newTransaction.id}`,
+      })
+
+      return { ...newTransaction, link }
     })
 
     return NextResponse.json(transaction, { status: 201 })

@@ -1,12 +1,12 @@
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { getVendorStatusMessage, isVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { ChecklistTemplateList } from "@/features/dashboard/components/checklist-template-list"
 
 export default async function VendorChecklistsPage() {
-  const { dbUser } = await requireVendorAccess()
+  const { vendorProfile } = await requireVendorProfileAccess()
 
   const templates = await prisma.checklistTemplate.findMany({
-    where: { vendorId: dbUser.vendorProfile?.id },
+    where: { vendorId: vendorProfile.id },
     include: {
       items: {
         orderBy: { sortOrder: 'asc' }
@@ -24,7 +24,11 @@ export default async function VendorChecklistsPage() {
         </p>
       </div>
 
-      <ChecklistTemplateList initialTemplates={templates} vendorId={dbUser.vendorProfile?.id || ""} />
+      <ChecklistTemplateList
+        initialTemplates={templates}
+        canEdit={isVendorPreparationAllowed(vendorProfile)}
+        blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+      />
     </div>
   )
 }

@@ -1,20 +1,23 @@
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { notFound } from "next/navigation"
+import Link from "next/link"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DepositControlCard } from "@/features/dashboard/components/deposit-control-card"
 
-export default async function VendorTransactionDetailPage({ params }: { params: { transactionId: string } }) {
-  const { dbUser } = await requireVendorAccess()
+export default async function VendorTransactionDetailPage(props: { params: Promise<{ transactionId: string }> }) {
+  const { transactionId } = await props.params
+  const { vendorProfile } = await requireVendorProfileAccess()
 
-  const transaction = await prisma.transaction.findUnique({
+  const transaction = await prisma.transaction.findFirst({
     where: { 
-      id: params.transactionId,
-      vendorId: dbUser.vendorProfile?.id
+      id: transactionId,
+      vendorId: vendorProfile.id
     },
     include: {
+      vendor: true,
       clientProfile: true,
       link: true,
       requirements: true,
@@ -22,6 +25,10 @@ export default async function VendorTransactionDetailPage({ params }: { params: 
       payments: true,
       depositAuthorization: true,
       signatureRecord: true,
+      kycVerification: true,
+      events: {
+        orderBy: { occurredAt: "asc" },
+      },
     }
   })
 
@@ -103,6 +110,29 @@ export default async function VendorTransactionDetailPage({ params }: { params: 
         />
       )}
 
+      {transaction.link ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Client access</CardTitle>
+            <CardDescription>Reuse the secure link or QR code for this transaction.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-muted/20 p-4 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Secure link</p>
+              <Link href={`/t/${transaction.link.token}`} className="break-all text-[var(--contrazy-teal)] hover:underline">
+                {`/t/${transaction.link.token}`}
+              </Link>
+            </div>
+            {transaction.link.qrCodeSvg ? (
+              <div
+                className="flex w-fit items-center justify-center rounded-lg border bg-white p-4"
+                dangerouslySetInnerHTML={{ __html: transaction.link.qrCodeSvg }}
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Timeline</CardTitle>
@@ -110,42 +140,24 @@ export default async function VendorTransactionDetailPage({ params }: { params: 
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="text-sm text-muted-foreground w-24 flex-shrink-0">
-                {transaction.createdAt.toLocaleDateString()}
-              </div>
-              <div className="text-sm">Transaction created</div>
-            </div>
-            {transaction.link?.openedAt && (
-              <div className="flex gap-4">
-                <div className="text-sm text-muted-foreground w-24 flex-shrink-0">
-                  {transaction.link.openedAt.toLocaleDateString()}
+            {transaction.events.length > 0 ? (
+              transaction.events.map((event) => (
+                <div key={event.id} className="flex gap-4">
+                  <div className="w-28 flex-shrink-0 text-sm text-muted-foreground">
+                    {event.occurredAt.toLocaleDateString()}
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div>{event.title}</div>
+                    {event.detail ? <div className="text-muted-foreground">{event.detail}</div> : null}
+                  </div>
                 </div>
-                <div className="text-sm">Client opened link</div>
-              </div>
-            )}
-            {transaction.clientProfile && (
+              ))
+            ) : (
               <div className="flex gap-4">
-                <div className="text-sm text-muted-foreground w-24 flex-shrink-0">
-                  {transaction.clientProfile.createdAt.toLocaleDateString()}
+                <div className="w-28 flex-shrink-0 text-sm text-muted-foreground">
+                  {transaction.createdAt.toLocaleDateString()}
                 </div>
-                <div className="text-sm">Client provided details</div>
-              </div>
-            )}
-            {transaction.signatureRecord && (
-              <div className="flex gap-4">
-                <div className="text-sm text-muted-foreground w-24 flex-shrink-0">
-                  {transaction.signatureRecord.signedAt?.toLocaleDateString()}
-                </div>
-                <div className="text-sm">Client signed contract</div>
-              </div>
-            )}
-            {transaction.link?.completedAt && (
-              <div className="flex gap-4">
-                <div className="text-sm text-muted-foreground w-24 flex-shrink-0">
-                  {transaction.link.completedAt.toLocaleDateString()}
-                </div>
-                <div className="text-sm font-medium text-green-600">Transaction completed</div>
+                <div className="text-sm">Transaction created</div>
               </div>
             )}
           </div>

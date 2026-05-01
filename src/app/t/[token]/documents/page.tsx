@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation"
-import { getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
+import { getNextClientStep, getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
 import { ClientUploadsForm } from "@/features/client-flow/components/client-uploads-form"
 
-export default async function ClientDocumentsPage({ params }: { params: { token: string } }) {
-  const transaction = await getTransactionByToken(params.token)
+export default async function ClientDocumentsPage(props: { params: Promise<{ token: string }> }) {
+  const { token } = await props.params
+  const transaction = await getTransactionByToken(token)
   
   if (!transaction) {
     redirect("/")
@@ -21,8 +22,9 @@ export default async function ClientDocumentsPage({ params }: { params: { token:
       </div>
 
       <ClientUploadsForm 
-        token={params.token} 
+        token={token} 
         requirements={transaction.requirements}
+        skipStep={getNextClientStep(transaction)}
       />
     </div>
   )

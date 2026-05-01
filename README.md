@@ -1,75 +1,120 @@
-# Conntrazy (Next.js 16 Foundation)
+# Conntrazy
 
-Week 1 migration of the original static HTML sample into a scalable Next.js 16 App Router application with a feature-based architecture.
+Conntrazy is a Next.js 16 App Router MVP for vendor onboarding, secure client transaction flows, optional KYC, document collection, contract review, signature, service payment, deposit authorization, and admin oversight.
+
+This repo no longer serves raw legacy HTML at runtime. `legacy-html/` is kept only as a visual reference source from the original prototype.
 
 ## Stack
 
-- Next.js 16 (App Router)
-- Tailwind CSS + shadcn/ui
-- Auth.js / NextAuth (Google OAuth + Credentials)
-- PostgreSQL + Prisma
-- Stripe, Cloudinary, Resend integration modules
-- Redux Toolkit for client-side UI state
-- JWT utility module (`jose`) for secure token workflows
+- Next.js 16 App Router
+- React 19
+- Tailwind CSS 4
+- shadcn/ui
+- Auth.js / NextAuth
+- Prisma + PostgreSQL
+- Stripe Checkout + Stripe Connect + Stripe Identity
+- Cloudinary
+- Resend
+- Redux Toolkit
 
 ## Architecture
 
-```
+```text
 src/
-  app/                    # routes, layouts, API handlers
-  features/               # feature-scoped UI and domain logic
-  lib/                    # shared server/system modules
-  store/                  # redux store and slices
-  types/                  # type augmentation (next-auth)
+  app/                    route tree, layouts, API handlers
+  components/             shared UI primitives
+  content/                typed marketing and static page content
+  features/               feature-scoped UI, schemas, and server logic
+  lib/                    auth, integrations, env, db, security
+  store/                  client state
 prisma/
-  schema.prisma           # database schema
+  schema.prisma           relational data model
 legacy-html/
-  ...                     # original client sample kept for reference
+  ...                     prototype reference only
 ```
 
-## Week 1 coverage
+## Route Groups
 
-- HTML to Next.js base migration started (brand style preserved)
-- Auth foundation:
-  - Google OAuth
-  - Email/password credentials
-  - Super admin credentials from `.env.local`
-- PostgreSQL schema + Prisma setup
-- Integration foundations:
-  - Cloudinary
-  - Stripe
-  - Resend
-- Route protection middleware by role (`/vendor`, `/super-admin`)
+- Public marketing:
+  `/`, `/pricing`, `/blog`, `/faq`, `/contact`, `/demo`, `/help`, `/status`, `/api-docs`, `/legal/*`
+- Auth:
+  `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/signup-success`
+- Vendor workspace:
+  `/vendor/*`
+- Admin workspace:
+  `/admin/*` with `/super-admin/*` alias support
+- Tokenized client flow:
+  `/t/[token]/*`
 
-## Legacy Route Migration (Current)
+## MVP Coverage
 
-The full legacy experience is now served through Next route rewrites using original HTML/JS/CSS assets in `public/legacy/`, with deep-link support:
-
-- Public routes: `/`, `/blog`, `/faq`, `/contact`, `/demo`, `/connexion`, `/inscription`, `/cgv`, `/rgpd`, etc.
-- Vendor backoffice routes: `/vendor` and `/vendor/:section`
-- Admin backoffice routes: `/super-admin` and `/super-admin/:section` (also `/backoffice/:section`)
+- Vendor registration and login
+- Env-backed super admin login
+- Google OAuth
+- Vendor profile completion and admin review
+- Stripe Connect onboarding for vendors
+- Contract template management
+- Checklist / document requirement management
+- Transaction creation with secure link and QR code
+- Tokenized client profile, uploads, optional KYC, contract review, signature, payment, and completion steps
+- Stripe webhook-driven finance reconciliation
+- Deposit release / capture controls
+- Cloudinary direct uploads
+- Resend email notifications for password reset, vendor review status, completion, and deposit state changes
+- Admin visibility for users, vendors, invites, logs, sessions, transactions, and webhooks
 
 ## Environment
 
-1. Copy `.env.example` to `.env.local` (already created in this workspace).
-2. Set valid secrets and provider keys.
-3. Ensure `DATABASE_URL` points to an accessible PostgreSQL instance.
+Copy `.env.example` to `.env.local` and set real values.
+
+Required keys:
+
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_CONNECT_CLIENT_ID`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `SUPER_ADMIN_EMAIL`
+- `SUPER_ADMIN_PASSWORD`
+- `JWT_ENCRYPTION_SECRET`
 
 ## Commands
 
 ```bash
-npm install
+npm ci
 npm run prisma:generate
 npm run prisma:push
 npm run dev
 ```
 
-## Integration check routes
+## Verified Local Checks
 
-- `GET /api/health`
-- `GET /api/integrations/google/ping`
-- `GET /api/integrations/cloudinary/ping`
-- `POST /api/integrations/cloudinary/sign-upload`
-- `GET /api/integrations/stripe/ping`
-- `POST /api/integrations/stripe/connect-account-link`
-- `POST /api/integrations/resend/test`
+The current repo state passes:
+
+- `npm ci`
+- `npm run prisma:generate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+
+## External Deployment Work
+
+The local implementation is ready for environment-level verification. The remaining non-code work is:
+
+- Vercel deployment
+- production callback URL configuration
+- Stripe webhook registration
+- Resend sender/domain verification
+- final production smoke test with real provider credentials
+
+See [Conntrazy Handover Checklist.md](./Conntrazy%20Handover%20Checklist.md) for the deployment checklist.

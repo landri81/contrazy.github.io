@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation"
 import { Loader2, UploadCloud, CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
 
-export function ClientUploadsForm({ token, requirements }: { token: string, requirements: import("@prisma/client").TransactionRequirement[] }) {
+export function ClientUploadsForm({
+  token,
+  requirements,
+  skipStep,
+}: {
+  token: string
+  requirements: import("@prisma/client").TransactionRequirement[]
+  skipStep: string
+}) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [uploads, setUploads] = useState<Record<string, { secure_url: string, public_id: string, original_filename: string }>>({})
@@ -22,8 +30,7 @@ export function ClientUploadsForm({ token, requirements }: { token: string, requ
         </CardContent>
         <CardFooter>
           <Button className="w-full" onClick={() => {
-            router.push(`/t/${token}/kyc`)
-            router.refresh()
+            router.push(`/t/${token}/${skipStep}`)
           }}>
             Continue
           </Button>
@@ -80,6 +87,7 @@ export function ClientUploadsForm({ token, requirements }: { token: string, requ
       const req = requirements.find(r => r.id === reqId)
       return {
         ...uploads[reqId],
+        requirementId: reqId,
         label: req?.label,
         type: req?.type
       }
@@ -93,8 +101,8 @@ export function ClientUploadsForm({ token, requirements }: { token: string, requ
       })
 
       if (res.ok) {
-        router.push(`/t/${token}/kyc`)
-        router.refresh()
+        const payload = await res.json()
+        router.push(`/t/${token}/${payload.nextStep ?? "kyc"}`)
       }
     } catch (err) {
       console.error(err)

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 
 export async function POST(request: Request) {
   try {
-    const { session, dbUser } = await requireVendorAccess()
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
-    if (!dbUser?.vendorProfile) {
-      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 })
+    if (blockedResponse) {
+      return blockedResponse
     }
 
     const { name, description, content } = await request.json()
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
         name,
         description,
         content,
-        vendorId: dbUser.vendorProfile.id,
+        vendorId: vendorProfile.id,
       },
     })
 

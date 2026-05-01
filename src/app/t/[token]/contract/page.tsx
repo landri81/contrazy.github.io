@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation"
-import { getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
+import {
+  buildPopulatedContractContent,
+  getNextClientStep,
+  getTransactionByToken,
+  validateClientStep,
+} from "@/features/client-flow/server/client-flow-data"
 import { ContractReviewForm } from "@/features/client-flow/components/contract-review-form"
 
 export default async function ClientContractPage(props: { params: Promise<{ token: string }> }) {
@@ -13,21 +18,11 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
   validateClientStep(transaction, 'contract')
 
   // Auto-populate the contract text if it exists
-  let populatedContract = ""
-  if (transaction.contractTemplate) {
-    populatedContract = transaction.contractTemplate.content
-      .replace(/{{clientName}}/g, transaction.clientProfile?.fullName || "")
-      .replace(/{{clientEmail}}/g, transaction.clientProfile?.email || "")
-      .replace(/{{clientPhone}}/g, transaction.clientProfile?.phone || "")
-      .replace(/{{clientCompany}}/g, transaction.clientProfile?.companyName || "")
-      .replace(/{{vendorName}}/g, transaction.vendor?.businessName || "Vendor")
-      .replace(/{{transactionReference}}/g, transaction.reference || "")
-      .replace(/{{paymentAmount}}/g, transaction.amount ? (transaction.amount / 100).toFixed(2) : "0.00")
-      .replace(/{{depositAmount}}/g, transaction.depositAmount ? (transaction.depositAmount / 100).toFixed(2) : "0.00")
-  } else {
-    // If no contract, skip to sign/payment
-    redirect(`/t/${params.token}/payment`)
+  if (!transaction.contractTemplate) {
+    redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
+
+  const populatedContract = buildPopulatedContractContent(transaction)
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -39,7 +34,7 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
       </div>
 
       <ContractReviewForm 
-        token={params.token} 
+        token={token} 
         content={populatedContract} 
       />
     </div>

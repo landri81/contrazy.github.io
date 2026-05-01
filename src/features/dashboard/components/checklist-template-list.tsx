@@ -5,6 +5,7 @@ import type { ChecklistTemplate, ChecklistItem } from "@prisma/client"
 import { ListChecks, Plus, Trash2, GripVertical, Image as ImageIcon, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -30,10 +30,12 @@ type FullChecklist = ChecklistTemplate & { items: ChecklistItem[] }
 
 export function ChecklistTemplateList({ 
   initialTemplates,
-  vendorId
+  canEdit,
+  blockedMessage,
 }: { 
   initialTemplates: FullChecklist[]
-  vendorId: string
+  canEdit: boolean
+  blockedMessage: string
 }) {
   const [templates, setTemplates] = useState(initialTemplates)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -66,6 +68,10 @@ export function ChecklistTemplateList({
   }
 
   async function handleSave() {
+    if (!canEdit) {
+      return
+    }
+
     setIsSaving(true)
     try {
       const res = await fetch('/api/vendor/checklists', {
@@ -85,6 +91,7 @@ export function ChecklistTemplateList({
   }
 
   async function handleDelete(id: string) {
+    if (!canEdit) return
     if (!confirm("Are you sure you want to delete this checklist template?")) return
     
     try {
@@ -99,14 +106,18 @@ export function ChecklistTemplateList({
 
   return (
     <div className="space-y-4">
+      {!canEdit ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+          <AlertTitle>Editing unavailable</AlertTitle>
+          <AlertDescription>{blockedMessage}</AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNewDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Checklist
-            </Button>
-          </DialogTrigger>
+          <Button onClick={openNewDialog} disabled={!canEdit}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Checklist
+          </Button>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Requirement Checklist</DialogTitle>
@@ -138,7 +149,14 @@ export function ChecklistTemplateList({
                           </div>
                           <div className="grid gap-1">
                             <Label className="text-xs">Type</Label>
-                            <Select value={item.type} onValueChange={v => updateItem(index, 'type', v)}>
+                            <Select
+                              value={item.type}
+                              onValueChange={(value) => {
+                                if (value) {
+                                  updateItem(index, "type", value)
+                                }
+                              }}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
@@ -155,24 +173,28 @@ export function ChecklistTemplateList({
                           <Input value={item.description} onChange={e => updateItem(index, 'description', e.target.value)} placeholder="e.g. Please upload both sides" />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Switch id={`req-${index}`} checked={item.required} onCheckedChange={c => updateItem(index, 'required', c)} />
+                          <Switch
+                            id={`req-${index}`}
+                            checked={item.required}
+                            onCheckedChange={(checked) => updateItem(index, "required", Boolean(checked))}
+                          />
                           <Label htmlFor={`req-${index}`} className="text-xs font-normal">Required field</Label>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={!canEdit}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" size="sm" onClick={addItem} className="mt-3 w-full">
+                <Button variant="outline" size="sm" onClick={addItem} className="mt-3 w-full" disabled={!canEdit}>
                   <Plus className="mr-2 h-4 w-4" /> Add Requirement
                 </Button>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
-              <Button onClick={handleSave} disabled={isSaving || !name || items.length === 0 || items.some(i => !i.label)}>
+              <Button onClick={handleSave} disabled={!canEdit || isSaving || !name || items.length === 0 || items.some(i => !i.label)}>
                 {isSaving ? "Saving..." : "Save Checklist"}
               </Button>
             </DialogFooter>
@@ -226,7 +248,7 @@ export function ChecklistTemplateList({
                   Updated {new Date(template.updatedAt).toLocaleDateString()}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)} disabled={!canEdit}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

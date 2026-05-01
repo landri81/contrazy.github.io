@@ -1,81 +1,119 @@
 # Conntrazy Work Log
 
-## Scope reference
+## Scope Reference
 
-- Source references:
-  - `Conntrazy Developer Handbook.md`
-  - `Conntrazy Client Proposal.md`
-- Focus: **Full MVP End-to-End Build**
+- `Conntrazy Client Proposal.md`
+- `Conntrazy Developer Handbook.md`
+- `Conntrazy Project Milestone Plan.md`
 
-## Phase 1: Foundation (Week 1)
+## Current Status
 
-1. **Project conversion baseline**
-   - Bootstrapped **Next.js 16.2.4** App Router.
-   - Configured Tailwind + shadcn/ui.
-2. **Architecture setup**
-   - Added boundaries (`src/features`, `src/lib`, `src/app`).
-   - Setup Redux toolkit.
-3. **Authentication foundation**
-   - Configured NextAuth (Google + Credentials).
-   - Roles model implementation.
-   - Super admin via env vars.
-4. **Database foundation**
-   - Added complete Prisma schema to Neon PostgreSQL.
-   - Pushed basic tables (`User`, `VendorProfile`).
+Local MVP implementation is complete and verified on the current branch.
 
-## Phase 2: Vendor Workspace & Setup (Week 2)
+Verified locally:
 
-1. **Stripe Connect**
-   - Completed `/vendor/stripe` page.
-   - Built `connect`, `return`, and `refresh` API routes for standard
-     onboarding.
-   - Status updates automatically in vendor profile.
-2. **Contract & Checklist Management**
-   - Built `/vendor/contracts` UI & APIs to manage `ContractTemplate`.
-   - Built `/vendor/checklists` UI & APIs to manage required documents
-     (`ChecklistTemplate`, `ChecklistItem`).
-3. **Transaction Creation Engine**
-   - Implemented `/vendor/actions` generating unique secure tokens for
-     `TransactionLink`.
-   - Added QR code generation (`qrcode.react`) on transaction creation.
-   - Automatically maps selected contracts and checklist requirements to the
-     generated `Transaction`.
+- `npm ci`
+- `npm run prisma:generate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
 
-## Phase 3: Client Journey & Payment (Week 3 & 4)
+Not yet verified from this repo alone:
 
-1. **Secure Link Access & Profile**
-   - Developed tokenized middleware via `getTransactionByToken` and
-     `validateClientStep` to strictly enforce the client flow sequence.
-   - Built manual profile collection at `/t/[token]/profile` with idempotency
-     updates (upsert) to prevent duplicate profiles per transaction.
-2. **Identity Verification (KYC)**
-   - Implemented real Stripe Identity integration at `/api/client/[token]/kyc`
-     creating verification sessions.
-   - Handled KYC return callback to update `KycVerification` status.
-3. **Document & Photo Uploads**
-   - Built `/t/[token]/documents` with Cloudinary direct upload integration.
-   - Maps successful uploads to `DocumentAsset` in database.
-4. **Contract Auto-Population & Signature**
-   - Implemented regex-based variable replacement for `{{clientName}}`,
-     `{{paymentAmount}}`, etc.
-   - Built signature checkbox confirmation at `/t/[token]/contract`.
-5. **Stripe Checkout & Deposits**
-   - Built `/t/[token]/payment` and `/api/client/[token]/checkout`.
-   - Differentiates between standard payment (automatic capture) and deposit
-     holding (manual capture).
-   - Added Vendor Dashboard controls to **Release** or **Capture** authorized
-     deposits manually via Stripe intents api
-     (`/api/vendor/transactions/[id]/deposit`).
-6. **Timeline, Webhooks, & Emails**
-   - Built `/vendor/transactions/[id]` for vendors to monitor client progress
-     live.
-   - Set up `/api/webhooks/stripe` to handle async session completion.
-   - Wired transactional emails via **Resend**, sending completion receipts to
-     clients and deposit alerts to vendors natively upon success.
+- Vercel production deployment
+- live provider callback setup in production
+- production Stripe webhook delivery
+- Resend production sender/domain verification
 
-## Validation Status
+## Delivered Platform Foundations
 
-- ✅ `npm run build` passes cleanly.
-- ✅ Full database schema synchronized.
-- ✅ All Phase 1, Phase 2, and Phase 3 MVP goals are completed according to the
-  Proposal and Developer Handbook.
+1. Runtime and architecture
+   - Rebuilt the prototype into a real Next.js 16 App Router application.
+   - Removed raw HTML runtime serving from the application path.
+   - Organized code into feature-based server/UI boundaries.
+2. Authentication and authorization
+   - Credentials auth for application users.
+   - Google OAuth through Auth.js.
+   - Env-backed super admin bootstrap login.
+   - Role-based route protection for vendor and admin areas.
+3. Data and integrations
+   - Prisma schema expanded for vendors, transactions, requirements, documents, KYC, signatures, payments, deposits, invites, sessions, audit logs, and webhook events.
+   - Stripe Connect, Checkout, and Identity integration paths added.
+   - Cloudinary direct upload signing flow added.
+   - Resend email delivery helpers added.
+
+## Delivered Vendor System
+
+1. Vendor onboarding
+   - Vendor login and profile completion flow.
+   - Admin review status reflected in vendor experience.
+   - Stripe Connect onboarding, refresh, and return handlers.
+2. Vendor workspace
+   - Contract template management.
+   - Checklist / requirement management.
+   - Transaction creation with secure token link and persisted QR code output.
+   - Transaction detail view backed by real transaction state, finance records, signature, documents, KYC, and event timeline.
+   - Deposit control actions for release and capture.
+3. Vendor data views
+   - Links, payments, deposits, signatures, KYC cases, clients, webhooks, and disputes mapped from the database rather than demo placeholders.
+
+## Delivered Client Flow
+
+1. Canonical route order
+   - `/t/[token]/profile`
+   - `/t/[token]/documents`
+   - `/t/[token]/kyc`
+   - `/t/[token]/contract`
+   - `/t/[token]/sign`
+   - `/t/[token]/payment`
+   - `/t/[token]/complete`
+2. Flow behavior
+   - `/t/[token]` redirects to the first incomplete step.
+   - Step gating runs from one transaction-backed source of truth.
+   - Profile, documents, contract review, signature, and finance flows are idempotent.
+3. Client actions
+   - Profile save/update.
+   - Cloudinary-backed uploads mapped per requirement.
+   - Optional Stripe Identity verification.
+   - Contract review without implicit signing.
+   - Separate signature step.
+   - Stripe service payment and deposit authorization orchestration.
+   - Read-only completion behavior with webhook-backed finance reconciliation.
+
+## Delivered Admin System
+
+1. Admin routes
+   - `/admin`
+   - `/admin/users`
+   - `/admin/users/[userId]`
+   - `/admin/invites`
+   - `/admin/logs`
+   - `/admin/sessions`
+   - `/admin/roles`
+2. Admin capabilities
+   - Vendor review updates with audit logging.
+   - Real data visibility for users, vendors, invites, sessions, transactions, and webhook activity.
+   - Read-only RBAC policy view rather than custom role-builder logic.
+
+## Delivered Operational Logic
+
+1. Transaction event system
+   - Added persistent event records for link activity, documents, KYC, contract review, signature, finance, email delivery, and completion.
+2. Finance orchestration
+   - Service payments and deposit authorization are tracked independently.
+   - Hybrid transactions run sequential service payment and deposit authorization steps.
+   - Stripe webhooks are the source of truth for finance completion.
+3. Email coverage
+   - Password reset
+   - Vendor review status
+   - Client completion receipt
+   - Vendor deposit authorization / release / capture notifications
+
+## Remaining External Work
+
+These items are outside the local codebase and still need completion before production handoff is fully closed:
+
+1. Deploy to Vercel with real environment values.
+2. Register production callback URLs for Auth.js, Stripe Connect, Stripe Identity, and Stripe webhooks.
+3. Verify Resend sender/domain in the production environment.
+4. Run final production smoke tests against deployed infrastructure.

@@ -30,8 +30,8 @@ export function ClientProfileForm({ token, initialData }: { token: string, initi
       })
 
       if (res.ok) {
-        router.push(`/t/${token}/documents`)
-        router.refresh()
+        const payload = await res.json()
+        router.push(`/t/${token}/${payload.nextStep ?? "documents"}`)
       }
     } catch (err) {
       console.error(err)

@@ -1,13 +1,9 @@
 import { PagePanel } from "@/features/dashboard/components/dashboard-ui"
 import { VendorProfileForm } from "@/features/dashboard/components/week-one-forms"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { requireVendorProfileAccess } from "@/lib/auth/guards"
 
 export default async function VendorProfilePage() {
-  const { dbUser } = await requireVendorAccess()
-
-  if (!dbUser) {
-    return null
-  }
+  const { dbUser, vendorProfile } = await requireVendorProfileAccess()
 
   return (
     <PagePanel
@@ -17,14 +13,14 @@ export default async function VendorProfilePage() {
       <VendorProfileForm
         initialValues={{
           fullName: dbUser.name ?? "",
-          businessName: dbUser.vendorProfile?.businessName ?? "",
-          businessEmail: dbUser.vendorProfile?.businessEmail ?? dbUser.email,
-          supportEmail: dbUser.vendorProfile?.supportEmail ?? "",
-          businessPhone: dbUser.vendorProfile?.businessPhone ?? "",
-          businessAddress: dbUser.vendorProfile?.businessAddress ?? "",
-          businessCountry: dbUser.vendorProfile?.businessCountry ?? "",
-          reviewStatus: dbUser.vendorProfile?.reviewStatus ?? "PENDING",
-          stripeConnectionStatus: dbUser.vendorProfile?.stripeConnectionStatus ?? "NOT_CONNECTED",
+          businessName: vendorProfile.businessName ?? "",
+          businessEmail: vendorProfile.businessEmail ?? dbUser.email,
+          supportEmail: vendorProfile.supportEmail ?? "",
+          businessPhone: vendorProfile.businessPhone ?? "",
+          businessAddress: vendorProfile.businessAddress ?? "",
+          businessCountry: vendorProfile.businessCountry ?? "",
+          reviewStatus: vendorProfile.reviewStatus,
+          stripeConnectionStatus: vendorProfile.stripeConnectionStatus,
         }}
       />
     </PagePanel>

@@ -58,7 +58,7 @@ export function DepositControlCard({
       } else {
         setError(data.message || "Failed to process action")
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred.")
     } finally {
       setIsPending(false)
@@ -102,7 +102,7 @@ export function DepositControlCard({
             Active Deposit Hold
           </CardTitle>
           <CardDescription>
-            {formatCurrency(amount)} is currently held on the client's card.
+            {formatCurrency(amount)} is currently held on the client&apos;s card.
           </CardDescription>
         </CardHeader>
         <CardContent>

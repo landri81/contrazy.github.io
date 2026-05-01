@@ -1,19 +1,19 @@
 import { DashboardShell } from "@/features/dashboard/components/dashboard-shell"
 import { vendorNavigation } from "@/features/dashboard/navigation"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { requireVendorProfileAccess } from "@/lib/auth/guards"
 
 export default async function VendorLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { session, dbUser } = await requireVendorAccess()
+  const { session, vendorProfile } = await requireVendorProfileAccess()
 
   return (
     <DashboardShell
       navigation={vendorNavigation}
       title="Vendor workspace"
-      subtitle={dbUser?.vendorProfile?.businessName ?? "Vendor operations"}
+      subtitle={vendorProfile.businessName ?? "Vendor operations"}
       actorLabel={session.user.email ?? "Vendor"}
     >
       {children}

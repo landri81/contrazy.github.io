@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server"
-import { requireVendorAccess } from "@/lib/auth/guards"
-import { prisma } from "@/lib/db/prisma"
-import { stripe } from "@/lib/integrations/stripe"
+import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export async function GET() {
   try {
-    const { session, dbUser } = await requireVendorAccess()
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const blockedResponse = ensureVendorApproved(vendorProfile)
 
-    if (!dbUser?.vendorProfile?.stripeAccountId) {
-      return NextResponse.redirect(new URL("/vendor/stripe", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
+    if (blockedResponse) {
+      return blockedResponse
+    }
+    const origin = getAppBaseUrl()
+
+    if (!vendorProfile.stripeAccountId) {
+      return NextResponse.redirect(new URL("/vendor/stripe", origin))
     }
 
-    // Refresh link generation
-    const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const accountLink = await stripe.accountLinks.create({
-      account: dbUser.vendorProfile.stripeAccountId,
+      account: vendorProfile.stripeAccountId,
       refresh_url: `${origin}/vendor/stripe/refresh`,
       return_url: `${origin}/vendor/stripe/return`,
       type: "account_onboarding",
@@ -23,6 +26,6 @@ export async function GET() {
     return NextResponse.redirect(accountLink.url)
   } catch (error) {
     console.error("Stripe Refresh Error:", error)
-    return NextResponse.redirect(new URL("/vendor/stripe?error=refresh_failed", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"))
+    return NextResponse.redirect(new URL("/vendor/stripe?error=refresh_failed", getAppBaseUrl()))
   }
 }

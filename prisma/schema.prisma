@@ -110,6 +110,26 @@ enum AuditActorType {
   SUPER_ADMIN
 }
 
+enum TransactionEventType {
+  LINK_CREATED
+  LINK_OPENED
+  PROFILE_SUBMITTED
+  DOCUMENTS_SUBMITTED
+  KYC_STARTED
+  KYC_VERIFIED
+  KYC_FAILED
+  CONTRACT_REVIEWED
+  SIGNATURE_COMPLETED
+  PAYMENT_SESSION_CREATED
+  SERVICE_PAYMENT_SUCCEEDED
+  DEPOSIT_AUTHORIZED
+  DEPOSIT_CAPTURED
+  DEPOSIT_RELEASED
+  COMPLETED
+  EMAIL_SENT
+  WEBHOOK_PROCESSED
+}
+
 model User {
   id               String               @id @default(cuid())
   name             String?
@@ -236,6 +256,7 @@ model Transaction {
   payments           Payment[]
   depositAuthorization DepositAuthorization?
   dispute            Dispute?
+  events             TransactionEvent[]
 
   @@index([vendorId, createdAt])
   @@index([status])
@@ -262,12 +283,14 @@ model TransactionRequirement {
   type          RequirementType @default(DOCUMENT)
   required      Boolean         @default(true)
   transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  documents     DocumentAsset[]
 }
 
 model DocumentAsset {
   id              String         @id @default(cuid())
   transactionId   String
   clientProfileId String?
+  requirementId   String?
   label           String
   type            RequirementType @default(DOCUMENT)
   fileName        String?
@@ -276,6 +299,9 @@ model DocumentAsset {
   uploadedAt      DateTime       @default(now())
   transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   clientProfile   ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  requirement     TransactionRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+
+  @@unique([transactionId, requirementId])
 }
 
 model KycVerification {
@@ -314,6 +340,8 @@ model Payment {
   processedAt     DateTime?
   createdAt       DateTime      @default(now())
   transaction     Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, kind])
 }
 
 model DepositAuthorization {
@@ -382,6 +410,22 @@ model WebhookEvent {
   vendor     VendorProfile? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
 
   @@index([provider, eventType])
+}
+
+model TransactionEvent {
+  id          String               @id @default(cuid())
+  transactionId String
+  type        TransactionEventType
+  dedupeKey   String?              @unique
+  title       String
+  detail      String?
+  metadata    Json?
+  occurredAt  DateTime             @default(now())
+  createdAt   DateTime             @default(now())
+  transaction Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId, occurredAt])
+  @@index([type])
 }
 
 model PasswordResetToken {

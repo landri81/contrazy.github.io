@@ -18,7 +18,7 @@ export default async function ResetPasswordPage({
   return (
     <AuthLayout
       title="Choose a new password"
-      subtitle="Use the reset token from the email link to set a new password."
+      subtitle="Use the link from your email to choose a new password."
     >
       <ResetPasswordForm token={token} />
     </AuthLayout>

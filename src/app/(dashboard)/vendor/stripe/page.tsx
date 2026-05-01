@@ -1,8 +1,8 @@
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { requireVendorProfileAccess } from "@/lib/auth/guards"
 import { StripeConnectCard } from "@/features/dashboard/components/stripe-connect-card"
 
 export default async function VendorStripePage() {
-  const { dbUser } = await requireVendorAccess()
+  const { vendorProfile } = await requireVendorProfileAccess()
 
   return (
     <div className="space-y-6">
@@ -14,7 +14,7 @@ export default async function VendorStripePage() {
       </div>
 
       <div className="max-w-2xl">
-        <StripeConnectCard profile={dbUser?.vendorProfile} />
+        <StripeConnectCard profile={vendorProfile} />
       </div>
     </div>
   )

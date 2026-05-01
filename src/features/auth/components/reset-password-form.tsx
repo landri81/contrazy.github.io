@@ -62,7 +62,7 @@ export function ResetPasswordForm({ token }: { token: string | undefined }) {
       <CardContent>
         {!token ? (
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">A reset token is required to change the password.</p>
+            <p className="text-muted-foreground">This password reset link is missing or has expired.</p>
             <Link href="/forgot-password" className="font-medium text-primary hover:underline">
               Request a new reset link
             </Link>

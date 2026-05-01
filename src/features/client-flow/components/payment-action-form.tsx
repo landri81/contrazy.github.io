@@ -10,12 +10,16 @@ export function PaymentActionForm({
   token, 
   amount, 
   depositAmount,
-  currency 
+  currency,
+  nextStage,
+  pendingConfirmation,
 }: { 
   token: string
   amount: number
   depositAmount: number
   currency: string
+  nextStage: "service_payment" | "deposit_authorization"
+  pendingConfirmation?: boolean
 }) {
   const [isPending, setIsPending] = useState(false)
 
@@ -43,9 +47,21 @@ export function PaymentActionForm({
     }
   }
 
+  const ctaLabel =
+    nextStage === "service_payment"
+      ? amount > 0 && depositAmount > 0
+        ? "Pay Service Amount"
+        : "Proceed to Payment"
+      : "Authorize Deposit Hold"
+
   return (
     <Card>
       <CardContent className="space-y-6 pt-6">
+        {pendingConfirmation ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            We are confirming your previous Stripe step. This page will refresh automatically once the transaction is updated.
+          </div>
+        ) : null}
         <div className="space-y-4">
           {amount > 0 && (
             <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -90,9 +106,9 @@ export function PaymentActionForm({
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleCheckout} className="w-full" disabled={isPending}>
+        <Button onClick={handleCheckout} className="w-full" disabled={isPending || pendingConfirmation}>
           {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Proceed to Checkout
+          {ctaLabel}
         </Button>
       </CardFooter>
     </Card>

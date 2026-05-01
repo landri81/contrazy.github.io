@@ -222,11 +222,14 @@ export function VendorLinksView({ workspace }: { workspace: WorkspaceRecord }) {
   return (
     <PagePanel title="Customer links" description="Share secure links and QR codes for each customer workflow.">
       <DashboardTable
-        columns={["Reference", "Token", "Short code", "State"]}
+        columns={["Reference", "Share link", "Short code", "QR", "State"]}
         rows={workspace.links.map((record) => [
           record.reference,
-          record.token,
+          <Link key={`${record.reference}-share`} href={record.shareLink} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+            Open secure link
+          </Link>,
           record.shortCode,
+          record.qrStatus,
           <StatusBadge key={`${record.reference}-state`} tone={getDemoTone(record.state)}>
             {record.state}
           </StatusBadge>,
