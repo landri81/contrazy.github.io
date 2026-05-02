@@ -324,12 +324,27 @@ export function VendorQuickReview({
     if (!triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
     const DROPDOWN_WIDTH = 148
+    const DROPDOWN_HEIGHT = 140 // approximate: 4 options × ~35px
+    const GAP = 4
+    const EDGE = 8
     const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    // Flip up if not enough space below
+    const spaceBelow = viewportHeight - rect.bottom
+    const openUpward = spaceBelow < DROPDOWN_HEIGHT + GAP && rect.top > DROPDOWN_HEIGHT + GAP
+
+    // Right-align if would overflow right edge
     const left =
-      rect.left + DROPDOWN_WIDTH > viewportWidth - 8
-        ? Math.max(8, rect.right - DROPDOWN_WIDTH)
+      rect.left + DROPDOWN_WIDTH > viewportWidth - EDGE
+        ? Math.max(EDGE, rect.right - DROPDOWN_WIDTH)
         : rect.left
-    setDropdownStyle({ position: "fixed", top: rect.bottom + 4, left, minWidth: DROPDOWN_WIDTH })
+
+    const verticalStyle = openUpward
+      ? { bottom: viewportHeight - rect.top + GAP }
+      : { top: rect.bottom + GAP }
+
+    setDropdownStyle({ position: "fixed", left, minWidth: DROPDOWN_WIDTH, ...verticalStyle })
     setIsOpen(true)
   }
 
