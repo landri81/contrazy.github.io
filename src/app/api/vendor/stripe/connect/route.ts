@@ -3,6 +3,49 @@ import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/gua
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
+export async function DELETE() {
+  try {
+    const { vendorProfile } = await requireVendorProfileAccess()
+
+    if (!vendorProfile.stripeAccountId) {
+      return NextResponse.json({ message: "No Stripe account linked." }, { status: 400 })
+    }
+
+    // Block disconnect if there are active (non-terminal) transactions with payment intents
+    const activeCount = await prisma.transaction.count({
+      where: {
+        vendorId: vendorProfile.id,
+        stripePaymentIntentId: { not: null },
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+    })
+
+    if (activeCount > 0) {
+      return NextResponse.json(
+        {
+          message: `You have ${activeCount} active transaction${activeCount > 1 ? "s" : ""} with pending payments. Complete or cancel them before disconnecting Stripe.`,
+        },
+        { status: 409 },
+      )
+    }
+
+    // Clear the Stripe association in our DB — we do NOT delete the Stripe account
+    // itself because it belongs to the vendor and may have historical data.
+    await prisma.vendorProfile.update({
+      where: { id: vendorProfile.id },
+      data: {
+        stripeAccountId: null,
+        stripeConnectionStatus: "NOT_CONNECTED",
+      },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Stripe Disconnect Error:", error)
+    return NextResponse.json({ message: "Failed to disconnect Stripe account." }, { status: 500 })
+  }
+}
+
 export const runtime = "nodejs"
 export const maxDuration = 60
 

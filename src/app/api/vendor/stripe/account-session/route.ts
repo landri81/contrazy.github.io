@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server"
+
+import { requireVendorProfileAccess } from "@/lib/auth/guards"
+import { stripe } from "@/lib/integrations/stripe"
+
+export const runtime = "nodejs"
+export const maxDuration = 30
+
+export async function POST() {
+  try {
+    const { vendorProfile } = await requireVendorProfileAccess()
+
+    if (!vendorProfile.stripeAccountId) {
+      return NextResponse.json({ message: "No Stripe account linked." }, { status: 400 })
+    }
+
+    const session = await stripe.accountSessions.create({
+      account: vendorProfile.stripeAccountId,
+      components: {
+        account_management: { enabled: true },
+        notification_banner: {
+          enabled: true,
+          features: { external_account_collection: true },
+        },
+        account_onboarding: { enabled: true },
+        balances: { enabled: true, features: { instant_payouts: true, standard_payouts: true } },
+        payouts: { enabled: true, features: { instant_payouts: true, standard_payouts: true, edit_payout_schedule: true } },
+        payments: { enabled: true, features: { refund_management: true, dispute_management: true, capture_payments: true } },
+      },
+    })
+
+    return NextResponse.json({ clientSecret: session.client_secret })
+  } catch (error) {
+    console.error("Account session error:", error)
+    return NextResponse.json({ message: "Failed to create account session." }, { status: 500 })
+  }
+}

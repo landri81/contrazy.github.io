@@ -51,12 +51,12 @@ export function ClientUploadsForm({
     setUploadingState(prev => ({ ...prev, [reqId]: true }))
     try {
       // 1. Get signature from our backend
-      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload")
+      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", { method: "POST" })
       if (!sigRes.ok) {
         setError("Upload signing is unavailable right now. Please try again.")
         return
       }
-      const { timestamp, signature, apiKey, cloudName } = await sigRes.json()
+      const { timestamp, signature, apiKey, cloudName, folder } = await sigRes.json()
 
       // 2. Upload directly to Cloudinary
       const formData = new FormData()
@@ -64,7 +64,7 @@ export function ClientUploadsForm({
       formData.append("api_key", apiKey)
       formData.append("timestamp", timestamp.toString())
       formData.append("signature", signature)
-      // We don't have a specific folder configured, so upload to root or default
+      if (folder) formData.append("folder", folder)
 
       const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
         method: "POST",

@@ -1,5 +1,6 @@
 import type Stripe from "stripe"
 
+import { handleAccountUpdated } from "@/features/webhooks/stripe/handlers/account"
 import {
   handleCheckoutExpired,
   handleCheckoutPaymentFailed,
@@ -63,6 +64,13 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
         event.data.object as Stripe.Dispute,
         eventId,
         eventType
+      )
+
+    case "account.updated":
+      return handleAccountUpdated(
+        event.data.object as Stripe.Account,
+        eventId,
+        eventType,
       )
 
     default:

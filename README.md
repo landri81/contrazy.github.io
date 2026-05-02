@@ -105,6 +105,13 @@ npm run prisma:generate
 npm run dev
 ```
 
+Database setup and Prisma Studio shortcuts:
+
+```bash
+npm run db:setup
+npm run db:studio
+```
+
 Vercel production build:
 
 ```bash

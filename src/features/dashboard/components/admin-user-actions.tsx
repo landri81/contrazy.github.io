@@ -9,6 +9,37 @@ import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { formatValueLabel } from "@/features/dashboard/lib/format-value-label"
 
+const REVIEW_ACTIONS = [
+  {
+    status: "APPROVED" as const,
+    label: "Approve",
+    activeLabel: "Approved",
+    activeCls: "bg-emerald-600 border-emerald-600 text-white",
+    idleCls: "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
+  },
+  {
+    status: "PENDING" as const,
+    label: "Mark pending",
+    activeLabel: "Pending",
+    activeCls: "bg-amber-500 border-amber-500 text-white",
+    idleCls: "border-amber-300 text-amber-700 hover:bg-amber-50",
+  },
+  {
+    status: "REJECTED" as const,
+    label: "Reject",
+    activeLabel: "Rejected",
+    activeCls: "bg-red-600 border-red-600 text-white",
+    idleCls: "border-red-300 text-red-700 hover:bg-red-50",
+  },
+  {
+    status: "SUSPENDED" as const,
+    label: "Suspend",
+    activeLabel: "Suspended",
+    activeCls: "bg-slate-600 border-slate-600 text-white",
+    idleCls: "border-slate-300 text-slate-700 hover:bg-slate-50",
+  },
+] as const
+
 export function VendorReviewActions({
   userId,
   currentStatus,
@@ -17,12 +48,12 @@ export function VendorReviewActions({
   currentStatus: string
 }) {
   const router = useRouter()
-  const [message, setMessage] = useState<string | null>(null)
+  const [localStatus, setLocalStatus] = useState(currentStatus)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   async function updateStatus(reviewStatus: "APPROVED" | "REJECTED" | "SUSPENDED" | "PENDING") {
-    setMessage(null)
+    if (reviewStatus === localStatus) return
     setError(null)
 
     startTransition(async () => {
@@ -40,58 +71,48 @@ export function VendorReviewActions({
           return
         }
 
-        setMessage(`Review status updated to ${reviewStatus.toLowerCase()}.`)
+        setLocalStatus(reviewStatus)
         router.refresh()
-      } catch (requestError) {
-        console.error(requestError)
+      } catch {
         setError("Unable to update review status right now.")
       }
     })
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Current review status: {formatValueLabel(currentStatus)}</p>
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="button"
-          className="h-9 bg-emerald-600 text-white hover:bg-emerald-700"
-          disabled={isPending}
-          onClick={() => updateStatus("APPROVED")}
-        >
-          {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Approve
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-          disabled={isPending}
-          onClick={() => updateStatus("PENDING")}
-        >
-          Mark pending
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
-          disabled={isPending}
-          onClick={() => updateStatus("REJECTED")}
-        >
-          Reject
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-9 border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-800"
-          disabled={isPending}
-          onClick={() => updateStatus("SUSPENDED")}
-        >
-          Suspend
-        </Button>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {REVIEW_ACTIONS.map((action) => {
+          const isActive = localStatus === action.status
+          return (
+            <button
+              key={action.status}
+              type="button"
+              disabled={isActive || isPending}
+              onClick={() => updateStatus(action.status)}
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-default disabled:opacity-70 ${
+                isActive ? action.activeCls : action.idleCls
+              }`}
+            >
+              {isPending && isActive ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {isActive ? action.activeLabel : action.label}
+              {isActive ? <span className="text-xs opacity-80">· current</span> : null}
+            </button>
+          )
+        })}
       </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
+      <AnimatePresence>
+        {error ? (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-sm text-destructive"
+          >
+            {error}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

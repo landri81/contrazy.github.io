@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
+import { Card, CardContent } from "@/components/ui/card"
 import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
 import type {
@@ -669,82 +670,142 @@ export function AdminUsersView({
   )
 }
 
+function userInitials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
 export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
+  const vp = user.vendorProfile
+
   return (
     <div className="space-y-6">
-      {/* Account overview */}
-      <PagePanel title={`${user.name}`} description="Account details, role, and login information.">
-        <DetailGrid
-          items={[
-            { label: "Full name", value: user.name },
-            { label: "Email", value: user.email },
-            {
-              label: "Role",
-              value: <StatusBadge tone={getStatusTone(user.role)}>{user.role}</StatusBadge>,
-            },
-            { label: "Company", value: user.company },
-            {
-              label: "Account status",
-              value: <StatusBadge tone={getStatusTone(user.status)}>{user.status}</StatusBadge>,
-            },
-            { label: "Email verified", value: user.emailVerified ?? "Not verified" },
-            { label: "Joined", value: user.joinedAt },
-            { label: "User ID", value: user.id },
-          ]}
-        />
-      </PagePanel>
+      {/* Profile header */}
+      <Card className="border-border bg-card shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            {/* Avatar */}
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[var(--contrazy-teal)]/10 text-lg font-bold text-[var(--contrazy-teal)] ring-2 ring-[var(--contrazy-teal)]/20">
+              {userInitials(user.name)}
+            </div>
 
-      {/* Role management */}
-      <PagePanel title="Role management" description="Change the access level for this account. Super Admin access can only be granted by a Super Admin.">
-        <UserRoleActions userId={user.id} currentRole={user.role} />
-      </PagePanel>
+            {/* Identity */}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">{user.name}</h1>
+                <StatusBadge tone={getStatusTone(user.role)}>{user.role}</StatusBadge>
+                {vp ? (
+                  <StatusBadge tone={getStatusTone(vp.reviewStatus)}>{vp.reviewStatus}</StatusBadge>
+                ) : null}
+              </div>
+              <p className="mt-0.5 text-sm text-muted-foreground">{user.email}</p>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+                <span>Joined {user.joinedAt}</span>
+                {user.emailVerified ? (
+                  <span className="text-emerald-600">✓ Email verified {user.emailVerified}</span>
+                ) : (
+                  <span className="text-amber-600">⚠ Email not verified</span>
+                )}
+                <span className="hidden sm:inline font-mono opacity-60">ID: {user.id}</span>
+              </div>
+            </div>
 
-      {/* Vendor profile & review */}
-      {user.vendorProfile ? (
-        <PagePanel title="Business profile" description="Review the submitted business details and update the vendor account status.">
+            {/* Vendor KPI strip */}
+            {vp ? (
+              <div className="flex shrink-0 gap-5 rounded-xl border border-border bg-muted/40 px-5 py-3 sm:flex-col sm:gap-2">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-foreground">{vp.transactionCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Transactions</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-foreground">{vp.clientCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Clients</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-xl font-bold ${vp.profileCompletion === 100 ? "text-emerald-600" : "text-amber-600"}`}>
+                    {vp.profileCompletion}%
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">Profile</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Account + Role row */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <PagePanel title="Account details" description="Login credentials and verification status.">
+          <DetailGrid
+            items={[
+              { label: "Full name", value: user.name },
+              { label: "Email", value: user.email },
+              { label: "Company", value: user.company || "—" },
+              {
+                label: "Account status",
+                value: <StatusBadge tone={getStatusTone(user.status)}>{user.status}</StatusBadge>,
+              },
+              { label: "Email verified", value: user.emailVerified ?? "Not verified" },
+              { label: "Joined", value: user.joinedAt },
+            ]}
+          />
+        </PagePanel>
+
+        <PagePanel title="Role management" description="Change the access level. Super Admin can only be granted by a Super Admin.">
+          <UserRoleActions userId={user.id} currentRole={user.role} />
+        </PagePanel>
+      </div>
+
+      {/* Business profile */}
+      {vp ? (
+        <PagePanel title="Business profile" description="Submitted business details and vendor review controls.">
           <div className="space-y-6">
             <DetailGrid
               items={[
-                { label: "Business name", value: user.vendorProfile.businessName },
-                { label: "Business email", value: user.vendorProfile.businessEmail },
-                { label: "Support email", value: user.vendorProfile.supportEmail },
-                { label: "Phone", value: user.vendorProfile.businessPhone },
-                { label: "Address", value: user.vendorProfile.businessAddress },
-                { label: "Country", value: user.vendorProfile.businessCountry },
+                { label: "Business name", value: vp.businessName || "—" },
+                { label: "Business email", value: vp.businessEmail || "—" },
+                { label: "Support email", value: vp.supportEmail || "—" },
+                { label: "Phone", value: vp.businessPhone || "—" },
+                { label: "Address", value: vp.businessAddress || "—" },
+                { label: "Country", value: vp.businessCountry || "—" },
                 {
-                  label: "Review status",
+                  label: "Payout (Stripe)",
                   value: (
-                    <StatusBadge tone={getStatusTone(user.vendorProfile.reviewStatus)}>
-                      {user.vendorProfile.reviewStatus}
+                    <StatusBadge tone={getStatusTone(vp.stripeConnectionStatus)}>
+                      {vp.stripeConnectionStatus}
                     </StatusBadge>
                   ),
                 },
-                {
-                  label: "Payout status",
-                  value: (
-                    <StatusBadge tone={getStatusTone(user.vendorProfile.stripeConnectionStatus)}>
-                      {user.vendorProfile.stripeConnectionStatus}
-                    </StatusBadge>
-                  ),
-                },
-                { label: "Profile completion", value: `${user.vendorProfile.profileCompletion}%` },
-                { label: "Transactions", value: `${user.vendorProfile.transactionCount}` },
-                { label: "Clients", value: `${user.vendorProfile.clientCount}` },
+                { label: "Profile complete", value: `${vp.profileCompletion}%` },
               ]}
             />
 
-            <div>
-              <p className="mb-3 text-sm font-medium text-foreground">Review actions</p>
-              <VendorReviewActions userId={user.id} currentStatus={user.vendorProfile.reviewStatus} />
+            <div className="border-t border-border pt-5">
+              <p className="mb-3 text-sm font-semibold text-foreground">Review status</p>
+              <VendorReviewActions userId={user.id} currentStatus={vp.reviewStatus} />
             </div>
           </div>
         </PagePanel>
       ) : null}
 
       {/* Danger zone */}
-      <PagePanel title="Danger zone" description="Permanently delete this account and all associated data. Active transactions must be resolved first.">
-        <UserDeleteAction userId={user.id} userEmail={user.email} />
-      </PagePanel>
+      <div className="rounded-xl border border-red-200 bg-red-50/40 p-6 dark:border-red-900 dark:bg-red-950/20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-400">Danger zone</h3>
+            <p className="mt-1 max-w-prose text-sm text-red-700 dark:text-red-500">
+              Permanently deletes this account and all associated data including vendor profiles, transactions, and clients. Active transactions must be resolved first.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <UserDeleteAction userId={user.id} userEmail={user.email} />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

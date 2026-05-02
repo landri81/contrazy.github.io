@@ -5,25 +5,49 @@
  */
 import { PrismaClient } from "@prisma/client"
 
+import { ensureDatabaseEnv, isDirectRun } from "./process-utils.mjs"
+
 const MAX_RETRIES = 5
 const RETRY_DELAY_MS = 5_000
 
-async function wake(attempt = 1) {
-  const prisma = new PrismaClient()
-  try {
-    await prisma.$queryRaw`SELECT 1`
-    await prisma.$disconnect()
-    console.log(`✓ Database ready (attempt ${attempt}/${MAX_RETRIES})`)
-  } catch (err) {
-    await prisma.$disconnect().catch(() => {})
-    if (attempt >= MAX_RETRIES) {
-      console.error(`✗ Database unreachable after ${MAX_RETRIES} attempts: ${err.message}`)
-      process.exit(1)
+export async function wakeDatabase({
+  maxRetries = MAX_RETRIES,
+  retryDelayMs = RETRY_DELAY_MS,
+} = {}) {
+  ensureDatabaseEnv()
+
+  async function wake(attempt = 1) {
+    const prisma = new PrismaClient()
+
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      await prisma.$disconnect()
+      console.log(`✓ Database ready (attempt ${attempt}/${maxRetries})`)
+    } catch (error) {
+      await prisma.$disconnect().catch(() => {})
+
+      if (attempt >= maxRetries) {
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(`Database unreachable after ${maxRetries} attempts: ${message}`)
+      }
+
+      console.log(
+        `⏳ Database waking up... retrying in ${retryDelayMs / 1000}s (attempt ${attempt}/${maxRetries})`
+      )
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+      return wake(attempt + 1)
     }
-    console.log(`⏳ Database waking up... retrying in ${RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${MAX_RETRIES})`)
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
-    return wake(attempt + 1)
   }
+
+  await wake()
 }
 
-await wake()
+if (isDirectRun(import.meta.url)) {
+  try {
+    await wakeDatabase()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`✗ ${message}`)
+    process.exit(1)
+  }
+}
