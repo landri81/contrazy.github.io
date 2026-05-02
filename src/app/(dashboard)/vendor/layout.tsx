@@ -14,7 +14,13 @@ export default async function VendorLayout({
       navigation={vendorNavigation}
       title="Vendor workspace"
       subtitle={vendorProfile.businessName ?? "Vendor operations"}
-      actorLabel={session.user.email ?? "Vendor"}
+      actorLabel="Vendor account"
+      account={{
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
+        role: session.user.role ?? null,
+      }}
     >
       {children}
     </DashboardShell>

@@ -31,16 +31,16 @@ export function ContactFormCard() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="first-name">First Name</Label>
-              <Input id="first-name" placeholder="Aziz" />
+              <Input id="first-name" placeholder="Enter your first name" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="last-name">Last Name</Label>
-              <Input id="last-name" placeholder="Landri" />
+              <Input id="last-name" placeholder="Enter your last name" />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="team@business.com" />
+            <Input id="email" type="email" placeholder="Enter your email address" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="message">Message</Label>

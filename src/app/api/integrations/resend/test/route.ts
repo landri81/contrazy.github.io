@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
+import { APP_METADATA } from "@/lib/config/app-metadata"
 import { env } from "@/lib/env"
 import { resend } from "@/lib/integrations/resend"
 
@@ -28,9 +29,9 @@ export async function POST(request: Request) {
     const emailResult = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to,
-      subject: "Conntrazy Week 1 Setup Test Email",
+      subject: `${APP_METADATA.productName} integration test email`,
       html: `
-        <h2>Conntrazy Integration Check</h2>
+        <h2>${APP_METADATA.productName} Integration Check</h2>
         <p>Your Resend integration is configured and working.</p>
         <p>Timestamp: ${new Date().toISOString()}</p>
       `,

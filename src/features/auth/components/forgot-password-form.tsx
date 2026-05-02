@@ -64,7 +64,7 @@ export function ForgotPasswordForm() {
                 id="reset-email"
                 type="email"
                 autoComplete="email"
-                placeholder="team@business.com"
+                placeholder="Enter your email address"
                 className="pl-9"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}

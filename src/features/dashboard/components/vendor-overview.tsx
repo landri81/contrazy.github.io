@@ -9,7 +9,7 @@ import {
   StatusBadge,
 } from "@/features/dashboard/components/dashboard-ui"
 import type { WorkspaceRecord } from "@/features/dashboard/server/dashboard-data"
-import { getDemoTone } from "@/features/dashboard/server/dashboard-data"
+import { getStatusTone } from "@/features/dashboard/server/dashboard-data"
 
 type VendorOverviewProps = {
   workspace: WorkspaceRecord
@@ -43,13 +43,13 @@ export function VendorOverview({ workspace }: VendorOverviewProps) {
               </Link>,
               transaction.kind,
               transaction.amount,
-              <StatusBadge key={`${transaction.reference}-kyc`} tone={getDemoTone(transaction.kyc)}>
+              <StatusBadge key={`${transaction.reference}-kyc`} tone={getStatusTone(transaction.kyc)}>
                 {transaction.kyc}
               </StatusBadge>,
-              <StatusBadge key={`${transaction.reference}-contract`} tone={getDemoTone(transaction.contract)}>
+              <StatusBadge key={`${transaction.reference}-contract`} tone={getStatusTone(transaction.contract)}>
                 {transaction.contract}
               </StatusBadge>,
-              <StatusBadge key={`${transaction.reference}-status`} tone={getDemoTone(transaction.status)}>
+              <StatusBadge key={`${transaction.reference}-status`} tone={getStatusTone(transaction.status)}>
                 {transaction.status}
               </StatusBadge>,
               transaction.date,
@@ -92,7 +92,7 @@ function StatusRow({ label, value, plain = false }: { label: string; value: stri
       {plain ? (
         <span className="text-right font-medium text-foreground">{value}</span>
       ) : (
-        <StatusBadge tone={getDemoTone(value)}>{value}</StatusBadge>
+        <StatusBadge tone={getStatusTone(value)}>{value}</StatusBadge>
       )}
     </div>
   )

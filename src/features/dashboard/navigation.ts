@@ -3,6 +3,7 @@ export type DashboardIconName =
   | "badgeCheck"
   | "bookText"
   | "briefcaseBusiness"
+  | "building2"
   | "creditCard"
   | "fileClock"
   | "fileText"
@@ -74,14 +75,24 @@ export const vendorNavigation: DashboardNavSection[] = [
 ]
 
 export const adminNavigation: DashboardNavSection[] = [
-  ...vendorNavigation,
   {
-    label: "Administration",
+    label: "Overview",
     items: [
-      { href: "/admin", label: "Overview", icon: "folderKanban" },
-      { href: "/admin/users", label: "Users", icon: "users" },
-      { href: "/admin/invites", label: "Invites", icon: "mail" },
-      { href: "/admin/roles", label: "Roles", icon: "shield" },
+      { href: "/admin", label: "Dashboard", icon: "folderKanban" },
+    ],
+  },
+  {
+    label: "User management",
+    items: [
+      { href: "/admin/users", label: "All users", icon: "users" },
+      { href: "/admin/vendors", label: "Vendors", icon: "building2" },
+      { href: "/admin/invites", label: "Invitations", icon: "mail" },
+    ],
+  },
+  {
+    label: "Platform",
+    items: [
+      { href: "/admin/roles", label: "Access levels", icon: "shield" },
       { href: "/admin/logs", label: "Activity logs", icon: "bookText" },
       { href: "/admin/sessions", label: "Sessions", icon: "fileText" },
     ],

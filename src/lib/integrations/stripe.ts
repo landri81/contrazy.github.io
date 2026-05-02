@@ -1,11 +1,12 @@
 import Stripe from "stripe"
 
+import { APP_METADATA } from "@/lib/config/app-metadata"
 import { env } from "@/lib/env"
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   appInfo: {
-    name: "Conntrazy",
-    version: "week1-foundation",
+    name: APP_METADATA.productName,
+    version: APP_METADATA.version,
   },
 })
 

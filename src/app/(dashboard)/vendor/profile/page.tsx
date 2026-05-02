@@ -1,5 +1,5 @@
 import { PagePanel } from "@/features/dashboard/components/dashboard-ui"
-import { VendorProfileForm } from "@/features/dashboard/components/week-one-forms"
+import { VendorProfileForm } from "@/features/dashboard/components/vendor-profile-form"
 import { requireVendorProfileAccess } from "@/lib/auth/guards"
 
 export default async function VendorProfilePage() {

@@ -1,10 +1,19 @@
 import { AdminLogsView } from "@/features/dashboard/components/dashboard-pages"
-import { getAdminWorkspace } from "@/features/dashboard/server/dashboard-data"
+import { getAdminLogs } from "@/features/dashboard/server/dashboard-data"
 import { requireAdminAccess } from "@/lib/auth/guards"
+import { compactSearchParams, resolvePagination } from "@/lib/pagination"
 
-export default async function AdminLogsPage() {
+const PAGE_SIZE = 20
+
+export default async function AdminLogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string; source?: string }>
+}) {
   await requireAdminAccess()
-  const workspace = await getAdminWorkspace()
+  const { page: pageParam, q, source } = await searchParams
+  const pagination = resolvePagination({ page: pageParam, pageSize: PAGE_SIZE }, { defaultPageSize: PAGE_SIZE })
+  const data = await getAdminLogs(pagination.page, PAGE_SIZE, { q, source })
 
-  return <AdminLogsView workspace={workspace} />
+  return <AdminLogsView data={data} searchParams={compactSearchParams({ q, source })} />
 }

@@ -1,10 +1,19 @@
+"use client"
+
+import { motion } from "framer-motion"
 import Link from "next/link"
 
 import { footerGroups } from "@/content/site"
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-[var(--contrazy-navy)] text-white">
+    <motion.footer
+      initial={{ opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="border-t border-border bg-[var(--contrazy-navy)] text-white"
+    >
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 py-12 lg:grid-cols-[1.2fr_repeat(3,1fr)] lg:px-10">
         <div>
           <Link href="/" className="text-2xl font-extrabold tracking-tight">
@@ -30,6 +39,6 @@ export function SiteFooter() {
           </div>
         ))}
       </div>
-    </footer>
+    </motion.footer>
   )
 }

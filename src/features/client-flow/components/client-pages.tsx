@@ -73,7 +73,7 @@ export function ClientProfileForm({
                 id="fullName"
                 required
                 className="pl-9"
-                placeholder="Jane Doe"
+                placeholder="Enter your full name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
@@ -90,7 +90,7 @@ export function ClientProfileForm({
                 type="email"
                 required
                 className="pl-9"
-                placeholder="you@example.com"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -104,7 +104,7 @@ export function ClientProfileForm({
                 id="phone"
                 type="tel"
                 className="pl-9"
-                placeholder="+1 555 000 0000"
+                placeholder="Enter your phone number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
@@ -117,7 +117,7 @@ export function ClientProfileForm({
               <Input
                 id="companyName"
                 className="pl-9"
-                placeholder="Acme Inc."
+                placeholder="Enter your company name (optional)"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
               />

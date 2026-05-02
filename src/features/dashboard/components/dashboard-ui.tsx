@@ -1,11 +1,13 @@
 import Link from "next/link"
-import { ArrowRight, CircleAlert, CircleCheck, Clock3, ExternalLink } from "lucide-react"
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Clock3, ExternalLink, RotateCcw, Search } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import type { DashboardFilterOption } from "@/features/dashboard/filter-options"
 
 type Tone = "success" | "warning" | "danger" | "neutral" | "info"
 
@@ -243,6 +245,180 @@ export function ResourceCards({
           </CardContent>
         </Card>
       ))}
+    </div>
+  )
+}
+
+export function TableFilters({
+  basePath,
+  searchValue = "",
+  searchPlaceholder = "Search records",
+  filters = [],
+}: {
+  basePath: string
+  searchValue?: string
+  searchPlaceholder?: string
+  filters?: {
+    name: string
+    label: string
+    value?: string
+    options: DashboardFilterOption[]
+  }[]
+}) {
+  const searchId = `${basePath.replaceAll("/", "-")}-search`
+
+  return (
+    <form
+      action={basePath}
+      className="mb-4 flex flex-col gap-3 rounded-xl border border-border/80 bg-muted/30 p-3 lg:flex-row lg:items-end"
+    >
+      <div className="min-w-0 flex-1">
+        <label htmlFor={searchId} className="mb-1.5 block text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+          Search
+        </label>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id={searchId}
+            name="q"
+            defaultValue={searchValue}
+            placeholder={searchPlaceholder}
+            className="h-9 pl-9"
+          />
+        </div>
+      </div>
+
+      {filters.map((filter) => (
+        <div key={filter.name} className="w-full lg:w-[180px]">
+          <label className="mb-1.5 block text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            {filter.label}
+          </label>
+          <div className="relative">
+            <select
+              name={filter.name}
+              defaultValue={filter.value ?? "all"}
+              className="h-9 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-9 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            >
+              <option value="all">All</option>
+              {filter.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </div>
+      ))}
+
+      <div className="flex items-center gap-2 lg:ml-auto">
+        <Button type="submit" size="sm">
+          Apply
+        </Button>
+        <Link href={basePath} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <RotateCcw className="size-3.5" />
+          Reset
+        </Link>
+      </div>
+    </form>
+  )
+}
+
+function buildPageWindow(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const result: (number | "...")[] = [1]
+
+  if (current > 3) result.push("...")
+
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) result.push(i)
+
+  if (current < total - 2) result.push("...")
+
+  result.push(total)
+  return result
+}
+
+export function PaginationControls({
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
+  basePath,
+  searchParams,
+}: {
+  currentPage: number
+  totalPages: number
+  totalCount: number
+  pageSize: number
+  basePath: string
+  searchParams?: Record<string, string>
+}) {
+  if (totalCount <= pageSize) return null
+
+  const start = (currentPage - 1) * pageSize + 1
+  const end = Math.min(currentPage * pageSize, totalCount)
+  const pages = buildPageWindow(currentPage, totalPages)
+
+  function pageHref(page: number) {
+    const params = new URLSearchParams({ ...searchParams, page: String(page) })
+    return `${basePath}?${params.toString()}`
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">
+        Showing <span className="font-medium text-foreground">{start}–{end}</span> of{" "}
+        <span className="font-medium text-foreground">{totalCount}</span> results
+      </p>
+
+      <div className="flex items-center gap-1">
+        {currentPage > 1 ? (
+          <Link href={pageHref(currentPage - 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <ChevronLeft className="size-3.5" />
+            Prev
+          </Link>
+        ) : (
+          <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-40")}>
+            <ChevronLeft className="size-3.5" />
+            Prev
+          </span>
+        )}
+
+        {pages.map((p, idx) =>
+          p === "..." ? (
+            <span key={`ellipsis-${idx}`} className="px-1 text-sm text-muted-foreground select-none">
+              …
+            </span>
+          ) : (
+            <Link
+              key={p}
+              href={pageHref(p)}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "min-w-[2rem]",
+                p === currentPage && "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0] hover:text-white pointer-events-none"
+              )}
+            >
+              {p}
+            </Link>
+          )
+        )}
+
+        {currentPage < totalPages ? (
+          <Link href={pageHref(currentPage + 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Next
+            <ChevronRight className="size-3.5" />
+          </Link>
+        ) : (
+          <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-40")}>
+            Next
+            <ChevronRight className="size-3.5" />
+          </span>
+        )}
+      </div>
     </div>
   )
 }

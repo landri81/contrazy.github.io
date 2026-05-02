@@ -20,6 +20,7 @@ export function RegisterForm() {
   const [businessName, setBusinessName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
@@ -34,6 +35,7 @@ export function RegisterForm() {
       businessName,
       email,
       password,
+      confirmPassword,
     })
 
     if (!parsedPayload.success) {
@@ -115,7 +117,7 @@ export function RegisterForm() {
               id="name"
               type="text"
               autoComplete="name"
-              placeholder="Aziz Landri"
+              placeholder="Enter your full name"
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -125,7 +127,7 @@ export function RegisterForm() {
             <Input
               id="businessName"
               type="text"
-              placeholder="LOCAZ SARL"
+              placeholder="Enter your business name"
               value={businessName}
               onChange={(event) => setBusinessName(event.target.value)}
             />
@@ -136,7 +138,7 @@ export function RegisterForm() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="contact@business.com"
+              placeholder="Enter your business email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -152,6 +154,28 @@ export function RegisterForm() {
                 className="pr-10"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Hide characters" : "Show characters"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Retype Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="Retype your password"
+                className="pr-10"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
               />
               <button
                 type="button"

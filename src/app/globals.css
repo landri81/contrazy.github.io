@@ -149,3 +149,45 @@
     background-position: -200% 0;
   }
 }
+
+@layer utilities {
+  .scrollbar-thin-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(100 116 139 / 0.18) transparent;
+    scrollbar-gutter: stable;
+  }
+
+  .scrollbar-thin-subtle::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin-subtle::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: rgb(100 116 139 / 0.16);
+    background-clip: padding-box;
+  }
+
+  .scrollbar-thin-subtle:hover::-webkit-scrollbar-thumb {
+    background: rgb(100 116 139 / 0.26);
+    background-clip: padding-box;
+  }
+
+  .dark .scrollbar-thin-subtle {
+    scrollbar-color: rgb(148 163 184 / 0.18) transparent;
+  }
+
+  .dark .scrollbar-thin-subtle::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184 / 0.14);
+    background-clip: padding-box;
+  }
+
+  .dark .scrollbar-thin-subtle:hover::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184 / 0.24);
+    background-clip: padding-box;
+  }
+}

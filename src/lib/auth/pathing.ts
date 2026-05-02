@@ -12,3 +12,15 @@ export function getRoleHomePath(role: UserRole | null | undefined) {
 
   return "/login"
 }
+
+export function getRoleProfilePath(role: UserRole | null | undefined) {
+  if (role === USER_ROLES.VENDOR) {
+    return "/vendor/profile"
+  }
+
+  if (role === USER_ROLES.SUPER_ADMIN || role === USER_ROLES.ADMIN) {
+    return "/admin"
+  }
+
+  return "/login"
+}

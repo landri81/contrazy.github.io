@@ -100,7 +100,7 @@ export function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="admin@contrazy.com"
+              placeholder="Enter your email address"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />

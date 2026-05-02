@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { prisma } from "@/lib/db/prisma"
+import { APP_METADATA } from "@/lib/config/app-metadata"
 
 export async function GET() {
   try {
@@ -8,7 +9,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      service: "conntrazy-week1-foundation",
+      service: APP_METADATA.serviceName,
       database: "connected",
       timestamp: new Date().toISOString(),
     })
@@ -17,7 +18,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        service: "conntrazy-week1-foundation",
+        service: APP_METADATA.serviceName,
         database: "unreachable",
         timestamp: new Date().toISOString(),
       },

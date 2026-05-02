@@ -1,14 +1,99 @@
 import Link from "next/link"
 
-import { DetailGrid, DashboardTable, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
-import { VendorReviewActions } from "@/features/dashboard/components/week-one-forms"
+import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
+import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
+import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
 import type {
+  AdminInviteListData,
+  AdminLogListData,
+  AdminSessionListData,
   AdminUserDetailRecord,
+  AdminUserListData,
+  AdminVendorListData,
   AdminWorkspaceRecord,
   TransactionDetailRecord,
+  VendorClientListData,
+  VendorDepositListData,
+  VendorDisputeListData,
+  VendorKycListData,
+  VendorLinkListData,
+  VendorPaymentListData,
+  VendorSignatureListData,
+  VendorTransactionsData,
+  VendorWebhookListData,
   WorkspaceRecord,
 } from "@/features/dashboard/server/dashboard-data"
-import { getDemoTone } from "@/features/dashboard/server/dashboard-data"
+import { getStatusTone } from "@/features/dashboard/server/dashboard-data"
+import {
+  adminInviteStatusOptions,
+  adminLogSourceOptions,
+  adminReviewStatusOptions,
+  adminRoleOptions,
+  adminSessionStateOptions,
+  adminStripeConnectionOptions,
+  vendorDisputeStatusOptions,
+  vendorKycStatusOptions,
+  vendorLinkStateOptions,
+  vendorPaymentStatusOptions,
+  vendorSignatureStatusOptions,
+  vendorTransactionKindOptions,
+  vendorTransactionStatusOptions,
+  vendorWebhookStatusOptions,
+} from "@/features/dashboard/filter-options"
+
+type SearchParamsRecord = Record<string, string>
+
+function TablePageSection({
+  basePath,
+  searchParams,
+  searchValue,
+  searchPlaceholder,
+  filters,
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
+  columns,
+  rows,
+  emptyMessage,
+}: {
+  basePath: string
+  searchParams?: SearchParamsRecord
+  searchValue?: string
+  searchPlaceholder?: string
+  filters?: {
+    name: string
+    label: string
+    value?: string
+    options: { label: string; value: string }[]
+  }[]
+  currentPage: number
+  totalPages: number
+  totalCount: number
+  pageSize: number
+  columns: string[]
+  rows: React.ReactNode[][]
+  emptyMessage: string
+}) {
+  const shellKey = `${basePath}?${new URLSearchParams(searchParams).toString()}`
+
+  return (
+    <TableQueryShell
+      key={shellKey}
+      basePath={basePath}
+      searchParams={searchParams}
+      searchValue={searchValue}
+      searchPlaceholder={searchPlaceholder}
+      filters={filters}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalCount={totalCount}
+      pageSize={pageSize}
+    >
+      <DashboardTable columns={columns} rows={rows} emptyMessage={emptyMessage} />
+    </TableQueryShell>
+  )
+}
 
 export function VendorActionsView({ workspace }: { workspace: WorkspaceRecord }) {
   return (
@@ -16,7 +101,7 @@ export function VendorActionsView({ workspace }: { workspace: WorkspaceRecord })
       <DashboardTable
         columns={["Priority", "Action", "Client", "Reference", "Due"]}
         rows={workspace.actionItems.map((item) => [
-          <StatusBadge key={`${item.reference}-priority`} tone={getDemoTone(item.priority)}>
+          <StatusBadge key={`${item.reference}-priority`} tone={getStatusTone(item.priority)}>
             {item.priority}
           </StatusBadge>,
           item.action,
@@ -30,12 +115,30 @@ export function VendorActionsView({ workspace }: { workspace: WorkspaceRecord })
   )
 }
 
-export function VendorTransactionsView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorTransactionsView({
+  data,
+  searchParams,
+}: {
+  data: VendorTransactionsData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Transactions" description="Track every customer workflow from setup to payment and deposit handling.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/transactions"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by reference, title, client name, or email"
+        filters={[
+          { name: "status", label: "Status", value: searchParams?.status, options: vendorTransactionStatusOptions },
+          { name: "kind", label: "Type", value: searchParams?.kind, options: vendorTransactionKindOptions },
+        ]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Reference", "Type", "Amount", "KYC", "Contract", "Status", "Date"]}
-        rows={workspace.transactions.map((transaction) => [
+        rows={data.items.map((transaction) => [
           <div key={`${transaction.reference}-client`}>
             <p className="font-medium text-foreground">{transaction.clientName}</p>
             <p className="text-xs text-muted-foreground">{transaction.clientEmail}</p>
@@ -45,13 +148,13 @@ export function VendorTransactionsView({ workspace }: { workspace: WorkspaceReco
           </Link>,
           transaction.kind,
           transaction.amount,
-          <StatusBadge key={`${transaction.reference}-kyc`} tone={getDemoTone(transaction.kyc)}>
+          <StatusBadge key={`${transaction.reference}-kyc`} tone={getStatusTone(transaction.kyc)}>
             {transaction.kyc}
           </StatusBadge>,
-          <StatusBadge key={`${transaction.reference}-contract`} tone={getDemoTone(transaction.contract)}>
+          <StatusBadge key={`${transaction.reference}-contract`} tone={getStatusTone(transaction.contract)}>
             {transaction.contract}
           </StatusBadge>,
-          <StatusBadge key={`${transaction.reference}-status`} tone={getDemoTone(transaction.status)}>
+          <StatusBadge key={`${transaction.reference}-status`} tone={getStatusTone(transaction.status)}>
             {transaction.status}
           </StatusBadge>,
           transaction.date,
@@ -100,15 +203,30 @@ export function VendorChecklistsView({ workspace }: { workspace: WorkspaceRecord
   )
 }
 
-export function VendorKycView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorKycView({
+  data,
+  searchParams,
+}: {
+  data: VendorKycListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Identity checks" description="Follow customer verification progress when identity confirmation is required.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/kyc"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by client, reference, provider, or note"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorKycStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Reference", "Status", "Provider", "Note"]}
-        rows={workspace.kycCases.map((record) => [
+        rows={data.items.map((record) => [
           record.client,
           record.reference,
-          <StatusBadge key={`${record.reference}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.provider,
@@ -120,15 +238,30 @@ export function VendorKycView({ workspace }: { workspace: WorkspaceRecord }) {
   )
 }
 
-export function VendorSignaturesView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorSignaturesView({
+  data,
+  searchParams,
+}: {
+  data: VendorSignatureListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Signatures" description="See which customers have reviewed and accepted their agreements.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/signatures"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by signer, reference, or template"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorSignatureStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Signer", "Reference", "Status", "Template", "Date"]}
-        rows={workspace.signatures.map((record) => [
+        rows={data.items.map((record) => [
           record.signer,
           record.reference,
-          <StatusBadge key={`${record.reference}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.template,
@@ -140,16 +273,31 @@ export function VendorSignaturesView({ workspace }: { workspace: WorkspaceRecord
   )
 }
 
-export function VendorDepositsView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorDepositsView({
+  data,
+  searchParams,
+}: {
+  data: VendorDepositListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Deposits" description="Monitor active holds, expiry windows, and later release or capture decisions.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/deposits"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by client name, email, or reference"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Reference", "Amount", "Status", "Window"]}
-        rows={workspace.deposits.map((record) => [
+        rows={data.items.map((record) => [
           record.client,
           record.reference,
           record.amount,
-          <StatusBadge key={`${record.reference}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.date,
@@ -160,16 +308,31 @@ export function VendorDepositsView({ workspace }: { workspace: WorkspaceRecord }
   )
 }
 
-export function VendorPaymentsView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorPaymentsView({
+  data,
+  searchParams,
+}: {
+  data: VendorPaymentListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Payments" description="Review payment collection across your customer workflows.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/payments"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by client name, email, or reference"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Reference", "Amount", "Status", "Date"]}
-        rows={workspace.payments.map((record) => [
+        rows={data.items.map((record) => [
           record.client,
           record.reference,
           record.amount,
-          <StatusBadge key={`${record.reference}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.date,
@@ -180,15 +343,30 @@ export function VendorPaymentsView({ workspace }: { workspace: WorkspaceRecord }
   )
 }
 
-export function VendorDisputesView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorDisputesView({
+  data,
+  searchParams,
+}: {
+  data: VendorDisputeListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Disputes" description="Track customer issues related to payments or deposits.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/disputes"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by client, reference, or summary"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorDisputeStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Reference", "Status", "Summary"]}
-        rows={workspace.disputes.map((record) => [
+        rows={data.items.map((record) => [
           record.client,
           record.reference,
-          <StatusBadge key={`${record.reference}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.summary,
@@ -199,15 +377,29 @@ export function VendorDisputesView({ workspace }: { workspace: WorkspaceRecord }
   )
 }
 
-export function VendorClientsView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorClientsView({
+  data,
+  searchParams,
+}: {
+  data: VendorClientListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Clients" description="Review recent customers and the workflows connected to them.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/clients"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by client name, email, or company"
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Client", "Email", "Status", "Recent transaction"]}
-        rows={workspace.clients.map((record) => [
+        rows={data.items.map((record) => [
           record.name,
           record.email,
-          <StatusBadge key={`${record.email}-status`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.email}-status`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.lastTransaction,
@@ -218,19 +410,34 @@ export function VendorClientsView({ workspace }: { workspace: WorkspaceRecord })
   )
 }
 
-export function VendorLinksView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorLinksView({
+  data,
+  searchParams,
+}: {
+  data: VendorLinkListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Customer links" description="Share secure links and QR codes for each customer workflow.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/links"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by reference, client, or short code"
+        filters={[{ name: "state", label: "State", value: searchParams?.state, options: vendorLinkStateOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Reference", "Share link", "Short code", "QR", "State"]}
-        rows={workspace.links.map((record) => [
+        rows={data.items.map((record) => [
           record.reference,
           <Link key={`${record.reference}-share`} href={record.shareLink} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
             Open secure link
           </Link>,
           record.shortCode,
           record.qrStatus,
-          <StatusBadge key={`${record.reference}-state`} tone={getDemoTone(record.state)}>
+          <StatusBadge key={`${record.reference}-state`} tone={getStatusTone(record.state)}>
             {record.state}
           </StatusBadge>,
         ])}
@@ -240,15 +447,30 @@ export function VendorLinksView({ workspace }: { workspace: WorkspaceRecord }) {
   )
 }
 
-export function VendorWebhooksView({ workspace }: { workspace: WorkspaceRecord }) {
+export function VendorWebhooksView({
+  data,
+  searchParams,
+}: {
+  data: VendorWebhookListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Event history" description="Review delivery events and payment updates connected to your account.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/vendor/webhooks"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by provider or event name"
+        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorWebhookStatusOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Provider", "Event", "Status", "Date"]}
-        rows={workspace.webhooks.map((record) => [
+        rows={data.items.map((record) => [
           record.provider,
           record.eventType,
-          <StatusBadge key={`${record.eventType}-${record.date}`} tone={getDemoTone(record.status)}>
+          <StatusBadge key={`${record.eventType}-${record.date}`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,
           record.date,
@@ -268,12 +490,12 @@ export function VendorStripeView({ workspace }: { workspace: WorkspaceRecord }) 
             { label: "Business", value: workspace.summary.businessName },
             {
               label: "Review status",
-              value: <StatusBadge tone={getDemoTone(workspace.summary.reviewStatus)}>{workspace.summary.reviewStatus}</StatusBadge>,
+              value: <StatusBadge tone={getStatusTone(workspace.summary.reviewStatus)}>{workspace.summary.reviewStatus}</StatusBadge>,
             },
             {
               label: "Payout status",
               value: (
-                <StatusBadge tone={getDemoTone(workspace.summary.stripeConnectionStatus)}>
+                <StatusBadge tone={getStatusTone(workspace.summary.stripeConnectionStatus)}>
                   {workspace.summary.stripeConnectionStatus}
                 </StatusBadge>
               ),
@@ -306,23 +528,140 @@ export function VendorStripeView({ workspace }: { workspace: WorkspaceRecord }) 
   )
 }
 
-export function AdminUsersView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+export function AdminVendorListView({
+  data,
+  searchParams,
+}: {
+  data: AdminVendorListData
+  searchParams?: Record<string, string>
+}) {
   return (
-    <PagePanel title="Users" description="Review everyone with access to the platform and their current account status.">
-      <DashboardTable
-        columns={["Name", "Email", "Role", "Company", "Status"]}
-        rows={workspace.users.map((user) => [
-          <Link key={`${user.id}-name`} href={`/admin/users/${user.id}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
-            {user.name}
-          </Link>,
-          user.email,
-          <StatusBadge key={`${user.id}-role`} tone={getDemoTone(user.role)}>
+    <div className="space-y-6">
+      <KpiGrid items={data.kpis} />
+
+      <PagePanel
+        title="Vendor accounts"
+        description="Manage approval status for all vendor accounts. Use the inline actions to approve, pend, reject, or suspend."
+        actionHref="/admin/users"
+        actionLabel="All users"
+      >
+        <TablePageSection
+          basePath="/admin/vendors"
+          searchValue={searchParams?.q}
+          searchPlaceholder="Search by business, owner, email, phone, or country"
+          filters={[
+            { name: "reviewStatus", label: "Review", value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
+            { name: "stripeStatus", label: "Payouts", value: searchParams?.stripeStatus, options: adminStripeConnectionOptions },
+          ]}
+          currentPage={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          searchParams={searchParams}
+          columns={["Business", "Owner", "Country", "Profile", "Transactions", "Review status", "Joined", "Actions"]}
+          rows={data.vendors.map((vendor) => [
+            <div key={`${vendor.id}-business`}>
+              <Link href={`/admin/users/${vendor.userId}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+                {vendor.businessName}
+              </Link>
+              <p className="text-xs text-muted-foreground">{vendor.businessEmail}</p>
+            </div>,
+            <div key={`${vendor.id}-owner`}>
+              <p className="text-sm">{vendor.userName}</p>
+              <p className="text-xs text-muted-foreground">{vendor.userEmail}</p>
+            </div>,
+            vendor.businessCountry,
+            <span key={`${vendor.id}-profile`} className={`text-sm font-medium ${vendor.profileCompletion === 100 ? "text-emerald-600" : "text-amber-600"}`}>
+              {vendor.profileCompletion}%
+            </span>,
+            <span key={`${vendor.id}-txn`} className="text-sm text-muted-foreground">
+              {vendor.transactionCount} tx · {vendor.clientCount} clients
+            </span>,
+            <StatusBadge key={`${vendor.id}-status`} tone={getStatusTone(vendor.reviewStatus)}>
+              {vendor.reviewStatus}
+            </StatusBadge>,
+            vendor.joinedAt,
+            <VendorQuickReview key={`${vendor.id}-actions`} userId={vendor.userId} currentStatus={vendor.reviewStatus} />,
+          ])}
+          emptyMessage="No vendor accounts have been registered yet."
+        />
+      </PagePanel>
+    </div>
+  )
+}
+
+export function AdminUsersView({
+  data,
+  searchParams,
+}: {
+  data: AdminUserListData
+  searchParams?: Record<string, string>
+}) {
+  const { users, totalCount, page, pageSize, totalPages } = data
+
+  return (
+    <PagePanel
+      title="All users"
+      description={`${totalCount} registered account${totalCount !== 1 ? "s" : ""}. Vendor accounts can be approved directly from this table.`}
+    >
+      <TablePageSection
+        basePath="/admin/users"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by name, email, or business"
+        filters={[
+          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
+          { name: "reviewStatus", label: "Review", value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
+        ]}
+        currentPage={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        searchParams={searchParams}
+        columns={["Name / Email", "Role", "Business", "Review status", "Joined", "Quick actions"]}
+        rows={users.map((user) => [
+          <div key={`${user.id}-name`}>
+            <Link
+              href={`/admin/users/${user.id}`}
+              className="font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+            >
+              {user.name}
+            </Link>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>,
+
+          <StatusBadge key={`${user.id}-role`} tone={getStatusTone(user.role)}>
             {user.role}
           </StatusBadge>,
-          user.company,
-          <StatusBadge key={`${user.id}-status`} tone={getDemoTone(user.status)}>
-            {user.status}
-          </StatusBadge>,
+
+          <span key={`${user.id}-company`} className="text-sm">{user.company}</span>,
+
+          user.reviewStatus ? (
+            <StatusBadge key={`${user.id}-review`} tone={getStatusTone(user.reviewStatus)}>
+              {user.reviewStatus}
+            </StatusBadge>
+          ) : (
+            <span key={`${user.id}-no-review`} className="text-xs text-muted-foreground">—</span>
+          ),
+
+          <span key={`${user.id}-joined`} className="whitespace-nowrap text-sm text-muted-foreground">
+            {user.joinedAt}
+          </span>,
+
+          user.reviewStatus ? (
+            <VendorQuickReview
+              key={`${user.id}-actions`}
+              userId={user.id}
+              currentStatus={user.reviewStatus}
+            />
+          ) : (
+            <Link
+              key={`${user.id}-view`}
+              href={`/admin/users/${user.id}`}
+              className="text-xs text-[var(--contrazy-teal)] hover:underline"
+            >
+              View →
+            </Link>
+          ),
         ])}
         emptyMessage="No user accounts have been created yet."
       />
@@ -333,21 +672,36 @@ export function AdminUsersView({ workspace }: { workspace: AdminWorkspaceRecord 
 export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
   return (
     <div className="space-y-6">
-      <PagePanel title={`User detail · ${user.name}`} description="Account, role, and current business review status.">
+      {/* Account overview */}
+      <PagePanel title={`${user.name}`} description="Account details, role, and login information.">
         <DetailGrid
           items={[
-            { label: "Name", value: user.name },
+            { label: "Full name", value: user.name },
             { label: "Email", value: user.email },
-            { label: "Role", value: user.role },
+            {
+              label: "Role",
+              value: <StatusBadge tone={getStatusTone(user.role)}>{user.role}</StatusBadge>,
+            },
             { label: "Company", value: user.company },
-            { label: "Status", value: user.status },
-            { label: "User id", value: user.id },
+            {
+              label: "Account status",
+              value: <StatusBadge tone={getStatusTone(user.status)}>{user.status}</StatusBadge>,
+            },
+            { label: "Email verified", value: user.emailVerified ?? "Not verified" },
+            { label: "Joined", value: user.joinedAt },
+            { label: "User ID", value: user.id },
           ]}
         />
       </PagePanel>
 
+      {/* Role management */}
+      <PagePanel title="Role management" description="Change the access level for this account. Super Admin access can only be granted by a Super Admin.">
+        <UserRoleActions userId={user.id} currentRole={user.role} />
+      </PagePanel>
+
+      {/* Vendor profile & review */}
       {user.vendorProfile ? (
-        <PagePanel title="Business profile" description="Review the submitted business details and update the account status.">
+        <PagePanel title="Business profile" description="Review the submitted business details and update the vendor account status.">
           <div className="space-y-6">
             <DetailGrid
               items={[
@@ -359,35 +713,71 @@ export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
                 { label: "Country", value: user.vendorProfile.businessCountry },
                 {
                   label: "Review status",
-                  value: <StatusBadge tone={getDemoTone(user.vendorProfile.reviewStatus)}>{user.vendorProfile.reviewStatus}</StatusBadge>,
+                  value: (
+                    <StatusBadge tone={getStatusTone(user.vendorProfile.reviewStatus)}>
+                      {user.vendorProfile.reviewStatus}
+                    </StatusBadge>
+                  ),
                 },
                 {
                   label: "Payout status",
-                  value: <StatusBadge tone={getDemoTone(user.vendorProfile.stripeConnectionStatus)}>{user.vendorProfile.stripeConnectionStatus}</StatusBadge>,
+                  value: (
+                    <StatusBadge tone={getStatusTone(user.vendorProfile.stripeConnectionStatus)}>
+                      {user.vendorProfile.stripeConnectionStatus}
+                    </StatusBadge>
+                  ),
                 },
                 { label: "Profile completion", value: `${user.vendorProfile.profileCompletion}%` },
+                { label: "Transactions", value: `${user.vendorProfile.transactionCount}` },
+                { label: "Clients", value: `${user.vendorProfile.clientCount}` },
               ]}
             />
 
-            <VendorReviewActions userId={user.id} currentStatus={user.vendorProfile.reviewStatus} />
+            <div>
+              <p className="mb-3 text-sm font-medium text-foreground">Review actions</p>
+              <VendorReviewActions userId={user.id} currentStatus={user.vendorProfile.reviewStatus} />
+            </div>
           </div>
         </PagePanel>
       ) : null}
+
+      {/* Danger zone */}
+      <PagePanel title="Danger zone" description="Permanently delete this account and all associated data. Active transactions must be resolved first.">
+        <UserDeleteAction userId={user.id} userEmail={user.email} />
+      </PagePanel>
     </div>
   )
 }
 
-export function AdminInvitesView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+export function AdminInvitesView({
+  data,
+  searchParams,
+}: {
+  data: AdminInviteListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Invitations" description="Track outstanding invites for vendors and internal team members.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/admin/invites"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by invite email"
+        filters={[
+          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
+          { name: "status", label: "Status", value: searchParams?.status, options: adminInviteStatusOptions },
+        ]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Email", "Role", "Status", "Expires"]}
-        rows={workspace.invites.map((invite) => [
+        rows={data.items.map((invite) => [
           invite.email,
-          <StatusBadge key={`${invite.id}-role`} tone={getDemoTone(invite.role)}>
+          <StatusBadge key={`${invite.id}-role`} tone={getStatusTone(invite.role)}>
             {invite.role}
           </StatusBadge>,
-          <StatusBadge key={`${invite.id}-status`} tone={getDemoTone(invite.status)}>
+          <StatusBadge key={`${invite.id}-status`} tone={getStatusTone(invite.status)}>
             {invite.status}
           </StatusBadge>,
           invite.expiresAt,
@@ -410,29 +800,62 @@ export function AdminRolesView({ workspace }: { workspace: AdminWorkspaceRecord 
   )
 }
 
-export function AdminLogsView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+export function AdminLogsView({
+  data,
+  searchParams,
+}: {
+  data: AdminLogListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Activity logs" description="Recent platform and operator activity.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/admin/logs"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by actor, action, entity, provider, or event"
+        filters={[{ name: "source", label: "Source", value: searchParams?.source, options: adminLogSourceOptions }]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["Actor", "Action", "Entity", "Date"]}
-        rows={workspace.logs.map((log) => [log.actor, log.action, log.entity, log.date])}
+        rows={data.items.map((log) => [log.actor, log.action, log.entity, log.date])}
         emptyMessage="No activity has been recorded yet."
       />
     </PagePanel>
   )
 }
 
-export function AdminSessionsView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+export function AdminSessionsView({
+  data,
+  searchParams,
+}: {
+  data: AdminSessionListData
+  searchParams?: Record<string, string>
+}) {
   return (
     <PagePanel title="Sessions" description="Review current sign-in activity across the platform team.">
-      <DashboardTable
+      <TablePageSection
+        basePath="/admin/sessions"
+        searchValue={searchParams?.q}
+        searchPlaceholder="Search by user name or email"
+        filters={[
+          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
+          { name: "state", label: "State", value: searchParams?.state, options: adminSessionStateOptions },
+        ]}
+        currentPage={data.page}
+        totalPages={data.totalPages}
+        totalCount={data.totalCount}
+        pageSize={data.pageSize}
+        searchParams={searchParams}
         columns={["User", "Role", "State", "Last seen"]}
-        rows={workspace.sessions.map((session) => [
+        rows={data.items.map((session) => [
           session.user,
-          <StatusBadge key={`${session.user}-role`} tone={getDemoTone(session.role)}>
+          <StatusBadge key={`${session.user}-role`} tone={getStatusTone(session.role)}>
             {session.role}
           </StatusBadge>,
-          <StatusBadge key={`${session.user}-state`} tone={getDemoTone(session.state)}>
+          <StatusBadge key={`${session.user}-state`} tone={getStatusTone(session.state)}>
             {session.state}
           </StatusBadge>,
           session.lastSeen,

@@ -7,7 +7,7 @@ import {
   StatusBadge,
 } from "@/features/dashboard/components/dashboard-ui"
 import type { AdminWorkspaceRecord } from "@/features/dashboard/server/dashboard-data"
-import { getDemoTone } from "@/features/dashboard/server/dashboard-data"
+import { getStatusTone } from "@/features/dashboard/server/dashboard-data"
 
 type SuperAdminOverviewProps = {
   email: string
@@ -37,10 +37,10 @@ export function SuperAdminOverview({ email, workspace }: SuperAdminOverviewProps
                 {vendor.businessName}
               </Link>,
               vendor.businessEmail,
-              <StatusBadge key={`${vendor.id}-review`} tone={getDemoTone(vendor.reviewStatus)}>
+              <StatusBadge key={`${vendor.id}-review`} tone={getStatusTone(vendor.reviewStatus)}>
                 {vendor.reviewStatus}
               </StatusBadge>,
-              <StatusBadge key={`${vendor.id}-stripe`} tone={getDemoTone(vendor.stripeConnectionStatus)}>
+              <StatusBadge key={`${vendor.id}-stripe`} tone={getStatusTone(vendor.stripeConnectionStatus)}>
                 {vendor.stripeConnectionStatus}
               </StatusBadge>,
             ])}

@@ -1,6 +1,36 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
+
+export async function GET(request: Request) {
+  try {
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const { searchParams } = new URL(request.url)
+    const pagination = resolvePagination(
+      { page: searchParams.get("page"), pageSize: searchParams.get("pageSize") },
+      { defaultPageSize: 12, maxPageSize: 100 }
+    )
+
+    const [items, totalCount] = await Promise.all([
+      prisma.contractTemplate.findMany({
+        where: { vendorId: vendorProfile.id },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.pageSize,
+      }),
+      prisma.contractTemplate.count({ where: { vendorId: vendorProfile.id } }),
+    ])
+
+    return NextResponse.json({
+      items,
+      ...buildPaginationMeta(totalCount, pagination.page, pagination.pageSize),
+    })
+  } catch (error) {
+    console.error("List Contract Templates Error:", error)
+    return NextResponse.json({ success: false, message: "Failed to load templates" }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   try {

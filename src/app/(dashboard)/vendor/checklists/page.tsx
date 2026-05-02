@@ -1,19 +1,34 @@
 import { getVendorStatusMessage, isVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { resolvePagination } from "@/lib/pagination"
 import { ChecklistTemplateList } from "@/features/dashboard/components/checklist-template-list"
+import { PaginationControls } from "@/features/dashboard/components/dashboard-ui"
 
-export default async function VendorChecklistsPage() {
+const PAGE_SIZE = 12
+
+export default async function VendorChecklistsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const { vendorProfile } = await requireVendorProfileAccess()
+  const { page: pageParam } = await searchParams
+  const pagination = resolvePagination({ page: pageParam, pageSize: PAGE_SIZE }, { defaultPageSize: PAGE_SIZE })
 
-  const templates = await prisma.checklistTemplate.findMany({
-    where: { vendorId: vendorProfile.id },
-    include: {
-      items: {
-        orderBy: { sortOrder: 'asc' }
-      }
-    },
-    orderBy: { createdAt: "desc" },
-  })
+  const [templates, totalCount] = await Promise.all([
+    prisma.checklistTemplate.findMany({
+      where: { vendorId: vendorProfile.id },
+      include: {
+        items: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: pagination.skip,
+      take: PAGE_SIZE,
+    }),
+    prisma.checklistTemplate.count({ where: { vendorId: vendorProfile.id } }),
+  ])
 
   return (
     <div className="space-y-6">
@@ -28,6 +43,14 @@ export default async function VendorChecklistsPage() {
         initialTemplates={templates}
         canEdit={isVendorPreparationAllowed(vendorProfile)}
         blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+      />
+
+      <PaginationControls
+        currentPage={pagination.page}
+        totalPages={Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
+        basePath="/vendor/checklists"
       />
     </div>
   )

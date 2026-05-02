@@ -14,7 +14,13 @@ export default async function AdminLayout({
       navigation={adminNavigation}
       title="Admin workspace"
       subtitle="Platform oversight"
-      actorLabel={session.user.email ?? "Admin"}
+      actorLabel="Admin account"
+      account={{
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
+        role: session.user.role ?? null,
+      }}
     >
       {children}
     </DashboardShell>

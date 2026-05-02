@@ -8,6 +8,60 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
+import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
+
+export async function GET(request: Request) {
+  try {
+    const { vendorProfile } = await requireVendorProfileAccess()
+    const { searchParams } = new URL(request.url)
+    const pagination = resolvePagination(
+      { page: searchParams.get("page"), pageSize: searchParams.get("pageSize") },
+      { defaultPageSize: 20, maxPageSize: 100 }
+    )
+
+    const [items, totalCount] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { vendorId: vendorProfile.id },
+        include: {
+          clientProfile: { select: { fullName: true, email: true } },
+          kycVerification: { select: { status: true } },
+          signatureRecord: { select: { status: true } },
+          link: { select: { token: true, shortCode: true, qrCodeSvg: true, openedAt: true, completedAt: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: pagination.skip,
+        take: pagination.pageSize,
+      }),
+      prisma.transaction.count({ where: { vendorId: vendorProfile.id } }),
+    ])
+
+    return NextResponse.json({
+      items: items.map((transaction) => ({
+        id: transaction.id,
+        reference: transaction.reference,
+        title: transaction.title,
+        clientName: transaction.clientProfile?.fullName ?? "Client pending",
+        clientEmail: transaction.clientProfile?.email ?? "No email",
+        kind: transaction.kind,
+        amount: transaction.amount,
+        depositAmount: transaction.depositAmount,
+        currency: transaction.currency,
+        requiresKyc: transaction.requiresKyc,
+        kycStatus: transaction.kycVerification?.status ?? null,
+        signatureStatus: transaction.signatureRecord?.status ?? null,
+        status: transaction.status,
+        shortCode: transaction.link?.shortCode ?? null,
+        shareLink: transaction.link?.token ? `${getAppBaseUrl()}/t/${transaction.link.token}` : null,
+        qrReady: Boolean(transaction.link?.qrCodeSvg),
+        createdAt: transaction.createdAt,
+      })),
+      ...buildPaginationMeta(totalCount, pagination.page, pagination.pageSize),
+    })
+  } catch (error) {
+    console.error("List Transactions Error:", error)
+    return NextResponse.json({ success: false, message: "Failed to load transactions" }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   try {
