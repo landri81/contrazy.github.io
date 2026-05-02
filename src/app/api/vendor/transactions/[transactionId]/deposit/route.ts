@@ -5,6 +5,9 @@ import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/gua
 import { prisma } from "@/lib/db/prisma"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ transactionId: string }> }

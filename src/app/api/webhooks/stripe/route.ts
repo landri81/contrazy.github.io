@@ -10,6 +10,9 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get("stripe-signature")

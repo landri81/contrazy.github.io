@@ -105,6 +105,12 @@ npm run prisma:generate
 npm run dev
 ```
 
+Vercel production build:
+
+```bash
+npm run vercel-build
+```
+
 Playwright and test database preparation:
 
 ```bash
@@ -140,10 +146,23 @@ If `npm run prisma:generate` fails on Windows with an `EPERM` rename error under
 
 The remaining non-code work is:
 
-- Vercel deployment
+- Vercel project creation and env wiring
 - production callback URL configuration
 - Stripe webhook registration
 - Resend sender/domain verification
 - final production smoke test with real provider credentials
+
+## Vercel Notes
+
+- Deploy the `contrazy-main` directory as the project root if the connected repository contains parent-level planning files.
+- The repo now includes [vercel.json](./vercel.json) with:
+  - `npm ci` install
+  - `npm run vercel-build` build
+- `npm run vercel-build` runs:
+  - `prisma generate`
+  - `prisma migrate deploy`
+  - `next build`
+- If `NEXT_PUBLIC_APP_URL` or `NEXTAUTH_URL` is not set in a preview deployment, server-side return URLs now fall back to Vercel's `VERCEL_URL`.
+- Do not define `NODE_ENV` manually in Vercel. Vercel sets production mode automatically.
 
 See [Conntrazy Handover Checklist.md](./Conntrazy%20Handover%20Checklist.md) for the deployment checklist.

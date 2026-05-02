@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, FileText, Landmark, ShieldCheck, Signature, Sparkles } from "lucide-react"
+import { ArrowRight, FileText, Landmark, ShieldCheck, Signature } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"

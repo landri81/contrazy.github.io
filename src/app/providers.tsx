@@ -1,7 +1,5 @@
 "use client"
 
-import { SessionProvider } from "next-auth/react"
-
 import { ReduxProvider } from "@/store/provider"
 
 type AppProvidersProps = {
@@ -9,9 +7,5 @@ type AppProvidersProps = {
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-  return (
-    <SessionProvider>
-      <ReduxProvider>{children}</ReduxProvider>
-    </SessionProvider>
-  )
+  return <ReduxProvider>{children}</ReduxProvider>
 }

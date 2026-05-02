@@ -3,6 +3,9 @@ import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/gua
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function GET() {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()

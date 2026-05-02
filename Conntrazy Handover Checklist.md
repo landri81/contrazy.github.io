@@ -63,6 +63,21 @@ Set these in Vercel for the production project:
 - `SUPER_ADMIN_PASSWORD`
 - `JWT_ENCRYPTION_SECRET`
 
+Vercel project settings:
+
+- Framework preset: `Next.js`
+- Install command: `npm ci`
+- Build command: `npm run vercel-build`
+- Root directory: `contrazy-main` if the connected repository includes files above the app folder
+- Node.js version: `20.x`
+- Do not add a custom `NODE_ENV` environment variable in Vercel
+
+Runtime behavior:
+
+- the repo ships with `vercel.json`
+- Stripe, webhook, KYC, and deposit routes are pinned to the Node.js runtime with an increased function duration
+- if `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` are unset in preview, backend URL generation falls back to `VERCEL_URL`
+
 ## Callback URLs
 
 Configure these URLs with the production domain:
@@ -119,6 +134,7 @@ Production deployment path:
 - use Prisma migrations with `prisma migrate deploy`
 - do not rely on `prisma db push` for production release
 - the current local development schema has already been baselined so future deploys track the checked-in migration history
+- Vercel now uses `npm run vercel-build`, which runs `prisma generate`, `prisma migrate deploy`, and `next build`
 
 ## Stripe Test Data
 

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function GET() {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()

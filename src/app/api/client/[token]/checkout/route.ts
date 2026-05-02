@@ -6,6 +6,9 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> }
