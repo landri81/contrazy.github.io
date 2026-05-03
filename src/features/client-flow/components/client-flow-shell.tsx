@@ -1,7 +1,8 @@
 "use client"
 
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import {
+  ArrowRight,
   Camera,
   Check,
   CheckCircle2,
@@ -64,36 +65,37 @@ export function ClientFlowShell({
   const visibleSteps = stepOrder.filter((step) => enabledSteps.includes(step))
   const currentStep = visibleSteps.find((step) => pathname.endsWith(`/${step}`)) ?? visibleSteps[0]
   const currentIndex = visibleSteps.indexOf(currentStep)
+  const reduceMotion = useReducedMotion()
 
   return (
-    <div className="min-h-screen bg-(--contrazy-bg-muted)">
-      <header className="sticky top-0 z-30 border-b border-border bg-white/85 backdrop-blur-md dark:bg-background/85">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(17,201,176,0.13),transparent_32rem),linear-gradient(180deg,#f8fafc_0%,#eef3f7_100%)] text-foreground">
+      <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 shadow-sm shadow-slate-900/5 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-(--contrazy-navy) text-white">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--contrazy-navy)] text-white shadow-sm shadow-slate-900/15">
               <span className="text-sm font-extrabold tracking-tight">
-                C<span className="text-(--contrazy-teal)">t</span>
+                C<span className="text-[var(--contrazy-teal)]">t</span>
               </span>
             </div>
             <div className="leading-tight">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Vendor</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Vendor</p>
               <p className="text-sm font-semibold text-foreground">{vendorName}</p>
             </div>
           </div>
-          <div className="hidden items-center gap-3 sm:flex">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-              <LockKeyhole className="size-3.5 text-(--contrazy-teal)" />
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              <LockKeyhole className="size-3.5" />
               Protected session
             </div>
             {canCancel ? <ClientCancelLinkAction token={token} /> : null}
             {reference ? (
               <div className="text-right leading-tight">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
                 <p className="text-sm font-medium text-foreground">{reference}</p>
               </div>
             ) : null}
           </div>
-          <div className="flex items-center gap-2 sm:hidden">
+          <div className="flex items-center gap-2 md:hidden">
             {canCancel ? <ClientCancelLinkAction token={token} /> : null}
             {reference ? (
               <div className="text-right leading-tight">
@@ -105,23 +107,96 @@ export function ClientFlowShell({
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-3xl px-4 pb-12 pt-6 sm:px-6">
-        <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} />
+      <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8 lg:py-8">
+        <motion.aside
+          initial={reduceMotion ? false : { opacity: 0, x: -18 }}
+          animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="relative hidden overflow-hidden rounded-lg bg-[var(--contrazy-navy)] p-5 text-white shadow-xl shadow-slate-900/15 lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-8rem)] lg:min-h-[560px]"
+        >
+          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_0%,rgba(17,201,176,0.32),transparent_18rem)]" />
+          <div className="relative flex h-full flex-col">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">
+              <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
+              Secure onboarding
+            </div>
 
-        <div className="relative mt-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+            <div className="mt-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Transaction</p>
+              <h1 className="mt-3 font-heading text-3xl font-semibold leading-tight text-white">
+                Complete your request with {vendorName}
+              </h1>
+              <p className="mt-4 text-sm leading-6 text-white/65">
+                Follow each step in order. Your progress is saved as you move through the secure flow.
+              </p>
+            </div>
+
+            <div className="mt-8 space-y-3 rounded-lg border border-white/10 bg-white/[0.07] p-4">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs uppercase tracking-[0.18em] text-white/45">Current step</span>
+                <span className="text-sm font-semibold text-[var(--contrazy-teal)]">{currentIndex + 1} of {visibleSteps.length}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-white/10">
+                  {(() => {
+                    const Icon = stepIcons[currentStep]
+                    return <Icon className="size-4 text-[var(--contrazy-teal)]" />
+                  })()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{stepLabels[currentStep]}</p>
+                  {reference ? <p className="text-xs text-white/50">Reference {reference}</p> : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-auto hidden space-y-3 pt-8 lg:block">
+              {visibleSteps.slice(0, 4).map((step, index) => {
+                const isCurrent = step === currentStep
+                const isDone = completedSteps.includes(step) || index < currentIndex
+
+                return (
+                  <div key={step} className="flex items-center gap-3 text-sm">
+                    <span
+                      className={cn(
+                        "flex size-6 items-center justify-center rounded-full border text-[11px] font-bold",
+                        isDone
+                          ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-[var(--contrazy-navy)]"
+                          : isCurrent
+                            ? "border-white/40 bg-white/10 text-white"
+                            : "border-white/15 text-white/45"
+                      )}
+                    >
+                      {isDone ? <Check className="size-3" /> : index + 1}
+                    </span>
+                    <span className={cn(isCurrent ? "text-white" : isDone ? "text-white/75" : "text-white/45")}>
+                      {stepLabels[step]}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </motion.aside>
+
+        <section className="min-w-0">
+          <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} />
+
+          <div className="relative mt-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </section>
+      </main>
     </div>
   )
 }
@@ -137,70 +212,74 @@ function ProgressStepper({
 }) {
   if (steps.length === 0) return null
 
-  const progressPercent = steps.length === 1 ? 100 : (currentIndex / (steps.length - 1)) * 100
+  const safeIndex = Math.max(0, currentIndex)
+  const progressPercent = steps.length === 1 ? 100 : (safeIndex / (steps.length - 1)) * 100
   const currentStep = steps[currentIndex]
+  const trackInset = `${100 / (steps.length * 2)}%`
+  const trackLength = `${100 - 100 / steps.length}%`
 
   return (
-    <div className="space-y-3">
-      {/* Progress bar */}
-      <div className="relative h-1 rounded-full bg-border">
-        <motion.div
-          className="h-1 rounded-full bg-[var(--contrazy-teal)]"
-          initial={false}
-          animate={{ width: `${progressPercent}%` }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+    <div className="rounded-lg border border-white bg-white/85 p-4 shadow-sm shadow-slate-900/5 backdrop-blur-sm sm:p-5">
+      <div className="relative">
+        <div
+          className="absolute top-4 h-1 rounded-full bg-slate-200 sm:top-[18px]"
+          style={{ left: trackInset, right: trackInset }}
         />
+        <motion.div
+          className="absolute top-4 h-1 rounded-full bg-[var(--contrazy-teal)] sm:top-[18px]"
+          style={{ left: trackInset }}
+          initial={false}
+          animate={{ width: `calc(${trackLength} * ${progressPercent / 100})` }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        />
+        <div className="relative grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+          {steps.map((step, index) => {
+            const Icon = stepIcons[step]
+            const isCompleted = completed.includes(step) || index < currentIndex
+            const isCurrent = index === currentIndex
+
+            return (
+              <div key={step} className="flex min-w-0 flex-col items-center gap-2">
+                <motion.div
+                  initial={false}
+                  animate={{ scale: isCurrent ? 1.08 : 1 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className={cn(
+                    "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors sm:size-9",
+                    isCompleted
+                      ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white shadow-sm shadow-emerald-500/25"
+                      : isCurrent
+                        ? "border-[var(--contrazy-teal)] bg-white text-[var(--contrazy-teal)] shadow-md shadow-emerald-500/20"
+                        : "border-slate-200 bg-white text-muted-foreground"
+                  )}
+                >
+                  {isCompleted ? <Check className="size-3" /> : <Icon className="size-3 sm:size-3.5" />}
+                </motion.div>
+                <span
+                  className={cn(
+                    "hidden max-w-20 truncate text-center text-[10px] font-semibold uppercase tracking-[0.08em] sm:block",
+                    isCurrent
+                      ? "text-foreground"
+                      : isCompleted
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/50"
+                  )}
+                >
+                  {stepLabels[step]}
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Step row — icons only on mobile, icons + labels on sm+ */}
-      <div className="flex items-center justify-between gap-0.5">
-        {steps.map((step, index) => {
-          const Icon = stepIcons[step]
-          const isCompleted = completed.includes(step) || index < currentIndex
-          const isCurrent = index === currentIndex
-
-          return (
-            <div key={step} className="flex flex-1 flex-col items-center gap-1">
-              <motion.div
-                initial={false}
-                animate={{ scale: isCurrent ? 1.08 : 1 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors sm:size-8",
-                  isCompleted
-                    ? "border-(--contrazy-teal) bg-[var(--contrazy-teal)] text-white"
-                    : isCurrent
-                      ? "border-(--contrazy-teal) bg-white text-(--contrazy-teal) shadow-sm dark:bg-card"
-                      : "border-border bg-card text-muted-foreground"
-                )}
-              >
-                {isCompleted ? <Check className="size-3" /> : <Icon className="size-3 sm:size-3.5" />}
-              </motion.div>
-              {/* Label: hidden on xs, visible on sm+ */}
-              <span
-                className={cn(
-                  "hidden text-[10px] font-medium uppercase tracking-wider sm:block",
-                  isCurrent
-                    ? "text-foreground"
-                    : isCompleted
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground/50"
-                )}
-              >
-                {stepLabels[step]}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Current step label on mobile only */}
-      <div className="flex items-center justify-between sm:hidden">
+      <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 sm:hidden">
         <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
           {stepLabels[currentStep]}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
           {currentIndex + 1} / {steps.length}
+          <ArrowRight className="size-3" />
         </span>
       </div>
     </div>

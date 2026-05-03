@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import type { Variants } from "framer-motion"
 import { useRouter } from "next/navigation"
 import type { ContractTemplate, ChecklistTemplate } from "@prisma/client"
 import {
@@ -74,7 +75,9 @@ const STEPS = [
 
 // ── Framer-motion variants ────────────────────────────────────────────────
 
-const slideVariants = {
+const motionEase = [0.25, 0.46, 0.45, 0.94] as const
+
+const slideVariants: Variants = {
   enter: (dir: number) => ({
     x: dir > 0 ? "52%" : "-52%",
     opacity: 0,
@@ -82,12 +85,12 @@ const slideVariants = {
   center: {
     x: 0,
     opacity: 1,
-    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.3, ease: motionEase },
   },
   exit: (dir: number) => ({
     x: dir > 0 ? "-52%" : "52%",
     opacity: 0,
-    transition: { duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.22, ease: motionEase },
   }),
 }
 
@@ -631,7 +634,7 @@ export function TransactionCreationForm({
                     <FileText className="size-3.5 text-muted-foreground" />
                     Required Uploads
                   </Label>
-                  <Select value={checklistId} onValueChange={setChecklistId}>
+                  <Select value={checklistId} onValueChange={(value) => setChecklistId(value ?? "none")}>
                     <SelectTrigger id="checklist">
                       <span className={cn("flex-1 truncate text-sm", checklistId === "none" && "text-muted-foreground")}>{checklistLabel}</span>
                     </SelectTrigger>
@@ -651,7 +654,7 @@ export function TransactionCreationForm({
                     <FileText className="size-3.5 text-muted-foreground" />
                     Contract Template
                   </Label>
-                  <Select value={contractId} onValueChange={setContractId}>
+                  <Select value={contractId} onValueChange={(value) => setContractId(value ?? "none")}>
                     <SelectTrigger id="contract">
                       <span className={cn("flex-1 truncate text-sm", contractId === "none" && "text-muted-foreground")}>{contractLabel}</span>
                     </SelectTrigger>

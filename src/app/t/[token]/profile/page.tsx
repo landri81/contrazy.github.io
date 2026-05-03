@@ -13,11 +13,16 @@ export default async function ClientProfilePage(props: { params: Promise<{ token
   validateClientStep(transaction, 'profile')
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
-      <div>
-        <h2 className="text-2xl font-bold">Your Details</h2>
-        <p className="text-muted-foreground mt-1">
-          Please provide your contact information to proceed.
+    <div className="mx-auto max-w-3xl space-y-5">
+      <div className="rounded-lg border border-white bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur-sm sm:p-6">
+        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+          Step 1 - Contact details
+        </div>
+        <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-foreground">
+          Tell us who is completing this request
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          We use these details to prepare the agreement, payment receipt, and secure transaction updates.
         </p>
       </div>
 

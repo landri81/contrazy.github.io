@@ -52,7 +52,7 @@ export function ClientCancelLinkAction({ token }: { token: string }) {
         type="button"
         variant="outline"
         size="sm"
-        className="border-white/15 bg-white/8 text-white hover:bg-white/12 hover:text-white"
+        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
         onClick={() => setOpen(true)}
       >
         <XCircle className="size-3.5" />
