@@ -35,14 +35,17 @@ export async function POST(
       )
     }
 
-    if (transaction.status === "COMPLETED") {
+    const depositAuth = transaction.depositAuthorization
+
+    if (depositAuth?.status !== "AUTHORIZED") {
       return NextResponse.json(
-        { success: false, message: "Cannot cancel a completed transaction" },
+        {
+          success: false,
+          message: "Only transactions with an active deposit hold can be cancelled from this screen.",
+        },
         { status: 400 }
       )
     }
-
-    const depositAuth = transaction.depositAuthorization
 
     await prisma.$transaction(async (tx) => {
       // Release the Stripe hold if deposit is still authorized

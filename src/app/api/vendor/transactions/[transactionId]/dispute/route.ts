@@ -43,9 +43,19 @@ export async function POST(
       )
     }
 
-    if (transaction.status === "CANCELLED" || transaction.status === "COMPLETED") {
+    if (transaction.status === "CANCELLED") {
       return NextResponse.json(
-        { success: false, message: "Cannot open a dispute on a completed or cancelled transaction" },
+        { success: false, message: "Cannot open a dispute on a cancelled transaction" },
+        { status: 400 }
+      )
+    }
+
+    if (transaction.depositAuthorization?.status !== "AUTHORIZED") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A dispute can only be opened while the deposit hold is still active.",
+        },
         { status: 400 }
       )
     }
