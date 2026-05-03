@@ -94,7 +94,7 @@ export async function PATCH(
       return NextResponse.json({ success: true })
     }
 
-    if (depositAuth.status !== "AUTHORIZED") {
+    if (!depositAuth || depositAuth.status !== "AUTHORIZED") {
       return NextResponse.json({ success: false, message: "Deposit is not in an authorized state" }, { status: 400 })
     }
 
