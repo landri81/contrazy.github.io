@@ -150,9 +150,10 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
       </div>
 
       {transaction.depositAuthorization && (
-        <DepositControlCard 
+        <DepositControlCard
           transactionId={transaction.id}
           depositStatus={transaction.depositAuthorization.status}
+          transactionStatus={transaction.status}
           amount={transaction.depositAuthorization.amount}
           currency={transaction.depositAuthorization.currency}
         />

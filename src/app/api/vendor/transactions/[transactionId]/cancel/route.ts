@@ -70,8 +70,10 @@ export async function POST(
         where: { id: transaction.id },
         data: { status: "CANCELLED" },
       })
+    })
 
-      await recordTransactionEvent(tx, {
+    try {
+      await recordTransactionEvent(prisma, {
         transactionId: transaction.id,
         type: "TRANSACTION_CANCELLED",
         title: "Transaction cancelled",
@@ -80,7 +82,9 @@ export async function POST(
           : "Transaction cancelled.",
         dedupeKey: `event:cancelled:${transaction.id}`,
       })
-    })
+    } catch (eventErr) {
+      console.warn("Cancel event recording failed (run prisma migrate dev):", eventErr)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

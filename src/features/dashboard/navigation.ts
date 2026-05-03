@@ -90,6 +90,12 @@ export const adminNavigation: DashboardNavSection[] = [
     ],
   },
   {
+    label: "Case management",
+    items: [
+      { href: "/admin/disputes", label: "Disputes", icon: "fileClock" },
+    ],
+  },
+  {
     label: "Platform",
     items: [
       { href: "/admin/roles", label: "Access levels", icon: "shield" },

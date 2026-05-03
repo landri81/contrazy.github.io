@@ -15,6 +15,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   Link2,
+  Loader2,
   Logs,
   Mail,
   MapPinned,
@@ -100,11 +101,22 @@ export function DashboardShell({
 
     return window.localStorage.getItem(DASHBOARD_SIDEBAR_STORAGE_KEY) === "1"
   })
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const desktopSidebarWidth = isSidebarCollapsed ? 92 : 264
 
   useEffect(() => {
     window.localStorage.setItem(DASHBOARD_SIDEBAR_STORAGE_KEY, isSidebarCollapsed ? "1" : "0")
   }, [isSidebarCollapsed])
+
+  useEffect(() => {
+    setMobileSheetOpen(false)
+    setPendingHref(null)
+  }, [pathname])
+
+  function handleNavClick(href: string) {
+    if (href !== pathname) setPendingHref(href)
+  }
 
   return (
     <div className="min-h-screen bg-(--contrazy-bg-muted)">
@@ -112,7 +124,7 @@ export function DashboardShell({
         <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
             <div className="lg:hidden">
-              <Sheet>
+              <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
                 <SheetTrigger render={<Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/10 hover:text-white" />}>
                   <Menu className="size-4" />
                 </SheetTrigger>
@@ -123,7 +135,13 @@ export function DashboardShell({
                   <SheetHeader className="border-b border-border">
                     <SheetTitle>Navigation</SheetTitle>
                   </SheetHeader>
-                  <DashboardSidebar navigation={navigation} pathname={pathname} collapsed={false} />
+                  <DashboardSidebar
+                    navigation={navigation}
+                    pathname={pathname}
+                    collapsed={false}
+                    pendingHref={pendingHref}
+                    onNavClick={handleNavClick}
+                  />
                 </SheetContent>
               </Sheet>
             </div>
@@ -155,6 +173,8 @@ export function DashboardShell({
             navigation={navigation}
             pathname={pathname}
             collapsed={isSidebarCollapsed}
+            pendingHref={pendingHref}
+            onNavClick={handleNavClick}
             onToggle={() => setIsSidebarCollapsed((value) => !value)}
           />
         </motion.aside>
@@ -189,11 +209,15 @@ function DashboardSidebar({
   navigation,
   pathname,
   collapsed,
+  pendingHref,
+  onNavClick,
   onToggle,
 }: {
   navigation: DashboardNavSection[]
   pathname: string
   collapsed: boolean
+  pendingHref?: string | null
+  onNavClick?: (href: string) => void
   onToggle?: () => void
 }) {
   return (
@@ -252,6 +276,7 @@ function DashboardSidebar({
               <div className="mt-2 space-y-1">
                 {section.items.map((item) => {
                   const isActive = pathname === item.href || (item.href !== "/vendor" && item.href !== "/admin" && pathname.startsWith(item.href))
+                  const isPending = pendingHref === item.href
                   const Icon = dashboardIcons[item.icon]
 
                   return (
@@ -264,6 +289,7 @@ function DashboardSidebar({
                         href={item.href}
                         title={collapsed ? item.label : undefined}
                         aria-label={item.label}
+                        onClick={() => onNavClick?.(item.href)}
                         className={cn(
                           "flex items-center rounded-xl py-2.5 text-sm transition-all",
                           collapsed ? "justify-center px-0" : "gap-3 px-3",
@@ -272,7 +298,10 @@ function DashboardSidebar({
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >
-                        <Icon className="size-4 shrink-0" />
+                        {isPending
+                          ? <Loader2 className="size-4 shrink-0 animate-spin" />
+                          : <Icon className="size-4 shrink-0" />
+                        }
                         <AnimatePresence initial={false}>
                           {!collapsed ? (
                             <motion.span

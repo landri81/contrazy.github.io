@@ -2254,6 +2254,234 @@ export async function getAdminInvites(
   )
 }
 
+// ── Admin Disputes ────────────────────────────────────────────────────────────
+
+export type AdminDisputeRecord = {
+  id: string
+  transactionId: string
+  reference: string
+  title: string
+  vendorId: string
+  vendorName: string
+  vendorEmail: string
+  clientName: string
+  clientEmail: string
+  depositAmount: string
+  depositCents: number
+  currency: string
+  status: string
+  summary: string
+  openedAt: string
+  resolvedAt: string | null
+  resolution: string | null
+  deadlineAt: string
+  attachmentCount: number
+}
+
+export type AdminDisputeDetailRecord = AdminDisputeRecord & {
+  vendorStripeAccountId: string | null
+  stripeIntentId: string | null
+  transactionKind: string
+  serviceAmount: string
+  documents: {
+    id: string
+    label: string
+    type: string
+    fileName: string | null
+    assetUrl: string
+    uploadedAt: string
+  }[]
+  history: {
+    title: string
+    detail: string | null
+    occurredAt: string
+    pending: boolean
+  }[]
+}
+
+export type AdminDisputeListData = {
+  kpis: SummaryKpi[]
+  disputes: AdminDisputeRecord[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+type AdminDisputeFilters = {
+  q?: string
+  status?: string
+}
+
+function disputeDeadline(openedAt: Date) {
+  const d = new Date(openedAt)
+  d.setDate(d.getDate() + 7)
+  return d
+}
+
+export async function getAdminDisputes(
+  page: number = 1,
+  pageSize: number = 20,
+  filters: AdminDisputeFilters = {}
+): Promise<AdminDisputeListData> {
+  const pagination = resolvePagination({ page, pageSize }, { defaultPageSize: 20, maxPageSize: 100 })
+  const search = normalizeSearchTerm(filters.q)
+  const status = normalizeFilterOptionValue(filters.status, vendorDisputeStatusOptions) as DisputeStatus | undefined
+
+  const where: Prisma.DisputeWhereInput = {
+    ...(status ? { status } : {}),
+    ...(search
+      ? {
+          OR: [
+            { transaction: { reference: containsInsensitive(search) } },
+            { transaction: { title: containsInsensitive(search) } },
+            { transaction: { clientProfile: { fullName: containsInsensitive(search) } } },
+            { transaction: { clientProfile: { email: containsInsensitive(search) } } },
+            { transaction: { vendor: { businessName: containsInsensitive(search) } } },
+          ],
+        }
+      : {}),
+  }
+
+  const [disputes, totalCount, openCount, reviewCount, resolvedCount, lostCount] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.dispute.findMany({
+          where,
+          include: {
+            transaction: {
+              include: {
+                vendor: { select: { id: true, businessName: true, businessEmail: true } },
+                clientProfile: { select: { fullName: true, email: true } },
+                depositAuthorization: { select: { amount: true, currency: true } },
+                documents: { select: { id: true } },
+              },
+            },
+          },
+          orderBy: { openedAt: "desc" },
+          skip: pagination.skip,
+          take: pagination.pageSize,
+        }),
+      []
+    ),
+    safeQuery(() => prisma.dispute.count({ where }), 0),
+    safeQuery(() => prisma.dispute.count({ where: { status: "OPEN" } }), 0),
+    safeQuery(() => prisma.dispute.count({ where: { status: "UNDER_REVIEW" } }), 0),
+    safeQuery(() => prisma.dispute.count({ where: { status: "RESOLVED" } }), 0),
+    safeQuery(() => prisma.dispute.count({ where: { status: "LOST" } }), 0),
+  ])
+
+  const kpis: SummaryKpi[] = [
+    { label: "Total disputes", value: `${totalCount}`, tone: "neutral" },
+    { label: "Open", value: `${openCount}`, tone: openCount > 0 ? "danger" : "neutral", detail: openCount > 0 ? "Awaiting decision" : "None pending" },
+    { label: "Under review", value: `${reviewCount}`, tone: reviewCount > 0 ? "warning" : "neutral" },
+    { label: "Resolved / Lost", value: `${resolvedCount + lostCount}`, tone: "success", detail: `${resolvedCount} resolved · ${lostCount} lost` },
+  ]
+
+  return {
+    kpis,
+    disputes: disputes.map((d) => ({
+      id: d.id,
+      transactionId: d.transactionId,
+      reference: d.transaction.reference,
+      title: d.transaction.title,
+      vendorId: d.transaction.vendorId,
+      vendorName: d.transaction.vendor?.businessName ?? "Unknown vendor",
+      vendorEmail: d.transaction.vendor?.businessEmail ?? "",
+      clientName: d.transaction.clientProfile?.fullName ?? "Unknown client",
+      clientEmail: d.transaction.clientProfile?.email ?? "",
+      depositAmount: formatMoney(d.transaction.depositAuthorization?.amount, d.transaction.depositAuthorization?.currency),
+      depositCents: d.transaction.depositAuthorization?.amount ?? 0,
+      currency: d.transaction.depositAuthorization?.currency ?? "EUR",
+      status: d.status,
+      summary: d.summary,
+      openedAt: formatDate(d.openedAt),
+      resolvedAt: d.resolvedAt ? formatDate(d.resolvedAt) : null,
+      resolution: d.resolution ?? null,
+      deadlineAt: formatDate(disputeDeadline(d.openedAt)),
+      attachmentCount: d.transaction.documents.length,
+    })),
+    totalCount,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    totalPages: Math.max(1, Math.ceil(totalCount / pagination.pageSize)),
+  }
+}
+
+export async function getAdminDisputeDetail(disputeId: string): Promise<AdminDisputeDetailRecord | null> {
+  const d = await safeQuery(
+    () =>
+      prisma.dispute.findUnique({
+        where: { id: disputeId },
+        include: {
+          transaction: {
+            include: {
+              vendor: { select: { id: true, businessName: true, businessEmail: true, stripeAccountId: true } },
+              clientProfile: { select: { fullName: true, email: true } },
+              depositAuthorization: { select: { amount: true, currency: true, stripeIntentId: true } },
+              documents: {
+                orderBy: { uploadedAt: "asc" },
+              },
+              events: {
+                orderBy: { occurredAt: "asc" },
+              },
+            },
+          },
+        },
+      }),
+    null
+  )
+
+  if (!d) return null
+
+  const isPending = d.status === "OPEN" || d.status === "UNDER_REVIEW"
+
+  return {
+    id: d.id,
+    transactionId: d.transactionId,
+    reference: d.transaction.reference,
+    title: d.transaction.title,
+    vendorId: d.transaction.vendorId,
+    vendorName: d.transaction.vendor?.businessName ?? "Unknown vendor",
+    vendorEmail: d.transaction.vendor?.businessEmail ?? "",
+    vendorStripeAccountId: d.transaction.vendor?.stripeAccountId ?? null,
+    clientName: d.transaction.clientProfile?.fullName ?? "Unknown client",
+    clientEmail: d.transaction.clientProfile?.email ?? "",
+    depositAmount: formatMoney(d.transaction.depositAuthorization?.amount, d.transaction.depositAuthorization?.currency),
+    depositCents: d.transaction.depositAuthorization?.amount ?? 0,
+    currency: d.transaction.depositAuthorization?.currency ?? "EUR",
+    stripeIntentId: d.transaction.depositAuthorization?.stripeIntentId ?? null,
+    transactionKind: d.transaction.kind,
+    serviceAmount: formatMoney(d.transaction.amount, d.transaction.currency),
+    status: d.status,
+    summary: d.summary,
+    openedAt: formatDate(d.openedAt),
+    resolvedAt: d.resolvedAt ? formatDate(d.resolvedAt) : null,
+    resolution: d.resolution ?? null,
+    deadlineAt: formatDate(disputeDeadline(d.openedAt)),
+    attachmentCount: d.transaction.documents.length,
+    documents: d.transaction.documents.map((doc) => ({
+      id: doc.id,
+      label: doc.label,
+      type: doc.type,
+      fileName: doc.fileName,
+      assetUrl: doc.assetUrl,
+      uploadedAt: formatDate(doc.uploadedAt),
+    })),
+    history: [
+      ...d.transaction.events.map((ev) => ({
+        title: ev.title,
+        detail: ev.detail ?? null,
+        occurredAt: formatDateTime(ev.occurredAt),
+        pending: false,
+      })),
+      ...(isPending
+        ? [{ title: "⏳ Decision pending", detail: `Deadline: ${formatDate(disputeDeadline(d.openedAt))}`, occurredAt: "", pending: true }]
+        : []),
+    ],
+  }
+}
+
 export async function getAdminLogs(
   page: number = 1,
   pageSize: number = 20,

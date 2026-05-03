@@ -121,6 +121,86 @@ export async function sendCustomerDepositStatusEmail(
   })
 }
 
+export async function sendAdminDisputeAlert(
+  adminEmail: string,
+  vendorName: string,
+  clientName: string,
+  transactionRef: string,
+  summary: string,
+  disputeId: string
+) {
+  return deliverEmail({
+    to: adminEmail,
+    subject: `[Action Required] Dispute opened — ${vendorName}`,
+    html: `
+      <h2>A new dispute requires your review</h2>
+      <table style="border-collapse:collapse;width:100%;font-size:14px">
+        <tr><td style="padding:6px 0;color:#666">Vendor</td><td style="padding:6px 0;font-weight:600">${vendorName}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Client</td><td style="padding:6px 0">${clientName}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Transaction</td><td style="padding:6px 0">${transactionRef}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Dispute ID</td><td style="padding:6px 0;font-family:monospace">${disputeId}</td></tr>
+      </table>
+      <div style="margin:16px 0;padding:12px 16px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px">
+        <p style="margin:0;font-size:14px;color:#92400e"><strong>Vendor's statement:</strong><br/>${summary}</p>
+      </div>
+      <p>The deposit hold remains active until you make a decision.</p>
+      <p>Log in to the admin dashboard to review and resolve this dispute.</p>
+      <br />
+      <p>— Contrazy Platform</p>
+    `,
+  })
+}
+
+export async function sendVendorDisputeResolved(
+  to: string,
+  vendorName: string,
+  clientName: string,
+  outcome: "vendor_wins" | "client_wins",
+  resolution: string
+) {
+  const won = outcome === "vendor_wins"
+
+  return deliverEmail({
+    to,
+    subject: `Dispute resolved — ${won ? "Decision in your favour" : "Decision in client's favour"}`,
+    html: `
+      <h2>Hi ${vendorName},</h2>
+      <p>The dispute regarding your transaction with <strong>${clientName}</strong> has been resolved.</p>
+      <div style="margin:16px 0;padding:12px 16px;background:${won ? "#f0fdf4" : "#fff7ed"};border-left:4px solid ${won ? "#22c55e" : "#f97316"};border-radius:4px">
+        <p style="margin:0;font-size:14px"><strong>Outcome:</strong> ${won ? "Decision in your favour — the deposit has been captured." : "Decision in the client's favour — the deposit has been released."}</p>
+        ${resolution ? `<p style="margin:8px 0 0;font-size:13px;color:#555"><strong>Admin note:</strong> ${resolution}</p>` : ""}
+      </div>
+      <br />
+      <p>— Contrazy Platform</p>
+    `,
+  })
+}
+
+export async function sendClientDisputeResolved(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  outcome: "vendor_wins" | "client_wins",
+  resolution: string
+) {
+  const won = outcome === "client_wins"
+
+  return deliverEmail({
+    to,
+    subject: `Dispute resolved — ${vendorName}`,
+    html: `
+      <h2>Hi ${clientName},</h2>
+      <p>The dispute raised by <strong>${vendorName}</strong> regarding your transaction has been resolved.</p>
+      <div style="margin:16px 0;padding:12px 16px;background:${won ? "#f0fdf4" : "#fff7ed"};border-left:4px solid ${won ? "#22c55e" : "#f97316"};border-radius:4px">
+        <p style="margin:0;font-size:14px"><strong>Outcome:</strong> ${won ? "The deposit hold has been released. No charge was made." : "The vendor's claim was upheld and the deposit was captured."}</p>
+        ${resolution ? `<p style="margin:8px 0 0;font-size:13px;color:#555"><strong>Admin note:</strong> ${resolution}</p>` : ""}
+      </div>
+      <br />
+      <p>— Contrazy Platform</p>
+    `,
+  })
+}
+
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,

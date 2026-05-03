@@ -62,7 +62,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                 </Link>
                 <Link
                   href="/register"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-(--contrazy-teal) px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                 >
                   Essai gratuit 7j
                 </Link>
@@ -125,13 +125,15 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                     </div>
                     <Link
                       href={homePath}
-                      className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
+                      onClick={() => dispatch(setMobileMenuOpen(false))}
+                      className="inline-flex h-9 items-center justify-center rounded-lg bg-(--contrazy-teal) px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                     >
                       Mon espace
                     </Link>
                     {profilePath ? (
                       <Link
                         href={profilePath}
+                        onClick={() => dispatch(setMobileMenuOpen(false))}
                         className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 px-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
                       >
                         Profile
@@ -155,7 +157,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                     </Link>
                     <Link
                       href="/register"
-                      className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
+                      className="inline-flex h-9 items-center justify-center rounded-lg bg-(--contrazy-teal) px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                     >
                       Essai gratuit 7j
                     </Link>

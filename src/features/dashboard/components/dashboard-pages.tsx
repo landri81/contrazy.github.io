@@ -1,12 +1,15 @@
 import Link from "next/link"
 
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
+import { AdminDisputeActions } from "@/features/dashboard/components/admin-dispute-actions"
 import { Card, CardContent } from "@/components/ui/card"
 import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
 import { DepositQuickActions } from "@/features/dashboard/components/deposit-quick-actions"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
 import type {
+  AdminDisputeDetailRecord,
+  AdminDisputeListData,
   AdminInviteListData,
   AdminLogListData,
   AdminSessionListData,
@@ -959,5 +962,221 @@ export function AdminSessionsView({
         emptyMessage="Session activity will appear here as people sign in."
       />
     </PagePanel>
+  )
+}
+
+// ── Admin Disputes ─────────────────────────────────────────────────────────────
+
+export function AdminDisputeListView({
+  data,
+  searchParams,
+}: {
+  data: AdminDisputeListData
+  searchParams?: Record<string, string>
+}) {
+  return (
+    <div className="space-y-6">
+      <KpiGrid items={data.kpis} />
+
+      <PagePanel
+        title="Dispute cases"
+        description="Review vendor disputes. Open each case to capture or release the deposit hold."
+      >
+        <TablePageSection
+          basePath="/admin/disputes"
+          searchValue={searchParams?.q}
+          searchPlaceholder="Search by vendor, client, or transaction reference"
+          filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorDisputeStatusOptions }]}
+          currentPage={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          searchParams={searchParams}
+          columns={["Case", "Vendor", "Client", "Deposit", "Deadline", "Status", "Opened"]}
+          rows={data.disputes.map((d) => [
+            <Link
+              key={`${d.id}-ref`}
+              href={`/admin/disputes/${d.id}`}
+              className="font-medium text-foreground hover:text-(--contrazy-teal)"
+            >
+              ⚖️ {d.reference}
+            </Link>,
+            <div key={`${d.id}-vendor`}>
+              <p className="text-sm font-medium">{d.vendorName}</p>
+              <p className="text-xs text-muted-foreground">{d.vendorEmail}</p>
+            </div>,
+            <div key={`${d.id}-client`}>
+              <p className="text-sm">{d.clientName}</p>
+              <p className="text-xs text-muted-foreground">{d.clientEmail}</p>
+            </div>,
+            <span key={`${d.id}-amount`} className="font-medium tabular-nums">{d.depositAmount}</span>,
+            <span
+              key={`${d.id}-deadline`}
+              className={`text-sm ${d.resolvedAt ? "text-muted-foreground" : "font-medium text-amber-600"}`}
+            >
+              {d.resolvedAt ? "—" : d.deadlineAt}
+            </span>,
+            <StatusBadge key={`${d.id}-status`} tone={getStatusTone(d.status)}>{d.status}</StatusBadge>,
+            d.openedAt,
+          ])}
+          emptyMessage="No disputes have been opened yet."
+        />
+      </PagePanel>
+    </div>
+  )
+}
+
+export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetailRecord }) {
+  const statusTone = getStatusTone(dispute.status)
+  const isPending = dispute.status === "OPEN" || dispute.status === "UNDER_REVIEW"
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      {/* Back link */}
+      <Link href="/admin/disputes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        ← Back to disputes
+      </Link>
+
+      {/* Main card — matches reference design */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {/* Header */}
+          <div className="border-b border-border px-6 py-5">
+            <h2 className="text-lg font-bold tracking-tight">
+              ⚖️ Dispute · {dispute.clientName} · {dispute.reference}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{dispute.summary}</p>
+          </div>
+
+          {/* Info grid — 3 cols */}
+          <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
+            {[
+              { label: "VENDOR", value: dispute.vendorName },
+              { label: "DEPOSIT AMOUNT", value: dispute.depositAmount },
+              {
+                label: "STATUS",
+                value: (
+                  <StatusBadge tone={statusTone}>{dispute.status.replace("_", " ")}</StatusBadge>
+                ),
+              },
+            ].map((cell, i) => (
+              <div
+                key={cell.label}
+                className={`px-6 py-4 ${i < 2 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
+              >
+                <p className="mb-1 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{cell.label}</p>
+                <div className="text-sm font-medium text-foreground">{cell.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Second row — 3 cols */}
+          <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
+            {[
+              { label: "OPENED ON", value: dispute.openedAt },
+              {
+                label: "RESPONSE DEADLINE",
+                value: (
+                  <span className={isPending ? "font-semibold text-amber-600" : "text-foreground"}>
+                    {dispute.deadlineAt}
+                  </span>
+                ),
+              },
+              {
+                label: "ATTACHMENTS",
+                value: `${dispute.attachmentCount} file${dispute.attachmentCount !== 1 ? "s" : ""}`,
+              },
+            ].map((cell, i) => (
+              <div
+                key={cell.label}
+                className={`px-6 py-4 ${i < 2 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
+              >
+                <p className="mb-1 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{cell.label}</p>
+                <div className="text-sm font-medium text-foreground">{cell.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Resolution note if present */}
+          {dispute.resolution && (
+            <div className="border-b border-border px-6 py-4 bg-muted/30">
+              <p className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase mb-1">Admin resolution note</p>
+              <p className="text-sm text-foreground">{dispute.resolution}</p>
+              {dispute.resolvedAt && (
+                <p className="mt-1 text-xs text-muted-foreground">Resolved on {dispute.resolvedAt}</p>
+              )}
+            </div>
+          )}
+
+          {/* Supporting documents */}
+          <div className="border-b border-border px-6 py-5">
+            <p className="mb-3 text-sm font-semibold">📎 Supporting documents</p>
+            {dispute.documents.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {dispute.documents.map((doc) => (
+                  <a
+                    key={doc.id}
+                    href={doc.assetUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[13px] text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:bg-(--contrazy-teal)/5"
+                  >
+                    <span className="text-[15px]">{doc.type === "PHOTO" ? "🖼" : "📄"}</span>
+                    {doc.fileName ?? doc.label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No documents uploaded for this transaction.</p>
+            )}
+          </div>
+
+          {/* History timeline */}
+          <div className="border-b border-border px-6 py-5">
+            <p className="mb-4 text-sm font-semibold">🕓 History</p>
+            <ol className="space-y-4">
+              {dispute.history.map((ev, i) => (
+                <li key={i} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={`mt-0.5 size-2.5 shrink-0 rounded-full ${ev.pending ? "bg-muted-foreground/40" : "bg-(--contrazy-teal)"}`}
+                    />
+                    {i < dispute.history.length - 1 && (
+                      <div className="mt-1 w-px flex-1 bg-border" />
+                    )}
+                  </div>
+                  <div className="pb-2">
+                    <p className={`text-sm font-medium ${ev.pending ? "text-amber-600" : "text-foreground"}`}>{ev.title}</p>
+                    {ev.occurredAt && (
+                      <p className="text-xs text-muted-foreground">{ev.occurredAt}</p>
+                    )}
+                    {ev.detail && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{ev.detail}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Action buttons */}
+          <div className="px-6 py-5">
+            <AdminDisputeActions disputeId={dispute.id} status={dispute.status} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Linked transaction quick link */}
+      <div className="text-sm text-muted-foreground">
+        Transaction:{" "}
+        <Link
+          href={`/vendor/transactions/${dispute.transactionId}`}
+          className="font-medium text-(--contrazy-teal) hover:underline"
+        >
+          {dispute.reference} — {dispute.title}
+        </Link>
+        {" · "}{dispute.vendorName}
+      </div>
+    </div>
   )
 }

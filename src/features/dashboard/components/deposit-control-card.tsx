@@ -39,11 +39,13 @@ function fmt(cents: number, currency: string) {
 export function DepositControlCard({
   transactionId,
   depositStatus,
+  transactionStatus,
   amount,
   currency,
 }: {
   transactionId: string
   depositStatus: string
+  transactionStatus?: string
   amount: number
   currency: string
 }) {
@@ -169,6 +171,22 @@ export function DepositControlCard({
   }
 
   // ── Terminal states ──────────────────────────────────────────────────────────
+
+  if (transactionStatus === "DISPUTED") {
+    return (
+      <Card className="border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-900/10">
+        <CardContent className="flex items-center gap-3 pt-6">
+          <Flag className="size-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold text-amber-900 dark:text-amber-300">Dispute in progress</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              The deposit hold is frozen while the platform reviews the dispute. Capture and release are disabled until a decision is made.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (depositStatus === "RELEASED") {
     return (

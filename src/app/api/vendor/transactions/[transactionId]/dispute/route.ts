@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { sendAdminDisputeAlert } from "@/lib/integrations/resend"
+import { env } from "@/lib/env"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -29,7 +31,7 @@ export async function POST(
 
     const transaction = await prisma.transaction.findFirst({
       where: { id: transactionId, vendorId: vendorProfile.id },
-      include: { depositAuthorization: true, dispute: true },
+      include: { depositAuthorization: true, dispute: true, clientProfile: true },
     })
 
     if (!transaction) {
@@ -74,15 +76,34 @@ export async function POST(
         where: { id: transaction.id },
         data: { status: "DISPUTED" },
       })
+    })
 
-      await recordTransactionEvent(tx, {
+    const createdDispute = await prisma.dispute.findUnique({ where: { transactionId: transaction.id } })
+
+    try {
+      await recordTransactionEvent(prisma, {
         transactionId: transaction.id,
         type: "DISPUTE_OPENED",
-        title: "Dispute opened",
+        title: "Dispute opened by vendor",
         detail: summary.trim().slice(0, 200),
         dedupeKey: `event:dispute-opened:${transaction.id}`,
       })
-    })
+    } catch (eventErr) {
+      console.warn("Dispute event recording failed (run prisma migrate dev):", eventErr)
+    }
+
+    try {
+      await sendAdminDisputeAlert(
+        env.SUPER_ADMIN_EMAIL,
+        vendorProfile.businessName ?? "Unknown vendor",
+        transaction.clientProfile?.fullName ?? "Unknown client",
+        transaction.reference,
+        summary.trim(),
+        createdDispute?.id ?? transaction.id
+      )
+    } catch (emailErr) {
+      console.warn("Admin dispute alert email failed:", emailErr)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
