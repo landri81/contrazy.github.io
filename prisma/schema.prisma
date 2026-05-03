@@ -84,6 +84,20 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum TransactionLinkStatus {
+  ACTIVE
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionLinkActor {
+  VENDOR
+  CLIENT
+  ADMIN
+  SYSTEM
+}
+
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
@@ -113,6 +127,8 @@ enum AuditActorType {
 enum TransactionEventType {
   LINK_CREATED
   LINK_OPENED
+  LINK_UPDATED
+  LINK_CANCELLED
   PROFILE_SUBMITTED
   DOCUMENTS_SUBMITTED
   KYC_STARTED
@@ -125,6 +141,8 @@ enum TransactionEventType {
   DEPOSIT_AUTHORIZED
   DEPOSIT_CAPTURED
   DEPOSIT_RELEASED
+  DISPUTE_OPENED
+  TRANSACTION_CANCELLED
   COMPLETED
   EMAIL_SENT
   WEBHOOK_PROCESSED
@@ -257,6 +275,7 @@ model Transaction {
   depositAuthorization DepositAuthorization?
   dispute            Dispute?
   events             TransactionEvent[]
+  webhookEvents      WebhookEvent[]
 
   @@index([vendorId, createdAt])
   @@index([status])
@@ -268,11 +287,17 @@ model TransactionLink {
   token         String      @unique
   shortCode     String?     @unique
   qrCodeSvg     String?     @db.Text
+  status        TransactionLinkStatus @default(ACTIVE)
   expiresAt     DateTime?
   openedAt      DateTime?
   completedAt   DateTime?
+  cancelledAt   DateTime?
+  cancelReason  String?     @db.Text
+  cancelledBy   TransactionLinkActor?
   createdAt     DateTime    @default(now())
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
 }
 
 model TransactionRequirement {
@@ -317,16 +342,17 @@ model KycVerification {
 }
 
 model SignatureRecord {
-  id            String          @id @default(cuid())
-  transactionId String          @unique
-  status        SignatureStatus @default(PENDING)
-  signerName    String?
-  signerEmail   String?
-  method        String?         @default("Built-in OTP")
-  ipAddress     String?
-  signedAt      DateTime?
-  createdAt     DateTime        @default(now())
-  transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id               String          @id @default(cuid())
+  transactionId    String          @unique
+  status           SignatureStatus @default(PENDING)
+  signerName       String?
+  signerEmail      String?
+  method           String?         @default("Canvas Signature")
+  signatureDataUrl String?         @db.Text
+  ipAddress        String?
+  signedAt         DateTime?
+  createdAt        DateTime        @default(now())
+  transaction      Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
@@ -400,16 +426,24 @@ model AuditLog {
 }
 
 model WebhookEvent {
-  id         String        @id @default(cuid())
-  vendorId   String?
-  provider   String
-  eventType  String
-  status     WebhookStatus @default(RECEIVED)
-  payload    Json?
-  createdAt  DateTime      @default(now())
-  vendor     VendorProfile? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  id              String        @id @default(cuid())
+  vendorId        String?
+  transactionId   String?
+  provider        String
+  providerEventId String?
+  eventType       String
+  status          WebhookStatus @default(RECEIVED)
+  error           String?       @db.Text
+  payload         Json?
+  createdAt       DateTime      @default(now())
+  vendor          VendorProfile? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  transaction     Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   @@index([provider, eventType])
+  @@index([vendorId, createdAt])
+  @@index([transactionId])
+  @@index([status, createdAt])
+  @@unique([provider, providerEventId])
 }
 
 model TransactionEvent {

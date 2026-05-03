@@ -35,11 +35,13 @@ const DIAL_CODE_COUNTRIES = getCountries()
 type PhoneInputProps = {
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   id?: string
   className?: string
+  invalid?: boolean
 }
 
-export function PhoneInput({ value, onChange, id, className }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, onBlur, id, className, invalid }: PhoneInputProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -126,9 +128,10 @@ export function PhoneInput({ value, onChange, id, className }: PhoneInputProps) 
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "flex h-8 shrink-0 items-center gap-1.5 rounded-l-lg border border-r-0 border-input bg-muted px-2.5 text-sm",
+          "flex h-9 shrink-0 items-center gap-1.5 rounded-l-lg border border-r-0 border-input bg-muted px-2.5 text-sm",
           "transition-colors hover:bg-muted/80 focus:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-          open && "border-ring ring-3 ring-ring/50"
+          open && "border-ring ring-3 ring-ring/50",
+          invalid && "border-destructive"
         )}
       >
         <span className="text-base leading-none">{selectedCountryData?.flag}</span>
@@ -149,10 +152,12 @@ export function PhoneInput({ value, onChange, id, className }: PhoneInputProps) 
         placeholder="Enter phone number"
         value={displayValue}
         onChange={handleNumberChange}
+        onBlur={onBlur}
         className={cn(
-          "flex h-8 min-w-0 flex-1 rounded-r-lg border border-input bg-background px-3 py-1.5 text-sm shadow-xs outline-none",
+          "flex h-9 min-w-0 flex-1 rounded-r-lg border border-input bg-background px-3 py-1.5 text-sm shadow-xs outline-none",
           "placeholder:text-muted-foreground",
-          "transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          "transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          invalid && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
         )}
       />
 

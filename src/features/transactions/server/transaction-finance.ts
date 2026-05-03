@@ -14,7 +14,9 @@ import {
 import type Stripe from "stripe"
 
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { markTransactionLinkCompleted } from "@/features/transactions/server/transaction-links"
 import {
+  sendCustomerDepositStatusEmail,
   sendTransactionCompletedEmail,
   sendVendorDepositAlert,
   sendVendorDepositStatusEmail,
@@ -61,12 +63,13 @@ export function getNextFinanceStage(transaction: FinanceTransaction): FinanceSta
     return "complete"
   }
 
-  if (needsServicePayment && !hasSuccessfulServicePayment(transaction)) {
-    return "service_payment"
-  }
-
+  // Deposit authorization always comes first (Az's flow: deposit → then service payment)
   if (needsDepositAuthorization && !hasAuthorizedDeposit(transaction)) {
     return "deposit_authorization"
+  }
+
+  if (needsServicePayment && !hasSuccessfulServicePayment(transaction)) {
+    return "service_payment"
   }
 
   return "complete"
@@ -131,9 +134,9 @@ async function markTransactionCompleted(db: DatabaseClient, transaction: Finance
   }
 
   if (transaction.link && !transaction.link.completedAt) {
-    await db.transactionLink.update({
-      where: { id: transaction.link.id },
-      data: { completedAt: new Date() },
+    await markTransactionLinkCompleted(db, {
+      linkId: transaction.link.id,
+      transactionId: transaction.id,
     })
   }
 
@@ -313,32 +316,91 @@ export async function upsertDepositAuthorization(
   })
 }
 
+export async function upsertServicePaymentFromIntent(
+  db: DatabaseClient,
+  transactionId: string,
+  intent: Stripe.PaymentIntent
+) {
+  const amount = intent.amount
+  const currency = intent.currency.toUpperCase()
+  const paymentIntentId = intent.id
+
+  await db.payment.upsert({
+    where: { transactionId_kind: { transactionId, kind: PaymentKind.SERVICE_PAYMENT } },
+    update: { status: PaymentStatus.SUCCEEDED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
+    create: { transactionId, kind: PaymentKind.SERVICE_PAYMENT, status: PaymentStatus.SUCCEEDED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
+  })
+
+  await recordTransactionEvent(db, {
+    transactionId,
+    type: "SERVICE_PAYMENT_SUCCEEDED",
+    title: "Service payment collected",
+    detail: `${currency} ${(amount / 100).toFixed(2)} captured successfully.`,
+    dedupeKey: `event:service-payment:${transactionId}:${paymentIntentId}`,
+  })
+}
+
+export async function upsertDepositAuthorizationFromIntent(
+  db: DatabaseClient,
+  transactionId: string,
+  intent: Stripe.PaymentIntent
+) {
+  const amount = intent.amount
+  const currency = intent.currency.toUpperCase()
+  const paymentIntentId = intent.id
+
+  await db.depositAuthorization.upsert({
+    where: { transactionId },
+    update: { status: PaymentStatus.AUTHORIZED, amount, currency, stripeIntentId: paymentIntentId, authorizedAt: new Date() },
+    create: { transactionId, status: PaymentStatus.AUTHORIZED, amount, currency, stripeIntentId: paymentIntentId, authorizedAt: new Date() },
+  })
+
+  await db.payment.upsert({
+    where: { transactionId_kind: { transactionId, kind: PaymentKind.DEPOSIT_AUTHORIZATION } },
+    update: { status: PaymentStatus.AUTHORIZED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
+    create: { transactionId, kind: PaymentKind.DEPOSIT_AUTHORIZATION, status: PaymentStatus.AUTHORIZED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
+  })
+
+  await recordTransactionEvent(db, {
+    transactionId,
+    type: "DEPOSIT_AUTHORIZED",
+    title: "Deposit hold authorized",
+    detail: `${currency} ${(amount / 100).toFixed(2)} placed on hold.`,
+    dedupeKey: `event:deposit-authorized:${transactionId}:${paymentIntentId}`,
+  })
+}
+
 export async function recordDepositOutcome(
   db: DatabaseClient,
   {
     transactionId,
     amount,
+    actualAmount,
     currency,
     stripeIntentId,
     action,
     vendorBusinessEmail,
     vendorBusinessName,
     clientFullName,
+    clientEmail,
   }: {
     transactionId: string
     amount: number
+    actualAmount?: number
     currency: string
     stripeIntentId: string
     action: "release" | "capture"
     vendorBusinessEmail?: string | null
     vendorBusinessName?: string | null
     clientFullName?: string | null
+    clientEmail?: string | null
   }
 ) {
   const paymentKind = action === "capture" ? PaymentKind.DEPOSIT_CAPTURE : PaymentKind.DEPOSIT_RELEASE
   const paymentStatus = action === "capture" ? PaymentStatus.CAPTURED : PaymentStatus.RELEASED
   const eventType = action === "capture" ? "DEPOSIT_CAPTURED" : "DEPOSIT_RELEASED"
   const title = action === "capture" ? "Deposit captured" : "Deposit released"
+  const recordedAmount = actualAmount ?? amount
 
   await db.payment.upsert({
     where: {
@@ -349,7 +411,7 @@ export async function recordDepositOutcome(
     },
     update: {
       status: paymentStatus,
-      amount,
+      amount: recordedAmount,
       currency,
       stripeIntentId,
       processedAt: new Date(),
@@ -358,7 +420,7 @@ export async function recordDepositOutcome(
       transactionId,
       kind: paymentKind,
       status: paymentStatus,
-      amount,
+      amount: recordedAmount,
       currency,
       stripeIntentId,
       processedAt: new Date(),
@@ -369,7 +431,7 @@ export async function recordDepositOutcome(
     transactionId,
     type: eventType,
     title,
-    detail: `${currency} ${(amount / 100).toFixed(2)} ${action === "capture" ? "converted into a charge" : "released back to the client"}.`,
+    detail: `${currency} ${(recordedAmount / 100).toFixed(2)} ${action === "capture" ? "converted into a charge" : "released back to the client"}.`,
     dedupeKey: `event:deposit-${action}:${transactionId}:${stripeIntentId}`,
   })
 
@@ -378,7 +440,8 @@ export async function recordDepositOutcome(
       vendorBusinessEmail,
       vendorBusinessName ?? "Vendor",
       clientFullName,
-      amount,
+      recordedAmount,
+      currency,
       action === "capture" ? "captured" : "released"
     )
 
@@ -388,6 +451,26 @@ export async function recordDepositOutcome(
         transactionId,
         `email:deposit-${action}:${transactionId}:${vendorBusinessEmail.toLowerCase()}`,
         `Deposit ${action} notice sent to ${vendorBusinessEmail}.`
+      )
+    }
+  }
+
+  if (clientEmail) {
+    const sent = await sendCustomerDepositStatusEmail(
+      clientEmail,
+      clientFullName ?? "Customer",
+      vendorBusinessName ?? "Vendor",
+      recordedAmount,
+      currency,
+      action === "capture" ? "captured" : "released"
+    )
+
+    if (sent) {
+      await recordEmailSentEvent(
+        db,
+        transactionId,
+        `email:deposit-${action}:customer:${transactionId}:${clientEmail.toLowerCase()}`,
+        `Deposit ${action} notice sent to ${clientEmail}.`
       )
     }
   }

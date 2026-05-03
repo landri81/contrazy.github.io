@@ -7,8 +7,8 @@ import { getRoleHomePath } from "@/lib/auth/pathing"
 import { getAuthSession } from "@/lib/auth/session"
 
 export const metadata: Metadata = {
-  title: "Login | Conntrazy",
-  description: "Sign in to Conntrazy vendor, admin, or super admin account.",
+  title: "Connexion | Contrazy",
+  description: "Accédez à votre espace vendeur Contrazy.",
 }
 
 export default async function LoginPage() {
@@ -20,8 +20,8 @@ export default async function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to continue with your business setup, customer workflows, and account review."
+      title="Connexion"
+      subtitle="Accédez à votre espace vendeur"
     >
       <LoginForm />
     </AuthLayout>

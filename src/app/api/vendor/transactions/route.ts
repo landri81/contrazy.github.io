@@ -2,8 +2,9 @@ import { randomBytes } from "crypto"
 
 import { NextResponse } from "next/server"
 import QRCode from "qrcode"
-import { StripeConnectionStatus } from "@prisma/client"
+import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 
+import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
@@ -148,9 +149,18 @@ export async function POST(request: Request) {
     const secureLink = `${baseUrl}/t/${token}`
     const qrCodeSvg = await QRCode.toString(secureLink, { type: "svg", margin: 1 })
 
-    let kind: "PAYMENT" | "DEPOSIT" | "HYBRID" = "HYBRID"
-    if (normalizedAmount && !normalizedDepositAmount) kind = "PAYMENT"
-    if (!normalizedAmount && normalizedDepositAmount) kind = "DEPOSIT"
+    // A financial amount is mandatory
+    if (!normalizedAmount && !normalizedDepositAmount) {
+      return NextResponse.json(
+        { success: false, message: "A service payment amount or deposit hold amount is required." },
+        { status: 422 }
+      )
+    }
+
+    let kind: "PAYMENT" | "DEPOSIT" | "HYBRID"
+    if (normalizedAmount && normalizedDepositAmount) kind = "HYBRID"
+    else if (normalizedDepositAmount) kind = "DEPOSIT"
+    else kind = "PAYMENT" // covers service-payment-only and doc-only flows
 
     const transaction = await prisma.$transaction(async (tx) => {
       const newTransaction = await tx.transaction.create({
@@ -175,6 +185,7 @@ export async function POST(request: Request) {
           token,
           shortCode: randomBytes(3).toString("hex").toUpperCase(),
           qrCodeSvg,
+          status: TransactionLinkStatus.ACTIVE,
         },
       })
 
@@ -201,7 +212,25 @@ export async function POST(request: Request) {
       return { ...newTransaction, link }
     })
 
-    return NextResponse.json(transaction, { status: 201 })
+    return NextResponse.json(
+      {
+        ...transaction,
+        linkRecord: buildVendorLinkRecord({
+          id: transaction.id,
+          reference: transaction.reference,
+          title: transaction.title,
+          kind: transaction.kind,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          currency: transaction.currency,
+          notes: transaction.notes,
+          updatedAt: transaction.updatedAt,
+          clientProfile: null,
+          link: transaction.link,
+        }),
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error("Create Transaction Error:", error)
     return NextResponse.json({ success: false, message: "Failed to create transaction" }, { status: 500 })

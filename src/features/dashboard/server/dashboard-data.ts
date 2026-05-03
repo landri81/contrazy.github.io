@@ -8,6 +8,7 @@ import {
   SignatureStatus,
   StripeConnectionStatus,
   TransactionKind,
+  TransactionLinkStatus,
   TransactionStatus,
   UserRole,
   VendorStatus,
@@ -32,6 +33,7 @@ import {
   vendorTransactionStatusOptions,
   vendorWebhookStatusOptions,
 } from "@/features/dashboard/filter-options"
+import { getStatusTone as getStatusToneValue } from "@/features/dashboard/lib/status-tone"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
@@ -63,6 +65,51 @@ export type TransactionRecord = {
   date: string
 }
 
+export type VendorLinkRecord = {
+  id: string
+  transactionId: string
+  reference: string
+  clientName: string
+  clientEmail: string
+  title: string
+  kind: string
+  serviceAmount: string
+  depositAmount: string
+  shareLink: string
+  shortCode: string
+  lastActivity: string
+  status: string
+  notes: string
+  expiresAt: string | null
+  expiresAtLabel: string
+  cancelledAtLabel: string | null
+  cancelReason: string | null
+  cancelledBy: string | null
+  canEdit: boolean
+  canCancel: boolean
+}
+
+export type VendorDepositRecord = {
+  transactionId: string
+  client: string
+  reference: string
+  amount: string
+  amountCents: number
+  currency: string
+  status: string
+  date: string
+  canManage: boolean
+}
+
+export type VendorWebhookRecord = {
+  provider: string
+  eventType: string
+  status: string
+  date: string
+  reference: string
+  error: string | null
+}
+
 export type WorkspaceRecord = {
   summary: {
     fullName: string
@@ -90,12 +137,12 @@ export type WorkspaceRecord = {
   checklistTemplates: { title: string; description: string; tag?: string; meta?: string }[]
   kycCases: { client: string; reference: string; status: string; provider: string; note: string }[]
   signatures: { signer: string; reference: string; status: string; template: string; date: string }[]
-  deposits: { client: string; reference: string; amount: string; status: string; date: string }[]
+  deposits: VendorDepositRecord[]
   payments: { client: string; reference: string; amount: string; status: string; date: string }[]
   disputes: { client: string; reference: string; status: string; summary: string }[]
   clients: { name: string; email: string; status: string; lastTransaction: string }[]
-  links: { reference: string; shareLink: string; shortCode: string; qrStatus: string; state: string }[]
-  webhooks: { provider: string; eventType: string; status: string; date: string }[]
+  links: VendorLinkRecord[]
+  webhooks: VendorWebhookRecord[]
 }
 
 export type TransactionDetailRecord = {
@@ -197,12 +244,12 @@ export type PaginatedResult<T> = {
 export type VendorTransactionsData = PaginatedResult<TransactionRecord>
 export type VendorKycListData = PaginatedResult<WorkspaceRecord["kycCases"][number]>
 export type VendorSignatureListData = PaginatedResult<WorkspaceRecord["signatures"][number]>
-export type VendorDepositListData = PaginatedResult<WorkspaceRecord["deposits"][number]>
+export type VendorDepositListData = PaginatedResult<VendorDepositRecord>
 export type VendorPaymentListData = PaginatedResult<WorkspaceRecord["payments"][number]>
 export type VendorDisputeListData = PaginatedResult<WorkspaceRecord["disputes"][number]>
 export type VendorClientListData = PaginatedResult<WorkspaceRecord["clients"][number]>
 export type VendorLinkListData = PaginatedResult<WorkspaceRecord["links"][number]>
-export type VendorWebhookListData = PaginatedResult<WorkspaceRecord["webhooks"][number]>
+export type VendorWebhookListData = PaginatedResult<VendorWebhookRecord>
 export type AdminInviteListData = PaginatedResult<AdminWorkspaceRecord["invites"][number]>
 export type AdminLogListData = PaginatedResult<AdminWorkspaceRecord["logs"][number]>
 export type AdminSessionListData = PaginatedResult<AdminWorkspaceRecord["sessions"][number]>
@@ -221,6 +268,7 @@ type TransactionFilters = StatusFilters & {
 
 type LinkFilters = SearchOnlyFilters & {
   state?: string
+  kind?: string
 }
 
 type AdminUserFilters = SearchOnlyFilters & {
@@ -323,37 +371,75 @@ function getProfileCompletion(profile: {
   return Math.round((filled / total) * 100)
 }
 
-function mapToneFromStatus(status: string): AlertRecord["tone"] {
-  const normalized = status.toLowerCase()
+type VendorLinkSource = {
+  id: string
+  reference: string
+  title: string
+  kind: TransactionKind | string
+  amount: number | null
+  depositAmount: number | null
+  currency: string
+  notes: string | null
+  updatedAt: Date
+  clientProfile?: {
+    fullName: string
+    email: string
+  } | null
+  link?: {
+    id: string
+    token: string
+    shortCode: string | null
+    status: TransactionLinkStatus
+    createdAt: Date
+    openedAt: Date | null
+    completedAt: Date | null
+    expiresAt: Date | null
+    cancelledAt: Date | null
+    cancelReason: string | null
+    cancelledBy: string | null
+  } | null
+}
 
-  if (normalized.includes("not_connected") || normalized.includes("not connected")) {
-    return "warning"
+function getLinkLastActivityDate(transaction: VendorLinkSource) {
+  const activityDates = [
+    transaction.link?.cancelledAt,
+    transaction.link?.completedAt,
+    transaction.updatedAt,
+    transaction.link?.openedAt,
+    transaction.link?.createdAt,
+  ].filter((value): value is Date => Boolean(value))
+
+  return activityDates.sort((left, right) => right.getTime() - left.getTime())[0] ?? null
+}
+
+export function buildVendorLinkRecord(transaction: VendorLinkSource): VendorLinkRecord {
+  const shareLink = transaction.link?.token ? `${getAppBaseUrl()}/t/${transaction.link.token}` : ""
+  const lastActivity = getLinkLastActivityDate(transaction)
+  const status = transaction.link?.status ?? TransactionLinkStatus.ACTIVE
+
+  return {
+    id: transaction.link?.id ?? transaction.id,
+    transactionId: transaction.id,
+    reference: transaction.reference,
+    clientName: transaction.clientProfile?.fullName ?? "Client pending",
+    clientEmail: transaction.clientProfile?.email ?? "No email",
+    title: transaction.title,
+    kind: String(transaction.kind),
+    serviceAmount: formatMoney(transaction.amount, transaction.currency),
+    depositAmount: formatMoney(transaction.depositAmount, transaction.currency),
+    shareLink,
+    shortCode: transaction.link?.shortCode ?? "Not set",
+    lastActivity: formatDateTime(lastActivity),
+    status,
+    notes: transaction.notes ?? "",
+    expiresAt: transaction.link?.expiresAt?.toISOString() ?? null,
+    expiresAtLabel: transaction.link?.expiresAt ? formatDateTime(transaction.link.expiresAt) : "No expiry",
+    cancelledAtLabel: transaction.link?.cancelledAt ? formatDateTime(transaction.link.cancelledAt) : null,
+    cancelReason: transaction.link?.cancelReason ?? null,
+    cancelledBy: transaction.link?.cancelledBy ?? null,
+    canEdit: status === TransactionLinkStatus.ACTIVE,
+    canCancel: status === TransactionLinkStatus.ACTIVE || status === TransactionLinkStatus.PROCESSING,
   }
-
-  if (normalized.includes("fail") || normalized.includes("reject") || normalized.includes("open") || normalized.includes("suspend")) {
-    return "danger"
-  }
-
-  if (normalized.includes("pending") || normalized.includes("wait")) {
-    return "warning"
-  }
-
-  if (
-    normalized.includes("connect") ||
-    normalized.includes("verify") ||
-    normalized.includes("success") ||
-    normalized.includes("approve") ||
-    normalized.includes("signed") ||
-    normalized.includes("complete") ||
-    normalized.includes("active") ||
-    normalized.includes("processed") ||
-    normalized.includes("captured") ||
-    normalized.includes("released")
-  ) {
-    return "success"
-  }
-
-  return "neutral"
 }
 
 async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
@@ -471,8 +557,8 @@ function buildVendorKpis(args: {
 }) {
   return [
     { label: "Business profile", value: `${args.profileCompletion}%`, detail: "Setup progress", tone: "info" as const },
-    { label: "Review status", value: args.reviewStatus.replaceAll("_", " "), detail: "Account review", tone: mapToneFromStatus(args.reviewStatus) },
-    { label: "Payout setup", value: args.stripeConnectionStatus.replaceAll("_", " "), detail: "Payment readiness", tone: mapToneFromStatus(args.stripeConnectionStatus) },
+    { label: "Review status", value: args.reviewStatus.replaceAll("_", " "), detail: "Account review", tone: getStatusToneValue(args.reviewStatus) },
+    { label: "Payout setup", value: args.stripeConnectionStatus.replaceAll("_", " "), detail: "Payment readiness", tone: getStatusToneValue(args.stripeConnectionStatus) },
     { label: "Customers tracked", value: `${args.clientCount}`, detail: args.transactionCount > 0 ? `${args.transactionCount} active workflows` : "No workflows yet", tone: "neutral" as const },
   ]
 }
@@ -723,6 +809,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
       () =>
         prisma.webhookEvent.findMany({
           where: { vendorId },
+          include: { transaction: { select: { reference: true } } },
           orderBy: { createdAt: "desc" },
           take: 10,
         }),
@@ -808,15 +895,19 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     deposits: transactions
       .filter((transaction) => transaction.depositAuthorization)
       .map((transaction) => ({
+        transactionId: transaction.id,
         client: transaction.clientProfile?.fullName ?? "Client pending",
         reference: transaction.reference,
         amount: formatMoney(transaction.depositAuthorization?.amount, transaction.depositAuthorization?.currency ?? transaction.currency),
+        amountCents: transaction.depositAuthorization?.amount ?? 0,
+        currency: transaction.depositAuthorization?.currency ?? transaction.currency,
         status: transaction.depositAuthorization?.status ?? "PENDING",
         date: formatDateTime(
           transaction.depositAuthorization?.capturedAt ??
             transaction.depositAuthorization?.releasedAt ??
             transaction.depositAuthorization?.authorizedAt
         ),
+        canManage: transaction.depositAuthorization?.status === PaymentStatus.AUTHORIZED,
       })),
     payments: transactions.flatMap((transaction) =>
       transaction.payments
@@ -845,18 +936,47 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     })),
     links: transactions
       .filter((transaction) => transaction.link)
-      .map((transaction) => ({
-        reference: transaction.reference,
-        shareLink: `${getAppBaseUrl()}/t/${transaction.link?.token ?? ""}`,
-        shortCode: transaction.link?.shortCode ?? "Not set",
-        qrStatus: transaction.link?.qrCodeSvg ? "Ready" : "Unavailable",
-        state: transaction.link?.completedAt ? "Completed" : transaction.link?.openedAt ? "Opened" : "Issued",
-      })),
+      .map((transaction) =>
+        buildVendorLinkRecord({
+          id: transaction.id,
+          reference: transaction.reference,
+          title: transaction.title,
+          kind: transaction.kind,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          currency: transaction.currency,
+          notes: transaction.notes,
+          updatedAt: transaction.updatedAt,
+          clientProfile: transaction.clientProfile
+            ? {
+                fullName: transaction.clientProfile.fullName,
+                email: transaction.clientProfile.email,
+              }
+            : null,
+          link: transaction.link
+            ? {
+                id: transaction.link.id,
+                token: transaction.link.token,
+                shortCode: transaction.link.shortCode,
+                status: transaction.link.status,
+                createdAt: transaction.link.createdAt,
+                openedAt: transaction.link.openedAt,
+                completedAt: transaction.link.completedAt,
+                expiresAt: transaction.link.expiresAt,
+                cancelledAt: transaction.link.cancelledAt,
+                cancelReason: transaction.link.cancelReason,
+                cancelledBy: transaction.link.cancelledBy,
+              }
+            : null,
+        })
+      ),
     webhooks: webhooks.map((webhook) => ({
       provider: webhook.provider,
       eventType: webhook.eventType,
       status: webhook.status,
       date: formatDateTime(webhook.createdAt),
+      reference: webhook.transaction?.reference ?? "Platform event",
+      error: webhook.error,
     })),
   }
 }
@@ -1145,18 +1265,22 @@ export async function getVendorDepositsPageData(
 
   return buildPaginatedResult(
     transactions.map((transaction) => ({
+      transactionId: transaction.id,
       client: transaction.clientProfile?.fullName ?? "Client pending",
       reference: transaction.reference,
       amount: formatMoney(
         transaction.depositAuthorization?.amount,
         transaction.depositAuthorization?.currency ?? transaction.currency
       ),
+      amountCents: transaction.depositAuthorization?.amount ?? 0,
+      currency: transaction.depositAuthorization?.currency ?? transaction.currency,
       status: transaction.depositAuthorization?.status ?? "PENDING",
       date: formatDateTime(
         transaction.depositAuthorization?.capturedAt ??
           transaction.depositAuthorization?.releasedAt ??
           transaction.depositAuthorization?.authorizedAt
       ),
+      canManage: transaction.depositAuthorization?.status === PaymentStatus.AUTHORIZED,
     })),
     totalCount,
     pagination.page,
@@ -1404,23 +1528,19 @@ export async function getVendorLinksPageData(
   }
 
   const search = normalizeSearchTerm(filters.q)
-  const state = normalizeFilterOptionValue(filters.state, vendorLinkStateOptions)
-  const linkFilter: Prisma.TransactionLinkNullableScalarRelationFilter =
-    state === "COMPLETED"
-      ? { is: { completedAt: { not: null } } }
-      : state === "OPENED"
-        ? { is: { completedAt: null, openedAt: { not: null } } }
-        : state === "ISSUED"
-          ? { is: { completedAt: null, openedAt: null } }
-          : { isNot: null }
+  const state = normalizeFilterOptionValue(filters.state, vendorLinkStateOptions) as TransactionLinkStatus | undefined
+  const kind = normalizeFilterOptionValue(filters.kind, vendorTransactionKindOptions) as TransactionKind | undefined
+  const linkFilter: Prisma.TransactionLinkNullableScalarRelationFilter = state ? { is: { status: state } } : { isNot: null }
 
   const where: Prisma.TransactionWhereInput = {
     vendorId: context.vendorProfile.id,
     link: linkFilter,
+    ...(kind ? { kind } : {}),
     ...(search
       ? {
           OR: [
             { reference: containsInsensitive(search) },
+            { title: containsInsensitive(search) },
             {
               clientProfile: {
                 is: {
@@ -1443,7 +1563,22 @@ export async function getVendorLinksPageData(
         prisma.transaction.findMany({
           where,
           include: {
-            link: { select: { token: true, shortCode: true, qrCodeSvg: true, completedAt: true, openedAt: true } },
+            clientProfile: { select: { fullName: true, email: true } },
+            link: {
+              select: {
+                id: true,
+                token: true,
+                shortCode: true,
+                status: true,
+                createdAt: true,
+                openedAt: true,
+                completedAt: true,
+                expiresAt: true,
+                cancelledAt: true,
+                cancelReason: true,
+                cancelledBy: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
           skip: pagination.skip,
@@ -1455,16 +1590,88 @@ export async function getVendorLinksPageData(
   ])
 
   return buildPaginatedResult(
-    transactions.map((transaction) => ({
-      reference: transaction.reference,
-      shareLink: `${getAppBaseUrl()}/t/${transaction.link?.token ?? ""}`,
-      shortCode: transaction.link?.shortCode ?? "Not set",
-      qrStatus: transaction.link?.qrCodeSvg ? "Ready" : "Unavailable",
-      state: transaction.link?.completedAt ? "Completed" : transaction.link?.openedAt ? "Opened" : "Issued",
-    })),
+    transactions.map((transaction) =>
+      buildVendorLinkRecord({
+        id: transaction.id,
+        reference: transaction.reference,
+        title: transaction.title,
+        kind: transaction.kind,
+        amount: transaction.amount,
+        depositAmount: transaction.depositAmount,
+        currency: transaction.currency,
+        notes: transaction.notes,
+        updatedAt: transaction.updatedAt,
+        clientProfile: transaction.clientProfile,
+        link: transaction.link,
+      })
+    ),
     totalCount,
     pagination.page,
     pagination.pageSize
+  )
+}
+
+export async function getVendorRecentLinksData(
+  email: string | undefined | null,
+  limit = 6
+): Promise<VendorLinkRecord[]> {
+  const context = await getVendorContextByEmail(email)
+
+  if (!context) {
+    return []
+  }
+
+  const transactions = await safeQuery(
+    () =>
+      prisma.transaction.findMany({
+        where: {
+          vendorId: context.vendorProfile.id,
+          link: {
+            is: {
+              status: {
+                in: [TransactionLinkStatus.ACTIVE, TransactionLinkStatus.PROCESSING],
+              },
+            },
+          },
+        },
+        include: {
+          clientProfile: { select: { fullName: true, email: true } },
+          link: {
+            select: {
+              id: true,
+              token: true,
+              shortCode: true,
+              status: true,
+              createdAt: true,
+              openedAt: true,
+              completedAt: true,
+              expiresAt: true,
+              cancelledAt: true,
+              cancelReason: true,
+              cancelledBy: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      }),
+    []
+  )
+
+  return transactions.map((transaction) =>
+    buildVendorLinkRecord({
+      id: transaction.id,
+      reference: transaction.reference,
+      title: transaction.title,
+      kind: transaction.kind,
+      amount: transaction.amount,
+      depositAmount: transaction.depositAmount,
+      currency: transaction.currency,
+      notes: transaction.notes,
+      updatedAt: transaction.updatedAt,
+      clientProfile: transaction.clientProfile,
+      link: transaction.link,
+    })
   )
 }
 
@@ -1483,7 +1690,7 @@ export async function getVendorWebhooksPageData(
 
   const search = normalizeSearchTerm(filters.q)
   const status = normalizeFilterOptionValue(filters.status, vendorWebhookStatusOptions) as WebhookStatus | undefined
-  const where: Prisma.WebhookEventWhereInput = {
+  const webhookWhere: Prisma.WebhookEventWhereInput = {
     vendorId: context.vendorProfile.id,
     ...(status ? { status } : {}),
     ...(search
@@ -1491,33 +1698,87 @@ export async function getVendorWebhooksPageData(
           OR: [
             { provider: containsInsensitive(search) },
             { eventType: containsInsensitive(search) },
+            { providerEventId: containsInsensitive(search) },
+            { transaction: { is: { reference: containsInsensitive(search) } } },
           ],
         }
       : {}),
   }
+  const transactionEventWhere: Prisma.TransactionEventWhereInput | undefined =
+    status && status !== WebhookStatus.PROCESSED
+      ? undefined
+      : {
+          type: "WEBHOOK_PROCESSED",
+          transaction: { vendorId: context.vendorProfile.id },
+          ...(search
+            ? {
+                OR: [
+                  { title: containsInsensitive(search) },
+                  { detail: containsInsensitive(search) },
+                  { transaction: { reference: containsInsensitive(search) } },
+                ],
+              }
+            : {}),
+        }
 
-  const [webhooks, totalCount] = await Promise.all([
+  const takeForMerge = pagination.skip + pagination.pageSize
+
+  const [webhooks, transactionEvents, webhookCount, transactionEventCount] = await Promise.all([
     safeQuery(
       () =>
         prisma.webhookEvent.findMany({
-          where,
+          where: webhookWhere,
+          include: { transaction: { select: { reference: true } } },
           orderBy: { createdAt: "desc" },
-          skip: pagination.skip,
-          take: pagination.pageSize,
+          take: takeForMerge,
         }),
       []
     ),
-    safeQuery(() => prisma.webhookEvent.count({ where }), 0),
+    transactionEventWhere === undefined
+      ? Promise.resolve([])
+      : safeQuery(
+          () =>
+            prisma.transactionEvent.findMany({
+              where: transactionEventWhere,
+              include: { transaction: { select: { reference: true } } },
+              orderBy: { occurredAt: "desc" },
+              take: takeForMerge,
+            }),
+          []
+        ),
+    safeQuery(() => prisma.webhookEvent.count({ where: webhookWhere }), 0),
+    transactionEventWhere === undefined
+      ? Promise.resolve(0)
+      : safeQuery(() => prisma.transactionEvent.count({ where: transactionEventWhere }), 0),
   ])
 
-  return buildPaginatedResult(
-    webhooks.map((webhook) => ({
+  const items = [
+    ...webhooks.map((webhook) => ({
       provider: webhook.provider,
       eventType: webhook.eventType,
       status: webhook.status,
       date: formatDateTime(webhook.createdAt),
+      reference: webhook.transaction?.reference ?? "Platform event",
+      error: webhook.error,
+      createdAt: webhook.createdAt,
     })),
-    totalCount,
+    ...transactionEvents.map((event) => ({
+      provider: "stripe",
+      eventType: event.title,
+      status: WebhookStatus.PROCESSED,
+      date: formatDateTime(event.occurredAt),
+      reference: event.transaction.reference,
+      error: null,
+      createdAt: event.occurredAt,
+    })),
+  ]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(pagination.skip, pagination.skip + pagination.pageSize)
+    .map(({ createdAt: _createdAt, ...item }) => item)
+
+  return buildPaginatedResult(
+    items,
+    webhookCount + transactionEventCount,
     pagination.page,
     pagination.pageSize
   )
@@ -2165,5 +2426,5 @@ export async function getAdminSessions(
 }
 
 export function getStatusTone(status: string) {
-  return mapToneFromStatus(status)
+  return getStatusToneValue(status)
 }

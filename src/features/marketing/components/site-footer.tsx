@@ -12,25 +12,31 @@ export function SiteFooter() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="border-t border-border bg-[var(--contrazy-navy)] text-white"
+      className="border-t border-border bg-background"
     >
-      <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 py-12 lg:grid-cols-[1.2fr_repeat(3,1fr)] lg:px-10">
+      {/* Main grid */}
+      <div className="mx-auto grid w-full max-w-7xl gap-12 px-5 py-[60px] lg:grid-cols-[2fr_1fr_1fr_1fr] lg:px-10">
+        {/* Brand column */}
         <div>
-          <Link href="/" className="text-2xl font-extrabold tracking-tight">
+          <Link href="/" className="text-[22px] font-extrabold tracking-tight text-foreground">
             Con<span className="text-[var(--contrazy-teal)]">trazy</span>
           </Link>
-          <p className="mt-4 max-w-sm text-sm leading-7 text-white/60">
-            Contract, identity checks, signature, deposit, and payment in one secure workflow for vendor teams and their customers.
+          <p className="mt-3.5 max-w-[280px] text-[14px] leading-[1.7] text-muted-foreground">
+            La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.
           </p>
         </div>
 
+        {/* Link columns */}
         {footerGroups.map((group) => (
           <div key={group.title}>
-            <h2 className="text-sm font-semibold text-white">{group.title}</h2>
-            <ul className="mt-4 space-y-3 text-sm text-white/60">
+            <h4 className="text-[13px] font-bold text-foreground">{group.title}</h4>
+            <ul className="mt-3.5 space-y-[3px]">
               {group.links.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="transition-colors hover:text-white">
+                  <Link
+                    href={link.href}
+                    className="block py-[3px] text-[13px] text-muted-foreground transition-colors hover:text-[var(--contrazy-teal)]"
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -38,6 +44,15 @@ export function SiteFooter() {
             </ul>
           </div>
         ))}
+      </div>
+
+      {/* Copyright bar */}
+      <div className="mx-auto max-w-7xl border-t border-border px-5 pb-10 pt-6 lg:px-10">
+        <p className="text-center text-[12px] leading-[1.8] text-muted-foreground/70">
+          © 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect &amp; Identity
+          <br />
+          Aucune détention de fonds pour compte de tiers · Tous droits réservés
+        </p>
       </div>
     </motion.footer>
   )

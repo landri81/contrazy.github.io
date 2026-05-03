@@ -5,9 +5,12 @@ import type { WebhookHandlerResult } from "@/features/webhooks/stripe/types"
 
 export async function handleAccountUpdated(
   account: Stripe.Account,
-  _eventId: string,
-  _eventType: string,
+  eventId: string,
+  eventType: string,
 ): Promise<WebhookHandlerResult> {
+  void eventId
+  void eventType
+
   const vendorProfile = await prisma.vendorProfile.findFirst({
     where: { stripeAccountId: account.id },
     select: { id: true, userId: true },

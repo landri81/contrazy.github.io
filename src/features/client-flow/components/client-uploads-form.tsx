@@ -120,6 +120,11 @@ export function ClientUploadsForm({
         const payload = await res.json()
         router.push(`/t/${token}/${payload.nextStep ?? "kyc"}`)
       } else {
+        if (res.status === 410) {
+          router.replace(`/t/${token}/cancelled`)
+          return
+        }
+
         const payload = await res.json().catch(() => null)
         setError(payload?.message ?? "Unable to save documents right now.")
       }

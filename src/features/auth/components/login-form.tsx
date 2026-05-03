@@ -44,7 +44,7 @@ export function LoginForm() {
       })
 
       if (response?.error) {
-        setError("Invalid email or password")
+        setError("Email ou mot de passe incorrect.")
         return
       }
 
@@ -56,7 +56,7 @@ export function LoginForm() {
       router.refresh()
     } catch (signInError) {
       console.error(signInError)
-      setError("Unable to sign in right now")
+      setError("Impossible de se connecter pour l'instant")
     } finally {
       setIsPending(false)
     }
@@ -84,12 +84,12 @@ export function LoginForm() {
               <GoogleIcon className="size-4" />
             )}
           </span>
-          {isGooglePending ? "Redirecting to Google..." : "Continue with Google"}
+          {isGooglePending ? "Redirection vers Google..." : "Continuer avec Google"}
         </Button>
 
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">or</span>
+          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">ou</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -100,19 +100,19 @@ export function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="Enter your email address"
+              placeholder="jean@monentreprise.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Link
                 href="/forgot-password"
                 className="text-xs font-medium text-primary hover:underline"
               >
-                Forgot?
+                Mot de passe oublié ?
               </Link>
             </div>
             <div className="relative">
@@ -120,7 +120,7 @@ export function LoginForm() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="************"
+                placeholder="Votre mot de passe"
                 className="pr-10"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -129,7 +129,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
                 className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? "Hide characters" : "Show characters"}
+                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -151,27 +151,27 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            className="h-11 w-full gap-2 bg-[var(--contrazy-navy)] font-medium text-white hover:bg-[var(--contrazy-navy-soft)]"
+            className="h-11 w-full gap-2 bg-(--contrazy-teal) font-medium text-white hover:bg-[#0eb8a0]"
             disabled={isPending || isGooglePending}
           >
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Signing in...
+                Connexion en cours...
               </>
             ) : (
               <>
                 <LogIn className="size-4" />
-                Sign In
+                Se connecter
               </>
             )}
           </Button>
         </form>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          No account yet?{" "}
+          Pas encore de compte ?{" "}
           <Link href="/register" className="font-medium text-primary hover:underline">
-            Create vendor account
+            Créer un compte
           </Link>
         </p>
       </CardContent>

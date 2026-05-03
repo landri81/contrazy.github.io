@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
+import { TransactionLinkStatus } from "@prisma/client"
 
 import { ClientFlowShell } from "@/features/client-flow/components/client-flow-shell"
+import { ClientLinkCancelledState } from "@/features/client-flow/components/client-link-cancelled-state"
 import {
   getClientFlowState,
   getTransactionByToken,
@@ -19,6 +21,15 @@ export default async function TokenLayout({
 
   if (!transaction) {
     redirect("/")
+  }
+
+  if (transaction.link?.status === TransactionLinkStatus.CANCELLED) {
+    return (
+      <ClientLinkCancelledState
+        vendorName={transaction.vendor?.businessName ?? "Vendor"}
+        reason={transaction.link.cancelReason}
+      />
+    )
   }
 
   const enabledSteps: ClientFlowStep[] = ["profile", "documents"]
@@ -42,6 +53,11 @@ export default async function TokenLayout({
     <ClientFlowShell
       vendorName={transaction.vendor?.businessName ?? "Vendor"}
       reference={transaction.reference}
+      token={token}
+      canCancel={
+        transaction.link?.status === TransactionLinkStatus.ACTIVE ||
+        transaction.link?.status === TransactionLinkStatus.PROCESSING
+      }
       enabledSteps={enabledSteps}
       completedSteps={completedSteps}
     >

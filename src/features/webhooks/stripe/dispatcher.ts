@@ -10,6 +10,10 @@ import {
   handleDisputeCreated,
   handleDisputeUpdated,
 } from "@/features/webhooks/stripe/handlers/dispute"
+import {
+  handlePaymentIntentCapturableUpdated,
+  handlePaymentIntentSucceeded,
+} from "@/features/webhooks/stripe/handlers/payment-intent"
 import type { WebhookHandlerResult } from "@/features/webhooks/stripe/types"
 
 const UNHANDLED: WebhookHandlerResult = { vendorId: null, transactionId: null }
@@ -62,6 +66,20 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
     case "charge.dispute.closed":
       return handleDisputeUpdated(
         event.data.object as Stripe.Dispute,
+        eventId,
+        eventType
+      )
+
+    case "payment_intent.succeeded":
+      return handlePaymentIntentSucceeded(
+        event.data.object as Stripe.PaymentIntent,
+        eventId,
+        eventType
+      )
+
+    case "payment_intent.amount_capturable_updated":
+      return handlePaymentIntentCapturableUpdated(
+        event.data.object as Stripe.PaymentIntent,
         eventId,
         eventType
       )

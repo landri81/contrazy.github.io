@@ -53,9 +53,10 @@ export const vendorDisputeStatusOptions: DashboardFilterOption[] = [
 ]
 
 export const vendorLinkStateOptions: DashboardFilterOption[] = [
-  { label: "Issued", value: "ISSUED" },
-  { label: "Opened", value: "OPENED" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Processing", value: "PROCESSING" },
   { label: "Completed", value: "COMPLETED" },
+  { label: "Cancelled", value: "CANCELLED" },
 ]
 
 export const vendorWebhookStatusOptions: DashboardFilterOption[] = [

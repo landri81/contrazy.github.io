@@ -3,6 +3,7 @@ import type Stripe from "stripe"
 
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
@@ -15,8 +16,23 @@ export async function POST(
 ) {
   try {
     const { token } = await params
+    const linkContext = await getClientLinkAccessContext(token)
+
+    if (linkContext.state === "missing") {
+      return NextResponse.json({ success: false, message: "Invalid transaction" }, { status: 404 })
+    }
+
+    if (linkContext.state === "cancelled") {
+      return NextResponse.json({ success: false, message: "This secure link is no longer available." }, { status: 410 })
+    }
+
+    await markTransactionLinkOpened(prisma, {
+      linkId: linkContext.link.id,
+      transactionId: linkContext.link.transaction.id,
+    })
+
     const link = await prisma.transactionLink.findUnique({
-      where: { token },
+      where: { id: linkContext.link.id },
       include: {
         transaction: {
           include: {
@@ -93,14 +109,20 @@ export async function POST(
             capture_method: "manual",
             metadata: {
               transactionId: transaction.id,
+              vendorId: transaction.vendorId,
+              kind: transaction.kind,
               financeStage: nextStage,
+              token,
             },
           }
         : {
             capture_method: "automatic",
             metadata: {
               transactionId: transaction.id,
+              vendorId: transaction.vendorId,
+              kind: transaction.kind,
               financeStage: nextStage,
+              token,
             },
           }
 

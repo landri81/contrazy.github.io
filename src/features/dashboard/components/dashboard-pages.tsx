@@ -3,6 +3,8 @@ import Link from "next/link"
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
 import { Card, CardContent } from "@/components/ui/card"
 import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
+import { DepositQuickActions } from "@/features/dashboard/components/deposit-quick-actions"
+import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
 import type {
   AdminInviteListData,
@@ -293,7 +295,7 @@ export function VendorDepositsView({
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Amount", "Status", "Window"]}
+        columns={["Client", "Reference", "Amount", "Status", "Window", "Actions"]}
         rows={data.items.map((record) => [
           record.client,
           record.reference,
@@ -302,6 +304,13 @@ export function VendorDepositsView({
             {record.status}
           </StatusBadge>,
           record.date,
+          <DepositQuickActions
+            key={`${record.reference}-actions`}
+            transactionId={record.transactionId}
+            status={record.status}
+            amountCents={record.amountCents}
+            currency={record.currency}
+          />,
         ])}
         emptyMessage="No deposit activity yet."
       />
@@ -423,24 +432,46 @@ export function VendorLinksView({
       <TablePageSection
         basePath="/vendor/links"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by reference, client, or short code"
-        filters={[{ name: "state", label: "State", value: searchParams?.state, options: vendorLinkStateOptions }]}
+        searchPlaceholder="Search by reference, title, client, or short code"
+        filters={[
+          { name: "state", label: "State", value: searchParams?.state, options: vendorLinkStateOptions },
+          { name: "kind", label: "Type", value: searchParams?.kind, options: vendorTransactionKindOptions },
+        ]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Reference", "Share link", "Short code", "QR", "State"]}
+        columns={["Reference", "Client", "Title", "Amounts", "Short code", "Last activity", "Status", "Actions"]}
         rows={data.items.map((record) => [
-          record.reference,
-          <Link key={`${record.reference}-share`} href={record.shareLink} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
-            Open secure link
+          <Link key={`${record.reference}-reference`} href={`/vendor/transactions/${record.transactionId}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+            {record.reference}
           </Link>,
+          <div key={`${record.reference}-client`}>
+            <p className="font-medium text-foreground">{record.clientName}</p>
+            <p className="text-xs text-muted-foreground">{record.clientEmail}</p>
+          </div>,
+          <div key={`${record.reference}-title`}>
+            <p className="font-medium text-foreground">{record.title}</p>
+            <p className="text-xs text-muted-foreground">{record.kind.replaceAll("_", " ")}</p>
+          </div>,
+          <div key={`${record.reference}-amounts`} className="space-y-1">
+            {record.kind !== "DEPOSIT" && (
+              <p className="text-sm font-medium text-foreground">Service: {record.serviceAmount}</p>
+            )}
+            {record.kind !== "PAYMENT" && (
+              <p className="text-xs text-muted-foreground">Deposit: {record.depositAmount}</p>
+            )}
+          </div>,
           record.shortCode,
-          record.qrStatus,
-          <StatusBadge key={`${record.reference}-state`} tone={getStatusTone(record.state)}>
-            {record.state}
+          record.lastActivity,
+          <StatusBadge key={`${record.reference}-state`} tone={getStatusTone(record.status)}>
+            {record.status}
           </StatusBadge>,
+          <PaymentLinkManagementActions
+            key={`${record.id}-${record.status}-${record.title}-${record.expiresAt ?? "none"}`}
+            record={record}
+          />,
         ])}
         emptyMessage="No customer links have been issued yet."
       />
@@ -460,17 +491,21 @@ export function VendorWebhooksView({
       <TablePageSection
         basePath="/vendor/webhooks"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by provider or event name"
+        searchPlaceholder="Search by provider, event name, Stripe ID, or reference"
         filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorWebhookStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Provider", "Event", "Status", "Date"]}
+        columns={["Provider", "Event", "Reference", "Status", "Date"]}
         rows={data.items.map((record) => [
           record.provider,
-          record.eventType,
+          <div key={`${record.eventType}-${record.date}-event`}>
+            <p className="font-medium text-foreground">{record.eventType}</p>
+            {record.error ? <p className="mt-1 max-w-xs truncate text-xs text-destructive">{record.error}</p> : null}
+          </div>,
+          record.reference,
           <StatusBadge key={`${record.eventType}-${record.date}`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,

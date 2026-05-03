@@ -8,12 +8,12 @@ const PAGE_SIZE = 20
 export default async function VendorLinksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; state?: string }>
+  searchParams: Promise<{ page?: string; q?: string; state?: string; kind?: string }>
 }) {
   const { session } = await requireVendorAccess()
-  const { page: pageParam, q, state } = await searchParams
+  const { page: pageParam, q, state, kind } = await searchParams
   const pagination = resolvePagination({ page: pageParam, pageSize: PAGE_SIZE }, { defaultPageSize: PAGE_SIZE })
-  const data = await getVendorLinksPageData(session.user.email, pagination.page, PAGE_SIZE, { q, state })
+  const data = await getVendorLinksPageData(session.user.email, pagination.page, PAGE_SIZE, { q, state, kind })
 
-  return <VendorLinksView data={data} searchParams={compactSearchParams({ q, state })} />
+  return <VendorLinksView data={data} searchParams={compactSearchParams({ q, state, kind })} />
 }

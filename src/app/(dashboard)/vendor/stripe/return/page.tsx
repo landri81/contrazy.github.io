@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 export default async function StripeReturnPage() {
   try {

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowUpRight, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react"
+
 
 type AuthLayoutProps = {
   title: string
@@ -11,9 +11,10 @@ type AuthLayoutProps = {
 }
 
 const featurePoints = [
-  { icon: ShieldCheck, label: "Business setup and approval in one place" },
-  { icon: CheckCircle2, label: "Customer agreements, documents, and identity checks" },
-  { icon: Sparkles, label: "Payments and deposits with clear follow-up steps" },
+  { emoji: "🪪", label: "Vérification d'identité automatique" },
+  { emoji: "📝", label: "Contrats auto-générés et signés" },
+  { emoji: "💳", label: "Cautions et paiements sécurisés" },
+  { emoji: "📱", label: "QR Codes dynamiques" },
 ]
 
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
@@ -37,44 +38,33 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
         >
           <div className="space-y-5">
             <Link href="/" className="inline-flex items-center text-2xl font-extrabold tracking-tight">
-              Con<span className="text-[var(--contrazy-teal)]">trazy</span>
+              Con<span className="text-(--contrazy-teal)">trazy</span>
             </Link>
-            
-            <p className="max-w-sm text-3xl font-semibold leading-tight">
-              Business onboarding, agreements, identity, and payments in one connected workspace.
+
+            <p className="max-w-sm text-[26px] font-semibold leading-tight">
+              Sécurisez toute la transaction, pas seulement le paiement.
             </p>
-            <p className="max-w-sm text-sm leading-7 text-white/62">
-              Open the account, complete review, launch client flows, and keep every operational step tied to the same transaction.
+            <p className="max-w-sm text-[14px] leading-[1.75] text-white/62">
+              Contrat, KYC, e-signature, caution et paiement — en un seul lien ou QR code.
             </p>
           </div>
 
-          <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/6 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-white/45">Platform focus</p>
-                <p className="mt-2 text-sm font-medium text-white/85">Operational MVP with lower launch risk</p>
-              </div>
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-[var(--contrazy-teal)]/15 text-[var(--contrazy-teal)]">
-                <ArrowUpRight className="size-4" />
-              </span>
-            </div>
-            <ul className="space-y-4 text-sm text-white/75">
-            {featurePoints.map(({ icon: Icon, label }, index) => (
+          <ul className="space-y-3">
+            {featurePoints.map(({ emoji, label }, index) => (
               <motion.li
                 key={label}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.18 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-start gap-3"
+                className="flex items-center gap-3"
               >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--contrazy-teal)]/15 text-[var(--contrazy-teal)]">
-                  <Icon className="size-3.5" />
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/8 text-[18px]">
+                  {emoji}
                 </span>
-                <span>{label}</span>
+                <span className="text-[14px] text-white/80">{label}</span>
               </motion.li>
             ))}
-            </ul>
-          </div>
+          </ul>
         </motion.div>
 
         <motion.p
@@ -83,7 +73,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="relative text-xs text-white/45"
         >
-          Secure sign-in for vendors, admins, and account owners
+          Connexion sécurisée pour vendeurs, administrateurs et propriétaires de compte
         </motion.p>
       </aside>
 
@@ -95,9 +85,14 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           className="w-full max-w-lg"
         >
           <div className="rounded-[28px] border border-border/70 bg-background/88 p-6 shadow-[0_30px_80px_-40px_rgba(12,30,47,0.3)] backdrop-blur xl:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
-            <p className="mt-2 max-w-md text-sm leading-7 text-muted-foreground">{subtitle}</p>
-            <div className="mt-8">{children}</div>
+            <div className="mb-6 text-center">
+              <Link href="/" className="inline-flex items-center text-[22px] font-extrabold tracking-tight text-foreground">
+                Con<span className="text-(--contrazy-teal)">trazy</span>
+              </Link>
+              <h1 className="mt-2 text-[22px] font-bold tracking-tight text-foreground">{title}</h1>
+              <p className="mt-1 text-[13px] leading-[1.6] text-muted-foreground">{subtitle}</p>
+            </div>
+            {children}
           </div>
         </motion.div>
       </main>

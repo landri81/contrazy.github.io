@@ -17,8 +17,9 @@ export default async function ClientKycPage(props: { params: Promise<{ token: st
     redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 
-  // If already verified, auto-skip
-  if (transaction.kycVerification?.status === 'VERIFIED') {
+  // Already verified or submitted for manual review → proceed
+  const kycStatus = transaction.kycVerification?.status
+  if (kycStatus === "VERIFIED" || kycStatus === "PENDING") {
     redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 

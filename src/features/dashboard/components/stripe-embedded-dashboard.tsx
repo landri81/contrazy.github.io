@@ -82,7 +82,11 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
   }, [publishableKey])
 
   useEffect(() => {
-    initialize()
+    const frame = window.requestAnimationFrame(() => {
+      void initialize()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [initialize])
 
   if (isLoading) {

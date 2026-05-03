@@ -34,6 +34,8 @@
     "@reduxjs/toolkit": "^2.11.2",
     "@stripe/connect-js": "^3.3.39",
     "@stripe/react-connect-js": "^3.3.36",
+    "@stripe/react-stripe-js": "^6.3.0",
+    "@stripe/stripe-js": "^9.4.0",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/qrcode.react": "^1.0.5",
     "bcryptjs": "^3.0.3",

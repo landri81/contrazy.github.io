@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle2, ChevronRight } from "lucide-react"
+import { TransactionLinkStatus } from "@prisma/client"
 
 import { buttonVariants } from "@/components/ui/button"
 import { ClientProcessingCard } from "@/features/client-flow/components/client-processing-card"
@@ -17,6 +18,10 @@ export default async function ClientCompletePage(props: {
   
   if (!transaction) {
     redirect("/")
+  }
+
+  if (transaction.link?.status === TransactionLinkStatus.CANCELLED) {
+    redirect(`/t/${token}/cancelled`)
   }
 
   if (transaction.status !== "COMPLETED") {

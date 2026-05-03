@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 
+import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
 import { cn } from "@/lib/utils"
 
 type StepKey = "profile" | "documents" | "kyc" | "contract" | "sign" | "payment" | "complete"
@@ -43,6 +44,8 @@ const stepLabels: Record<StepKey, string> = {
 type ClientFlowShellProps = {
   vendorName: string
   reference: string | null
+  token: string
+  canCancel: boolean
   enabledSteps: StepKey[]
   completedSteps: StepKey[]
   children: React.ReactNode
@@ -51,6 +54,8 @@ type ClientFlowShellProps = {
 export function ClientFlowShell({
   vendorName,
   reference,
+  token,
+  canCancel,
   enabledSteps,
   completedSteps,
   children,
@@ -61,13 +66,13 @@ export function ClientFlowShell({
   const currentIndex = visibleSteps.indexOf(currentStep)
 
   return (
-    <div className="min-h-screen bg-[var(--contrazy-bg-muted)]">
+    <div className="min-h-screen bg-(--contrazy-bg-muted)">
       <header className="sticky top-0 z-30 border-b border-border bg-white/85 backdrop-blur-md dark:bg-background/85">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--contrazy-navy)] text-white">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-(--contrazy-navy) text-white">
               <span className="text-sm font-extrabold tracking-tight">
-                C<span className="text-[var(--contrazy-teal)]">t</span>
+                C<span className="text-(--contrazy-teal)">t</span>
               </span>
             </div>
             <div className="leading-tight">
@@ -77,9 +82,10 @@ export function ClientFlowShell({
           </div>
           <div className="hidden items-center gap-3 sm:flex">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-              <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
+              <LockKeyhole className="size-3.5 text-(--contrazy-teal)" />
               Protected session
             </div>
+            {canCancel ? <ClientCancelLinkAction token={token} /> : null}
             {reference ? (
               <div className="text-right leading-tight">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
@@ -87,12 +93,15 @@ export function ClientFlowShell({
               </div>
             ) : null}
           </div>
-          {reference ? (
-            <div className="text-right leading-tight sm:hidden">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
-              <p className="text-sm font-medium text-foreground">{reference}</p>
-            </div>
-          ) : null}
+          <div className="flex items-center gap-2 sm:hidden">
+            {canCancel ? <ClientCancelLinkAction token={token} /> : null}
+            {reference ? (
+              <div className="text-right leading-tight">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
+                <p className="text-sm font-medium text-foreground">{reference}</p>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -129,9 +138,11 @@ function ProgressStepper({
   if (steps.length === 0) return null
 
   const progressPercent = steps.length === 1 ? 100 : (currentIndex / (steps.length - 1)) * 100
+  const currentStep = steps[currentIndex]
 
   return (
     <div className="space-y-3">
+      {/* Progress bar */}
       <div className="relative h-1 rounded-full bg-border">
         <motion.div
           className="h-1 rounded-full bg-[var(--contrazy-teal)]"
@@ -141,42 +152,39 @@ function ProgressStepper({
         />
       </div>
 
-      <div className="flex items-start justify-between gap-1 overflow-x-auto pb-1">
+      {/* Step row — icons only on mobile, icons + labels on sm+ */}
+      <div className="flex items-center justify-between gap-0.5">
         {steps.map((step, index) => {
           const Icon = stepIcons[step]
           const isCompleted = completed.includes(step) || index < currentIndex
           const isCurrent = index === currentIndex
 
           return (
-            <div
-              key={step}
-              className="flex min-w-12 flex-col items-center gap-1.5 text-center"
-            >
+            <div key={step} className="flex flex-1 flex-col items-center gap-1">
               <motion.div
                 initial={false}
-                animate={{
-                  scale: isCurrent ? 1.05 : 1,
-                }}
+                animate={{ scale: isCurrent ? 1.08 : 1 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors sm:size-8",
                   isCompleted
-                    ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white"
+                    ? "border-(--contrazy-teal) bg-[var(--contrazy-teal)] text-white"
                     : isCurrent
-                      ? "border-[var(--contrazy-teal)] bg-white text-[var(--contrazy-teal)] shadow-sm dark:bg-card"
+                      ? "border-(--contrazy-teal) bg-white text-(--contrazy-teal) shadow-sm dark:bg-card"
                       : "border-border bg-card text-muted-foreground"
                 )}
               >
-                {isCompleted ? <Check className="size-3.5" /> : <Icon className="size-3.5" />}
+                {isCompleted ? <Check className="size-3" /> : <Icon className="size-3 sm:size-3.5" />}
               </motion.div>
+              {/* Label: hidden on xs, visible on sm+ */}
               <span
                 className={cn(
-                  "text-[10px] font-medium uppercase tracking-wider sm:text-xs",
+                  "hidden text-[10px] font-medium uppercase tracking-wider sm:block",
                   isCurrent
                     ? "text-foreground"
                     : isCompleted
                       ? "text-muted-foreground"
-                      : "text-muted-foreground/70"
+                      : "text-muted-foreground/50"
                 )}
               >
                 {stepLabels[step]}
@@ -184,6 +192,16 @@ function ProgressStepper({
             </div>
           )
         })}
+      </div>
+
+      {/* Current step label on mobile only */}
+      <div className="flex items-center justify-between sm:hidden">
+        <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+          {stepLabels[currentStep]}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {currentIndex + 1} / {steps.length}
+        </span>
       </div>
     </div>
   )

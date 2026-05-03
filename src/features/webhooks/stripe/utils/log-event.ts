@@ -8,6 +8,19 @@ type PersistWebhookEventOptions = {
   error?: string | null
 }
 
+async function resolveVendorId(vendorId: string | null, transactionId: string | null) {
+  if (vendorId || !transactionId) {
+    return vendorId
+  }
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: { vendorId: true },
+  })
+
+  return transaction?.vendorId ?? null
+}
+
 /**
  * Persists a WebhookEvent record regardless of processing outcome.
  * Failures here are non-fatal — logged but never thrown to the caller.
@@ -16,18 +29,40 @@ export async function persistWebhookEvent(options: PersistWebhookEventOptions): 
   const { eventId, eventType, vendorId, transactionId, error } = options
 
   try {
-    await prisma.webhookEvent.create({
-      data: {
-        vendorId,
-        provider: "stripe",
-        eventType,
-        status: error ? "FAILED" : "PROCESSED",
-        payload: {
-          id: eventId,
-          type: eventType,
-          transactionId,
-          ...(error ? { error } : {}),
+    const resolvedVendorId = await resolveVendorId(vendorId, transactionId)
+    const status = error ? "FAILED" : "PROCESSED"
+    const payload = {
+      id: eventId,
+      type: eventType,
+      transactionId,
+      vendorId: resolvedVendorId,
+      ...(error ? { error } : {}),
+    }
+
+    await prisma.webhookEvent.upsert({
+      where: {
+        provider_providerEventId: {
+          provider: "stripe",
+          providerEventId: eventId,
         },
+      },
+      update: {
+        vendorId: resolvedVendorId,
+        transactionId,
+        eventType,
+        status,
+        error,
+        payload,
+      },
+      create: {
+        vendorId: resolvedVendorId,
+        transactionId,
+        provider: "stripe",
+        providerEventId: eventId,
+        eventType,
+        status,
+        error,
+        payload,
       },
     })
   } catch (logErr: unknown) {

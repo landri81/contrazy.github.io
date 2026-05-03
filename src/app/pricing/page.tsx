@@ -1,42 +1,42 @@
 import type { Metadata } from "next"
 
 import { PageHero, ProseSections } from "@/features/marketing/components/content-pages"
-import { PricingSection } from "@/features/marketing/components/pricing-section"
+import { PricingSectionFr } from "@/features/marketing/components/sections/pricing-section-fr"
 import { PublicShell } from "@/features/marketing/components/public-shell"
 
 export const metadata: Metadata = {
-  title: "Pricing | Conntrazy",
-  description: "Simple launch pricing for Conntrazy with room to scale as usage grows.",
+  title: "Tarifs | Contrazy",
+  description: "Abonnement simple + extras à l'usage. 0 % de commission sur les paiements.",
 }
 
 export default function PricingPage() {
   return (
     <PublicShell>
       <PageHero
-        eyebrow="Pricing"
-        title="Launch pricing that matches the Conntrazy scope"
-        description="Start with a plan that fits your current launch stage and grow as workflow volume increases."
+        eyebrow="Tarifs"
+        title="0 % de commission sur les paiements"
+        description="Abonnement simple + extras à l'usage. Les frais de paiement sont supportés par le vendeur via son compte Stripe."
         primaryHref="/register"
-        primaryLabel="Create vendor account"
+        primaryLabel="Essai gratuit 7 jours"
       />
-      <PricingSection />
+      <PricingSectionFr />
       <ProseSections
-        eyebrow="Model"
-        title="Commercial model"
-        description="Conntrazy is designed to stay practical at launch while giving teams a clear path to growth."
+        eyebrow="Modèle"
+        title="Modèle commercial"
+        description="Contrazy est conçu pour rester simple au lancement tout en offrant une trajectoire claire vers la croissance."
         sections={[
           {
-            title: "Platform subscriptions",
+            title: "Abonnements plateforme",
             paragraphs: [
-              "Starter and Growth pricing focus on platform access, workflow setup, and operational dashboards.",
-              "Enterprise pricing remains custom because higher-volume deployments will shape support and compliance scope differently.",
+              "Les plans Starter, Pro et Business donnent accès à la plateforme avec des quotas inclus de transactions, vérifications KYC et e-signatures.",
+              "Le plan Enterprise est sur devis car les déploiements à fort volume impliquent des besoins en support et conformité spécifiques.",
             ],
           },
           {
-            title: "Operational fees",
+            title: "Frais transactionnels",
             paragraphs: [
-              "Payment processing and deposit authorization fees stay separate from the Conntrazy subscription.",
-              "Conntrazy focuses on helping teams manage the workflow around those payments, not on holding funds itself.",
+              "Les frais de traitement des paiements et des cautions restent distincts de l'abonnement Contrazy.",
+              "Contrazy facilite la gestion du flux autour de ces paiements — la plateforme ne détient jamais de fonds pour compte de tiers.",
             ],
           },
         ]}

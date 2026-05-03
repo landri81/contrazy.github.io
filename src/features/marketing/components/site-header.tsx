@@ -38,7 +38,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm text-white/70 md:flex">
-            {siteNav.map((item) => (
+            {siteNav.filter((item) => !item.mobileOnly).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -58,13 +58,13 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                   href="/login"
                   className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
                 >
-                  Sign in
+                  Se connecter
                 </Link>
                 <Link
                   href="/register"
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                 >
-                  Start
+                  Essai gratuit 7j
                 </Link>
               </>
             )}
@@ -127,7 +127,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                       href={homePath}
                       className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                     >
-                      Workspace
+                      Mon espace
                     </Link>
                     {profilePath ? (
                       <Link
@@ -151,13 +151,13 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                       href="/login"
                       className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 px-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
                     >
-                      Sign in
+                      Se connecter
                     </Link>
                     <Link
                       href="/register"
                       className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--contrazy-teal)] px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                     >
-                      Start
+                      Essai gratuit 7j
                     </Link>
                   </>
                 )}

@@ -43,6 +43,7 @@ import type { DashboardIconName, DashboardNavSection } from "@/features/dashboar
 import { getRoleProfilePath } from "@/lib/auth/pathing"
 import type { UserRole } from "@/lib/auth/roles"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/toast"
 
 const dashboardIcons: Record<DashboardIconName, React.ComponentType<{ className?: string }>> = {
   activity: Activity,
@@ -106,7 +107,7 @@ export function DashboardShell({
   }, [isSidebarCollapsed])
 
   return (
-    <div className="min-h-screen bg-[var(--contrazy-bg-muted)]">
+    <div className="min-h-screen bg-(--contrazy-bg-muted)">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[linear-gradient(180deg,rgba(12,30,47,0.98),rgba(12,30,47,0.94))] text-white backdrop-blur-md">
         <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
@@ -127,7 +128,7 @@ export function DashboardShell({
               </Sheet>
             </div>
             <Link href="/" className="text-lg font-extrabold tracking-tight">
-              Con<span className="text-[var(--contrazy-teal)]">trazy</span>
+              Con<span className="text-(--contrazy-teal)">trazy</span>
             </Link>
             <div className="hidden lg:block">
               <p className="text-xs text-white/45">{title}</p>
@@ -158,7 +159,7 @@ export function DashboardShell({
           />
         </motion.aside>
         <main
-          className="min-w-0 flex-1 lg:ml-[var(--dashboard-sidebar-width)] lg:transition-[margin-left] lg:duration-300 lg:ease-out"
+          className="min-w-0 flex-1 lg:ml-(--dashboard-sidebar-width) lg:transition-[margin-left] lg:duration-300 lg:ease-out"
           style={{ ["--dashboard-sidebar-width" as string]: `${desktopSidebarWidth}px` }}
         >
           <AnimatePresence mode="wait">
@@ -171,7 +172,7 @@ export function DashboardShell({
               className="px-4 py-6 sm:px-6 lg:px-8"
             >
               <div className="mb-6">
-                <p className="text-xs font-semibold tracking-[0.2em] text-[var(--contrazy-teal)] uppercase">{title}</p>
+                <p className="text-xs font-semibold tracking-[0.2em] text-(--contrazy-teal) uppercase">{title}</p>
                 <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{subtitle}</h1>
               </div>
               {children}
@@ -179,6 +180,7 @@ export function DashboardShell({
           </AnimatePresence>
         </main>
       </div>
+      <Toaster />
     </div>
   )
 }
@@ -266,7 +268,7 @@ function DashboardSidebar({
                           "flex items-center rounded-xl py-2.5 text-sm transition-all",
                           collapsed ? "justify-center px-0" : "gap-3 px-3",
                           isActive
-                            ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] shadow-[inset_0_0_0_1px_rgba(17,201,176,0.12)]"
+                            ? "bg-(--contrazy-teal)/10 text-(--contrazy-teal) shadow-[inset_0_0_0_1px_rgba(17,201,176,0.12)]"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                       >

@@ -8,7 +8,10 @@ export async function isAlreadyProcessed(eventId: string): Promise<boolean> {
   const existing = await prisma.webhookEvent.findFirst({
     where: {
       provider: "stripe",
-      payload: { path: ["id"], equals: eventId },
+      OR: [
+        { providerEventId: eventId },
+        { payload: { path: ["id"], equals: eventId } },
+      ],
     },
     select: { status: true },
   })

@@ -33,6 +33,11 @@ export function ContractReviewForm({ token, content }: { token: string, content:
         const payload = await res.json()
         router.push(`/t/${token}/${payload.nextStep ?? "sign"}`)
       } else {
+        if (res.status === 410) {
+          router.replace(`/t/${token}/cancelled`)
+          return
+        }
+
         const payload = await res.json().catch(() => null)
         setError(payload?.message ?? "Unable to continue right now.")
       }

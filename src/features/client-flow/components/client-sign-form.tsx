@@ -3,25 +3,20 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { AlertCircle, Loader2, PenSquare } from "lucide-react"
+import { AlertCircle, Loader2, PenLine, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
+import { SignaturePad } from "@/components/ui/signature-pad"
 
 export function ClientSignForm({ token }: { token: string }) {
   const router = useRouter()
-  const [agreed, setAgreed] = useState(false)
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (!agreed) {
-      return
-    }
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!signatureDataUrl) return
 
     setIsPending(true)
     setError(null)
@@ -30,18 +25,24 @@ export function ClientSignForm({ token }: { token: string }) {
       const response = await fetch(`/api/client/${token}/sign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agreed: true }),
+        body: JSON.stringify({ signatureDataUrl }),
       })
 
       if (response.ok) {
         const payload = await response.json()
         router.push(`/t/${token}/${payload.nextStep ?? "payment"}`)
-      } else {
-        const payload = await response.json().catch(() => null)
-        setError(payload?.message ?? "Unable to record your signature right now.")
+        return
       }
-    } catch (error) {
-      console.error(error)
+
+      if (response.status === 410) {
+        router.replace(`/t/${token}/cancelled`)
+        return
+      }
+
+      const payload = await response.json().catch(() => null)
+      setError(payload?.message ?? "Unable to record your signature right now.")
+    } catch (err) {
+      console.error(err)
       setError("Unable to record your signature right now.")
     } finally {
       setIsPending(false)
@@ -49,54 +50,87 @@ export function ClientSignForm({ token }: { token: string }) {
   }
 
   return (
-    <Card className="border-border/70 bg-card/95 shadow-sm">
-      <form onSubmit={handleSubmit}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PenSquare className="h-5 w-5" />
-            Confirm Signature
-          </CardTitle>
-          <CardDescription>
-            Use the built-in confirmation below to accept this agreement electronically.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <AnimatePresence initial={false}>
-            {error ? (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                <p>{error}</p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-          <div className="flex items-start space-x-3 rounded-xl border border-border/70 bg-primary/5 p-4">
-            <Checkbox id="signature-confirmation" checked={agreed} onCheckedChange={(value: boolean) => setAgreed(value)} />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="signature-confirmation" className="text-base font-medium">
-                I confirm that I accept this agreement
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                This confirmation will be recorded with the transaction as your electronic signature.
-              </p>
-            </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Canvas card */}
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-sm">
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3.5 sm:px-5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-(--contrazy-navy)/10">
+            <PenLine className="size-4 text-(--contrazy-navy)" />
           </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            type="submit"
-            className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
-            disabled={isPending || !agreed}
-          >
-            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Draw your signature</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Use your finger, stylus, or mouse
+            </p>
+          </div>
+        </div>
+
+        {/* Signature canvas */}
+        <div className="p-3 sm:p-4">
+          <AnimatePresence initial={false}>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <SignaturePad onChange={setSignatureDataUrl} />
+
+          {/* Status hint */}
+          <div className="mt-2.5 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground/60">
+              {signatureDataUrl ? "Signature captured — ready to submit" : "Signature required to continue"}
+            </p>
+            {signatureDataUrl && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                Ready
+              </motion.span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Legal notice */}
+      <div className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          By tapping <strong className="font-medium text-foreground">Sign and Continue</strong>, you confirm your intent to sign electronically. Your signature, name, email, timestamp, and IP address will be recorded.
+        </p>
+      </div>
+
+      {/* Submit */}
+      <Button
+        type="submit"
+        className="h-12 w-full bg-(--contrazy-navy) text-base font-semibold text-white hover:bg-(--contrazy-navy-soft) active:scale-[0.98]"
+        disabled={isPending || !signatureDataUrl}
+      >
+        {isPending ? (
+          <>
+            <Loader2 className="mr-2 size-5 animate-spin" />
+            Recording signature…
+          </>
+        ) : (
+          <>
+            <PenLine className="mr-2 size-5" />
             Sign and Continue
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+          </>
+        )}
+      </Button>
+    </form>
   )
 }

@@ -1,8 +1,8 @@
-import { Prisma, SignatureStatus, TransactionStatus } from "@prisma/client"
+import { Prisma, SignatureStatus, TransactionLinkActor, TransactionLinkStatus, TransactionStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
-import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { cancelTransactionLink, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 
 const reviewedContractStatuses = new Set<TransactionStatus>([
@@ -53,7 +53,7 @@ function getClientRoute(transaction: ClientFlowTransaction, step: ClientFlowStep
 }
 
 export async function getTransactionByToken(token: string): Promise<ClientFlowTransaction | null> {
-  const transaction = await prisma.transaction.findFirst({
+  let transaction = await prisma.transaction.findFirst({
     where: {
       link: {
         is: { token },
@@ -66,26 +66,51 @@ export async function getTransactionByToken(token: string): Promise<ClientFlowTr
     return null
   }
 
+  if (
+    transaction.link.expiresAt &&
+    transaction.link.expiresAt.getTime() <= Date.now() &&
+    transaction.link.status !== TransactionLinkStatus.CANCELLED &&
+    transaction.link.status !== TransactionLinkStatus.COMPLETED
+  ) {
+    await cancelTransactionLink(prisma, {
+      linkId: transaction.link.id,
+      actor: TransactionLinkActor.SYSTEM,
+      reason: "The secure link expired.",
+      detail: "The secure link expired before the customer completed the flow.",
+      title: "Secure link expired",
+    })
+
+    transaction = await prisma.transaction.findFirst({
+      where: {
+        link: {
+          is: { token },
+        },
+      },
+      include: clientFlowTransactionInclude,
+    })
+
+    if (!transaction?.link) {
+      return null
+    }
+  }
+
+  if (transaction.link.status === TransactionLinkStatus.CANCELLED) {
+    return transaction
+  }
+
   if (!transaction.link.openedAt) {
     const openedAt = new Date()
 
     await prisma.$transaction(async (tx) => {
-      await tx.transactionLink.update({
-        where: { id: transaction.link!.id },
-        data: { openedAt },
-      })
-
-      await recordTransactionEvent(tx, {
-        transactionId: transaction.id,
-        type: "LINK_OPENED",
-        title: "Client opened the secure link",
-        detail: "The customer accessed the transaction flow.",
+      await markTransactionLinkOpened(tx, {
+        linkId: transaction!.link!.id,
+        transactionId: transaction!.id,
         occurredAt: openedAt,
-        dedupeKey: `event:link-opened:${transaction.id}`,
       })
     })
 
     transaction.link.openedAt = openedAt
+    transaction.link.status = TransactionLinkStatus.PROCESSING
   }
 
   return transaction
@@ -127,7 +152,11 @@ export function hasCompletedSignature(transaction: ClientFlowTransaction) {
 export function getClientFlowState(transaction: ClientFlowTransaction) {
   const hasProfile = Boolean(transaction.clientProfileId && transaction.clientProfile)
   const hasDocs = hasRequiredDocuments(transaction)
-  const hasKyc = !transaction.requiresKyc || transaction.kycVerification?.status === "VERIFIED"
+  // PENDING = client submitted ID for manual review; they may proceed, vendor reviews async
+  const hasKyc =
+    !transaction.requiresKyc ||
+    transaction.kycVerification?.status === "VERIFIED" ||
+    transaction.kycVerification?.status === "PENDING"
   const reviewedContract = hasReviewedContract(transaction)
   const hasSignature = hasCompletedSignature(transaction)
   const nextFinanceStage = getNextFinanceStage(transaction as FinanceTransaction)
@@ -200,6 +229,10 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
 
   if (!transaction.link) {
     redirect("/")
+  }
+
+  if (transaction.link.status === TransactionLinkStatus.CANCELLED) {
+    redirect(`/t/${transaction.link.token}/cancelled`)
   }
 
   if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {

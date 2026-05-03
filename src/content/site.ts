@@ -1,6 +1,7 @@
 export type NavItem = {
   href: string
   label: string
+  mobileOnly?: boolean
 }
 
 export type Stat = {
@@ -43,39 +44,40 @@ export type ContentSection = {
 }
 
 export const siteNav: NavItem[] = [
-  { href: "/pricing", label: "Pricing" },
+  { href: "/pricing", label: "Tarifs" },
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
-  { href: "/demo", label: "Demo" },
+  { href: "/help", label: "Centre d'aide", mobileOnly: true },
 ]
 
 export const footerGroups = [
   {
-    title: "Product",
+    title: "Produit",
     links: [
-      { href: "/pricing", label: "Pricing" },
-      { href: "/demo", label: "Demo" },
-      { href: "/api-docs", label: "Platform guide" },
-      { href: "/status", label: "Status" },
+      { href: "/", label: "Fonctionnalités" },
+      { href: "/pricing", label: "Tarifs" },
+      { href: "/register", label: "Essai gratuit" },
     ],
   },
   {
-    title: "Support",
+    title: "Ressources",
     links: [
-      { href: "/help", label: "Help Center" },
-      { href: "/faq", label: "FAQ" },
-      { href: "/contact", label: "Contact" },
       { href: "/blog", label: "Blog" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/api-docs", label: "Documentation API" },
+      { href: "/help", label: "Centre d'aide" },
+      { href: "/status", label: "Statut" },
     ],
   },
   {
-    title: "Legal",
+    title: "Légal",
     links: [
-      { href: "/legal/terms", label: "Terms" },
-      { href: "/legal/privacy", label: "Privacy" },
-      { href: "/legal/gdpr", label: "GDPR" },
-      { href: "/legal/imprint", label: "Imprint" },
+      { href: "/legal/terms", label: "CGV" },
+      { href: "/legal/privacy", label: "Politique de confidentialité" },
+      { href: "/legal/imprint", label: "Mentions légales" },
+      { href: "/legal/gdpr", label: "RGPD" },
+      { href: "/contact", label: "Contact" },
     ],
   },
 ] as const

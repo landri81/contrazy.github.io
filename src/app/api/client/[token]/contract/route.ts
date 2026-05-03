@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 
 export async function POST(
@@ -16,32 +17,36 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Contract review confirmation is required" }, { status: 400 })
     }
 
-    const link = await prisma.transactionLink.findUnique({
-      where: { token },
-      include: { transaction: true },
-    })
+    const linkContext = await getClientLinkAccessContext(token)
 
-    if (!link?.transaction) {
+    if (linkContext.state === "missing") {
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.transaction.update({
-        where: { id: link.transaction.id },
-        data: { status: "CONTRACT_GENERATED" },
-      })
+    if (linkContext.state === "cancelled") {
+      return NextResponse.json({ success: false, message: "This secure link is no longer available." }, { status: 410 })
+    }
 
-      await recordTransactionEvent(tx, {
-        transactionId: link.transaction.id,
-        type: "CONTRACT_REVIEWED",
-        title: "Agreement reviewed",
-        detail: "The client reviewed the populated agreement.",
-        dedupeKey: `event:contract-reviewed:${link.transaction.id}`,
-      })
+    const { link } = linkContext
+    const transactionId = link.transaction.id
+
+    await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
+
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { status: "CONTRACT_GENERATED" },
+    })
+
+    await recordTransactionEvent(prisma, {
+      transactionId,
+      type: "CONTRACT_REVIEWED",
+      title: "Agreement reviewed",
+      detail: "The client reviewed the populated agreement.",
+      dedupeKey: `event:contract-reviewed:${transactionId}`,
     })
 
     const transaction = await prisma.transaction.findUnique({
-      where: { id: link.transaction.id },
+      where: { id: transactionId },
       include: clientFlowTransactionInclude,
     })
 

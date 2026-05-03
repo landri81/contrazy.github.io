@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 
 export async function POST(
@@ -11,8 +12,18 @@ export async function POST(
 ) {
   try {
     const { token } = await params
+    const linkContext = await getClientLinkAccessContext(token)
+
+    if (linkContext.state === "missing") {
+      return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
+    }
+
+    if (linkContext.state === "cancelled") {
+      return NextResponse.json({ success: false, message: "This secure link is no longer available." }, { status: 410 })
+    }
+
     const link = await prisma.transactionLink.findUnique({
-      where: { token },
+      where: { id: linkContext.link.id },
       include: { transaction: { include: { clientProfile: true } } },
     })
 
@@ -20,53 +31,70 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
-    const { agreed } = await request.json()
+    const { signatureDataUrl } = await request.json()
 
-    if (!agreed) {
-      return NextResponse.json({ success: false, message: "Signature required" }, { status: 400 })
+    if (
+      !signatureDataUrl ||
+      typeof signatureDataUrl !== "string" ||
+      !signatureDataUrl.startsWith("data:image/png;base64,")
+    ) {
+      return NextResponse.json({ success: false, message: "A drawn signature is required." }, { status: 400 })
     }
 
     const forwardedFor = request.headers.get("x-forwarded-for")
     const ipAddress = forwardedFor?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? null
 
-    await prisma.$transaction(async (tx) => {
-      await tx.signatureRecord.upsert({
-        where: { transactionId: link.transaction.id },
-        update: {
-          status: "SIGNED",
-          signerName: link.transaction.clientProfile?.fullName || "Unknown",
-          signerEmail: link.transaction.clientProfile?.email || "Unknown",
-          method: "Checkbox Acceptance",
-          ipAddress,
-          signedAt: new Date(),
-        },
-        create: {
-          transactionId: link.transaction.id,
-          status: "SIGNED",
-          signerName: link.transaction.clientProfile?.fullName || "Unknown",
-          signerEmail: link.transaction.clientProfile?.email || "Unknown",
-          method: "Checkbox Acceptance",
-          ipAddress,
-          signedAt: new Date(),
-        },
-      })
+    const transactionId = link.transaction.id
+    const signerName = link.transaction.clientProfile?.fullName || "Unknown"
+    const signerEmail = link.transaction.clientProfile?.email || "Unknown"
 
-      await tx.transaction.update({
-        where: { id: link.transaction.id },
-        data: { status: "SIGNED" },
-      })
+    // Run each write independently — no interactive transaction so large
+    // base64 payloads don't hit the 5 s connection-hold timeout.
+    // All ops are idempotent (upsert / dedupeKey) so retries are safe.
 
-      await recordTransactionEvent(tx, {
-        transactionId: link.transaction.id,
-        type: "SIGNATURE_COMPLETED",
-        title: "Agreement signed",
-        detail: `${link.transaction.clientProfile?.fullName || "Client"} confirmed the agreement.`,
-        dedupeKey: `event:signature:${link.transaction.id}`,
-      })
+    await markTransactionLinkOpened(prisma, {
+      linkId: link.id,
+      transactionId,
+    })
+
+    await prisma.signatureRecord.upsert({
+      where: { transactionId },
+      update: {
+        status: "SIGNED",
+        signerName,
+        signerEmail,
+        method: "Canvas Signature",
+        signatureDataUrl,
+        ipAddress,
+        signedAt: new Date(),
+      },
+      create: {
+        transactionId,
+        status: "SIGNED",
+        signerName,
+        signerEmail,
+        method: "Canvas Signature",
+        signatureDataUrl,
+        ipAddress,
+        signedAt: new Date(),
+      },
+    })
+
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { status: "SIGNED" },
+    })
+
+    await recordTransactionEvent(prisma, {
+      transactionId,
+      type: "SIGNATURE_COMPLETED",
+      title: "Agreement signed",
+      detail: `${signerName} confirmed the agreement.`,
+      dedupeKey: `event:signature:${transactionId}`,
     })
 
     const transaction = await prisma.transaction.findUnique({
-      where: { id: link.transaction.id },
+      where: { id: transactionId },
       include: clientFlowTransactionInclude,
     })
 
@@ -77,7 +105,7 @@ export async function POST(
     const nextStep = getNextClientStep(transaction)
 
     if (nextStep === "complete") {
-      await completeTransactionWithoutPayment(prisma, transaction.id)
+      await completeTransactionWithoutPayment(prisma, transactionId)
     }
 
     return NextResponse.json({ success: true, nextStep })

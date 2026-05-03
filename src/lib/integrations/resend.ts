@@ -6,6 +6,10 @@ export const resend = new Resend(env.RESEND_API_KEY)
 
 const FROM_EMAIL = env.RESEND_FROM_EMAIL
 
+function formatEmailMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100)
+}
+
 async function deliverEmail({
   to,
   subject,
@@ -68,6 +72,7 @@ export async function sendVendorDepositStatusEmail(
   vendorName: string,
   clientName: string,
   amount: number,
+  currency: string,
   action: "released" | "captured"
 ) {
   const actionLabel = action === "captured" ? "captured" : "released"
@@ -81,8 +86,35 @@ export async function sendVendorDepositStatusEmail(
     subject: `Deposit ${actionLabel} - ${clientName}`,
     html: `
       <h2>Hi ${vendorName},</h2>
-      <p>The deposit hold of <strong>${(amount / 100).toFixed(2)}</strong> for ${clientName} was ${actionLabel}.</p>
+      <p>The deposit hold of <strong>${formatEmailMoney(amount, currency)}</strong> for ${clientName} was ${actionLabel}.</p>
       <p>${nextLine}</p>
+      <br />
+      <p>Thanks,<br />The Conntrazy Team</p>
+    `,
+  })
+}
+
+export async function sendCustomerDepositStatusEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  action: "released" | "captured"
+) {
+  const actionLabel = action === "captured" ? "captured" : "released"
+  const bodyCopy =
+    action === "captured"
+      ? `The vendor has captured ${formatEmailMoney(amount, currency)} from your authorized deposit hold.`
+      : `The vendor has released your ${formatEmailMoney(amount, currency)} deposit hold. The hold is no longer active in the payment flow.`
+
+  return deliverEmail({
+    to,
+    subject: `Deposit ${actionLabel} - ${vendorName}`,
+    html: `
+      <h2>Hi ${clientName},</h2>
+      <p>${bodyCopy}</p>
+      <p>Vendor: <strong>${vendorName}</strong></p>
       <br />
       <p>Thanks,<br />The Conntrazy Team</p>
     `,

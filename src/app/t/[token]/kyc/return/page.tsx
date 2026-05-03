@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { TransactionLinkStatus } from "@prisma/client"
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
@@ -14,6 +15,10 @@ export default async function ClientKycReturnPage(props: {
   
   if (!transaction) {
     redirect("/")
+  }
+
+  if (transaction.link?.status === TransactionLinkStatus.CANCELLED) {
+    redirect(`/t/${token}/cancelled`)
   }
 
   if (searchParams.session_id) {

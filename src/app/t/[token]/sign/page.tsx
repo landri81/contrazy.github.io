@@ -14,11 +14,11 @@ export default async function ClientSignPage(props: { params: Promise<{ token: s
   validateClientStep(transaction, "sign")
 
   return (
-    <div className="space-y-6 mx-auto max-w-lg">
+    <div className="mx-auto max-w-lg space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Signature</h2>
-        <p className="mt-1 text-muted-foreground">
-          Confirm this agreement to continue to the payment or completion step.
+        <h2 className="text-xl font-bold sm:text-2xl">Sign Agreement</h2>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+          Draw your signature to confirm this agreement electronically.
         </p>
       </div>
 
