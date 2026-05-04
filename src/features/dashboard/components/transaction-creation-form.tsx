@@ -126,105 +126,80 @@ const slideVariants: Variants = {
 
 function StepProgress({ current }: { current: number }) {
   const currentStep = STEPS[current - 1]
+  const progressPercent = Math.round((current / STEPS.length) * 100)
 
   return (
-    <div className="border-b border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-4 sm:px-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Step {current} of {STEPS.length}
-          </div>
-          <div className="mt-3 flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] ring-1 ring-[var(--contrazy-teal)]/12">
-              <currentStep.icon className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-base font-semibold tracking-tight text-foreground">{currentStep.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{currentStep.description}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden sm:flex shrink-0 items-center rounded-full border border-border/70 bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          {Math.round((current / STEPS.length) * 100)}% complete
-        </div>
-      </div>
-
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-border/80">
-        <motion.div
-          className="h-full rounded-full bg-[var(--contrazy-teal)]"
-          animate={{ width: `${(current / STEPS.length) * 100}%` }}
-          transition={{ duration: 0.28, ease: motionEase }}
-        />
-      </div>
-
-      <div className="mt-4 hidden grid-cols-4 gap-2 md:grid">
-        {STEPS.map((s) => {
-          const Icon = s.icon
-          const done = current > s.id
-          const active = current === s.id
-
-          return (
-            <div
-              key={s.id}
-              className={cn(
-                "rounded-2xl border px-3 py-2.5 transition-all",
-                active
-                  ? "border-[var(--contrazy-teal)]/25 bg-[var(--contrazy-teal)]/8 shadow-sm"
-                  : done
-                    ? "border-border/80 bg-background/80"
-                    : "border-border/60 bg-muted/25"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full text-[11px] font-semibold",
-                    active
-                      ? "bg-[var(--contrazy-teal)] text-slate-950"
-                      : done
-                        ? "bg-(--contrazy-navy) text-white"
-                        : "bg-background text-muted-foreground ring-1 ring-border"
-                  )}
-                >
-                  {done ? <CheckCircle2 className="size-3.5" /> : <Icon className="size-3.5" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{s.label}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">{s.description}</p>
-                </div>
+    <div className="border-b border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.98))] px-4 py-3 sm:px-5">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/85 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Step {current} of {STEPS.length}
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--contrazy-teal)]/10 px-3 py-1 text-xs font-semibold text-[var(--contrazy-teal)] ring-1 ring-[var(--contrazy-teal)]/12">
+                <currentStep.icon className="size-3.5" />
+                {currentStep.title}
               </div>
             </div>
-          )
-        })}
-      </div>
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">{currentStep.description}</p>
+          </div>
 
-      <div className="mt-4 grid grid-cols-4 gap-2 md:hidden">
-        {STEPS.map((s) => {
-          const Icon = s.icon
-          const done = current > s.id
-          const active = current === s.id
+          <div className="hidden shrink-0 sm:flex items-center rounded-full border border-border/70 bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            {progressPercent}% complete
+          </div>
+        </div>
 
-          return (
-            <div key={s.id} className="space-y-2">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/80">
+          <motion.div
+            className="h-full rounded-full bg-[var(--contrazy-teal)]"
+            animate={{ width: `${(current / STEPS.length) * 100}%` }}
+            transition={{ duration: 0.28, ease: motionEase }}
+          />
+        </div>
+
+        <div className="scrollbar-thin-subtle -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0">
+          {STEPS.map((s) => {
+            const Icon = s.icon
+            const done = current > s.id
+            const active = current === s.id
+
+            return (
               <div
+                key={s.id}
                 className={cn(
-                  "flex h-9 items-center justify-center rounded-2xl border",
+                  "min-w-[152px] rounded-2xl border px-3 py-2 transition-all md:min-w-0",
                   active
-                    ? "border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
+                    ? "border-[var(--contrazy-teal)]/25 bg-[var(--contrazy-teal)]/8 shadow-sm"
                     : done
-                      ? "border-border/80 bg-background text-(--contrazy-navy)"
-                      : "border-border/60 bg-muted/20 text-muted-foreground"
+                      ? "border-border/80 bg-background/85"
+                      : "border-border/60 bg-muted/20"
                 )}
               >
-                {done ? <CheckCircle2 className="size-4" /> : <Icon className="size-4" />}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
+                      active
+                        ? "bg-[var(--contrazy-teal)] text-slate-950"
+                        : done
+                          ? "bg-(--contrazy-navy) text-white"
+                          : "bg-background text-muted-foreground ring-1 ring-border"
+                    )}
+                  >
+                    {done ? <CheckCircle2 className="size-3.5" /> : <Icon className="size-3.5" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{s.label}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {active ? "Current step" : done ? "Completed" : `Step ${s.id}`}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className={cn("text-center text-[11px] font-medium", active ? "text-foreground" : "text-muted-foreground")}>
-                {s.label}
-              </p>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -242,14 +217,17 @@ function StepIntro({
   description: string
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
-        <Icon className="size-5 text-[var(--contrazy-teal)]" />
+    <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.78),rgba(255,255,255,0.94))] px-3.5 py-3 shadow-sm">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+        <Icon className="size-4.5 text-[var(--contrazy-teal)]" />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
-        <p className="mt-1 text-base font-semibold tracking-tight text-foreground">{title}</p>
-        <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
+          <span className="hidden size-1 rounded-full bg-border/80 sm:block" />
+          <p className="text-sm font-semibold tracking-tight text-foreground sm:text-base">{title}</p>
+        </div>
+        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
       </div>
     </div>
   )
@@ -532,7 +510,7 @@ export function TransactionCreationForm({
           >
             {/* ── Step 1: Info ────────────────────────────────────────── */}
             {step === 1 && (
-              <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={FileText}
                   eyebrow="Step one"
@@ -574,7 +552,7 @@ export function TransactionCreationForm({
 
             {/* ── Step 2: Payment ──────────────────────────────────────── */}
             {step === 2 && (
-              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={CreditCard}
                   eyebrow="Step two"
@@ -699,7 +677,7 @@ export function TransactionCreationForm({
 
             {/* ── Step 3: Documents ────────────────────────────────────── */}
             {step === 3 && (
-              <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={ShieldCheck}
                   eyebrow="Step three"
@@ -791,7 +769,7 @@ export function TransactionCreationForm({
 
             {/* ── Step 4: Review ────────────────────────────────────────── */}
             {step === 4 && (
-              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={LinkIcon}
                   eyebrow="Final step"
@@ -946,7 +924,7 @@ export function TransactionCreationForm({
       </AnimatePresence>
 
       {/* ── Navigation ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0 border-t border-border/70 bg-white/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
+      <div className="shrink-0 border-t border-border/70 bg-white/95 px-4 py-3 supports-backdrop-filter:backdrop-blur sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {step > 1 ? (
           <Button

@@ -16,7 +16,13 @@ export async function POST() {
     }
 
     if (!vendorProfile.stripeAccountId) {
-      return NextResponse.json({ message: "No Stripe account linked." }, { status: 400 })
+      return NextResponse.json(
+        {
+          code: "NO_STRIPE_ACCOUNT",
+          message: "No Stripe account linked.",
+        },
+        { status: 400 }
+      )
     }
 
     const session = await stripe.accountSessions.create({
@@ -34,9 +40,18 @@ export async function POST() {
       },
     })
 
-    return NextResponse.json({ clientSecret: session.client_secret })
+    return NextResponse.json({
+      clientSecret: session.client_secret,
+      message: "Stripe account session ready.",
+    })
   } catch (error) {
     console.error("Account session error:", error)
-    return NextResponse.json({ message: "Failed to create account session." }, { status: 500 })
+    return NextResponse.json(
+      {
+        code: "ACCOUNT_SESSION_FAILED",
+        message: "Failed to create account session.",
+      },
+      { status: 500 }
+    )
   }
 }

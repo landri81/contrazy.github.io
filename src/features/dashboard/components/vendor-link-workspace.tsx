@@ -412,11 +412,11 @@ export function VendorLinkWorkspace({
           showCloseButton={false}
         >
           <div className="flex h-full min-h-0 flex-1 flex-col">
-            <DialogHeader className="border-b border-border/70 px-4 py-4 sm:px-6">
+            <DialogHeader className="shrink-0 border-b border-border/70 px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <DialogTitle className="text-lg font-semibold tracking-tight">New transaction</DialogTitle>
-                  <DialogDescription className="mt-1 text-sm">
+                  <DialogTitle className="text-[1.05rem] font-semibold tracking-tight">New transaction</DialogTitle>
+                  <DialogDescription className="mt-1 max-w-3xl text-[13px] leading-5">
                     Create the secure link, configure the client journey, and decide whether this workflow needs a QR.
                   </DialogDescription>
                 </div>
