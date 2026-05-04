@@ -11,6 +11,10 @@ import {
   handleDisputeUpdated,
 } from "@/features/webhooks/stripe/handlers/dispute"
 import {
+  handleIdentitySessionRequiresInput,
+  handleIdentitySessionVerified,
+} from "@/features/webhooks/stripe/handlers/identity"
+import {
   handlePaymentIntentCapturableUpdated,
   handlePaymentIntentSucceeded,
 } from "@/features/webhooks/stripe/handlers/payment-intent"
@@ -89,6 +93,18 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
         event.data.object as Stripe.Account,
         eventId,
         eventType,
+      )
+
+    case "identity.verification_session.verified":
+      return handleIdentitySessionVerified(
+        event.data.object as Stripe.Identity.VerificationSession,
+        eventId
+      )
+
+    case "identity.verification_session.requires_input":
+      return handleIdentitySessionRequiresInput(
+        event.data.object as Stripe.Identity.VerificationSession,
+        eventId
       )
 
     default:

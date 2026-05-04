@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
+import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
@@ -30,11 +31,7 @@ export async function POST(
 
     const link = await prisma.transactionLink.findUnique({
       where: { id: linkContext.link.id },
-      include: {
-        transaction: {
-          include: { vendor: true },
-        },
-      },
+      include: { transaction: true },
     })
 
     if (!link?.transaction) {
@@ -70,15 +67,25 @@ export async function POST(
     }
 
     const baseUrl = getAppBaseUrl()
-    const returnUrl = `${baseUrl}/t/${token}/kyc/return?session_id={VERIFICATION_SESSION_ID}`
 
-    const session = await stripe.identity.verificationSessions.create(
-      {
-        type: "document",
-        return_url: returnUrl,
-        metadata: { transactionId: transaction.id, token },
+    // Plain return URL — no Stripe template variable. The session ID is stored in
+    // the database at creation so the return page and webhooks can look it up
+    // without depending on URL parameters (the {VERIFICATION_SESSION_ID} placeholder
+    // is only substituted by Stripe in mobile SDKs, not the hosted web redirect).
+    const returnUrl = `${baseUrl}/t/${token}/kyc/return`
+
+    // Create the VerificationSession on the PLATFORM Stripe account.
+    // Stripe Identity is platform-level; the vendor's Connect account is for payments
+    // and may not have Identity permissions granted.
+    const session = await stripe.identity.verificationSessions.create({
+      type: "document",
+      return_url: returnUrl,
+      metadata: {
+        transactionId: transaction.id,
+        vendorId: transaction.vendorId,
+        token,
       },
-    )
+    })
 
     if (!session.url) {
       return NextResponse.json(
@@ -86,6 +93,34 @@ export async function POST(
         { status: 500 }
       )
     }
+
+    // Store session ID immediately so the return page never needs to trust URL params.
+    // Upsert handles the case where the customer starts a new session after a failure.
+    await prisma.$transaction(async (tx) => {
+      await tx.kycVerification.upsert({
+        where: { transactionId: transaction.id },
+        create: {
+          transactionId: transaction.id,
+          provider: "Stripe Identity",
+          status: "PENDING",
+          providerReference: session.id,
+        },
+        update: {
+          status: "PENDING",
+          providerReference: session.id,
+          verifiedAt: null,
+          summary: null,
+        },
+      })
+
+      await recordTransactionEvent(tx, {
+        transactionId: transaction.id,
+        type: "KYC_STARTED",
+        title: "Identity verification started",
+        detail: "Customer redirected to Stripe Identity for document verification.",
+        dedupeKey: `event:kyc-started:${transaction.id}:${session.id}`,
+      })
+    })
 
     return NextResponse.json({ success: true, url: session.url })
   } catch (error) {

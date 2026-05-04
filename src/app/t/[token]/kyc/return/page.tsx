@@ -1,20 +1,20 @@
 import { redirect } from "next/navigation"
 import { TransactionLinkStatus } from "@prisma/client"
+
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
-import { canUseKyc, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
-import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
+import { stripe } from "@/lib/integrations/stripe"
+
+export const dynamic = "force-dynamic"
 
 export default async function ClientKycReturnPage(props: {
   params: Promise<{ token: string }>
-  searchParams: Promise<{ session_id?: string }>
 }) {
   const { token } = await props.params
-  const searchParams = await props.searchParams
   const transaction = await getTransactionByToken(token)
-  
+
   if (!transaction) {
     redirect("/")
   }
@@ -23,104 +23,103 @@ export default async function ClientKycReturnPage(props: {
     redirect(`/t/${token}/cancelled`)
   }
 
-  if (searchParams.session_id) {
-    try {
-      const subscription = await prisma.vendorSubscription.findUnique({
-        where: { vendorId: transaction.vendorId },
-      })
+  // Fetch the KycVerification record created when the session was started.
+  const kycVerification = await prisma.kycVerification.findUnique({
+    where: { transactionId: transaction.id },
+  })
 
-      if (!canUseKyc(subscription)) {
-        redirect(`/t/${token}/kyc?error=verification_unavailable`)
-      }
-
-      const remainingKyc = remainingKycVerifications(subscription)
-
-      if (remainingKyc !== null && remainingKyc <= 0) {
-        redirect(`/t/${token}/kyc?error=verification_unavailable`)
-      }
-
-      const existingVerification = await prisma.kycVerification.findUnique({
-        where: { transactionId: transaction.id },
-      })
-      const session = await stripe.identity.verificationSessions.retrieve(
-        searchParams.session_id,
-        {},
-        getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
-      )
-
-      if (session.status === 'verified') {
-        await prisma.$transaction(async (tx) => {
-          await tx.kycVerification.upsert({
-            where: { transactionId: transaction.id },
-            create: {
-              transactionId: transaction.id,
-              provider: "Stripe Identity",
-              status: "VERIFIED",
-              providerReference: session.id,
-              verifiedAt: new Date(),
-            },
-            update: {
-              status: "VERIFIED",
-              providerReference: session.id,
-              verifiedAt: new Date(),
-            },
-          })
-
-          await tx.transaction.update({
-            where: { id: transaction.id },
-            data: { status: "KYC_VERIFIED" },
-          })
-
-          if (!existingVerification) {
-            await incrementVendorSubscriptionUsage(tx, transaction.vendorId, "kycVerificationsUsed")
-          }
-
-          await recordTransactionEvent(tx, {
-            transactionId: transaction.id,
-            type: "KYC_VERIFIED",
-            title: "Identity verification completed",
-            detail: "Stripe Identity confirmed the customer record.",
-            dedupeKey: `event:kyc-verified:${transaction.id}`,
-          })
-        })
-
-        const freshTransaction = await getTransactionByToken(token)
-
-        if (!freshTransaction) {
-          redirect("/")
-        }
-
-        redirect(`/t/${token}/${getNextClientStep(freshTransaction)}`)
-      } else {
-        await prisma.$transaction(async (tx) => {
-          await tx.kycVerification.upsert({
-            where: { transactionId: transaction.id },
-            create: {
-              transactionId: transaction.id,
-              provider: "Stripe Identity",
-              status: "FAILED",
-              providerReference: session.id,
-            },
-            update: {
-              status: "FAILED",
-              providerReference: session.id,
-            },
-          })
-
-          await recordTransactionEvent(tx, {
-            transactionId: transaction.id,
-            type: "KYC_FAILED",
-            title: "Identity verification failed",
-            detail: "The verification provider did not confirm the customer record.",
-            dedupeKey: `event:kyc-failed:${transaction.id}`,
-          })
-        })
-      }
-    } catch (e) {
-      console.error("KYC Return Error", e)
-    }
+  // If the webhook already processed the result before the customer arrived,
+  // act on the DB state directly without an additional Stripe API call.
+  if (kycVerification?.status === "VERIFIED") {
+    const freshTransaction = await getTransactionByToken(token)
+    if (!freshTransaction) redirect("/")
+    redirect(`/t/${token}/${getNextClientStep(freshTransaction)}`)
   }
 
-  // If we reach here, verification failed or was incomplete. Redirect back to KYC start page.
+  if (kycVerification?.status === "FAILED") {
+    redirect(`/t/${token}/kyc?error=verification_failed`)
+  }
+
+  // Status is PENDING (or record is missing) — session just completed on Stripe's
+  // side. Retrieve the result from the platform Stripe account using the session ID
+  // stored at creation time.
+  if (!kycVerification?.providerReference) {
+    redirect(`/t/${token}/kyc?error=session_not_found`)
+  }
+
+  try {
+    // Retrieve from the PLATFORM account (no Stripe-Account header).
+    // The session was created on the platform account in the start route.
+    const session = await stripe.identity.verificationSessions.retrieve(
+      kycVerification.providerReference
+    )
+
+    if (session.status === "verified") {
+      await prisma.$transaction(async (tx) => {
+        // Read current status inside the transaction so the increment check is
+        // consistent even if the webhook fires concurrently.
+        const current = await tx.kycVerification.findUnique({
+          where: { transactionId: transaction.id },
+          select: { status: true },
+        })
+
+        await tx.kycVerification.update({
+          where: { transactionId: transaction.id },
+          data: {
+            status: "VERIFIED",
+            providerReference: session.id,
+            verifiedAt: new Date(),
+          },
+        })
+
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: "KYC_VERIFIED" },
+        })
+
+        // Only count once: skip if this transaction's KYC was already VERIFIED
+        // (guards against rare webhook + return-page concurrency).
+        if (current?.status !== "VERIFIED") {
+          await incrementVendorSubscriptionUsage(tx, transaction.vendorId, "kycVerificationsUsed")
+        }
+
+        await recordTransactionEvent(tx, {
+          transactionId: transaction.id,
+          type: "KYC_VERIFIED",
+          title: "Identity verification completed",
+          detail: "Stripe Identity confirmed the customer's identity.",
+          dedupeKey: `event:kyc-verified:${transaction.id}`,
+        })
+      })
+
+      const freshTransaction = await getTransactionByToken(token)
+      if (!freshTransaction) redirect("/")
+      redirect(`/t/${token}/${getNextClientStep(freshTransaction)}`)
+    } else {
+      // Session status is "requires_input", "processing", or "canceled".
+      await prisma.$transaction(async (tx) => {
+        await tx.kycVerification.update({
+          where: { transactionId: transaction.id },
+          data: {
+            status: "FAILED",
+            summary: session.last_error?.reason ?? session.status,
+          },
+        })
+
+        await recordTransactionEvent(tx, {
+          transactionId: transaction.id,
+          type: "KYC_FAILED",
+          title: "Identity verification failed",
+          detail: session.last_error?.reason
+            ? `Reason: ${session.last_error.reason}`
+            : "The verification provider did not confirm the customer's identity.",
+          dedupeKey: `event:kyc-failed:${transaction.id}:${session.id}`,
+        })
+      })
+    }
+  } catch (error) {
+    console.error("KYC Return Error:", error)
+  }
+
   redirect(`/t/${token}/kyc?error=verification_failed`)
 }
