@@ -29,9 +29,8 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/favicon.png",
-        type: "image/png",
-        sizes: "64x64",
+        url: "/favicon.ico",
+        sizes: "any",
       },
       {
         url: "/apple-touch-icon.png",
@@ -39,16 +38,15 @@ export const metadata: Metadata = {
         sizes: "180x180",
       },
       {
-        url: "/icon-512.png",
+        url: "/favicon.ico",
         type: "image/png",
         sizes: "512x512",
       },
     ],
     shortcut: [
       {
-        url: "/favicon.png",
-        type: "image/png",
-        sizes: "64x64",
+        url: "/favicon.ico",
+        sizes: "any",
       },
     ],
     apple: [
@@ -67,7 +65,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: "/logo/logo-contrazy-dark.png",
+        url: "/favicon.ico",
         alt: "Contrazy",
       },
     ],
@@ -76,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Contrazy",
     description: siteDescription,
-    images: ["/logo/logo-contrazy-dark.png"],
+    images: ["/favicon.ico"],
   },
   appleWebApp: {
     capable: true,
