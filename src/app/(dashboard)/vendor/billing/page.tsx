@@ -12,7 +12,7 @@ export default async function VendorBillingPage() {
 
   return (
     <div className="space-y-2">
-      <div className="mb-6">
+      <div className="mb-4 bg-white p-4 rounded-md shadow-sm">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Billing</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Manage your subscription, payment method, and invoices.
