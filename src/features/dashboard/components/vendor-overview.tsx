@@ -218,7 +218,7 @@ export function VendorOverview({ workspace }: VendorOverviewProps) {
       <AlertStrip items={workspace.alerts} />
 
       {/* Activity stats */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Transactions"
           value={stats.totalTransactions}
@@ -244,7 +244,7 @@ export function VendorOverview({ workspace }: VendorOverviewProps) {
         <StatCard
           label="Signed contracts"
           value={stats.signedContracts}
-          detail="Completed signatures"
+          detail="Signatures"
           icon={FileSignature}
           href="/vendor/signatures"
         />

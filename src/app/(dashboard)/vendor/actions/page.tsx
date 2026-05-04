@@ -22,12 +22,7 @@ export default async function VendorActionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Actions</h1>
-        <p className="text-muted-foreground mt-2">
-          Launch secure transactions, manage live links, and track plan-sensitive usage from one workspace.
-        </p>
-      </div>
+      
 
       <VendorLinkWorkspace
         contracts={contracts}

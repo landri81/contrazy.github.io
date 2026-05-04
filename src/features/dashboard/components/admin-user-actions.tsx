@@ -283,7 +283,7 @@ export function UserDeleteAction({
             value={confirmValue}
             onChange={(event) => setConfirmValue(event.target.value)}
             placeholder={userEmail}
-            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-400"
+            className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-400 md:text-sm"
             autoComplete="off"
           />
           <div className="flex gap-3">

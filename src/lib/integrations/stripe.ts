@@ -2,6 +2,7 @@ import Stripe from "stripe"
 
 import { APP_METADATA } from "@/lib/config/app-metadata"
 import { env } from "@/lib/env"
+import { getSiteUrl } from "@/lib/site-url"
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   appInfo: {
@@ -15,19 +16,7 @@ export function getStripePublishableKey() {
 }
 
 export function getAppBaseUrl() {
-  if (env.NEXT_PUBLIC_APP_URL) {
-    return env.NEXT_PUBLIC_APP_URL
-  }
-
-  if (env.NEXTAUTH_URL) {
-    return env.NEXTAUTH_URL
-  }
-
-  if (env.VERCEL_URL) {
-    return env.VERCEL_URL.startsWith("http") ? env.VERCEL_URL : `https://${env.VERCEL_URL}`
-  }
-
-  return "http://localhost:3000"
+  return getSiteUrl()
 }
 
 export function getConnectedAccountRequestOptions(stripeAccountId?: string | null): Stripe.RequestOptions | undefined {

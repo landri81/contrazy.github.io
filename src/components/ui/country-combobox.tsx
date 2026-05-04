@@ -122,7 +122,7 @@ export function CountryCombobox({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search country..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
 

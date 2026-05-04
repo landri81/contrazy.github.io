@@ -543,7 +543,7 @@ export function TransactionCreationForm({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     maxLength={INPUT_LIMITS.transactionNotes}
-                    className="min-h-[72px] resize-none text-sm"
+                    className="min-h-[72px] resize-none"
                   />
                   <CharacterCount current={notes.length} limit={INPUT_LIMITS.transactionNotes} className="text-right" />
                 </div>

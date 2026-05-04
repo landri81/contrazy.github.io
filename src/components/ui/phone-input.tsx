@@ -169,7 +169,7 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid, ma
         onChange={handleNumberChange}
         onBlur={onBlur}
         className={cn(
-          "flex h-9 min-w-0 flex-1 rounded-r-lg border border-input bg-background px-3 py-1.5 text-sm shadow-xs outline-none",
+          "flex h-9 min-w-0 flex-1 rounded-r-lg border border-input bg-background px-3 py-1.5 text-base shadow-xs outline-none md:text-sm",
           "placeholder:text-muted-foreground",
           "transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
           invalid && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
@@ -190,7 +190,7 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid, ma
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search country or dial code..."
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
 

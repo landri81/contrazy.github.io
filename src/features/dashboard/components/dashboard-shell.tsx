@@ -193,7 +193,7 @@ export function DashboardShell({
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="px-4 py-6 sm:px-6 lg:px-8"
           >
-            <div className="mb-6">
+            <div className="mb-4 bg-white p-4 rounded-md shadow-sm">
               <p className="text-xs font-semibold tracking-[0.2em] text-(--contrazy-teal) uppercase">{title}</p>
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{subtitle}</h1>
             </div>

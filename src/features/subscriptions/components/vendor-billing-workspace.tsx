@@ -11,8 +11,14 @@ import {
   CreditCard,
   Download,
   ExternalLink,
+  FileSignature,
+  FileText,
   Loader2,
+  LockKeyhole,
+  LucideIcon,
+  QrCode,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   X,
   XCircle,
@@ -186,30 +192,65 @@ function BillingPlanGrid({
       router.push("/contact")
       return
     }
+
     onChangePlan(planKey, billingInterval)
   }
 
+  function handleAction(plan: (typeof subscriptionPlans)[number]) {
+    if (plan.contactOnly || plan.key === "enterprise") {
+      router.push("/contact")
+      return
+    }
+
+    if (canFreshCheckout) {
+      onCheckoutPlan?.(plan.key, billingInterval)
+      return
+    }
+
+    handleSelect(plan.key)
+  }
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {subscriptionPlans.map((plan) => {
-        const isCurrent = plan.key === currentPlanSlug && plan.key !== "enterprise" &&
+        const isCurrent =
+          plan.key === currentPlanSlug &&
+          plan.key !== "enterprise" &&
           (currentIntervalSlug === null || currentIntervalSlug === billingInterval)
-        const amount = billingInterval === "yearly" ? plan.yearlyAmountCents : plan.monthlyAmountCents
+
+        const amount =
+          billingInterval === "yearly"
+            ? plan.yearlyAmountCents
+            : plan.monthlyAmountCents
+
         const isLoadingThis = loading === plan.key
         const isAnyLoading = loading !== null
-        const intervalMeta = billingInterval === "yearly" && plan.yearlyMonthlyEquivalentCents
-          ? `/ an · ${formatEuroAmount(plan.yearlyMonthlyEquivalentCents)}/mois`
-          : billingInterval === "yearly"
-            ? "/ an"
-            : "/ mois"
+
+        const intervalMeta =
+          billingInterval === "yearly" && plan.yearlyMonthlyEquivalentCents
+            ? `/ an · ${formatEuroAmount(plan.yearlyMonthlyEquivalentCents)}/mois`
+            : billingInterval === "yearly"
+              ? "/ an"
+              : "/ mois"
 
         let ctaLabel = plan.ctaLabel
+
         if (!plan.contactOnly && !canFreshCheckout && !isCurrent) {
-          const currentPlanOrder = subscriptionPlans.findIndex((p) => p.key === currentPlanSlug)
-          const thisPlanOrder = subscriptionPlans.findIndex((p) => p.key === plan.key)
+          const currentPlanOrder = subscriptionPlans.findIndex(
+            (p) => p.key === currentPlanSlug
+          )
+          const thisPlanOrder = subscriptionPlans.findIndex(
+            (p) => p.key === plan.key
+          )
+
           if (thisPlanOrder > currentPlanOrder) ctaLabel = "Upgrade"
           else ctaLabel = "Downgrade"
-          if (currentIntervalSlug && currentIntervalSlug !== billingInterval && plan.key === currentPlanSlug) {
+
+          if (
+            currentIntervalSlug &&
+            currentIntervalSlug !== billingInterval &&
+            plan.key === currentPlanSlug
+          ) {
             ctaLabel = "Switch interval"
           }
         }
@@ -218,7 +259,8 @@ function BillingPlanGrid({
           <div
             key={plan.key}
             className={cn(
-              "relative overflow-hidden rounded-[22px] border bg-background p-6 shadow-sm transition-all",
+              "relative flex h-full min-h-[450px] flex-col overflow-hidden rounded-[22px] border bg-background p-6 shadow-sm transition-all duration-200",
+              "hover:-translate-y-0.5 hover:shadow-md",
               plan.recommended
                 ? "border-[var(--contrazy-teal)] shadow-[0_0_0_4px_rgba(17,201,176,0.08)]"
                 : "border-border",
@@ -226,23 +268,29 @@ function BillingPlanGrid({
             )}
           >
             {plan.recommended && (
-              <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(17,201,176,0.2),rgba(17,201,176,0.85),rgba(17,201,176,0.2))]" />
+              <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(17,201,176,0.18),rgba(17,201,176,0.9),rgba(17,201,176,0.18))]" />
             )}
 
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-[17px] font-bold text-foreground">{plan.name}</p>
-                <p className="mt-0.5 text-[12px] text-muted-foreground">{plan.subtitle}</p>
+            <div className="flex min-h-[58px] items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[17px] font-bold leading-tight text-foreground">
+                  {plan.name}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {plan.subtitle}
+                </p>
               </div>
-              <div className="flex flex-col items-end gap-1">
+
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
                 {plan.recommended && (
-                  <Badge className="border-transparent bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] hover:bg-[var(--contrazy-teal)]/10">
+                  <Badge className="gap-1 border-transparent bg-[var(--contrazy-teal)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--contrazy-teal)] hover:bg-[var(--contrazy-teal)]/10">
                     <Sparkles className="size-3" />
                     Recommandé
                   </Badge>
                 )}
+
                 {isCurrent && (
-                  <Badge className="border-transparent bg-emerald-100 text-emerald-700">
+                  <Badge className="gap-1 border-transparent bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100">
                     <CheckCircle2 className="size-3" />
                     Actuel
                   </Badge>
@@ -250,42 +298,58 @@ function BillingPlanGrid({
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5 flex min-h-[76px] flex-col justify-end">
               {amount !== null ? (
                 <>
                   <div className="flex items-end gap-1.5">
-                    {billingInterval === "yearly" && plan.yearlyOriginalAmountCents && (
-                      <span className="pb-0.5 text-base font-semibold text-muted-foreground/40 line-through">
-                        {formatEuroAmount(plan.yearlyOriginalAmountCents)}
-                      </span>
-                    )}
-                    <span className="text-[38px] font-extrabold tracking-tight text-foreground">
+                    {billingInterval === "yearly" &&
+                      plan.yearlyOriginalAmountCents && (
+                        <span className="pb-1 text-base font-semibold text-muted-foreground/40 line-through">
+                          {formatEuroAmount(plan.yearlyOriginalAmountCents)}
+                        </span>
+                      )}
+
+                    <span className="text-[38px] font-extrabold leading-none tracking-tight text-foreground">
                       {formatEuroAmount(amount)}
                     </span>
-                    <span className="pb-0.5 text-[13px] text-muted-foreground">HT</span>
+
+                    <span className="pb-1 text-[13px] text-muted-foreground">
+                      HT
+                    </span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{intervalMeta}</p>
+
+                  <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                    {intervalMeta}
+                  </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[38px] font-extrabold tracking-tight text-foreground">Sur devis</p>
-                  <p className="text-[11px] text-muted-foreground">Facturation annuelle</p>
+                  <p className="text-[38px] font-extrabold leading-none tracking-tight text-foreground">
+                    Sur devis
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                    Facturation annuelle
+                  </p>
                 </>
               )}
             </div>
 
-            <ul className="mt-4 space-y-2">
+            <ul className="mt-5 flex-1 space-y-2.5">
               {plan.items.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-[12px] leading-5 text-muted-foreground">
-                  <Check className="mt-[1px] size-3.5 shrink-0 text-[var(--contrazy-teal)]" />
-                  {item}
+                <li
+                  key={item}
+                  className="flex items-start gap-2 text-[12px] leading-5 text-muted-foreground"
+                >
+                  <Check className="mt-[3px] size-3.5 shrink-0 text-[var(--contrazy-teal)]" />
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-5">
+            <div className="mt-6 pt-2">
               {isCurrent ? (
-                <div className="flex h-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700">
+                <div className="flex h-11 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700">
                   <CheckCircle2 className="mr-2 size-4" />
                   Plan actuel
                 </div>
@@ -293,23 +357,25 @@ function BillingPlanGrid({
                 <Button
                   type="button"
                   className={cn(
-                    "h-10 w-full rounded-xl text-[13px]",
-                    plan.contactOnly
-                      ? "border border-border bg-background text-foreground hover:border-[var(--contrazy-teal)] hover:text-[var(--contrazy-teal)]"
-                      : plan.recommended || plan.key === "pro"
-                        ? "bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]"
-                        : ""
+                    "h-11 w-full rounded-xl text-[13px] font-semibold transition-all",
+                    plan.contactOnly || plan.key === "starter"
+                      ? "border border-border bg-background text-foreground hover:border-[var(--contrazy-teal)] hover:bg-[var(--contrazy-teal)]/5 hover:text-[var(--contrazy-teal)]"
+                      : "bg-[var(--contrazy-teal)] text-white shadow-sm hover:bg-[#0eb8a0]"
                   )}
-                  variant={plan.contactOnly || plan.key === "starter" ? "outline" : "default"}
-                  disabled={isAnyLoading}
-                  onClick={() =>
-                    canFreshCheckout
-                      ? onCheckoutPlan?.(plan.key, billingInterval)
-                      : handleSelect(plan.key)
+                  variant={
+                    plan.contactOnly || plan.key === "starter"
+                      ? "outline"
+                      : "default"
                   }
+                  disabled={isAnyLoading}
+                  onClick={() => handleAction(plan)}
                 >
-                  {isLoadingThis ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                  {isLoadingThis ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : null}
+
                   {ctaLabel}
+
                   {!isLoadingThis ? <ArrowRight className="ml-2 size-4" /> : null}
                 </Button>
               )}
@@ -350,29 +416,109 @@ function UsageBar({ used, limit, locked }: { used: number; limit: number | null;
 }
 
 function UsageSection({ usage }: { usage: BillingUsage }) {
-  const monthlyItems = [
-    { label: "Transactions / month", used: usage.transactions.used, limit: usage.transactions.limit },
-    { label: "E-Signatures / month", used: usage.eSignatures.used, limit: usage.eSignatures.limit },
-    { label: "QR Codes / month", used: usage.qrCodes.used, limit: usage.qrCodes.limit },
-    { label: "KYC verifications / month", used: usage.kyc.used, limit: usage.kyc.limit, locked: !usage.kyc.allowed },
-  ]
+  const usageItems: {
+    label: string
+    shortLabel: string
+    used: number
+    limit: number | null
+    locked?: boolean
+    icon: LucideIcon
+  }[] = [
+      {
+        label: "Transactions / month",
+        shortLabel: "Transactions",
+        used: usage.transactions.used,
+        limit: usage.transactions.limit,
+        icon: CreditCard,
+      },
+      {
+        label: "E-Signatures / month",
+        shortLabel: "Signatures",
+        used: usage.eSignatures.used,
+        limit: usage.eSignatures.limit,
+        icon: FileSignature,
+      },
+      {
+        label: "QR Codes / month",
+        shortLabel: "QR Codes",
+        used: usage.qrCodes.used,
+        limit: usage.qrCodes.limit,
+        icon: QrCode,
+      },
+      {
+        label: "KYC verifications / month",
+        shortLabel: "KYC",
+        used: usage.kyc.used,
+        limit: usage.kyc.limit,
+        locked: !usage.kyc.allowed,
+        icon: ShieldCheck,
+      },
+      {
+        label: "Contract templates",
+        shortLabel: "Templates",
+        used: usage.contractTemplates.used,
+        limit: usage.contractTemplates.limit,
+        icon: FileText,
+      },
+    ]
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {monthlyItems.map((item) => (
-          <div key={item.label} className="rounded-[18px] border border-border bg-background p-4 shadow-sm">
-            <p className="text-[12px] font-semibold text-foreground">{item.label}</p>
-            <div className="mt-2">
-              <UsageBar used={item.used} limit={item.limit} locked={item.locked} />
-            </div>
+    <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-5">
+      {usageItems.map((item) => (
+        <UsageMetricCard key={item.label} item={item} />
+      ))}
+    </div>
+  )
+}
+
+function UsageMetricCard({
+  item,
+}: {
+  item: {
+    label: string
+    shortLabel: string
+    used: number
+    limit: number | null
+    locked?: boolean
+    icon: LucideIcon
+  }
+}) {
+  const Icon = item.icon
+
+  const limitLabel =
+    item.locked ? "Locked" : item.limit === null ? "Unlimited" : item.limit
+
+  return (
+    <div className="group rounded-2xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] sm:size-9">
+            <Icon className="size-4" />
           </div>
-        ))}
-      </div>
-      <div className="rounded-[18px] border border-border bg-background p-4 shadow-sm">
-        <p className="text-[12px] font-semibold text-foreground">Contract templates</p>
-        <div className="mt-2">
-          <UsageBar used={usage.contractTemplates.used} limit={usage.contractTemplates.limit} />
+
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-semibold text-foreground sm:hidden">
+              {item.shortLabel}
+            </p>
+            <p className="hidden truncate text-[12px] font-semibold text-foreground sm:block">
+              {item.label}
+            </p>
+
+            <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-[11px]">
+              {item.used} / {limitLabel}
+            </p>
+          </div>
         </div>
+
+        {item.locked && (
+          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <LockKeyhole className="size-3" />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <UsageBar used={item.used} limit={item.limit} locked={item.locked} />
       </div>
     </div>
   )

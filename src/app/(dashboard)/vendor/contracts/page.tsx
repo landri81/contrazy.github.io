@@ -32,7 +32,7 @@ export default async function VendorContractsPage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mb-4 bg-white p-4 rounded-md shadow-sm">
         <h1 className="text-3xl font-bold tracking-tight">Contract Templates</h1>
         <p className="text-muted-foreground mt-2">
           Manage the agreement language used in your transactions and add merge fields for customer or payment details.
