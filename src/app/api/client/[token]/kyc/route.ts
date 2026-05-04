@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { canUseKyc, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
+import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -55,6 +55,13 @@ export async function POST(
     if (!canUseKyc(subscription)) {
       return NextResponse.json(
         { success: false, message: "Identity verification is not available for this vendor plan." },
+        { status: 422 }
+      )
+    }
+
+    if (getKycProvider(subscription) !== "manual") {
+      return NextResponse.json(
+        { success: false, message: "Manual identity upload is not available for this vendor plan." },
         { status: 422 }
       )
     }

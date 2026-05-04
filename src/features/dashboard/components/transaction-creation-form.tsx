@@ -735,11 +735,11 @@ export function TransactionCreationForm({
                     <div>
                       <p className="text-sm font-medium text-foreground">Require ID document</p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Client uploads a government-issued photo ID. You review it from the transaction detail page.
+                        Client completes Stripe Identity with a government-issued photo ID and the result is attached to the transaction automatically.
                       </p>
                       {!canUseKycInPlan ? (
                         <p className="mt-1.5 text-xs text-muted-foreground">
-                          Included from Pro plan and above.
+                          Activate a paid plan to enable Stripe Identity verification.
                         </p>
                       ) : remainingKyc !== null && remainingKyc <= 0 ? (
                         <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
@@ -752,7 +752,7 @@ export function TransactionCreationForm({
                       ) : null}
                       {requiresKyc && (
                         <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                          Client can continue while their ID is under review.
+                          Stripe Identity opens inside the client flow before the next required step.
                         </p>
                       )}
                     </div>

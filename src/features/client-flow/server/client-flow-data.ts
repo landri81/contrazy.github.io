@@ -156,7 +156,7 @@ export function hasCompletedSignature(transaction: ClientFlowTransaction) {
 export function getClientFlowState(transaction: ClientFlowTransaction) {
   const hasProfile = Boolean(transaction.clientProfileId && transaction.clientProfile)
   const hasDocs = hasRequiredDocuments(transaction)
-  // PENDING = client submitted ID for manual review; they may proceed, vendor reviews async
+  // PENDING means an identity check was started and the client may proceed while verification completes or awaits review.
   const hasKyc =
     !transaction.requiresKyc ||
     transaction.kycVerification?.status === "VERIFIED" ||

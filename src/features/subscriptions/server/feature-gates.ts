@@ -91,20 +91,18 @@ export function getContractTemplateLimitReachedMessage(limit: number) {
 export function canUseKyc(subscription: VendorSubscription | null | undefined) {
   if (!hasActiveSubscription(subscription)) return false
   if (!subscription) return false
-  // Starter plan does not include KYC
-  return subscription.planKey !== SubscriptionPlanKey.STARTER
+  return true
 }
 
 export function getKycProvider(subscription: VendorSubscription | null | undefined): "manual" | "stripe_identity" {
   if (!subscription) return "manual"
-  if (subscription.planKey === SubscriptionPlanKey.STARTER) return "manual"
   return "stripe_identity"
 }
 
 export function getKycLimit(subscription: VendorSubscription | null | undefined) {
   if (!subscription) return 0
   switch (subscription.planKey) {
-    case SubscriptionPlanKey.STARTER: return 0  // not included
+    case SubscriptionPlanKey.STARTER: return 1
     case SubscriptionPlanKey.PRO: return 10
     case SubscriptionPlanKey.BUSINESS: return 25
     case SubscriptionPlanKey.ENTERPRISE: return null
