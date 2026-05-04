@@ -16,18 +16,18 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "en",
     icons: [
       {
-        src: "/logo/favicon-contrazy-64.png",
+        src: "/favicon.png",
         sizes: "64x64",
         type: "image/png",
       },
       {
-        src: "/logo/icon-contrazy-180.png",
+        src: "/apple-touch-icon.png",
         sizes: "180x180",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/logo/icon-contrazy-512.png",
+        src: "/icon-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

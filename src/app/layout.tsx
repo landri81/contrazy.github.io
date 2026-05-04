@@ -29,31 +29,31 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo/favicon-contrazy-64.png",
+        url: "/favicon.png",
         type: "image/png",
         sizes: "64x64",
       },
       {
-        url: "/logo/icon-contrazy-180.png",
+        url: "/apple-touch-icon.png",
         type: "image/png",
         sizes: "180x180",
       },
       {
-        url: "/logo/icon-contrazy-512.png",
+        url: "/icon-512.png",
         type: "image/png",
         sizes: "512x512",
       },
     ],
     shortcut: [
       {
-        url: "/logo/favicon-contrazy-64.png",
+        url: "/favicon.png",
         type: "image/png",
         sizes: "64x64",
       },
     ],
     apple: [
       {
-        url: "/logo/icon-contrazy-180.png",
+        url: "/apple-touch-icon.png",
         type: "image/png",
         sizes: "180x180",
       },
