@@ -6,17 +6,30 @@ import { requireVendorProfileAccess } from "@/lib/auth/guards"
 
 export default async function VendorProfilePage() {
   const { dbUser, vendorProfile } = await requireVendorProfileAccess()
+  const accountEmail = dbUser.email
+  const profileKey = [
+    dbUser.name ?? "",
+    accountEmail,
+    vendorProfile.businessName ?? "",
+    vendorProfile.supportEmail ?? "",
+    vendorProfile.businessPhone ?? "",
+    vendorProfile.businessAddress ?? "",
+    vendorProfile.businessCountry ?? "",
+    vendorProfile.reviewStatus,
+    vendorProfile.stripeConnectionStatus,
+  ].join("|")
 
   return (
     <PagePanel
       title="Business profile"
-      description="Complete your business details so your account can be reviewed and prepared for live use."
+      description="Review your business details, workspace status, and update only the fields that need changes."
     >
       <VendorProfileForm
+        key={profileKey}
         initialValues={{
           fullName: dbUser.name ?? "",
           businessName: vendorProfile.businessName ?? "",
-          businessEmail: vendorProfile.businessEmail ?? dbUser.email,
+          businessEmail: accountEmail,
           supportEmail: vendorProfile.supportEmail ?? "",
           businessPhone: vendorProfile.businessPhone ?? "",
           businessAddress: vendorProfile.businessAddress ?? "",
@@ -24,6 +37,7 @@ export default async function VendorProfilePage() {
           reviewStatus: vendorProfile.reviewStatus,
           stripeConnectionStatus: vendorProfile.stripeConnectionStatus,
         }}
+        accountEmail={accountEmail}
       />
     </PagePanel>
   )

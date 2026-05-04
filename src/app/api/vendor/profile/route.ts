@@ -40,8 +40,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 })
     }
 
-    const { fullName, businessName, businessEmail, supportEmail, businessPhone, businessAddress, businessCountry } =
+    const { fullName, businessName, supportEmail, businessPhone, businessAddress, businessCountry } =
       parsedBody.data
+    const accountEmail = session.user.email.toLowerCase()
 
     const nextSlugBase = slugify(businessName)
     const nextSlug = user.vendorProfile?.businessSlug ?? `${nextSlugBase || "business"}-${user.id.slice(-6)}`
@@ -54,7 +55,7 @@ export async function PATCH(request: Request) {
           upsert: {
             create: {
               businessName,
-              businessEmail: businessEmail.toLowerCase(),
+              businessEmail: accountEmail,
               supportEmail: supportEmail ? supportEmail.toLowerCase() : null,
               businessPhone,
               businessAddress,
@@ -63,7 +64,7 @@ export async function PATCH(request: Request) {
             },
             update: {
               businessName,
-              businessEmail: businessEmail.toLowerCase(),
+              businessEmail: accountEmail,
               supportEmail: supportEmail ? supportEmail.toLowerCase() : null,
               businessPhone,
               businessAddress,
