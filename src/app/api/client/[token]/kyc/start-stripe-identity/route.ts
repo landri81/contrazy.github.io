@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
-import { getAppBaseUrl, getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
+import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -78,7 +78,6 @@ export async function POST(
         return_url: returnUrl,
         metadata: { transactionId: transaction.id, token },
       },
-      // getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
     )
 
     if (!session.url) {
