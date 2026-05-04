@@ -31,22 +31,19 @@ export const metadata: Metadata = {
       {
         url: "/favicon.ico",
         sizes: "any",
+        type: "image/x-icon",
       },
       {
-        url: "/apple-touch-icon.png",
+        url: "/favicon.png",
         type: "image/png",
-        sizes: "180x180",
-      },
-      {
-        url: "/favicon.ico",
-        type: "image/png",
-        sizes: "512x512",
+        sizes: "64x64",
       },
     ],
     shortcut: [
       {
         url: "/favicon.ico",
         sizes: "any",
+        type: "image/x-icon",
       },
     ],
     apple: [
