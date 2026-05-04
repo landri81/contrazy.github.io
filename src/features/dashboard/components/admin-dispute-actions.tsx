@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { CheckCircle2, Clock, Loader2, ShieldAlert, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type PendingAction = "review" | "vendor_wins" | "client_wins" | null
 
@@ -191,9 +193,11 @@ export function AdminDisputeActions({
                 id="resolution"
                 rows={3}
                 placeholder="Summarise the decision for vendor and client records..."
+                maxLength={INPUT_LIMITS.adminDisputeResolution}
                 value={resolution}
                 onChange={(e) => { setResolution(e.target.value); setResolveError(null) }}
               />
+              <CharacterCount current={resolution.length} limit={INPUT_LIMITS.adminDisputeResolution} className="text-right" />
             </div>
 
             {resolveError && <p className="text-[13px] text-destructive">{resolveError}</p>}

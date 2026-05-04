@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Copy, Download, ExternalLink, Loader2, MoreHorizontal, PencilLine, QrCode, ShieldX, WandSparkles } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { cn } from "@/lib/utils"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 function toDateTimeLocal(value: string | null) {
   if (!value) return ""
@@ -52,6 +54,7 @@ export function PaymentLinkManagementActions({
   const qrContainerRef = useRef<HTMLDivElement | null>(null)
   const [copied, setCopied] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
+  const [qrPreviewRecord, setQrPreviewRecord] = useState<VendorLinkRecord | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [isGeneratingQr, setIsGeneratingQr] = useState(false)
@@ -64,6 +67,28 @@ export function PaymentLinkManagementActions({
   const [expiresAt, setExpiresAt] = useState(toDateTimeLocal(record.expiresAt))
 
   const detailHref = useMemo(() => `/vendor/transactions/${record.transactionId}`, [record.transactionId])
+  const qrDialogRecord = qrPreviewRecord ?? record
+
+  function openEditDialog() {
+    setTitle(record.title)
+    setNotes(record.notes ?? "")
+    setExpiresAt(toDateTimeLocal(record.expiresAt))
+    setError(null)
+    setEditOpen(true)
+  }
+
+  function handleQrOpenChange(nextOpen: boolean) {
+    setQrOpen(nextOpen)
+
+    if (!nextOpen) {
+      setQrPreviewRecord(null)
+    }
+  }
+
+  function openQrPreview(nextRecord: VendorLinkRecord = record) {
+    setQrPreviewRecord(nextRecord)
+    setQrOpen(true)
+  }
 
   function applyUpdatedRecord(nextRecord: VendorLinkRecord) {
     if (onRecordChange) {
@@ -100,7 +125,7 @@ export function PaymentLinkManagementActions({
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    link.download = `${record.reference.toLowerCase()}-qr.svg`
+    link.download = `${qrDialogRecord.reference.toLowerCase()}-qr.svg`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -121,11 +146,13 @@ export function PaymentLinkManagementActions({
         return
       }
 
+      const nextRecord = payload?.item ?? record
+
       if (payload?.item) {
         applyUpdatedRecord(payload.item)
       }
       applyUsage(payload?.actionUsage)
-      setQrOpen(true)
+      openQrPreview(nextRecord)
     } catch (err) {
       console.error(err)
       setError("Unable to generate this QR code.")
@@ -222,19 +249,21 @@ export function PaymentLinkManagementActions({
         {variant === "detail" && !record.qrReady && record.canGenerateQr ? (
           <Button type="button" variant="outline" size="sm" onClick={handleGenerateQr} disabled={isGeneratingQr}>
             {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
-            Generate QR
+            {isGeneratingQr ? "Generating..." : "Generate QR"}
           </Button>
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label="Open payment link actions"
+            aria-busy={isGeneratingQr}
+            disabled={isGeneratingQr}
             className={cn(
               buttonVariants({ variant: "outline", size: variant === "detail" ? "sm" : "icon-sm" }),
               "cursor-pointer"
             )}
           >
-            <MoreHorizontal className="size-3.5" />
-            {variant === "detail" ? "More" : null}
+            {isGeneratingQr ? <Loader2 className="size-3.5 animate-spin" /> : <MoreHorizontal className="size-3.5" />}
+            {variant === "detail" ? (isGeneratingQr ? "Generating..." : "More") : null}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-56">
             <DropdownMenuItem
@@ -245,7 +274,7 @@ export function PaymentLinkManagementActions({
               Open customer link
             </DropdownMenuItem>
             {record.qrReady ? (
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setQrOpen(true)}>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => openQrPreview(record)}>
                 <QrCode className="size-4" />
                 Preview QR code
               </DropdownMenuItem>
@@ -257,14 +286,14 @@ export function PaymentLinkManagementActions({
                 title={record.qrUnavailableReason ?? undefined}
               >
                 {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
-                Generate QR code
+                {isGeneratingQr ? "Generating QR..." : "Generate QR code"}
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
               disabled={!record.canEdit}
-              onClick={() => setEditOpen(true)}
+              onClick={openEditDialog}
             >
               <PencilLine className="size-4" />
               Edit link
@@ -293,20 +322,20 @@ export function PaymentLinkManagementActions({
         <p className="text-right text-xs text-destructive">{error}</p>
       ) : null}
 
-      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+      <Dialog open={qrOpen} onOpenChange={handleQrOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>QR code</DialogTitle>
             <DialogDescription>
-              Share this secure QR code for {record.reference}. The code resolves to the current customer link.
+              Share this secure QR code for {qrDialogRecord.reference}. The code resolves to the current customer link.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {record.qrCodeSvg ? (
+            {qrDialogRecord.qrCodeSvg ? (
               <div
                 ref={qrContainerRef}
                 className="flex justify-center rounded-2xl border bg-white p-6 [&_svg]:block [&_svg]:h-[220px] [&_svg]:w-[220px]"
-                dangerouslySetInnerHTML={{ __html: record.qrCodeSvg }}
+                dangerouslySetInnerHTML={{ __html: qrDialogRecord.qrCodeSvg }}
               />
             ) : (
               <div className="rounded-2xl border border-dashed bg-muted/25 p-5 text-sm text-muted-foreground">
@@ -314,12 +343,12 @@ export function PaymentLinkManagementActions({
               </div>
             )}
             <div className="rounded-xl border bg-muted/25 p-3 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">{record.shortCode}</p>
-              <p className="mt-1 break-all">{record.shareLink}</p>
+              <p className="font-medium text-foreground">{qrDialogRecord.shortCode}</p>
+              <p className="mt-1 break-all">{qrDialogRecord.shareLink}</p>
             </div>
           </div>
           <DialogFooter>
-            {record.qrCodeSvg ? (
+            {qrDialogRecord.qrCodeSvg ? (
               <Button type="button" variant="outline" onClick={downloadQr}>
                 <Download className="size-4" />
                 Download SVG
@@ -349,6 +378,7 @@ export function PaymentLinkManagementActions({
               <Input
                 id={`link-title-${record.id}`}
                 value={title}
+                maxLength={INPUT_LIMITS.linkTitle}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Transaction title"
               />
@@ -367,10 +397,12 @@ export function PaymentLinkManagementActions({
               <Textarea
                 id={`link-notes-${record.id}`}
                 value={notes}
+                maxLength={INPUT_LIMITS.linkNotes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Optional internal context"
                 rows={4}
               />
+              <CharacterCount current={notes.length} limit={INPUT_LIMITS.linkNotes} className="text-right" />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>
@@ -400,10 +432,12 @@ export function PaymentLinkManagementActions({
               <Textarea
                 id={`cancel-reason-${record.id}`}
                 value={cancelReason}
+                maxLength={INPUT_LIMITS.cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Optional reason for this cancellation"
                 rows={3}
               />
+              <CharacterCount current={cancelReason.length} limit={INPUT_LIMITS.cancelReason} className="text-right" />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>

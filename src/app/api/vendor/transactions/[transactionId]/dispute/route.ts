@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { vendorDisputeCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
@@ -24,14 +25,17 @@ export async function POST(
 
     if (blockedResponse) return blockedResponse
 
-    const { summary } = await request.json() as { summary: string }
+    const body = await request.json()
+    const parsedBody = vendorDisputeCreateSchema.safeParse(body)
 
-    if (!summary || summary.trim().length < 10) {
+    if (!parsedBody.success) {
       return NextResponse.json(
-        { success: false, message: "A description of at least 10 characters is required" },
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid dispute summary." },
         { status: 400 }
       )
     }
+
+    const { summary } = parsedBody.data
 
     const transaction = await prisma.transaction.findFirst({
       where: { id: transactionId, vendorId: vendorProfile.id },
@@ -71,7 +75,7 @@ export async function POST(
         data: {
           transactionId: transaction.id,
           status: "OPEN",
-          summary: summary.trim(),
+          summary,
           openedAt: new Date(),
         },
       })
@@ -89,7 +93,7 @@ export async function POST(
         transactionId: transaction.id,
         type: "DISPUTE_OPENED",
         title: "Dispute opened by vendor",
-        detail: summary.trim().slice(0, 200),
+        detail: summary.slice(0, 200),
         dedupeKey: `event:dispute-opened:${transaction.id}`,
       })
     } catch (eventErr) {
@@ -102,7 +106,7 @@ export async function POST(
         vendorProfile.businessName ?? "Unknown vendor",
         transaction.clientProfile?.fullName ?? "Unknown client",
         transaction.reference,
-        summary.trim(),
+        summary,
         createdDispute?.id ?? transaction.id
       )
     } catch (emailErr) {

@@ -2,7 +2,11 @@ import { Prisma, SignatureStatus, TransactionLinkActor, TransactionLinkStatus, T
 import { redirect } from "next/navigation"
 
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
-import { cancelTransactionLink, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
+import {
+  cancelTransactionLink,
+  isCancellableLinkStatus,
+  markTransactionLinkOpened,
+} from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 
 const reviewedContractStatuses = new Set<TransactionStatus>([
@@ -205,6 +209,14 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
   }
 
   return "complete"
+}
+
+export function canCancelClientFlow(transaction: ClientFlowTransaction) {
+  if (!transaction.link || !isCancellableLinkStatus(transaction.link.status)) {
+    return false
+  }
+
+  return getNextClientStep(transaction) !== "complete"
 }
 
 export function buildPopulatedContractContent(transaction: ClientFlowTransaction) {

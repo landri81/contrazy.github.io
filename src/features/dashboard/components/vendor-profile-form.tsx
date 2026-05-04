@@ -13,6 +13,7 @@ import { PhoneInput } from "@/components/ui/phone-input"
 import { Textarea } from "@/components/ui/textarea"
 import { formatValueLabel } from "@/features/dashboard/lib/format-value-label"
 import { vendorProfileSchema } from "@/features/dashboard/schemas/vendor-profile.schema"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type VendorProfileFormProps = {
   initialValues: {
@@ -120,6 +121,7 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
             id="fullName"
             autoComplete="name"
             placeholder="Enter your full name"
+            maxLength={INPUT_LIMITS.personName}
             value={form.fullName}
             onChange={(event) => updateField("fullName", event.target.value)}
             aria-invalid={!!fieldErrors.fullName}
@@ -129,6 +131,7 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
           <Input
             id="businessName"
             placeholder="Enter your business name"
+            maxLength={INPUT_LIMITS.businessName}
             value={form.businessName}
             onChange={(event) => updateField("businessName", event.target.value)}
             aria-invalid={!!fieldErrors.businessName}
@@ -143,6 +146,7 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
             type="email"
             autoComplete="email"
             placeholder="Enter your business email"
+            maxLength={INPUT_LIMITS.email}
             value={form.businessEmail}
             onChange={(event) => updateField("businessEmail", event.target.value)}
             aria-invalid={!!fieldErrors.businessEmail}
@@ -154,6 +158,7 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
             type="email"
             autoComplete="email"
             placeholder="Enter your support email"
+            maxLength={INPUT_LIMITS.email}
             value={form.supportEmail}
             onChange={(event) => updateField("supportEmail", event.target.value)}
             aria-invalid={!!fieldErrors.supportEmail}
@@ -168,7 +173,12 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
           error={fieldErrors.businessPhone}
           hint="Include country code, e.g. +1 202 555 0100"
         >
-          <PhoneInput id="businessPhone" value={form.businessPhone} onChange={(value) => updateField("businessPhone", value)} />
+          <PhoneInput
+            id="businessPhone"
+            value={form.businessPhone}
+            onChange={(value) => updateField("businessPhone", value)}
+            maxLength={INPUT_LIMITS.phone}
+          />
         </Field>
         <Field label="Country" htmlFor="businessCountry" error={fieldErrors.businessCountry}>
           <CountryCombobox
@@ -185,6 +195,7 @@ export function VendorProfileForm({ initialValues }: VendorProfileFormProps) {
           id="businessAddress"
           className="min-h-28"
           placeholder="Enter your full business address"
+          maxLength={INPUT_LIMITS.address}
           value={form.businessAddress}
           onChange={(event) => updateField("businessAddress", event.target.value)}
           aria-invalid={!!fieldErrors.businessAddress}

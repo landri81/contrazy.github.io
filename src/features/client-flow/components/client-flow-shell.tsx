@@ -112,26 +112,26 @@ export function ClientFlowShell({
           initial={reduceMotion ? false : { opacity: 0, x: -18 }}
           animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="relative hidden overflow-hidden rounded-lg bg-[var(--contrazy-navy)] p-5 text-white shadow-xl shadow-slate-900/15 lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-8rem)] lg:min-h-[560px]"
+          className="client-flow-sidebar relative hidden overflow-hidden rounded-lg bg-[var(--contrazy-navy)] p-5 text-white shadow-xl shadow-slate-900/15 lg:sticky lg:top-24 lg:block lg:h-[calc(100dvh-8rem)]"
         >
           <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_0%,rgba(17,201,176,0.32),transparent_18rem)]" />
-          <div className="relative flex h-full flex-col">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">
+          <div className="client-flow-sidebar-inner scrollbar-thin-subtle relative flex h-full flex-col overflow-y-auto pr-1">
+            <div className="client-flow-sidebar-badge inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">
               <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
               Secure onboarding
             </div>
 
-            <div className="mt-8">
+            <div className="client-flow-sidebar-intro mt-8">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Transaction</p>
-              <h1 className="mt-3 font-heading text-3xl font-semibold leading-tight text-white">
+              <h1 className="client-flow-sidebar-title mt-3 font-heading text-3xl font-semibold leading-tight text-white">
                 Complete your request with {vendorName}
               </h1>
-              <p className="mt-4 text-sm leading-6 text-white/65">
+              <p className="client-flow-sidebar-copy mt-4 text-sm leading-6 text-white/65">
                 Follow each step in order. Your progress is saved as you move through the secure flow.
               </p>
             </div>
 
-            <div className="mt-8 space-y-3 rounded-lg border border-white/10 bg-white/[0.07] p-4">
+            <div className="client-flow-sidebar-summary mt-8 flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.07] p-4">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-xs uppercase tracking-[0.18em] text-white/45">Current step</span>
                 <span className="text-sm font-semibold text-[var(--contrazy-teal)]">{currentIndex + 1} of {visibleSteps.length}</span>
@@ -145,18 +145,18 @@ export function ClientFlowShell({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">{stepLabels[currentStep]}</p>
-                  {reference ? <p className="text-xs text-white/50">Reference {reference}</p> : null}
+                  {reference ? <p className="client-flow-sidebar-reference text-xs text-white/50">Reference {reference}</p> : null}
                 </div>
               </div>
             </div>
 
-            <div className="mt-auto hidden space-y-3 pt-8 lg:block">
+            <div className="client-flow-sidebar-steps mt-auto hidden flex-col gap-3 pt-8 lg:flex">
               {visibleSteps.slice(0, 4).map((step, index) => {
                 const isCurrent = step === currentStep
                 const isDone = completedSteps.includes(step) || index < currentIndex
 
                 return (
-                  <div key={step} className="flex items-center gap-3 text-sm">
+                  <div key={step} className="client-flow-sidebar-step flex items-center gap-3 text-sm">
                     <span
                       className={cn(
                         "flex size-6 items-center justify-center rounded-full border text-[11px] font-bold",

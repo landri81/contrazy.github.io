@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { prisma } from "@/lib/db/prisma"
 
 export async function PUT(
@@ -21,7 +22,17 @@ export async function PUT(
       return blockedResponse
     }
 
-    const { name, description, content } = await request.json()
+    const body = await request.json()
+    const parsedBody = contractTemplatePayloadSchema.safeParse(body)
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid template data" },
+        { status: 400 }
+      )
+    }
+
+    const { name, description, content } = parsedBody.data
     const templateId = id
 
     // Ensure vendor owns the template

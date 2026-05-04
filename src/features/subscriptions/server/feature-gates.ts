@@ -82,6 +82,10 @@ export function getContractTemplateLimit(subscription: VendorSubscription | null
   return null
 }
 
+export function getContractTemplateLimitReachedMessage(limit: number) {
+  return `Your current plan allows up to ${limit} contract template${limit === 1 ? "" : "s"}. Upgrade to add more.`
+}
+
 // ── KYC Verifications ────────────────────────────────────────────────────────
 
 export function canUseKyc(subscription: VendorSubscription | null | undefined) {

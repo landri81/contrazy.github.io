@@ -47,3 +47,31 @@ export function getSubscriptionTrialDays(planKey: SubscriptionPlanKey) {
 
   return 0
 }
+
+export function getSubscriptionTrialConfig(
+  planKey: SubscriptionPlanKey
+): Record<string, never> | {
+  trial_end: number
+  trial_settings: {
+    end_behavior: {
+      missing_payment_method: "cancel"
+    }
+  }
+} {
+  const trialDays = getSubscriptionTrialDays(planKey)
+
+  if (trialDays <= 0) {
+    return {}
+  }
+
+  const trialEnd = Math.floor(Date.now() / 1000) + trialDays * 24 * 60 * 60
+
+  return {
+    trial_end: trialEnd,
+    trial_settings: {
+      end_behavior: {
+        missing_payment_method: "cancel",
+      },
+    },
+  }
+}

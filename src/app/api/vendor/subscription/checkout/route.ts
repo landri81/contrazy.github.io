@@ -5,7 +5,7 @@ import {
   parseSubscriptionBillingInterval,
   parseSubscriptionPlanKey,
 } from "@/features/subscriptions/config"
-import { getSubscriptionPlanPriceId, getSubscriptionTrialDays } from "@/features/subscriptions/server/subscription-billing"
+import { getSubscriptionPlanPriceId, getSubscriptionTrialConfig } from "@/features/subscriptions/server/subscription-billing"
 import { resolveCheckoutEligibility } from "@/features/subscriptions/server/subscription-management"
 import {
   getOrCreateSubscriptionCustomer,
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const billingInterval =
       toSubscriptionBillingInterval(intervalSlug) ?? SubscriptionBillingInterval.MONTHLY
     const priceId = getSubscriptionPlanPriceId(planKey, billingInterval)
-    const trialDays = getSubscriptionTrialDays(planKey)
+    const trialConfig = getSubscriptionTrialConfig(planKey)
     const { customerId } = await getOrCreateSubscriptionCustomer({
       vendorProfile: {
         id: vendorProfile.id,
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
           planKey: planSlug,
           billingInterval: intervalSlug,
         },
-        ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
+        ...trialConfig,
       },
       success_url: `${origin}/vendor/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/vendor/subscribe?canceled=1`,

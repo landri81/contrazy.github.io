@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic"
 
+import { getContractTemplateLimit, getContractTemplateLimitReachedMessage } from "@/features/subscriptions/server/feature-gates"
 import { getVendorStatusMessage, isVendorPreparationAllowed, requireSubscribedVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { resolvePagination } from "@/lib/pagination"
@@ -13,9 +14,11 @@ export default async function VendorContractsPage({
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  const { vendorProfile } = await requireSubscribedVendorProfileAccess()
+  const { vendorProfile, subscription } = await requireSubscribedVendorProfileAccess()
   const { page: pageParam } = await searchParams
   const pagination = resolvePagination({ page: pageParam, pageSize: PAGE_SIZE }, { defaultPageSize: PAGE_SIZE })
+  const templateLimit = getContractTemplateLimit(subscription)
+  const templateLimitMessage = templateLimit !== null ? getContractTemplateLimitReachedMessage(templateLimit) : null
 
   const [templates, totalCount] = await Promise.all([
     prisma.contractTemplate.findMany({
@@ -38,8 +41,11 @@ export default async function VendorContractsPage({
 
       <ContractTemplateList
         initialTemplates={templates}
+        initialTotalCount={totalCount}
         canEdit={isVendorPreparationAllowed(vendorProfile)}
         blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+        templateLimit={templateLimit}
+        templateLimitMessage={templateLimitMessage}
       />
 
       <PaginationControls

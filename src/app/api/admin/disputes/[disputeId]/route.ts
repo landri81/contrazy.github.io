@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
 
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { canAccessAdminScope } from "@/lib/auth/roles"
@@ -6,15 +7,21 @@ import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 import {
-  sendAdminDisputeAlert,
   sendClientDisputeResolved,
   sendVendorDisputeResolved,
 } from "@/lib/integrations/resend"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+import { optionalText } from "@/lib/validation/text-schemas"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
 type DisputeAction = "mark_under_review" | "resolve_vendor_wins" | "resolve_client_wins"
+
+const disputeActionSchema = z.object({
+  action: z.enum(["mark_under_review", "resolve_vendor_wins", "resolve_client_wins"]),
+  resolution: optionalText("Resolution note", INPUT_LIMITS.adminDisputeResolution).optional(),
+})
 
 export async function PATCH(
   request: Request,
@@ -28,11 +35,17 @@ export async function PATCH(
     }
 
     const { disputeId } = await params
-    const { action, resolution } = await request.json() as { action: DisputeAction; resolution?: string }
+    const body = await request.json()
+    const parsedBody = disputeActionSchema.safeParse(body)
 
-    if (!["mark_under_review", "resolve_vendor_wins", "resolve_client_wins"].includes(action)) {
-      return NextResponse.json({ success: false, message: "Invalid action" }, { status: 400 })
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid action" },
+        { status: 400 }
+      )
     }
+
+    const { action, resolution } = parsedBody.data as { action: DisputeAction; resolution?: string }
 
     const dispute = await prisma.dispute.findUnique({
       where: { id: disputeId },
@@ -99,7 +112,7 @@ export async function PATCH(
     }
 
     const now = new Date()
-    const resolutionText = resolution?.trim() || ""
+    const resolutionText = resolution || ""
 
     // ── Vendor wins: admin upholds claim — return deposit control to vendor ───
     // Stripe is NOT touched. Deposit stays AUTHORIZED so vendor can choose

@@ -6,6 +6,7 @@ import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 
 import { canUseKyc, remainingKycVerifications, remainingQrCodes, remainingTransactions } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
+import { vendorTransactionCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
@@ -87,6 +88,15 @@ export async function POST(request: Request) {
       return blockedResponse
     }
     const body = await request.json()
+    const parsedBody = vendorTransactionCreateSchema.safeParse(body)
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid transaction data." },
+        { status: 400 }
+      )
+    }
+
     const {
       title,
       notes,
@@ -96,11 +106,7 @@ export async function POST(request: Request) {
       depositAmount,
       requiresKyc,
       generateQr,
-    } = body
-
-    if (!title) {
-      return NextResponse.json({ success: false, message: "Title is required" }, { status: 400 })
-    }
+    } = parsedBody.data
 
     const normalizedAmount = typeof amount === "number" ? amount : null
     const normalizedDepositAmount = typeof depositAmount === "number" ? depositAmount : null

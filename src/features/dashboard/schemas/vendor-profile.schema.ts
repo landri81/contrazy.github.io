@@ -1,19 +1,28 @@
 import { z } from "zod"
 
-// E.164-ish: starts with +, followed by 7–15 digits (with optional spaces/dashes)
-const phoneRegex = /^\+[1-9]\d{0,2}[\s\-]?\d{4,14}$/
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+import { emailText, optionalEmailText, phoneText, requiredText } from "@/lib/validation/text-schemas"
 
 export const vendorProfileSchema = z.object({
-  fullName: z.string().min(2, "Full name is required").max(100),
-  businessName: z.string().min(2, "Business name is required").max(120),
-  businessEmail: z.string().email("Business email must be valid"),
-  supportEmail: z.string().email("Support email must be valid").or(z.literal("")),
-  businessPhone: z
-    .string()
-    .min(1, "Phone number is required")
-    .regex(phoneRegex, "Enter a valid phone number with country code (e.g. +1 202 555 0100)"),
-  businessAddress: z.string().min(5, "Address is required").max(160),
-  businessCountry: z.string().min(2, "Country is required").max(80),
+  fullName: requiredText("Full name", INPUT_LIMITS.personName, {
+    min: 2,
+    requiredMessage: "Full name is required",
+  }),
+  businessName: requiredText("Business name", INPUT_LIMITS.businessName, {
+    min: 2,
+    requiredMessage: "Business name is required",
+  }),
+  businessEmail: emailText("Business email"),
+  supportEmail: optionalEmailText("Support email"),
+  businessPhone: phoneText(),
+  businessAddress: requiredText("Address", INPUT_LIMITS.address, {
+    min: 5,
+    requiredMessage: "Address is required",
+  }),
+  businessCountry: requiredText("Country", INPUT_LIMITS.country, {
+    min: 2,
+    requiredMessage: "Country is required",
+  }),
 })
 
 export const vendorReviewSchema = z.object({

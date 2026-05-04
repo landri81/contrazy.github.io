@@ -5,6 +5,7 @@ import type { ChecklistTemplate, ChecklistItem } from "@prisma/client"
 import { ListChecks, Plus, Trash2, GripVertical, Image as ImageIcon, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type FullChecklist = ChecklistTemplate & { items: ChecklistItem[] }
 
@@ -128,11 +130,23 @@ export function ChecklistTemplateList({
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Checklist Name</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Car Rental Requirements" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Car Rental Requirements"
+                  maxLength={INPUT_LIMITS.checklistName}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description (optional)</Label>
-                <Input id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="When to use this checklist" />
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="When to use this checklist"
+                  maxLength={INPUT_LIMITS.checklistDescription}
+                />
               </div>
 
               <div className="mt-4">
@@ -145,7 +159,12 @@ export function ChecklistTemplateList({
                         <div className="grid grid-cols-2 gap-3">
                           <div className="grid gap-1">
                             <Label className="text-xs">Label</Label>
-                            <Input value={item.label} onChange={e => updateItem(index, 'label', e.target.value)} placeholder="e.g. Driver's License" />
+                            <Input
+                              value={item.label}
+                              onChange={e => updateItem(index, 'label', e.target.value)}
+                              placeholder="e.g. Driver's License"
+                              maxLength={INPUT_LIMITS.checklistItemLabel}
+                            />
                           </div>
                           <div className="grid gap-1">
                             <Label className="text-xs">Type</Label>
@@ -170,7 +189,17 @@ export function ChecklistTemplateList({
                         </div>
                         <div className="grid gap-1">
                           <Label className="text-xs">Description / Instructions</Label>
-                          <Input value={item.description} onChange={e => updateItem(index, 'description', e.target.value)} placeholder="e.g. Please upload both sides" />
+                          <Input
+                            value={item.description}
+                            onChange={e => updateItem(index, 'description', e.target.value)}
+                            placeholder="e.g. Please upload both sides"
+                            maxLength={INPUT_LIMITS.checklistItemInstructions}
+                          />
+                          <CharacterCount
+                            current={item.description.length}
+                            limit={INPUT_LIMITS.checklistItemInstructions}
+                            className="text-right"
+                          />
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch

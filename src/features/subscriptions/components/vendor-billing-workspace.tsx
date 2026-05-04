@@ -167,6 +167,7 @@ function BillingPlanGrid({
   currentIntervalSlug,
   billingInterval,
   onChangePlan,
+  onCheckoutPlan,
   canFreshCheckout,
   loading,
 }: {
@@ -174,6 +175,7 @@ function BillingPlanGrid({
   currentIntervalSlug: SubscriptionBillingIntervalSlug | null
   billingInterval: SubscriptionBillingIntervalSlug
   onChangePlan: (plan: SubscriptionPlanSlug, interval: SubscriptionBillingIntervalSlug) => void
+  onCheckoutPlan?: (plan: SubscriptionPlanSlug, interval: SubscriptionBillingIntervalSlug) => void
   canFreshCheckout: boolean
   loading: string | null
 }) {
@@ -185,24 +187,6 @@ function BillingPlanGrid({
       return
     }
     onChangePlan(planKey, billingInterval)
-  }
-
-  async function handleCheckout(planKey: SubscriptionPlanSlug) {
-    if (planKey === "enterprise") {
-      router.push("/contact")
-      return
-    }
-    const res = await fetch("/api/vendor/subscription/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planKey, billingInterval }),
-    })
-    const data = await res.json()
-    if (data?.url) {
-      window.location.assign(data.url)
-    } else {
-      toast({ variant: "error", title: "Could not start checkout", description: data?.message ?? "Try again." })
-    }
   }
 
   return (
@@ -318,7 +302,11 @@ function BillingPlanGrid({
                   )}
                   variant={plan.contactOnly || plan.key === "starter" ? "outline" : "default"}
                   disabled={isAnyLoading}
-                  onClick={() => canFreshCheckout ? handleCheckout(plan.key) : handleSelect(plan.key)}
+                  onClick={() =>
+                    canFreshCheckout
+                      ? onCheckoutPlan?.(plan.key, billingInterval)
+                      : handleSelect(plan.key)
+                  }
                 >
                   {isLoadingThis ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                   {ctaLabel}
@@ -652,6 +640,38 @@ export function VendorBillingWorkspace({
     setPlanModal({ open: true, plan, interval })
   }
 
+  async function handleFreshCheckout(plan: SubscriptionPlanSlug, interval: SubscriptionBillingIntervalSlug) {
+    if (plan === "enterprise") {
+      router.push("/contact")
+      return
+    }
+
+    setPlanLoading(plan)
+    try {
+      const res = await fetch("/api/vendor/subscription/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planKey: plan, billingInterval: interval }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || !data?.url) {
+        toast({
+          variant: "error",
+          title: "Could not start checkout",
+          description: data?.message ?? "Try again.",
+        })
+        return
+      }
+
+      window.location.assign(data.url)
+    } catch {
+      toast({ variant: "error", title: "Network error", description: "An unexpected error occurred." })
+    } finally {
+      setPlanLoading(null)
+    }
+  }
+
   async function confirmPlanChange() {
     if (!planModal.plan || !planModal.interval) return
 
@@ -853,10 +873,11 @@ export function VendorBillingWorkspace({
             </span>
           </div>
           <BillingPlanGrid
-            currentPlanSlug={sub?.planSlug ?? null}
-            currentIntervalSlug={sub?.intervalSlug ?? null}
+            currentPlanSlug={null}
+            currentIntervalSlug={null}
             billingInterval={billingInterval}
             onChangePlan={handleRequestPlanChange}
+            onCheckoutPlan={handleFreshCheckout}
             canFreshCheckout={true}
             loading={planLoading}
           />
@@ -1012,6 +1033,7 @@ export function VendorBillingWorkspace({
           currentIntervalSlug={sub.intervalSlug}
           billingInterval={billingInterval}
           onChangePlan={handleRequestPlanChange}
+          onCheckoutPlan={handleFreshCheckout}
           canFreshCheckout={false}
           loading={planLoading}
         />

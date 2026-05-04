@@ -15,7 +15,9 @@ import {
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -29,6 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import { INPUT_LIMITS, MIN_DISPUTE_SUMMARY_LENGTH } from "@/lib/validation/input-limits"
 
 type PendingAction = "capture" | "release" | "dispute" | "cancel" | null
 
@@ -132,8 +135,8 @@ export function DepositControlCard({
 
   async function handleDispute() {
     setDisputeError(null)
-    if (disputeSummary.trim().length < 10) {
-      setDisputeError("Describe the dispute reason using at least 10 characters.")
+    if (disputeSummary.trim().length < MIN_DISPUTE_SUMMARY_LENGTH) {
+      setDisputeError(`Describe the dispute reason using at least ${MIN_DISPUTE_SUMMARY_LENGTH} characters.`)
       return
     }
     setPendingAction("dispute")
@@ -236,9 +239,17 @@ export function DepositControlCard({
 
   const partialEuros = parseFloat(partialInput.replace(",", "."))
   const partialValid = !isNaN(partialEuros) && partialEuros > 0 && partialEuros <= maxEuros
+  const partialAmountCents = partialValid ? Math.round(partialEuros * 100) : null
+  const partialCaptureWarning =
+    partialAmountCents !== null && partialAmountCents < amount
+      ? {
+          captureAmountCents: partialAmountCents,
+          releaseAmountCents: amount - partialAmountCents,
+        }
+      : null
   const captureLabel =
-    captureMode === "partial" && partialValid
-      ? `Capture ${fmt(Math.round(partialEuros * 100), currency)}`
+    captureMode === "partial" && partialAmountCents !== null
+      ? `Capture ${fmt(partialAmountCents, currency)}`
       : `Capture ${fmt(amount, currency)}`
 
   return (
@@ -388,6 +399,17 @@ export function DepositControlCard({
                     <p className="text-[12px] text-muted-foreground">
                       Maximum: {fmt(amount, currency)}
                     </p>
+                    {partialCaptureWarning ? (
+                      <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                        <AlertTriangle className="size-4" />
+                        <AlertTitle>Remaining amount will be released</AlertTitle>
+                        <AlertDescription className="text-amber-800 dark:text-amber-200">
+                          Capturing {fmt(partialCaptureWarning.captureAmountCents, currency)} will release the remaining{" "}
+                          {fmt(partialCaptureWarning.releaseAmountCents, currency)} back to the client&apos;s card.
+                          That released amount cannot be captured later from this hold.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                   </div>
                 </motion.div>
               )}
@@ -442,12 +464,14 @@ export function DepositControlCard({
               id="dispute-summary"
               rows={4}
               placeholder="Example: returned item has unreported damage..."
+              maxLength={INPUT_LIMITS.disputeSummary}
               value={disputeSummary}
               onChange={(e) => { setDisputeSummary(e.target.value); setDisputeError(null) }}
             />
-            <p className="text-[12px] text-muted-foreground">
-              {disputeSummary.trim().length} / 10 characters minimum
-            </p>
+            <div className="flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
+              <span>{MIN_DISPUTE_SUMMARY_LENGTH} characters minimum</span>
+              <CharacterCount current={disputeSummary.length} limit={INPUT_LIMITS.disputeSummary} />
+            </div>
             {disputeError && (
               <p className="text-[13px] text-destructive">{disputeError}</p>
             )}

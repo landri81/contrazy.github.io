@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { resetPasswordSchema } from "@/features/auth/schemas/auth.schema"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ResetPasswordForm({ token }: { token: string | undefined }) {
   const router = useRouter()
@@ -78,12 +79,13 @@ export function ResetPasswordForm({ token }: { token: string | undefined }) {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Minimum 12 characters"
-                  className="pr-10"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
+                autoComplete="new-password"
+                placeholder="Minimum 12 characters"
+                className="pr-10"
+                maxLength={INPUT_LIMITS.password}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
@@ -100,12 +102,13 @@ export function ResetPasswordForm({ token }: { token: string | undefined }) {
                 <Input
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Retype your password"
-                  className="pr-10"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                />
+                autoComplete="new-password"
+                placeholder="Retype your password"
+                className="pr-10"
+                maxLength={INPUT_LIMITS.password}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}

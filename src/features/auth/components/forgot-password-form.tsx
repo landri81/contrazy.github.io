@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { forgotPasswordSchema } from "@/features/auth/schemas/auth.schema"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("")
@@ -66,6 +67,7 @@ export function ForgotPasswordForm() {
                 autoComplete="email"
                 placeholder="Enter your email address"
                 className="pl-9"
+                maxLength={INPUT_LIMITS.email}
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />

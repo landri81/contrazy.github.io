@@ -22,6 +22,7 @@ import {
 import { QRCodeSVG } from "qrcode.react"
 
 import { Button } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -33,6 +34,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 
 type TransactionCreationFormProps = {
@@ -543,6 +545,7 @@ export function TransactionCreationForm({
                   <Input
                     id="title"
                     placeholder="e.g. Rental #104 — BMW X5, 3 days"
+                    maxLength={INPUT_LIMITS.transactionTitle}
                     value={title}
                     onChange={(e) => { setTitle(e.target.value); setStepError(null) }}
                     autoFocus
@@ -559,8 +562,10 @@ export function TransactionCreationForm({
                     placeholder="Any internal reference or reminders…"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
+                    maxLength={INPUT_LIMITS.transactionNotes}
                     className="min-h-[72px] resize-none text-sm"
                   />
+                  <CharacterCount current={notes.length} limit={INPUT_LIMITS.transactionNotes} className="text-right" />
                 </div>
               </div>
             )}

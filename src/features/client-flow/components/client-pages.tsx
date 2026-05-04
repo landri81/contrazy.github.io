@@ -11,6 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PhoneInput } from "@/components/ui/phone-input"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ClientProfileForm({
   token,
@@ -114,6 +115,7 @@ export function ClientProfileForm({
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
                     placeholder="Enter your full name"
+                    maxLength={INPUT_LIMITS.personName}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                   />
@@ -131,6 +133,7 @@ export function ClientProfileForm({
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
                     placeholder="Enter your email address"
+                    maxLength={INPUT_LIMITS.email}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -147,6 +150,7 @@ export function ClientProfileForm({
                   onChange={(v) => { setPhone(v); setPhoneError(null) }}
                   onBlur={() => setPhoneError(validatePhone(phone))}
                   invalid={!!phoneError}
+                  maxLength={INPUT_LIMITS.phone}
                   className="[&_button]:h-11 [&_button]:rounded-l-lg [&_button]:border-slate-200 [&_button]:bg-slate-50/80 [&_input]:h-11 [&_input]:rounded-r-lg [&_input]:border-slate-200 [&_input]:bg-slate-50/60 [&_input]:shadow-none [&_input:focus-visible]:bg-white"
                 />
                 <AnimatePresence initial={false}>
@@ -170,6 +174,7 @@ export function ClientProfileForm({
                     id="companyName"
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
                     placeholder="Enter your company name (optional)"
+                    maxLength={INPUT_LIMITS.clientCompanyName}
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                   />

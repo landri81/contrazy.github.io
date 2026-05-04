@@ -39,9 +39,10 @@ type PhoneInputProps = {
   id?: string
   className?: string
   invalid?: boolean
+  maxLength?: number
 }
 
-export function PhoneInput({ value, onChange, onBlur, id, className, invalid }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, onBlur, id, className, invalid, maxLength }: PhoneInputProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -89,7 +90,12 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid }: 
     const localPart = value.startsWith("+")
       ? value.slice(selectedCountryData?.dial.length ?? 2).trimStart()
       : value
-    onChange(`${country.dial}${localPart ? " " + localPart : ""}`)
+    const maxLocalLength =
+      typeof maxLength === "number"
+        ? Math.max(maxLength - country.dial.length - (localPart ? 1 : 0), 0)
+        : null
+    const nextLocalPart = maxLocalLength === null ? localPart : localPart.slice(0, maxLocalLength)
+    onChange(`${country.dial}${nextLocalPart ? " " + nextLocalPart : ""}`)
     setOpen(false)
     setQuery("")
   }
@@ -97,16 +103,25 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid }: 
   function handleNumberChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value
     const dialPrefix = selectedCountryData?.dial ?? ""
+
+    let nextValue = ""
+
     if (raw === "") {
       onChange("")
       return
     }
     // If user typed/pasted a full international number, keep as-is
     if (raw.startsWith("+")) {
-      onChange(raw)
+      nextValue = raw
+    } else {
+      nextValue = `${dialPrefix} ${raw}`.trim()
+    }
+
+    if (typeof maxLength === "number" && nextValue.length > maxLength) {
       return
     }
-    onChange(`${dialPrefix} ${raw}`.trim())
+
+    onChange(nextValue)
   }
 
   // What to show in the number input (strip the dial code prefix)

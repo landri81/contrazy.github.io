@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { GoogleIcon } from "@/components/ui/google-icon"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function RegisterForm() {
   const router = useRouter()
@@ -118,6 +119,7 @@ export function RegisterForm() {
               type="text"
               autoComplete="name"
               placeholder="Enter your full name"
+              maxLength={INPUT_LIMITS.personName}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -128,6 +130,7 @@ export function RegisterForm() {
               id="businessName"
               type="text"
               placeholder="Enter your business name"
+              maxLength={INPUT_LIMITS.businessName}
               value={businessName}
               onChange={(event) => setBusinessName(event.target.value)}
             />
@@ -139,6 +142,7 @@ export function RegisterForm() {
               type="email"
               autoComplete="email"
               placeholder="Enter your business email"
+              maxLength={INPUT_LIMITS.email}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -152,6 +156,7 @@ export function RegisterForm() {
                 autoComplete="new-password"
                 placeholder="Minimum 12 characters"
                 className="pr-10"
+                maxLength={INPUT_LIMITS.password}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
@@ -174,6 +179,7 @@ export function RegisterForm() {
                 autoComplete="new-password"
                 placeholder="Retype your password"
                 className="pr-10"
+                maxLength={INPUT_LIMITS.password}
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
               />

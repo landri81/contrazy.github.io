@@ -5,11 +5,13 @@ import type { ContractTemplate } from "@prisma/client"
 import { FileText, Plus, Trash2, Edit } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { CharacterCount } from "@/components/ui/character-count"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import {
   Dialog,
   DialogContent,
@@ -36,36 +38,57 @@ function applyMergeFieldPreview(content: string) {
 
 export function ContractTemplateList({ 
   initialTemplates,
+  initialTotalCount,
   canEdit,
   blockedMessage,
+  templateLimit,
+  templateLimitMessage,
 }: { 
   initialTemplates: ContractTemplate[]
+  initialTotalCount: number
   canEdit: boolean
   blockedMessage: string
+  templateLimit: number | null
+  templateLimitMessage: string | null
 }) {
   const [templates, setTemplates] = useState(initialTemplates)
+  const [templateCount, setTemplateCount] = useState(initialTotalCount)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   
   // Form State
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [content, setContent] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
+  const hasReachedTemplateLimit = templateLimit !== null && templateCount >= templateLimit
+  const canCreate = canEdit && !hasReachedTemplateLimit
+  const createBlockedMessage = hasReachedTemplateLimit ? (templateLimitMessage ?? "Your current plan limit has been reached.") : null
 
   function openNewDialog() {
+    if (!canCreate) {
+      return
+    }
+
     setName("")
     setDescription("")
     setContent("This agreement is entered into between {{vendorName}} and {{clientName}}.")
     setEditingId(null)
+    setSaveError(null)
     setIsDialogOpen(true)
   }
 
   function openEditDialog(t: ContractTemplate) {
+    if (!canEdit) {
+      return
+    }
+
     setName(t.name)
     setDescription(t.description || "")
     setContent(t.content)
     setEditingId(t.id)
+    setSaveError(null)
     setIsDialogOpen(true)
   }
 
@@ -75,10 +98,17 @@ export function ContractTemplateList({
 
   async function handleSave() {
     if (!canEdit) {
+      setSaveError(blockedMessage)
+      return
+    }
+
+    if (!editingId && hasReachedTemplateLimit) {
+      setSaveError(createBlockedMessage)
       return
     }
 
     setIsSaving(true)
+    setSaveError(null)
     try {
       const url = editingId ? `/api/vendor/contracts/${editingId}` : '/api/vendor/contracts'
       const method = editingId ? 'PUT' : 'POST'
@@ -89,15 +119,25 @@ export function ContractTemplateList({
         body: JSON.stringify({ name, description, content })
       })
       
+      const payload = await res.json().catch(() => null)
+
       if (res.ok) {
-        const saved = await res.json()
+        const saved = payload
         if (editingId) {
-          setTemplates(templates.map(t => t.id === saved.id ? saved : t))
+          setTemplates((current) => current.map((template) => template.id === saved.id ? saved : template))
         } else {
-          setTemplates([saved, ...templates])
+          setTemplates((current) => [saved, ...current])
+          setTemplateCount((current) => current + 1)
         }
         setIsDialogOpen(false)
+        setSaveError(null)
+        return
       }
+
+      setSaveError(payload?.message ?? `Unable to ${editingId ? "update" : "create"} template right now`)
+    } catch (e) {
+      console.error(e)
+      setSaveError(`Unable to ${editingId ? "update" : "create"} template right now`)
     } finally {
       setIsSaving(false)
     }
@@ -110,7 +150,8 @@ export function ContractTemplateList({
     try {
       const res = await fetch(`/api/vendor/contracts/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        setTemplates(templates.filter(t => t.id !== id))
+        setTemplates((current) => current.filter((template) => template.id !== id))
+        setTemplateCount((current) => Math.max(current - 1, 0))
       }
     } catch (e) {
       console.error(e)
@@ -125,9 +166,23 @@ export function ContractTemplateList({
           <AlertDescription>{blockedMessage}</AlertDescription>
         </Alert>
       ) : null}
+      {canEdit && hasReachedTemplateLimit && createBlockedMessage ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+          <AlertTitle>Template limit reached</AlertTitle>
+          <AlertDescription>{createBlockedMessage}</AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <Button onClick={openNewDialog} disabled={!canEdit}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open)
+            if (!open) {
+              setSaveError(null)
+            }
+          }}
+        >
+          <Button onClick={openNewDialog} disabled={!canCreate} title={!canCreate ? createBlockedMessage ?? undefined : undefined}>
             <Plus className="mr-2 h-4 w-4" />
             New Template
           </Button>
@@ -138,14 +193,32 @@ export function ContractTemplateList({
                 Define the agreement text for your transactions and insert merge fields where customer or payment details should appear.
               </DialogDescription>
             </DialogHeader>
+            {saveError ? (
+              <Alert className="border-destructive/30 bg-destructive/5 text-destructive">
+                <AlertTitle>Unable to save template</AlertTitle>
+                <AlertDescription>{saveError}</AlertDescription>
+              </Alert>
+            ) : null}
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">Template Name</Label>
-                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Standard Car Rental Agreement" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Standard Car Rental Agreement"
+                  maxLength={INPUT_LIMITS.contractTemplateName}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Description (optional)</Label>
-                <Input id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief note about when to use this" />
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Brief note about when to use this"
+                  maxLength={INPUT_LIMITS.contractTemplateDescription}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="content">Contract Terms</Label>
@@ -153,8 +226,10 @@ export function ContractTemplateList({
                   id="content" 
                   className="min-h-[250px] text-sm"
                   value={content} 
+                  maxLength={INPUT_LIMITS.contractContent}
                   onChange={e => setContent(e.target.value)} 
                 />
+                <CharacterCount current={content.length} limit={INPUT_LIMITS.contractContent} className="text-right" />
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
                     Insert the details you want filled automatically when the client opens the transaction.
@@ -177,7 +252,7 @@ export function ContractTemplateList({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
-              <Button onClick={handleSave} disabled={isSaving || !name || !content}>
+              <Button onClick={handleSave} disabled={isSaving || !name || !content || (!editingId && !canCreate)}>
                 {isSaving ? "Saving..." : "Save Template"}
               </Button>
             </DialogFooter>

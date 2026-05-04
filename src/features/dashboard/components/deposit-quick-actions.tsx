@@ -1,10 +1,11 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { Banknote, Loader2, Unlock } from "lucide-react"
+import { AlertTriangle, Banknote, Loader2, Unlock } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,6 +47,14 @@ export function DepositQuickActions({
   const maxAmount = amountCents / 100
   const partialAmount = Number.parseFloat(partialInput.replace(",", "."))
   const partialValid = Number.isFinite(partialAmount) && partialAmount > 0 && partialAmount <= maxAmount
+  const partialAmountCents = partialValid ? Math.round(partialAmount * 100) : null
+  const partialCaptureWarning =
+    partialAmountCents !== null && partialAmountCents < amountCents
+      ? {
+          captureAmountCents: partialAmountCents,
+          releaseAmountCents: amountCents - partialAmountCents,
+        }
+      : null
 
   if (status !== "AUTHORIZED") {
     return <span className="text-xs text-muted-foreground">No action</span>
@@ -195,6 +204,17 @@ export function DepositQuickActions({
                     <p className="text-xs text-muted-foreground">
                       Maximum: {formatMoney(amountCents, currency)}
                     </p>
+                    {partialCaptureWarning ? (
+                      <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                        <AlertTriangle className="size-4" />
+                        <AlertTitle>Remaining amount will be released</AlertTitle>
+                        <AlertDescription className="text-amber-800 dark:text-amber-200">
+                          Capturing {formatMoney(partialCaptureWarning.captureAmountCents, currency)} will release the remaining{" "}
+                          {formatMoney(partialCaptureWarning.releaseAmountCents, currency)} back to the client&apos;s card.
+                          That released amount cannot be captured later from this hold.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                   </div>
                 </motion.div>
               ) : null}
@@ -219,8 +239,8 @@ export function DepositQuickActions({
               className="bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]"
             >
               {pendingAction === "capture" ? <Loader2 className="size-4 animate-spin" /> : null}
-              {captureMode === "partial" && partialValid
-                ? `Capture ${formatMoney(Math.round(partialAmount * 100), currency)}`
+              {captureMode === "partial" && partialAmountCents !== null
+                ? `Capture ${formatMoney(partialAmountCents, currency)}`
                 : `Capture ${formatMoney(amountCents, currency)}`}
             </Button>
           </DialogFooter>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
-import { getContractTemplateLimit } from "@/features/subscriptions/server/feature-gates"
+import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
+import { getContractTemplateLimit, getContractTemplateLimitReachedMessage } from "@/features/subscriptions/server/feature-gates"
 import { prisma } from "@/lib/db/prisma"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
@@ -54,11 +55,17 @@ export async function POST(request: Request) {
       return blockedResponse
     }
 
-    const { name, description, content } = await request.json()
+    const body = await request.json()
+    const parsedBody = contractTemplatePayloadSchema.safeParse(body)
 
-    if (!name || !content) {
-      return NextResponse.json({ success: false, message: "Name and content are required" }, { status: 400 })
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid template data" },
+        { status: 400 }
+      )
     }
+
+    const { name, description, content } = parsedBody.data
 
     const subscription = await prisma.vendorSubscription.findUnique({
       where: { vendorId: vendorProfile.id },
@@ -73,7 +80,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             success: false,
-            message: `Your current plan allows up to ${templateLimit} contract template${templateLimit === 1 ? "" : "s"}. Upgrade to add more.`,
+            message: getContractTemplateLimitReachedMessage(templateLimit),
           },
           { status: 422 }
         )

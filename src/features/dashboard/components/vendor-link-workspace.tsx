@@ -395,7 +395,7 @@ export function VendorLinkWorkspace({
               </StatusBadge>,
 
               <PaymentLinkManagementActions
-                key={`${record.id}-${record.status}-${record.title}-${record.expiresAt ?? "none"}-${record.qrReady ? "qr" : "link"}`}
+                key={record.id}
                 record={record}
                 onRecordChange={handleRecordChange}
                 onUsageChange={handleUsageChange}

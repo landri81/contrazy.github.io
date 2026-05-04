@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { TransactionLinkActor } from "@prisma/client"
 
 import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { vendorLinkCancelSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { cancelTransactionLink } from "@/features/transactions/server/transaction-links"
 import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
@@ -20,7 +21,17 @@ export async function POST(
     }
 
     const { linkId } = await params
-    const { reason } = await request.json().catch(() => ({ reason: null }))
+    const body = await request.json().catch(() => ({}))
+    const parsedBody = vendorLinkCancelSchema.safeParse(body)
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid cancellation reason." },
+        { status: 400 }
+      )
+    }
+
+    const { reason } = parsedBody.data
 
     const current = await prisma.transaction.findFirst({
       where: {
@@ -42,7 +53,7 @@ export async function POST(
     const result = await cancelTransactionLink(prisma, {
       linkId: current.link.id,
       actor: TransactionLinkActor.VENDOR,
-      reason: typeof reason === "string" ? reason.trim() || null : null,
+      reason,
       detail: "The vendor cancelled this secure link before the workflow was completed.",
       title: "Vendor cancelled the secure link",
     })

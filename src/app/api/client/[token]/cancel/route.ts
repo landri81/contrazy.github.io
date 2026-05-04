@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server"
 
-import { cancelTransactionLink, getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
+import { TransactionLinkActor, TransactionLinkStatus } from "@prisma/client"
+
+import {
+  canCancelClientFlow,
+  getTransactionByToken,
+} from "@/features/client-flow/server/client-flow-data"
+import { cancelTransactionLink } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
-import { TransactionLinkActor } from "@prisma/client"
 
 export async function POST(
   _request: Request,
@@ -10,18 +15,25 @@ export async function POST(
 ) {
   try {
     const { token } = await params
-    const linkContext = await getClientLinkAccessContext(token)
+    const transaction = await getTransactionByToken(token)
 
-    if (linkContext.state === "missing") {
+    if (!transaction?.link) {
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
-    if (linkContext.state === "cancelled") {
+    if (transaction.link.status === TransactionLinkStatus.CANCELLED) {
       return NextResponse.json({ success: true, redirectUrl: `/t/${token}/cancelled` })
     }
 
+    if (!canCancelClientFlow(transaction)) {
+      return NextResponse.json(
+        { success: false, message: "This request has reached its final stage and can no longer be cancelled." },
+        { status: 409 }
+      )
+    }
+
     const result = await cancelTransactionLink(prisma, {
-      linkId: linkContext.link.id,
+      linkId: transaction.link.id,
       actor: TransactionLinkActor.CLIENT,
       reason: "Cancelled by customer",
       detail: "The customer cancelled the secure link before completing the workflow.",
@@ -29,7 +41,10 @@ export async function POST(
     })
 
     if (!result.ok) {
-      return NextResponse.json({ success: false, message: "This secure link can no longer be cancelled." }, { status: 409 })
+      return NextResponse.json(
+        { success: false, message: "This request has reached its final stage and can no longer be cancelled." },
+        { status: 409 }
+      )
     }
 
     return NextResponse.json({ success: true, redirectUrl: `/t/${token}/cancelled` })

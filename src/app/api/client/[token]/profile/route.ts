@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { clientProfileSchema } from "@/features/client-flow/schemas/client-profile.schema"
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -24,11 +25,17 @@ export async function POST(
 
     const { link } = linkContext
 
-    const { fullName, email, phone, companyName } = await request.json()
+    const body = await request.json()
+    const parsedBody = clientProfileSchema.safeParse(body)
 
-    if (!fullName || !email) {
-      return NextResponse.json({ success: false, message: "Name and email are required" }, { status: 400 })
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid profile details." },
+        { status: 400 }
+      )
     }
+
+    const { fullName, email, phone, companyName } = parsedBody.data
 
     const transactionId = link.transaction.id
 

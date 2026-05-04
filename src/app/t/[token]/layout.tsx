@@ -4,6 +4,7 @@ import { TransactionLinkStatus } from "@prisma/client"
 import { ClientFlowShell } from "@/features/client-flow/components/client-flow-shell"
 import { ClientLinkCancelledState } from "@/features/client-flow/components/client-link-cancelled-state"
 import {
+  canCancelClientFlow,
   getClientFlowState,
   getTransactionByToken,
   type ClientFlowStep,
@@ -54,10 +55,7 @@ export default async function TokenLayout({
       vendorName={transaction.vendor?.businessName ?? "Vendor"}
       reference={transaction.reference}
       token={token}
-      canCancel={
-        transaction.link?.status === TransactionLinkStatus.ACTIVE ||
-        transaction.link?.status === TransactionLinkStatus.PROCESSING
-      }
+      canCancel={canCancelClientFlow(transaction)}
       enabledSteps={enabledSteps}
       completedSteps={completedSteps}
     >

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { checklistTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { prisma } from "@/lib/db/prisma"
-import { RequirementType } from "@prisma/client"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
 export async function GET(request: Request) {
@@ -59,11 +59,17 @@ export async function POST(request: Request) {
       return blockedResponse
     }
 
-    const { name, description, items } = await request.json()
+    const body = await request.json()
+    const parsedBody = checklistTemplatePayloadSchema.safeParse(body)
 
-    if (!name) {
-      return NextResponse.json({ success: false, message: "Name is required" }, { status: 400 })
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid checklist data" },
+        { status: 400 }
+      )
     }
+
+    const { name, description, items } = parsedBody.data
 
     const template = await prisma.checklistTemplate.create({
       data: {
@@ -71,7 +77,7 @@ export async function POST(request: Request) {
         description,
         vendorId: vendorProfile.id,
         items: {
-          create: items.map((item: { label: string, description: string, type: RequirementType, required: boolean }, i: number) => ({
+          create: items.map((item, i: number) => ({
             label: item.label,
             description: item.description,
             type: item.type,

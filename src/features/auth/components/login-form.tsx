@@ -14,6 +14,7 @@ import { GoogleIcon } from "@/components/ui/google-icon"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getRoleHomePath } from "@/lib/auth/pathing"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function LoginForm() {
   const router = useRouter()
@@ -101,6 +102,7 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               placeholder="jean@monentreprise.com"
+              maxLength={INPUT_LIMITS.email}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -122,6 +124,7 @@ export function LoginForm() {
                 autoComplete="current-password"
                 placeholder="Votre mot de passe"
                 className="pr-10"
+                maxLength={INPUT_LIMITS.password}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />

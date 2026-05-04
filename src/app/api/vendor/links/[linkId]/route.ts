@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { vendorLinkUpdateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { isEditableLinkStatus } from "@/features/transactions/server/transaction-links"
 import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
@@ -19,7 +20,17 @@ export async function PATCH(
     }
 
     const { linkId } = await params
-    const { title, notes, expiresAt } = await request.json()
+    const body = await request.json()
+    const parsedBody = vendorLinkUpdateSchema.safeParse(body)
+
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid payment link data." },
+        { status: 400 }
+      )
+    }
+
+    const { title, notes, expiresAt } = parsedBody.data
 
     const current = await prisma.transaction.findFirst({
       where: {
@@ -42,12 +53,6 @@ export async function PATCH(
       return NextResponse.json({ success: false, message: "Only active links can be edited." }, { status: 409 })
     }
 
-    const normalizedTitle = String(title ?? "").trim()
-
-    if (!normalizedTitle) {
-      return NextResponse.json({ success: false, message: "Title is required." }, { status: 422 })
-    }
-
     let nextExpiry: Date | null = null
     if (typeof expiresAt === "string" && expiresAt.trim()) {
       const parsed = new Date(expiresAt)
@@ -67,8 +72,8 @@ export async function PATCH(
       await tx.transaction.update({
         where: { id: current.id },
         data: {
-          title: normalizedTitle,
-          notes: typeof notes === "string" ? notes.trim() || null : null,
+          title,
+          notes,
         },
       })
 
