@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { Variants } from "framer-motion"
-import { useRouter } from "next/navigation"
 import type { ContractTemplate, ChecklistTemplate } from "@prisma/client"
 import {
   AlertCircle,
@@ -15,6 +14,7 @@ import {
   Info,
   Link as LinkIcon,
   Loader2,
+  LockKeyhole,
   QrCode,
   ShieldCheck,
   Wallet,
@@ -22,7 +22,6 @@ import {
 import { QRCodeSVG } from "qrcode.react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -34,7 +33,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
@@ -42,7 +41,10 @@ type TransactionCreationFormProps = {
   hasStripe: boolean
   canLaunch: boolean
   blockedMessage: string
-  onLinkCreated?: (record: VendorLinkRecord) => void
+  usage: VendorActionsUsageRecord | null
+  onLinkCreated?: (record: VendorLinkRecord, usage: VendorActionsUsageRecord | null) => void
+  onDirtyChange?: (dirty: boolean) => void
+  onSuccessStateChange?: (success: boolean) => void
 }
 
 function getTemplateLabel(
@@ -67,10 +69,34 @@ function depositFee(amountEur: number) {
 // ── Step config ────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 1, label: "Info" },
-  { id: 2, label: "Payment" },
-  { id: 3, label: "Documents" },
-  { id: 4, label: "Review" },
+  {
+    id: 1,
+    label: "Info",
+    title: "Basics",
+    description: "Set the internal title and context.",
+    icon: FileText,
+  },
+  {
+    id: 2,
+    label: "Payment",
+    title: "Amounts",
+    description: "Choose the service payment, deposit, or both.",
+    icon: CreditCard,
+  },
+  {
+    id: 3,
+    label: "Documents",
+    title: "Requirements",
+    description: "Add uploads, contract, and optional KYC.",
+    icon: ShieldCheck,
+  },
+  {
+    id: 4,
+    label: "Review",
+    title: "Launch",
+    description: "Check the flow and decide on QR generation.",
+    icon: LinkIcon,
+  },
 ]
 
 // ── Framer-motion variants ────────────────────────────────────────────────
@@ -94,152 +120,135 @@ const slideVariants: Variants = {
   }),
 }
 
-// ── SVG Illustrations ──────────────────────────────────────────────────────
-
-function IllustrationInfo() {
-  return (
-    <svg viewBox="0 0 110 88" className="h-[72px] w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Shadow */}
-      <ellipse cx="54" cy="84" rx="30" ry="4" fill="#e2e8f0" />
-      {/* Document */}
-      <rect x="22" y="6" width="54" height="68" rx="6" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
-      {/* Folded corner */}
-      <path d="M58 6 L76 6 L76 24 L58 24 Z" fill="#e2e8f0" />
-      <path d="M58 6 L58 24 L76 24" stroke="#cbd5e1" strokeWidth="1.5" fill="none" />
-      {/* Text lines */}
-      <rect x="30" y="32" width="34" height="3.5" rx="1.75" fill="#cbd5e1" />
-      <rect x="30" y="42" width="28" height="3" rx="1.5" fill="#e2e8f0" />
-      <rect x="30" y="51" width="32" height="3" rx="1.5" fill="#e2e8f0" />
-      <rect x="30" y="60" width="22" height="3" rx="1.5" fill="#e2e8f0" />
-      {/* Pen */}
-      <g transform="translate(72 62) rotate(-38)">
-        <rect x="-4" y="-18" width="8" height="24" rx="2.5" fill="var(--contrazy-navy, #2d3a4a)" />
-        <polygon points="-4,6 0,14 4,6" fill="var(--contrazy-navy, #2d3a4a)" />
-        <rect x="-4" y="-22" width="8" height="6" rx="1.5" fill="#94a3b8" />
-        <rect x="-1.5" y="-14" width="3" height="16" rx="1" fill="white" opacity="0.25" />
-      </g>
-    </svg>
-  )
-}
-
-function IllustrationPayment() {
-  return (
-    <svg viewBox="0 0 120 88" className="h-[72px] w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Shadow */}
-      <ellipse cx="60" cy="84" rx="36" ry="4" fill="#e2e8f0" />
-      {/* Back card (deposit) — amber-tinted */}
-      <rect x="18" y="24" width="72" height="46" rx="8" fill="#fef3c7" stroke="#fde68a" strokeWidth="1.5" />
-      <rect x="18" y="32" width="72" height="10" fill="#fde68a" />
-      <rect x="26" y="52" width="20" height="8" rx="2" fill="#fbbf24" opacity="0.6" />
-      {/* Lock icon on back card */}
-      <g transform="translate(78, 56)">
-        <rect x="-6" y="-2" width="12" height="9" rx="2" fill="#f59e0b" />
-        <path d="M-3 -2 A3 3 0 0 1 3 -2" stroke="#f59e0b" strokeWidth="2.5" fill="none" />
-        <circle cx="0" cy="3" r="1.5" fill="white" opacity="0.7" />
-      </g>
-      {/* Front card (service payment) — emerald */}
-      <rect x="30" y="14" width="72" height="46" rx="8" fill="#ecfdf5" stroke="#a7f3d0" strokeWidth="1.5" />
-      <rect x="30" y="22" width="72" height="10" fill="var(--contrazy-navy, #2d3a4a)" />
-      <rect x="38" y="42" width="22" height="8" rx="2" fill="#a7f3d0" opacity="0.8" />
-      <rect x="38" y="52" width="14" height="4" rx="1" fill="#d1fae5" />
-      <rect x="56" y="52" width="10" height="4" rx="1" fill="#d1fae5" />
-      {/* Chip */}
-      <rect x="38" y="25" width="10" height="7" rx="1.5" fill="#6ee7b7" opacity="0.8" />
-    </svg>
-  )
-}
-
-function IllustrationDocuments() {
-  return (
-    <svg viewBox="0 0 110 88" className="h-[72px] w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Shadow */}
-      <ellipse cx="54" cy="84" rx="32" ry="4" fill="#e2e8f0" />
-      {/* Folder back */}
-      <path d="M14 36 L14 74 Q14 78 18 78 L90 78 Q94 78 94 74 L94 40 Q94 36 90 36 Z" fill="#e0e7ff" stroke="#c7d2fe" strokeWidth="1.5" />
-      {/* Folder tab */}
-      <path d="M14 36 L14 30 Q14 26 18 26 L44 26 Q48 26 50 30 L54 36 Z" fill="#c7d2fe" stroke="#a5b4fc" strokeWidth="1.5" />
-      {/* Doc 1 (back) */}
-      <rect x="28" y="22" width="40" height="52" rx="4" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" transform="rotate(-8 48 48)" />
-      {/* Doc 2 (middle) */}
-      <rect x="30" y="20" width="40" height="52" rx="4" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" transform="rotate(4 50 46)" />
-      {/* Doc 3 (front) */}
-      <rect x="30" y="24" width="40" height="50" rx="4" fill="white" stroke="#cbd5e1" strokeWidth="1.5" />
-      {/* Lines on front doc */}
-      <rect x="37" y="35" width="26" height="3" rx="1.5" fill="#cbd5e1" />
-      <rect x="37" y="43" width="20" height="2.5" rx="1.25" fill="#e2e8f0" />
-      <rect x="37" y="51" width="24" height="2.5" rx="1.25" fill="#e2e8f0" />
-      {/* Checkmark circle */}
-      <circle cx="80" cy="32" r="11" fill="#10b981" />
-      <path d="M74 32 L78 36 L86 28" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function IllustrationReview() {
-  return (
-    <svg viewBox="0 0 110 88" className="h-[72px] w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Shadow */}
-      <ellipse cx="55" cy="84" rx="30" ry="4" fill="#e2e8f0" />
-      {/* Shield body */}
-      <path d="M55 8 L86 20 L86 46 Q86 66 55 78 Q24 66 24 46 L24 20 Z" fill="var(--contrazy-navy, #2d3a4a)" />
-      {/* Shield shine */}
-      <path d="M55 8 L86 20 L86 46 Q86 66 55 78 Q24 66 24 46 L24 20 Z" fill="white" opacity="0.07" />
-      {/* Inner shield */}
-      <path d="M55 16 L80 26 L80 46 Q80 62 55 72 Q30 62 30 46 L30 26 Z" fill="white" opacity="0.06" />
-      {/* Big checkmark */}
-      <path d="M40 44 L50 54 L70 34" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Sparkles */}
-      <circle cx="90" cy="14" r="3" fill="#fbbf24" />
-      <circle cx="96" cy="28" r="2" fill="#fbbf24" opacity="0.6" />
-      <circle cx="16" cy="22" r="2.5" fill="#a78bfa" opacity="0.7" />
-      <circle cx="20" cy="10" r="1.5" fill="#a78bfa" opacity="0.5" />
-    </svg>
-  )
-}
-
 // ── Progress indicator ─────────────────────────────────────────────────────
 
 function StepProgress({ current }: { current: number }) {
+  const currentStep = STEPS[current - 1]
+
   return (
-    <div className="flex w-full items-start px-5 pb-4 pt-5">
-      {STEPS.map((s, i) => {
-        const done = current > s.id
-        const active = current === s.id
-        return (
-          <React.Fragment key={s.id}>
-            <div className="flex shrink-0 flex-col items-center gap-1.5">
-              <div
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
-                  done
-                    ? "bg-(--contrazy-navy) text-white"
-                    : active
-                    ? "bg-(--contrazy-navy) text-white ring-4 ring-(--contrazy-navy)/20"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {done ? <CheckCircle2 className="size-3.5" /> : s.id}
-              </div>
-              <span
-                className={cn(
-                  "text-[10px] font-medium leading-none",
-                  active ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {s.label}
-              </span>
+    <div className="border-b border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-4 py-4 sm:px-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Step {current} of {STEPS.length}
+          </div>
+          <div className="mt-3 flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)] ring-1 ring-[var(--contrazy-teal)]/12">
+              <currentStep.icon className="size-4" />
             </div>
-            {i < STEPS.length - 1 && (
+            <div className="min-w-0">
+              <p className="text-base font-semibold tracking-tight text-foreground">{currentStep.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{currentStep.description}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden sm:flex shrink-0 items-center rounded-full border border-border/70 bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          {Math.round((current / STEPS.length) * 100)}% complete
+        </div>
+      </div>
+
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-border/80">
+        <motion.div
+          className="h-full rounded-full bg-[var(--contrazy-teal)]"
+          animate={{ width: `${(current / STEPS.length) * 100}%` }}
+          transition={{ duration: 0.28, ease: motionEase }}
+        />
+      </div>
+
+      <div className="mt-4 hidden grid-cols-4 gap-2 md:grid">
+        {STEPS.map((s) => {
+          const Icon = s.icon
+          const done = current > s.id
+          const active = current === s.id
+
+          return (
+            <div
+              key={s.id}
+              className={cn(
+                "rounded-2xl border px-3 py-2.5 transition-all",
+                active
+                  ? "border-[var(--contrazy-teal)]/25 bg-[var(--contrazy-teal)]/8 shadow-sm"
+                  : done
+                    ? "border-border/80 bg-background/80"
+                    : "border-border/60 bg-muted/25"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-full text-[11px] font-semibold",
+                    active
+                      ? "bg-[var(--contrazy-teal)] text-slate-950"
+                      : done
+                        ? "bg-(--contrazy-navy) text-white"
+                        : "bg-background text-muted-foreground ring-1 ring-border"
+                  )}
+                >
+                  {done ? <CheckCircle2 className="size-3.5" /> : <Icon className="size-3.5" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{s.label}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{s.description}</p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2 md:hidden">
+        {STEPS.map((s) => {
+          const Icon = s.icon
+          const done = current > s.id
+          const active = current === s.id
+
+          return (
+            <div key={s.id} className="space-y-2">
               <div
                 className={cn(
-                  "mx-1.5 mt-3.5 h-0.5 flex-1 rounded-full transition-all duration-500",
-                  done ? "bg-(--contrazy-navy)" : "bg-border"
+                  "flex h-9 items-center justify-center rounded-2xl border",
+                  active
+                    ? "border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
+                    : done
+                      ? "border-border/80 bg-background text-(--contrazy-navy)"
+                      : "border-border/60 bg-muted/20 text-muted-foreground"
                 )}
-              />
-            )}
-          </React.Fragment>
-        )
-      })}
+              >
+                {done ? <CheckCircle2 className="size-4" /> : <Icon className="size-4" />}
+              </div>
+              <p className={cn("text-center text-[11px] font-medium", active ? "text-foreground" : "text-muted-foreground")}>
+                {s.label}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StepIntro({
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  icon: React.ElementType
+  eyebrow: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+        <Icon className="size-5 text-[var(--contrazy-teal)]" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
+        <p className="mt-1 text-base font-semibold tracking-tight text-foreground">{title}</p>
+        <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
     </div>
   )
 }
@@ -252,10 +261,11 @@ export function TransactionCreationForm({
   hasStripe,
   canLaunch,
   blockedMessage,
+  usage,
   onLinkCreated,
+  onDirtyChange,
+  onSuccessStateChange,
 }: TransactionCreationFormProps) {
-  const router = useRouter()
-
   // Step navigation
   const [step, setStep] = useState(1)
   const [dir, setDir] = useState(1)
@@ -268,6 +278,7 @@ export function TransactionCreationForm({
   const [contractId, setContractId] = useState<string>("none")
   const [checklistId, setChecklistId] = useState<string>("none")
   const [requiresKyc, setRequiresKyc] = useState(false)
+  const [generateQr, setGenerateQr] = useState(false)
 
   // UI state
   const [isPending, setIsPending] = useState(false)
@@ -280,6 +291,14 @@ export function TransactionCreationForm({
   const depositNum = parseFloat(depositAmount) || 0
   const platformFee = depositNum > 0 ? depositFee(depositNum) : 0
   const financeDisabled = !hasStripe || !canLaunch
+  const qrRemaining = usage?.qrCodes.remaining ?? null
+  const canUseKycInPlan = usage?.kyc.allowed ?? false
+  const remainingKyc = usage?.kyc.remaining ?? null
+  const qrToggleDisabled = financeDisabled || (qrRemaining !== null && qrRemaining <= 0)
+  const kycDisabled =
+    financeDisabled ||
+    !canUseKycInPlan ||
+    (remainingKyc !== null && remainingKyc <= 0)
 
   const selectedContract = contracts.find((c) => c.id === contractId)
   const selectedChecklist = checklists.find((c) => c.id === checklistId)
@@ -306,6 +325,27 @@ export function TransactionCreationForm({
     (amountNum > 0 || depositNum > 0) && { key: "payment", label: "Payment" },
     { key: "complete", label: "Complete" },
   ].filter(Boolean) as { key: string; label: string }[]
+
+  const isDirty = Boolean(
+    successLink ||
+    step > 1 ||
+    title.trim() ||
+    notes.trim() ||
+    amount.trim() ||
+    depositAmount.trim() ||
+    contractId !== "none" ||
+    checklistId !== "none" ||
+    requiresKyc ||
+    generateQr
+  )
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
+  useEffect(() => {
+    onSuccessStateChange?.(Boolean(successLink))
+  }, [onSuccessStateChange, successLink])
 
   function navigate(next: number) {
     setStepError(null)
@@ -345,6 +385,7 @@ export function TransactionCreationForm({
     setError(null)
 
     if (!canLaunch) { setError(blockedMessage); return }
+    if (!hasStripe) { setError("Connect Stripe before creating live customer transactions."); return }
 
     if (amountNum <= 0 && depositNum <= 0) {
       setError("Enter a service payment amount, a deposit hold amount, or both before generating a link.")
@@ -365,6 +406,7 @@ export function TransactionCreationForm({
           amount: amount ? parseEur(amount) : null,
           depositAmount: depositAmount ? parseEur(depositAmount) : null,
           requiresKyc,
+          generateQr,
         }),
       })
 
@@ -374,7 +416,7 @@ export function TransactionCreationForm({
       const link = `${window.location.origin}/t/${data.link.token}`
       setSuccessLink(link)
       if (onLinkCreated && data.linkRecord) {
-        onLinkCreated(data.linkRecord)
+        onLinkCreated(data.linkRecord, data.actionUsage ?? null)
       }
     } catch {
       setError("An unexpected error occurred.")
@@ -400,58 +442,80 @@ export function TransactionCreationForm({
     setAmount("")
     setDepositAmount("")
     setRequiresKyc(false)
+    setGenerateQr(false)
     setStepError(null)
     setError(null)
     setStep(1)
-    router.refresh()
   }
 
   // ── Success state ─────────────────────────────────────────────────────────
   if (successLink) {
     return (
-      <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/10">
-        <div className="px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
-              <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+      <div className="flex h-full flex-col bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,1))]">
+        <div className="border-b border-emerald-100/80 px-4 py-4 sm:px-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
+              <CheckCircle2 className="size-5 text-emerald-600" />
             </div>
             <div>
-              <p className="font-semibold text-emerald-800 dark:text-emerald-300">Transaction created</p>
-              <p className="text-sm text-emerald-700/80 dark:text-emerald-400">Share this link or QR code with your client.</p>
+              <p className="text-base font-semibold text-emerald-950">Transaction created</p>
+              <p className="mt-1 text-sm text-emerald-900/75">
+                {generateQr
+                  ? "Share this secure link or stored QR code with your client."
+                  : "Share this secure link now. You can generate a QR later from Recent links if you need one."}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 px-5 pb-5">
-          <div className="flex gap-2">
-            <Input readOnly value={successLink} className="bg-white text-xs dark:bg-background" />
-            <Button type="button" variant="outline" className="shrink-0 border-emerald-300 text-emerald-700 hover:bg-emerald-100" onClick={handleCopy}>
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input readOnly value={successLink} className="bg-white text-xs" />
+            <Button type="button" variant="outline" className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={handleCopy}>
               {copied ? "Copied!" : "Copy"}
             </Button>
           </div>
 
-          <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-white p-5 dark:border-emerald-900 dark:bg-background">
-            <QRCodeSVG value={successLink} size={140} level="M" includeMargin />
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <QrCode className="size-3.5" />
-              Scan with mobile device
-            </p>
-          </div>
+          {generateQr ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+              <QRCodeSVG value={successLink} size={140} level="M" includeMargin />
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <QrCode className="size-3.5" />
+                Stored QR ready to scan
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-emerald-200 bg-white/90 p-4 text-sm text-emerald-800 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-8 items-center justify-center rounded-xl bg-emerald-100">
+                  <LockKeyhole className="size-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="font-medium">QR not generated</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    This transaction is live with the secure link only. Generate a QR later from the Recent links manager when quota is available.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-          <Button type="button" variant="outline" className="w-full" onClick={handleReset}>
+        <div className="border-t border-emerald-100/80 bg-white/90 px-4 py-4 sm:px-6">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleReset}>
             Create another transaction
           </Button>
         </div>
-      </Card>
+      </div>
     )
   }
 
   // ── Wizard ────────────────────────────────────────────────────────────────
   return (
-    <Card className="w-full overflow-hidden">
+    <div className="flex h-full min-h-[min(760px,78dvh)] flex-col bg-white">
       <StepProgress current={step} />
 
-      <div className="overflow-hidden border-t border-border/50">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={step}
@@ -460,17 +524,19 @@ export function TransactionCreationForm({
             initial="enter"
             animate="center"
             exit="exit"
+            className="h-full"
           >
             {/* ── Step 1: Info ────────────────────────────────────────── */}
             {step === 1 && (
-              <div className="space-y-5 px-5 py-5">
-                <div className="flex flex-col items-center gap-2 pb-1">
-                  <IllustrationInfo />
-                  <p className="text-center text-sm font-semibold text-foreground">Name your transaction</p>
-                  <p className="text-center text-xs text-muted-foreground">Give this a clear reference so you can find it later.</p>
-                </div>
+              <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+                <StepIntro
+                  icon={FileText}
+                  eyebrow="Step one"
+                  title="Name the transaction clearly"
+                  description="Use a short operational title so you can find the workflow quickly later."
+                />
 
-                <div className="space-y-2">
+                <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="title">
                     Title <span className="text-destructive">*</span>
                   </Label>
@@ -483,7 +549,7 @@ export function TransactionCreationForm({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="notes">
                     Internal notes{" "}
                     <span className="text-xs font-normal text-muted-foreground">(private, not shown to client)</span>
@@ -501,14 +567,13 @@ export function TransactionCreationForm({
 
             {/* ── Step 2: Payment ──────────────────────────────────────── */}
             {step === 2 && (
-              <div className="space-y-4 px-5 py-5">
-                <div className="flex flex-col items-center gap-2 pb-1">
-                  <IllustrationPayment />
-                  <p className="text-center text-sm font-semibold text-foreground">Set up payment</p>
-                  <p className="text-center text-xs text-muted-foreground">
-                    At least one amount is required. Both can be combined.
-                  </p>
-                </div>
+              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+                <StepIntro
+                  icon={CreditCard}
+                  eyebrow="Step two"
+                  title="Choose the money flow"
+                  description="Set a service payment, a deposit hold, or both. At least one amount is required to launch."
+                />
 
                 {/* Stripe / approval warnings */}
                 {(!hasStripe || !canLaunch) && (
@@ -531,88 +596,93 @@ export function TransactionCreationForm({
                   </div>
                 )}
 
-                {/* Deposit Hold */}
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                      <Wallet className="size-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                        Security Deposit
-                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">PRIMARY</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">Card held — <strong>not charged</strong>. Captured or released after the job.</p>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="depositAmount" className="text-xs">Hold Amount (EUR)</Label>
-                    <Input
-                      id="depositAmount"
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0.00"
-                      value={depositAmount}
-                      onChange={(e) => { setDepositAmount(e.target.value); setStepError(null) }}
-                      disabled={financeDisabled}
-                    />
-                    {depositNum > 0 && (
-                      <div className="rounded-lg border border-border/50 bg-background/60 p-2.5 text-xs">
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Hold amount</span>
-                          <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground">
-                          <span>Platform fee (2% + €0.25)</span>
-                          <span>€{platformFee.toFixed(2)}</span>
-                        </div>
-                        <div className="mt-1.5 border-t border-border/40 pt-1.5 text-xs text-muted-foreground">
-                          If captured: you receive <strong>€{(depositNum - platformFee).toFixed(2)}</strong>. If released: client is not charged.
-                        </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-3xl border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.98),rgba(255,255,255,1))] p-4 shadow-sm">
+                    <div className="mb-4 flex items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100">
+                        <Wallet className="size-4 text-amber-600" />
                       </div>
-                    )}
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          Security Deposit
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Primary</span>
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          The card is held only. Capture or release it after the work is complete.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="depositAmount" className="text-xs">Hold amount (EUR)</Label>
+                      <Input
+                        id="depositAmount"
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0.00"
+                        value={depositAmount}
+                        onChange={(e) => { setDepositAmount(e.target.value); setStepError(null) }}
+                        disabled={financeDisabled}
+                      />
+                      {depositNum > 0 ? (
+                        <div className="rounded-2xl border border-amber-100 bg-white/85 p-3 text-xs">
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Hold amount</span>
+                            <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
+                          </div>
+                          <div className="mt-1 flex justify-between text-muted-foreground">
+                            <span>Platform fee</span>
+                            <span>€{platformFee.toFixed(2)}</span>
+                          </div>
+                          <div className="mt-2 border-t border-amber-100 pt-2 text-muted-foreground">
+                            If captured you receive <strong>€{(depositNum - platformFee).toFixed(2)}</strong>.
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
 
-                {/* Service Payment */}
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                      <CreditCard className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="rounded-3xl border border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.98),rgba(255,255,255,1))] p-4 shadow-sm">
+                    <div className="mb-4 flex items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
+                        <CreditCard className="size-4 text-emerald-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          Service Payment
+                          <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-border">Optional</span>
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          Charged immediately. Stripe fees are deducted from the collected amount.
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                        Service Payment
-                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">OPTIONAL</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">Charged immediately. You receive amount minus ~1.4% + €0.25 Stripe fees.</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount" className="text-xs">Amount (EUR)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => { setAmount(e.target.value); setStepError(null) }}
+                        disabled={financeDisabled}
+                      />
+                      {amountNum > 0 ? (
+                        <div className="rounded-2xl border border-emerald-100 bg-white/85 p-3 text-xs text-muted-foreground">
+                          Client pays <strong>€{amountNum.toFixed(2)}</strong>. Estimated payout after fees:{" "}
+                          <strong>€{(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}</strong>.
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="amount" className="text-xs">Amount (EUR)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => { setAmount(e.target.value); setStepError(null) }}
-                      disabled={financeDisabled}
-                    />
-                    {amountNum > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Client pays <strong>€{amountNum.toFixed(2)}</strong> — you receive approx. <strong>€{(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}</strong>
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 {/* Kind badge */}
                 {txKind && (
-                  <div className="flex justify-center">
-                    <span className="rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-foreground">
+                  <div className="flex justify-start">
+                    <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
                       {KIND_LABELS[txKind]}
                     </span>
                   </div>
@@ -622,14 +692,16 @@ export function TransactionCreationForm({
 
             {/* ── Step 3: Documents ────────────────────────────────────── */}
             {step === 3 && (
-              <div className="space-y-5 px-5 py-5">
-                <div className="flex flex-col items-center gap-2 pb-1">
-                  <IllustrationDocuments />
-                  <p className="text-center text-sm font-semibold text-foreground">Documents &amp; verification</p>
-                  <p className="text-center text-xs text-muted-foreground">All fields are optional — skip any that don&apos;t apply.</p>
-                </div>
+              <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+                <StepIntro
+                  icon={ShieldCheck}
+                  eyebrow="Step three"
+                  title="Attach the right requirements"
+                  description="Choose what the client must upload, review, or verify before the workflow is complete."
+                />
 
-                <div className="space-y-2">
+                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="checklist" className="flex items-center gap-1.5">
                     <FileText className="size-3.5 text-muted-foreground" />
                     Required Uploads
@@ -649,7 +721,7 @@ export function TransactionCreationForm({
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="contract" className="flex items-center gap-1.5">
                     <FileText className="size-3.5 text-muted-foreground" />
                     Contract Template
@@ -668,17 +740,31 @@ export function TransactionCreationForm({
                     </SelectContent>
                   </Select>
                 </div>
+                </div>
 
-                <div className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-muted/20 p-4">
+                <div className="flex items-start justify-between gap-4 rounded-3xl border border-border/70 bg-muted/20 p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background shadow-sm ring-1 ring-border/60">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
                       <ShieldCheck className="size-4 text-foreground" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Require ID document</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         Client uploads a government-issued photo ID. You review it from the transaction detail page.
                       </p>
+                      {!canUseKycInPlan ? (
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          Included from Pro plan and above.
+                        </p>
+                      ) : remainingKyc !== null && remainingKyc <= 0 ? (
+                        <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+                          Your included KYC quota is fully used for this billing period.
+                        </p>
+                      ) : remainingKyc !== null ? (
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          {remainingKyc} verification{remainingKyc === 1 ? "" : "s"} remaining this period.
+                        </p>
+                      ) : null}
                       {requiresKyc && (
                         <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
                           Client can continue while their ID is under review.
@@ -689,7 +775,7 @@ export function TransactionCreationForm({
                   <Switch
                     checked={requiresKyc}
                     onCheckedChange={setRequiresKyc}
-                    disabled={financeDisabled}
+                    disabled={kycDisabled}
                     className="mt-0.5 shrink-0"
                   />
                 </div>
@@ -698,75 +784,120 @@ export function TransactionCreationForm({
 
             {/* ── Step 4: Review ────────────────────────────────────────── */}
             {step === 4 && (
-              <div className="space-y-4 px-5 py-5">
-                <div className="flex flex-col items-center gap-2 pb-1">
-                  <IllustrationReview />
-                  <p className="text-center text-sm font-semibold text-foreground">Ready to launch</p>
-                  <p className="text-center text-xs text-muted-foreground">Review your setup and generate the secure client link.</p>
-                </div>
+              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+                <StepIntro
+                  icon={LinkIcon}
+                  eyebrow="Final step"
+                  title="Review and launch"
+                  description="Confirm the client journey, decide whether this transaction needs a QR, then create the secure link."
+                />
 
                 {/* Summary */}
-                <div className="rounded-xl border border-border/60 bg-muted/20 divide-y divide-border/40 text-sm">
-                  <div className="flex items-start justify-between px-4 py-3">
-                    <span className="text-muted-foreground">Title</span>
-                    <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">{title || "—"}</span>
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
+                  <div className="rounded-3xl border border-border/70 bg-background shadow-sm">
+                    <div className="border-b border-border/70 px-4 py-3">
+                      <p className="text-sm font-medium text-foreground">Transaction summary</p>
+                    </div>
+                    <div className="divide-y divide-border/50 text-sm">
+                      <div className="flex items-start justify-between px-4 py-3">
+                        <span className="text-muted-foreground">Title</span>
+                        <span className="ml-4 max-w-[220px] truncate text-right font-medium text-foreground">{title || "—"}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between px-4 py-3">
+                        <span className="text-muted-foreground">Type</span>
+                        <span className="font-medium text-foreground">{txKind ? KIND_LABELS[txKind] : "—"}</span>
+                      </div>
+
+                      {depositNum > 0 && (
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-muted-foreground">Deposit hold</span>
+                          <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {amountNum > 0 && (
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-muted-foreground">Service payment</span>
+                          <span className="font-medium text-foreground">€{amountNum.toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {contractId !== "none" && (
+                        <div className="flex items-start justify-between px-4 py-3">
+                          <span className="text-muted-foreground">Contract</span>
+                          <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">{contractLabel}</span>
+                        </div>
+                      )}
+
+                      {checklistId !== "none" && (
+                        <div className="flex items-start justify-between px-4 py-3">
+                          <span className="text-muted-foreground">Uploads</span>
+                          <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">{checklistLabel}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between px-4 py-3">
+                        <span className="text-muted-foreground">ID verification</span>
+                        <span className={cn("font-medium", requiresKyc ? "text-foreground" : "text-muted-foreground")}>
+                          {requiresKyc ? "Required" : "Not required"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium text-foreground">{txKind ? KIND_LABELS[txKind] : "—"}</span>
-                  </div>
-
-                  {depositNum > 0 && (
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-muted-foreground">Deposit hold</span>
-                      <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Client journey</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {clientSteps.map((s, i) => (
+                          <div key={s.key} className="flex items-center gap-1.5">
+                            <span className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">
+                              {s.label}
+                            </span>
+                            {i < clientSteps.length - 1 && (
+                              <ArrowRight className="size-3 shrink-0 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  )}
 
-                  {amountNum > 0 && (
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-muted-foreground">Service payment</span>
-                      <span className="font-medium text-foreground">€{amountNum.toFixed(2)}</span>
+                    <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+                        <QrCode className="size-4 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Generate QR now</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Optional. The secure link always works without a QR.
+                        </p>
+                        {qrRemaining !== null ? (
+                          <p className="mt-1.5 text-xs text-muted-foreground">
+                            {qrRemaining} QR code{qrRemaining === 1 ? "" : "s"} remaining this billing period.
+                          </p>
+                        ) : (
+                          <p className="mt-1.5 text-xs text-muted-foreground">Unlimited QR generation on your current plan.</p>
+                        )}
+                        {qrToggleDisabled ? (
+                          <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+                            {hasStripe && canLaunch
+                              ? "QR generation is unavailable until you have remaining quota."
+                              : "Complete workspace readiness first, then generate QR when needed."}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  )}
-
-                  {contractId !== "none" && (
-                    <div className="flex items-start justify-between px-4 py-3">
-                      <span className="text-muted-foreground">Contract</span>
-                      <span className="ml-4 max-w-[160px] truncate text-right font-medium text-foreground">{contractLabel}</span>
-                    </div>
-                  )}
-
-                  {checklistId !== "none" && (
-                    <div className="flex items-start justify-between px-4 py-3">
-                      <span className="text-muted-foreground">Uploads</span>
-                      <span className="ml-4 max-w-[160px] truncate text-right font-medium text-foreground">{checklistLabel}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-muted-foreground">ID verification</span>
-                    <span className={cn("font-medium", requiresKyc ? "text-foreground" : "text-muted-foreground")}>
-                      {requiresKyc ? "Required" : "Not required"}
-                    </span>
+                    <Switch
+                      checked={generateQr}
+                      onCheckedChange={setGenerateQr}
+                      disabled={qrToggleDisabled}
+                      className="mt-0.5 shrink-0"
+                    />
                   </div>
                 </div>
-
-                {/* Client flow preview */}
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client will see</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {clientSteps.map((s, i) => (
-                      <div key={s.key} className="flex items-center gap-1.5">
-                        <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
-                          {s.label}
-                        </span>
-                        {i < clientSteps.length - 1 && (
-                          <ArrowRight className="size-3 shrink-0 text-muted-foreground/50" />
-                        )}
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -808,12 +939,13 @@ export function TransactionCreationForm({
       </AnimatePresence>
 
       {/* ── Navigation ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 border-t border-border/60 px-5 py-4">
+      <div className="border-t border-border/70 bg-white/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {step > 1 ? (
           <Button
             type="button"
             variant="outline"
-            className="flex-1"
+            className="w-full sm:flex-1"
             onClick={() => navigate(step - 1)}
             disabled={isPending}
           >
@@ -827,7 +959,7 @@ export function TransactionCreationForm({
         {step < 4 ? (
           <Button
             type="button"
-            className="flex-1 bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
+            className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft) sm:flex-1"
             onClick={handleNext}
           >
             Next
@@ -836,7 +968,7 @@ export function TransactionCreationForm({
         ) : (
           <Button
             type="button"
-            className="flex-1 bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
+            className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft) sm:flex-1"
             disabled={isPending || !title.trim() || !canLaunch}
             onClick={handleSubmit}
           >
@@ -845,10 +977,11 @@ export function TransactionCreationForm({
             ) : (
               <LinkIcon className="mr-2 size-4" />
             )}
-            {isPending ? "Creating…" : "Generate Secure Link"}
+            {isPending ? "Creating…" : "Create Transaction"}
           </Button>
         )}
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }

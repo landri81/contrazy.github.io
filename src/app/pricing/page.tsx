@@ -3,23 +3,28 @@ import type { Metadata } from "next"
 import { PageHero, ProseSections } from "@/features/marketing/components/content-pages"
 import { PricingSectionFr } from "@/features/marketing/components/sections/pricing-section-fr"
 import { PublicShell } from "@/features/marketing/components/public-shell"
+import { resolveMarketingPlanHref } from "@/features/subscriptions/config"
+import { getAuthSession } from "@/lib/auth/session"
 
 export const metadata: Metadata = {
   title: "Tarifs | Contrazy",
   description: "Abonnement simple + extras à l'usage. 0 % de commission sur les paiements.",
 }
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const session = await getAuthSession()
+  const viewerRole = session?.user?.role ?? null
+
   return (
     <PublicShell>
       <PageHero
         eyebrow="Tarifs"
         title="0 % de commission sur les paiements"
         description="Abonnement simple + extras à l'usage. Les frais de paiement sont supportés par le vendeur via son compte Stripe."
-        primaryHref="/register"
+        primaryHref={resolveMarketingPlanHref(viewerRole, "pro")}
         primaryLabel="Essai gratuit 7 jours"
       />
-      <PricingSectionFr />
+      <PricingSectionFr viewerRole={viewerRole} />
       <ProseSections
         eyebrow="Modèle"
         title="Modèle commercial"

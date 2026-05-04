@@ -10,8 +10,9 @@ import { RegulatorySection } from "@/features/marketing/components/sections/regu
 import { PricingSectionFr } from "@/features/marketing/components/sections/pricing-section-fr"
 import { StackSection } from "@/features/marketing/components/sections/stack-section"
 import { CtaSection } from "@/features/marketing/components/sections/cta-section"
+import type { UserRole } from "@/lib/auth/roles"
 
-export function LandingPage() {
+export function LandingPage({ viewerRole = null }: { viewerRole?: UserRole | null }) {
   return (
     <>
       <HeroSection />
@@ -21,7 +22,7 @@ export function LandingPage() {
       <UseCasesSection />
       <VendorSection />
       <RegulatorySection />
-      <PricingSectionFr />
+      <PricingSectionFr viewerRole={viewerRole} />
       <StackSection />
       <CtaSection />
     </>

@@ -1,15 +1,16 @@
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { requireSubscribedVendorAccess } from "@/lib/auth/guards"
 import { isAdminRole } from "@/lib/auth/roles"
 import { prisma } from "@/lib/db/prisma"
 import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import QRCode from "qrcode"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DepositControlCard } from "@/features/dashboard/components/deposit-control-card"
+import { KycReviewCard } from "@/features/dashboard/components/kyc-review-card"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { StatusBadge } from "@/features/dashboard/components/dashboard-ui"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic"
 
 export default async function VendorTransactionDetailPage(props: { params: Promise<{ transactionId: string }> }) {
   const { transactionId } = await props.params
-  const { session, dbUser } = await requireVendorAccess()
+  const { session, dbUser, subscription } = await requireSubscribedVendorAccess()
   const isAdmin = isAdminRole(session.user.role)
 
   const transaction = await prisma.transaction.findUnique({
@@ -55,14 +56,6 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
   }
 
   const shareLink = transaction.link ? `${getAppBaseUrl()}/t/${transaction.link.token}` : null
-  const qrCodeSvg =
-    shareLink
-      ? await QRCode.toString(shareLink, {
-          type: "svg",
-          margin: 1,
-          width: 180,
-        })
-      : transaction.link?.qrCodeSvg ?? null
   const linkRecord = transaction.link
     ? buildVendorLinkRecord({
         id: transaction.id,
@@ -81,7 +74,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
             }
           : null,
         link: transaction.link,
-      })
+      }, { qrRemaining: remainingQrCodes(subscription) })
     : null
 
   return (
@@ -181,7 +174,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
                 href={shareLink ?? "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex cursor-pointer items-center text-[var(--contrazy-teal)] hover:underline"
+                className="inline-flex cursor-pointer items-center text-(--contrazy-teal) hover:underline"
               >
                 Open secure client flow
               </Link>
@@ -193,16 +186,32 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
                 </p>
               ) : null}
             </div>
-            {qrCodeSvg ? (
+            {linkRecord?.qrCodeSvg ? (
               <div
                 className="flex w-fit items-center justify-center rounded-lg border bg-white p-4 [&_svg]:block [&_svg]:h-44 [&_svg]:w-44"
-                dangerouslySetInnerHTML={{ __html: qrCodeSvg }}
+                dangerouslySetInnerHTML={{ __html: linkRecord.qrCodeSvg }}
               />
-            ) : null}
+            ) : (
+              <div className="rounded-lg border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">No QR generated yet</p>
+                <p className="mt-1">
+                  {linkRecord?.canGenerateQr
+                    ? "Generate a QR code when you want to share this transaction in person."
+                    : linkRecord?.qrUnavailableReason ?? "QR is not available for this link state."}
+                </p>
+              </div>
+            )}
             {linkRecord ? <PaymentLinkManagementActions record={linkRecord} variant="detail" /> : null}
           </CardContent>
         </Card>
       ) : null}
+
+      {transaction.requiresKyc && transaction.kycVerification && (
+        <KycReviewCard
+          transactionId={transaction.id}
+          kyc={transaction.kycVerification}
+        />
+      )}
 
       <Card>
         <CardHeader>
@@ -214,7 +223,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
             {transaction.events.length > 0 ? (
               transaction.events.map((event) => (
                 <div key={event.id} className="flex gap-4">
-                  <div className="w-28 flex-shrink-0 text-sm text-muted-foreground">
+                  <div className="w-28 shrink-0 text-sm text-muted-foreground">
                     {event.occurredAt.toLocaleDateString()}
                   </div>
                   <div className="space-y-1 text-sm">
@@ -225,7 +234,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
               ))
             ) : (
               <div className="flex gap-4">
-                <div className="w-28 flex-shrink-0 text-sm text-muted-foreground">
+                <div className="w-28 shrink-0 text-sm text-muted-foreground">
                   {transaction.createdAt.toLocaleDateString()}
                 </div>
                 <div className="text-sm">Transaction created</div>

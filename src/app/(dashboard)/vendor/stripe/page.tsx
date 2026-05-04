@@ -1,10 +1,12 @@
+export const dynamic = "force-dynamic"
+
 import { AlertCircle, CheckCircle2, Info, ShieldAlert, Unlink } from "lucide-react"
 
-import { requireVendorProfileAccess } from "@/lib/auth/guards"
-import { env } from "@/lib/env"
+import { requireSubscribedVendorProfileAccess } from "@/lib/auth/guards"
 import { StripeConnectCard } from "@/features/dashboard/components/stripe-connect-card"
 import { StripeDisconnectAction } from "@/features/dashboard/components/stripe-disconnect-action"
 import { StripeEmbeddedDashboard } from "@/features/dashboard/components/stripe-embedded-dashboard"
+import { getStripePublishableKey } from "@/lib/integrations/stripe"
 
 const STATUS_BANNERS = {
   connected: {
@@ -51,7 +53,7 @@ export default async function VendorStripePage({
 }: {
   searchParams: Promise<{ status?: string }>
 }) {
-  const { vendorProfile } = await requireVendorProfileAccess()
+  const { vendorProfile } = await requireSubscribedVendorProfileAccess()
   const { status } = await searchParams
 
   const banner = status && status in STATUS_BANNERS ? STATUS_BANNERS[status as StatusKey] : null
@@ -102,7 +104,7 @@ export default async function VendorStripePage({
 
       {/* Embedded Stripe dashboard (connected or restricted) */}
       {showDashboard ? (
-        <StripeEmbeddedDashboard publishableKey={env.STRIPE_PUBLISHABLE_KEY} />
+        <StripeEmbeddedDashboard publishableKey={getStripePublishableKey()} />
       ) : null}
 
       {/* Disconnect section — only shown when a Stripe account is linked */}

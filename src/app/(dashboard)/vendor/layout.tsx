@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/features/dashboard/components/dashboard-shell"
-import { vendorNavigation } from "@/features/dashboard/navigation"
+import { vendorNavigation, vendorSubscriptionNavigation } from "@/features/dashboard/navigation"
+import { hasActiveSubscription } from "@/features/subscriptions/server/feature-gates"
 import { requireVendorProfileAccess } from "@/lib/auth/guards"
 
 export default async function VendorLayout({
@@ -7,11 +8,12 @@ export default async function VendorLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { session, vendorProfile } = await requireVendorProfileAccess()
+  const { session, vendorProfile, subscription } = await requireVendorProfileAccess()
+  const navigation = subscription && hasActiveSubscription(subscription) ? vendorNavigation : vendorSubscriptionNavigation
 
   return (
     <DashboardShell
-      navigation={vendorNavigation}
+      navigation={navigation}
       title="Vendor workspace"
       subtitle={vendorProfile.businessName ?? "Vendor operations"}
       actorLabel="Vendor account"

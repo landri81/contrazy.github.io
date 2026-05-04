@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+import { canUseKyc, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
+import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
@@ -46,40 +48,69 @@ export async function POST(
     }
 
     const { transaction } = link
+    const subscription = await prisma.vendorSubscription.findUnique({
+      where: { vendorId: transaction.vendorId },
+    })
+
+    if (!canUseKyc(subscription)) {
+      return NextResponse.json(
+        { success: false, message: "Identity verification is not available for this vendor plan." },
+        { status: 422 }
+      )
+    }
+
+    const remainingKyc = remainingKycVerifications(subscription)
+
+    if (remainingKyc !== null && remainingKyc <= 0) {
+      return NextResponse.json(
+        { success: false, message: "The vendor has reached the included KYC quota for this billing period." },
+        { status: 422 }
+      )
+    }
+
+    const existingVerification = await prisma.kycVerification.findUnique({
+      where: { transactionId: transaction.id },
+    })
 
     await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId: transaction.id })
 
     // provider = "Manual" distinguishes from "Stripe Identity"
     // providerReference = Cloudinary public_id for future asset management
     // summary = secure URL so vendor can view the uploaded document
-    await prisma.kycVerification.upsert({
-      where: { transactionId: transaction.id },
-      create: {
+    await prisma.$transaction(async (tx) => {
+      await tx.kycVerification.upsert({
+        where: { transactionId: transaction.id },
+        create: {
+          transactionId: transaction.id,
+          provider: "Manual",
+          status: "PENDING",
+          providerReference: publicId,
+          summary: secureUrl,
+        },
+        update: {
+          status: "PENDING",
+          provider: "Manual",
+          providerReference: publicId,
+          summary: secureUrl,
+        },
+      })
+
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: { status: "CUSTOMER_STARTED" },
+      })
+
+      if (!existingVerification) {
+        await incrementVendorSubscriptionUsage(tx, transaction.vendorId, "kycVerificationsUsed")
+      }
+
+      await recordTransactionEvent(tx, {
         transactionId: transaction.id,
-        provider: "Manual",
-        status: "PENDING",
-        providerReference: publicId,
-        summary: secureUrl,
-      },
-      update: {
-        status: "PENDING",
-        provider: "Manual",
-        providerReference: publicId,
-        summary: secureUrl,
-      },
-    })
-
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { status: "CUSTOMER_STARTED" },
-    })
-
-    await recordTransactionEvent(prisma, {
-      transactionId: transaction.id,
-      type: "KYC_STARTED",
-      title: "Identity document submitted",
-      detail: `Client uploaded document "${originalFilename ?? "ID document"}" for manual review.`,
-      dedupeKey: `event:kyc-started:${transaction.id}`,
+        type: "KYC_STARTED",
+        title: "Identity document submitted",
+        detail: `Client uploaded document "${originalFilename ?? "ID document"}" for manual review.`,
+        dedupeKey: `event:kyc-started:${transaction.id}`,
+      })
     })
 
     return NextResponse.json({ success: true })

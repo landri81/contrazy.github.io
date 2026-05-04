@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 
 export async function PUT(
@@ -9,6 +9,12 @@ export async function PUT(
   try {
     const { id } = await params
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
     if (blockedResponse) {
@@ -50,6 +56,12 @@ export async function DELETE(
   try {
     const { id } = await params
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
     if (blockedResponse) {

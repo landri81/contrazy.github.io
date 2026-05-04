@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-route-link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import type { DashboardFilterOption } from "@/features/dashboard/filter-options"
@@ -61,10 +62,14 @@ export function PagePanel({
             {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
           </div>
           {actionHref && actionLabel ? (
-            <Link href={actionHref} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <DashboardRouteLink
+              href={actionHref}
+              pendingLabel={actionLabel}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
               {actionLabel}
               <ExternalLink className="size-4" />
-            </Link>
+            </DashboardRouteLink>
           ) : null}
         </div>
       </CardHeader>

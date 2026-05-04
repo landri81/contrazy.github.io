@@ -22,7 +22,7 @@ type UploadedDoc = {
   originalFilename: string
 }
 
-export function ClientKycForm({ token }: { token: string }) {
+export function ClientKycForm({ token, failed }: { token: string; failed?: boolean }) {
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -128,6 +128,14 @@ export function ClientKycForm({ token }: { token: string }) {
       </CardHeader>
 
       <CardContent className="space-y-4 px-5 pb-2">
+        {/* Rejection notice */}
+        {failed && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <p>Your previous document was not accepted. Please upload a new one.</p>
+          </div>
+        )}
+
         {/* Accepted documents info */}
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
           <p className="text-xs font-medium text-foreground mb-1.5">Accepted documents</p>

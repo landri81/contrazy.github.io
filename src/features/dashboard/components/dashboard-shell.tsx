@@ -110,8 +110,12 @@ export function DashboardShell({
   }, [isSidebarCollapsed])
 
   useEffect(() => {
-    setMobileSheetOpen(false)
-    setPendingHref(null)
+    const frame = window.requestAnimationFrame(() => {
+      setMobileSheetOpen(false)
+      setPendingHref(null)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [pathname])
 
   function handleNavClick(href: string) {
@@ -182,22 +186,19 @@ export function DashboardShell({
           className="min-w-0 flex-1 lg:ml-(--dashboard-sidebar-width) lg:transition-[margin-left] lg:duration-300 lg:ease-out"
           style={{ ["--dashboard-sidebar-width" as string]: `${desktopSidebarWidth}px` }}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="px-4 py-6 sm:px-6 lg:px-8"
-            >
-              <div className="mb-6">
-                <p className="text-xs font-semibold tracking-[0.2em] text-(--contrazy-teal) uppercase">{title}</p>
-                <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{subtitle}</h1>
-              </div>
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="px-4 py-6 sm:px-6 lg:px-8"
+          >
+            <div className="mb-6">
+              <p className="text-xs font-semibold tracking-[0.2em] text-(--contrazy-teal) uppercase">{title}</p>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">{subtitle}</h1>
+            </div>
+            {children}
+          </motion.div>
         </main>
       </div>
       <Toaster />

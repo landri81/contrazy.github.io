@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -8,6 +8,12 @@ export const maxDuration = 60
 export async function GET() {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) {

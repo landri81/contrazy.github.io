@@ -1,4 +1,6 @@
-import { getVendorStatusMessage, isVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
+export const dynamic = "force-dynamic"
+
+import { getVendorStatusMessage, isVendorPreparationAllowed, requireSubscribedVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { resolvePagination } from "@/lib/pagination"
 import { ChecklistTemplateList } from "@/features/dashboard/components/checklist-template-list"
@@ -11,7 +13,7 @@ export default async function VendorChecklistsPage({
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  const { vendorProfile } = await requireVendorProfileAccess()
+  const { vendorProfile } = await requireSubscribedVendorProfileAccess()
   const { page: pageParam } = await searchParams
   const pagination = resolvePagination({ page: pageParam, pageSize: PAGE_SIZE }, { defaultPageSize: PAGE_SIZE })
 

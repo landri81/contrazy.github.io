@@ -6,6 +6,7 @@ type PersistWebhookEventOptions = {
   vendorId: string | null
   transactionId: string | null
   error?: string | null
+  provider?: string
 }
 
 async function resolveVendorId(vendorId: string | null, transactionId: string | null) {
@@ -26,7 +27,7 @@ async function resolveVendorId(vendorId: string | null, transactionId: string | 
  * Failures here are non-fatal — logged but never thrown to the caller.
  */
 export async function persistWebhookEvent(options: PersistWebhookEventOptions): Promise<void> {
-  const { eventId, eventType, vendorId, transactionId, error } = options
+  const { eventId, eventType, vendorId, transactionId, error, provider = "stripe" } = options
 
   try {
     const resolvedVendorId = await resolveVendorId(vendorId, transactionId)
@@ -42,7 +43,7 @@ export async function persistWebhookEvent(options: PersistWebhookEventOptions): 
     await prisma.webhookEvent.upsert({
       where: {
         provider_providerEventId: {
-          provider: "stripe",
+          provider,
           providerEventId: eventId,
         },
       },
@@ -57,7 +58,7 @@ export async function persistWebhookEvent(options: PersistWebhookEventOptions): 
       create: {
         vendorId: resolvedVendorId,
         transactionId,
-        provider: "stripe",
+        provider,
         providerEventId: eventId,
         eventType,
         status,

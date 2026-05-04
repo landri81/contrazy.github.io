@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { PagePanel } from "@/features/dashboard/components/dashboard-ui"
 import { VendorProfileForm } from "@/features/dashboard/components/vendor-profile-form"
 import { requireVendorProfileAccess } from "@/lib/auth/guards"

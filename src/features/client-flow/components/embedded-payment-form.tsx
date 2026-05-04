@@ -92,7 +92,6 @@ function PaymentElementInner({
 }) {
   const stripe = useStripe()
   const elements = useElements()
-  const router = useRouter()
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -268,7 +267,6 @@ export function EmbeddedPaymentForm({
   token,
   amount,
   depositAmount,
-  currency,
 }: {
   token: string
   amount: number
@@ -277,8 +275,11 @@ export function EmbeddedPaymentForm({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectPaymentIntentId = searchParams.get("payment_intent")
+  const redirectStatus = searchParams.get("redirect_status")
+  const isRedirectReturn = Boolean(redirectPaymentIntentId && redirectStatus === "succeeded")
 
-  const [loadState, setLoadState] = useState<LoadState>("loading")
+  const [loadState, setLoadState] = useState<LoadState>(isRedirectReturn ? "confirming" : "loading")
   const [config, setConfig] = useState<PaymentConfig | null>(null)
   const [initError, setInitError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -286,11 +287,6 @@ export function EmbeddedPaymentForm({
   const hasFetched = useRef(false)
 
   const isHybrid = amount > 0 && depositAmount > 0
-
-  // Check for 3DS redirect return (only on initial mount)
-  const redirectPaymentIntentId = searchParams.get("payment_intent")
-  const redirectStatus = searchParams.get("redirect_status")
-  const isRedirectReturn = Boolean(redirectPaymentIntentId && redirectStatus === "succeeded")
 
   const handleSuccess = useCallback((nextStep: string) => {
     if (nextStep === "payment") {
@@ -321,7 +317,6 @@ export function EmbeddedPaymentForm({
 
     if (isRedirectReturn && redirectPaymentIntentId && reloadKey === 0) {
       // Coming back from 3DS redirect — confirm with server
-      setLoadState("confirming")
       const noop = () => {}
       syncAndNavigate(redirectPaymentIntentId, token, handleSuccess, setInitError, noop).then(() => {
         if (loadState !== "success") setLoadState("ready")

@@ -10,11 +10,27 @@ import {
   TransactionKind,
   TransactionLinkStatus,
   TransactionStatus,
+  TransactionEventType,
   UserRole,
+  type VendorSubscription,
   VendorStatus,
   WebhookStatus,
 } from "@prisma/client"
 
+import {
+  canUseKyc,
+  getContractTemplateLimit,
+  getESignatureLimit,
+  getKycLimit,
+  getQrCodeLimit,
+  getTransactionLimit,
+  hasActiveSubscription,
+  maxTeamUsers,
+  remainingKycVerifications,
+  remainingQrCodes,
+  remainingTransactions,
+} from "@/features/subscriptions/server/feature-gates"
+import { isLiveLinkStatus } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import {
   adminInviteStatusOptions,
@@ -85,8 +101,23 @@ export type VendorLinkRecord = {
   cancelledAtLabel: string | null
   cancelReason: string | null
   cancelledBy: string | null
+  qrReady: boolean
+  qrCodeSvg: string | null
+  canGenerateQr: boolean
+  qrUnavailableReason: string | null
   canEdit: boolean
   canCancel: boolean
+}
+
+export type VendorActionsUsageRecord = {
+  planName: string
+  planSlug: string
+  status: string
+  periodEnd: string | null
+  isTrial: boolean
+  transactions: { used: number; limit: number | null; remaining: number | null }
+  qrCodes: { used: number; limit: number | null; remaining: number | null }
+  kyc: { used: number; limit: number | null; remaining: number | null; allowed: boolean }
 }
 
 export type VendorDepositRecord = {
@@ -108,6 +139,21 @@ export type VendorWebhookRecord = {
   date: string
   reference: string
   error: string | null
+  detail: string | null
+}
+
+export type SubscriptionUsageRecord = {
+  planName: string
+  planSlug: string
+  status: string
+  periodEnd: string | null
+  isTrial: boolean
+  transactions: { used: number; limit: number | null }
+  eSignatures: { used: number; limit: number | null }
+  qrCodes: { used: number; limit: number | null }
+  contractTemplates: { used: number; limit: number | null }
+  kyc: { used: number; limit: number | null; allowed: boolean }
+  teamUsers: { used: number; limit: number | null }
 }
 
 export type WorkspaceRecord = {
@@ -123,6 +169,13 @@ export type WorkspaceRecord = {
     stripeConnectionStatus: string
     profileCompletion: number
   }
+  stats: {
+    totalTransactions: number
+    totalClients: number
+    activeDeposits: number
+    signedContracts: number
+  }
+  subscriptionUsage: SubscriptionUsageRecord | null
   alerts: AlertRecord[]
   kpis: SummaryKpi[]
   actionItems: {
@@ -397,6 +450,7 @@ type VendorLinkSource = {
     cancelledAt: Date | null
     cancelReason: string | null
     cancelledBy: string | null
+    qrCodeSvg: string | null
   } | null
 }
 
@@ -412,10 +466,73 @@ function getLinkLastActivityDate(transaction: VendorLinkSource) {
   return activityDates.sort((left, right) => right.getTime() - left.getTime())[0] ?? null
 }
 
-export function buildVendorLinkRecord(transaction: VendorLinkSource): VendorLinkRecord {
+function getQrUnavailableReason({
+  status,
+  qrReady,
+  qrRemaining,
+}: {
+  status: TransactionLinkStatus
+  qrReady: boolean
+  qrRemaining: number | null
+}) {
+  if (qrReady) {
+    return null
+  }
+
+  if (!isLiveLinkStatus(status)) {
+    return "QR can only be generated for active or processing links."
+  }
+
+  if (qrRemaining !== null && qrRemaining <= 0) {
+    return "Your current plan has reached its monthly QR code limit. Upgrade to generate more."
+  }
+
+  return null
+}
+
+export function buildVendorActionsUsage(subscription: VendorSubscription | null): VendorActionsUsageRecord | null {
+  if (!subscription) {
+    return null
+  }
+
+  return {
+    planName: subscription.planKey.charAt(0) + subscription.planKey.slice(1).toLowerCase(),
+    planSlug: subscription.planKey.toLowerCase(),
+    status: subscription.status,
+    periodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
+    isTrial: subscription.status === "TRIALING",
+    transactions: {
+      used: subscription.transactionsUsed,
+      limit: getTransactionLimit(subscription),
+      remaining: remainingTransactions(subscription),
+    },
+    qrCodes: {
+      used: subscription.qrCodesUsed,
+      limit: getQrCodeLimit(subscription),
+      remaining: remainingQrCodes(subscription),
+    },
+    kyc: {
+      used: subscription.kycVerificationsUsed,
+      limit: getKycLimit(subscription),
+      remaining: remainingKycVerifications(subscription),
+      allowed: canUseKyc(subscription),
+    },
+  }
+}
+
+export function buildVendorLinkRecord(
+  transaction: VendorLinkSource,
+  options?: { qrRemaining?: number | null }
+): VendorLinkRecord {
   const shareLink = transaction.link?.token ? `${getAppBaseUrl()}/t/${transaction.link.token}` : ""
   const lastActivity = getLinkLastActivityDate(transaction)
   const status = transaction.link?.status ?? TransactionLinkStatus.ACTIVE
+  const qrReady = Boolean(transaction.link?.qrCodeSvg)
+  const qrUnavailableReason = getQrUnavailableReason({
+    status,
+    qrReady,
+    qrRemaining: options?.qrRemaining ?? null,
+  })
 
   return {
     id: transaction.link?.id ?? transaction.id,
@@ -437,6 +554,10 @@ export function buildVendorLinkRecord(transaction: VendorLinkSource): VendorLink
     cancelledAtLabel: transaction.link?.cancelledAt ? formatDateTime(transaction.link.cancelledAt) : null,
     cancelReason: transaction.link?.cancelReason ?? null,
     cancelledBy: transaction.link?.cancelledBy ?? null,
+    qrReady,
+    qrCodeSvg: transaction.link?.qrCodeSvg ?? null,
+    canGenerateQr: !qrReady && qrUnavailableReason === null,
+    qrUnavailableReason,
     canEdit: status === TransactionLinkStatus.ACTIVE,
     canCancel: status === TransactionLinkStatus.ACTIVE || status === TransactionLinkStatus.PROCESSING,
   }
@@ -471,7 +592,7 @@ async function getVendorContextByEmail(email: string | undefined | null) {
     () =>
       prisma.user.findUnique({
         where: { email: email.toLowerCase() },
-        include: { vendorProfile: true },
+        include: { vendorProfile: { include: { subscription: true } } },
       }),
     null
   )
@@ -678,6 +799,8 @@ function mapTransactionListRecord(transaction: {
 function createEmptyVendorWorkspace(summary: WorkspaceRecord["summary"]): WorkspaceRecord {
   return {
     summary,
+    stats: { totalTransactions: 0, totalClients: 0, activeDeposits: 0, signedContracts: 0 },
+    subscriptionUsage: null,
     alerts: buildVendorAlerts(summary),
     kpis: buildVendorKpis({
       transactionCount: 0,
@@ -766,7 +889,9 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
 
   const vendorId = user.vendorProfile.id
 
-  const [transactions, contracts, checklists, webhooks, clients] = await Promise.all([
+  const [transactions, contracts, checklists, webhooks, clients,
+         totalTransactionCount, totalClientCount, activeDepositCount, signedContractCount,
+         vendorSubscription, contractTemplateCount, acceptedInvitationCount] = await Promise.all([
     safeQuery(
       () =>
         prisma.transaction.findMany({
@@ -824,6 +949,17 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
         }),
       []
     ),
+    safeQuery(() => prisma.transaction.count({ where: { vendorId } }), 0),
+    safeQuery(() => prisma.clientProfile.count({ where: { vendorId } }), 0),
+    safeQuery(() => prisma.transaction.count({
+      where: { vendorId, depositAuthorization: { is: { status: "AUTHORIZED" } } },
+    }), 0),
+    safeQuery(() => prisma.transaction.count({
+      where: { vendorId, signatureRecord: { is: { status: "SIGNED" } } },
+    }), 0),
+    safeQuery(() => prisma.vendorSubscription.findUnique({ where: { vendorId } }), null),
+    safeQuery(() => prisma.contractTemplate.count({ where: { vendorId } }), 0),
+    safeQuery(() => prisma.invitation.count({ where: { vendorId, status: "ACCEPTED" } }), 0),
   ])
 
   const mappedTransactions = transactions.map((transaction) => ({
@@ -849,13 +985,58 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     }
   })
 
+  const isActive = vendorSubscription ? hasActiveSubscription(vendorSubscription) : false
+  const vendorQrRemaining = remainingQrCodes(vendorSubscription)
+  const subscriptionUsage: WorkspaceRecord["subscriptionUsage"] = vendorSubscription
+    ? {
+        planName: vendorSubscription.planKey.charAt(0) + vendorSubscription.planKey.slice(1).toLowerCase(),
+        planSlug: vendorSubscription.planKey.toLowerCase(),
+        status: vendorSubscription.status,
+        periodEnd: vendorSubscription.currentPeriodEnd?.toISOString() ?? null,
+        isTrial: vendorSubscription.status === "TRIALING",
+        transactions: {
+          used: vendorSubscription.transactionsUsed,
+          limit: getTransactionLimit(vendorSubscription),
+        },
+        eSignatures: {
+          used: vendorSubscription.eSignaturesUsed,
+          limit: getESignatureLimit(vendorSubscription),
+        },
+        qrCodes: {
+          used: vendorSubscription.qrCodesUsed,
+          limit: getQrCodeLimit(vendorSubscription),
+        },
+        contractTemplates: {
+          used: contractTemplateCount,
+          limit: getContractTemplateLimit(vendorSubscription),
+        },
+        kyc: {
+          used: vendorSubscription.kycVerificationsUsed,
+          limit: getKycLimit(vendorSubscription),
+          allowed: canUseKyc(vendorSubscription),
+        },
+        teamUsers: {
+          // 1 = vendor owner, plus accepted invitees
+          used: 1 + acceptedInvitationCount,
+          limit: maxTeamUsers(vendorSubscription),
+        },
+      }
+    : null
+
   return {
     ...createEmptyVendorWorkspace(summary),
     summary,
+    stats: {
+      totalTransactions: totalTransactionCount,
+      totalClients: totalClientCount,
+      activeDeposits: activeDepositCount,
+      signedContracts: signedContractCount,
+    },
+    subscriptionUsage: isActive ? subscriptionUsage : null,
     alerts: buildVendorAlerts(summary),
     kpis: buildVendorKpis({
-      transactionCount: transactions.length,
-      clientCount: clients.length,
+      transactionCount: totalTransactionCount,
+      clientCount: totalClientCount,
       reviewStatus: summary.reviewStatus,
       stripeConnectionStatus: summary.stripeConnectionStatus,
       profileCompletion: summary.profileCompletion,
@@ -966,9 +1147,10 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
                 cancelledAt: transaction.link.cancelledAt,
                 cancelReason: transaction.link.cancelReason,
                 cancelledBy: transaction.link.cancelledBy,
+                qrCodeSvg: transaction.link.qrCodeSvg,
               }
             : null,
-        })
+        }, { qrRemaining: vendorQrRemaining })
       ),
     webhooks: webhooks.map((webhook) => ({
       provider: webhook.provider,
@@ -977,6 +1159,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
       date: formatDateTime(webhook.createdAt),
       reference: webhook.transaction?.reference ?? "Platform event",
       error: webhook.error,
+      detail: null,
     })),
   }
 }
@@ -1577,6 +1760,7 @@ export async function getVendorLinksPageData(
                 cancelledAt: true,
                 cancelReason: true,
                 cancelledBy: true,
+                qrCodeSvg: true,
               },
             },
           },
@@ -1588,6 +1772,8 @@ export async function getVendorLinksPageData(
     ),
     safeQuery(() => prisma.transaction.count({ where }), 0),
   ])
+
+  const qrRemaining = remainingQrCodes(context.vendorProfile.subscription ?? null)
 
   return buildPaginatedResult(
     transactions.map((transaction) =>
@@ -1603,7 +1789,7 @@ export async function getVendorLinksPageData(
         updatedAt: transaction.updatedAt,
         clientProfile: transaction.clientProfile,
         link: transaction.link,
-      })
+      }, { qrRemaining })
     ),
     totalCount,
     pagination.page,
@@ -1649,6 +1835,7 @@ export async function getVendorRecentLinksData(
               cancelledAt: true,
               cancelReason: true,
               cancelledBy: true,
+              qrCodeSvg: true,
             },
           },
         },
@@ -1657,6 +1844,8 @@ export async function getVendorRecentLinksData(
       }),
     []
   )
+
+  const qrRemaining = remainingQrCodes(context.vendorProfile.subscription ?? null)
 
   return transactions.map((transaction) =>
     buildVendorLinkRecord({
@@ -1671,7 +1860,7 @@ export async function getVendorRecentLinksData(
       updatedAt: transaction.updatedAt,
       clientProfile: transaction.clientProfile,
       link: transaction.link,
-    })
+    }, { qrRemaining })
   )
 }
 
@@ -1704,11 +1893,18 @@ export async function getVendorWebhooksPageData(
         }
       : {}),
   }
+  const vendorEventHistoryTypes: TransactionEventType[] = [
+    TransactionEventType.WEBHOOK_PROCESSED,
+    TransactionEventType.DISPUTE_OPENED,
+    TransactionEventType.DEPOSIT_CAPTURED,
+    TransactionEventType.DEPOSIT_RELEASED,
+  ]
+
   const transactionEventWhere: Prisma.TransactionEventWhereInput | undefined =
     status && status !== WebhookStatus.PROCESSED
       ? undefined
       : {
-          type: "WEBHOOK_PROCESSED",
+          type: { in: vendorEventHistoryTypes },
           transaction: { vendorId: context.vendorProfile.id },
           ...(search
             ? {
@@ -1760,21 +1956,31 @@ export async function getVendorWebhooksPageData(
       date: formatDateTime(webhook.createdAt),
       reference: webhook.transaction?.reference ?? "Platform event",
       error: webhook.error,
+      detail: null,
       createdAt: webhook.createdAt,
     })),
     ...transactionEvents.map((event) => ({
-      provider: "stripe",
+      provider: event.type === TransactionEventType.WEBHOOK_PROCESSED ? "stripe" : "platform",
       eventType: event.title,
       status: WebhookStatus.PROCESSED,
       date: formatDateTime(event.occurredAt),
       reference: event.transaction.reference,
       error: null,
+      detail: event.detail,
       createdAt: event.occurredAt,
     })),
   ]
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(pagination.skip, pagination.skip + pagination.pageSize)
-    .map(({ createdAt: _createdAt, ...item }) => item)
+    .map(({ provider, eventType, status, date, reference, error, detail }) => ({
+      provider,
+      eventType,
+      status,
+      date,
+      reference,
+      error,
+      detail,
+    }))
 
   return buildPaginatedResult(
     items,

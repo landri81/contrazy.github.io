@@ -506,6 +506,7 @@ export function VendorWebhooksView({
           record.provider,
           <div key={`${record.eventType}-${record.date}-event`}>
             <p className="font-medium text-foreground">{record.eventType}</p>
+            {record.detail ? <p className="mt-1 max-w-xs truncate text-xs text-muted-foreground">{record.detail}</p> : null}
             {record.error ? <p className="mt-1 max-w-xs truncate text-xs text-destructive">{record.error}</p> : null}
           </div>,
           record.reference,

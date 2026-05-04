@@ -17,8 +17,18 @@ Set these in `.env.local`:
 - `CLOUDINARY_API_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_ACCOUNT_WEBHOOK_SECRET`
 - `STRIPE_CONNECT_CLIENT_ID`
+- `STRIPE_PRICE_STARTER_MONTHLY`
+- `STRIPE_PRICE_STARTER_YEARLY`
+- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_PRO_YEARLY`
+- `STRIPE_PRICE_BUSINESS_MONTHLY`
+- `STRIPE_PRICE_BUSINESS_YEARLY`
+- `STRIPE_PRO_TRIAL_DAYS`
+- `STRIPE_BUSINESS_TRIAL_DAYS`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `SUPER_ADMIN_EMAIL`
@@ -55,8 +65,18 @@ Set these in Vercel for the production project:
 - `CLOUDINARY_API_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_ACCOUNT_WEBHOOK_SECRET`
 - `STRIPE_CONNECT_CLIENT_ID`
+- `STRIPE_PRICE_STARTER_MONTHLY`
+- `STRIPE_PRICE_STARTER_YEARLY`
+- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_PRO_YEARLY`
+- `STRIPE_PRICE_BUSINESS_MONTHLY`
+- `STRIPE_PRICE_BUSINESS_YEARLY`
+- `STRIPE_PRO_TRIAL_DAYS`
+- `STRIPE_BUSINESS_TRIAL_DAYS`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `SUPER_ADMIN_EMAIL`
@@ -97,12 +117,19 @@ Configure these URLs with the production domain:
 
 - Stripe webhook endpoint:
   `/api/webhooks/stripe`
+- Stripe billing webhook endpoint:
+  `/api/webhooks/stripe-account`
 
 Recommended events:
 
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`
 - any additional payment-intent lifecycle events your Stripe dashboard requires for monitoring
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.payment_succeeded`
+- `invoice.payment_failed`
 
 ## Super Admin Bootstrap
 
@@ -135,6 +162,7 @@ Production deployment path:
 - do not rely on `prisma db push` for production release
 - the current local development schema has already been baselined so future deploys track the checked-in migration history
 - Vercel now uses `npm run vercel-build`, which runs `prisma generate`, `prisma migrate deploy`, and `next build`
+- platform billing price IDs can be generated locally with `npm run stripe:setup-plans`
 
 ## Stripe Test Data
 

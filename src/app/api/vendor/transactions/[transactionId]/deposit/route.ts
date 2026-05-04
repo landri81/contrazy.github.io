@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { recordDepositOutcome } from "@/features/transactions/server/transaction-finance"
-import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
@@ -15,6 +15,10 @@ export async function POST(
   try {
     const { transactionId } = await params
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) return response
+
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) return blockedResponse

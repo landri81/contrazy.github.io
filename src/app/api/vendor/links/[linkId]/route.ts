@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 
 import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { isEditableLinkStatus } from "@/features/transactions/server/transaction-links"
-import { requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 
 export async function PATCH(
@@ -11,6 +12,12 @@ export async function PATCH(
 ) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response, subscription } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { linkId } = await params
     const { title, notes, expiresAt } = await request.json()
 
@@ -111,7 +118,7 @@ export async function PATCH(
         updatedAt: updated.updatedAt,
         clientProfile: updated.clientProfile,
         link: updated.link,
-      }),
+      }, { qrRemaining: remainingQrCodes(subscription) }),
     })
   } catch (error) {
     console.error("Update Vendor Link Error:", error)

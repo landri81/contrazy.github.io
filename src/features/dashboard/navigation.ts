@@ -63,6 +63,7 @@ export const vendorNavigation: DashboardNavSection[] = [
       { href: "/vendor/payments", label: "Payments", icon: "receiptText" },
       { href: "/vendor/disputes", label: "Disputes", icon: "fileClock" },
       { href: "/vendor/stripe", label: "Stripe", icon: "briefcaseBusiness" },
+      { href: "/vendor/billing", label: "Billing", icon: "creditCard" },
     ],
   },
   {
@@ -70,6 +71,16 @@ export const vendorNavigation: DashboardNavSection[] = [
     items: [
       { href: "/vendor/links", label: "Links and QR", icon: "link2" },
       { href: "/vendor/webhooks", label: "Events", icon: "logs" },
+    ],
+  },
+]
+
+export const vendorSubscriptionNavigation: DashboardNavSection[] = [
+  {
+    label: "Setup",
+    items: [
+      { href: "/vendor/profile", label: "Business profile", icon: "mapPinned" },
+      { href: "/vendor/billing", label: "Billing", icon: "creditCard" },
     ],
   },
 ]

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
+import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -45,8 +46,12 @@ export async function POST(
     const ipAddress = forwardedFor?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? null
 
     const transactionId = link.transaction.id
+    const vendorId = link.transaction.vendorId
     const signerName = link.transaction.clientProfile?.fullName || "Unknown"
     const signerEmail = link.transaction.clientProfile?.email || "Unknown"
+    const existingSignature = await prisma.signatureRecord.findUnique({
+      where: { transactionId },
+    })
 
     // Run each write independently — no interactive transaction so large
     // base64 payloads don't hit the 5 s connection-hold timeout.
@@ -92,6 +97,10 @@ export async function POST(
       detail: `${signerName} confirmed the agreement.`,
       dedupeKey: `event:signature:${transactionId}`,
     })
+
+    if (!existingSignature) {
+      await incrementVendorSubscriptionUsage(prisma, vendorId, "eSignaturesUsed")
+    }
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },

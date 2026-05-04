@@ -1,17 +1,20 @@
+import { cache } from "react"
 import { Prisma, type VendorProfile, type VendorStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 import { NextResponse } from "next/server"
 
+import { hasActiveSubscription } from "@/features/subscriptions/server/feature-gates"
+import { getVendorSubscriptionAccessState } from "@/features/subscriptions/server/subscription-service"
 import { prisma } from "@/lib/db/prisma"
 import { canAccessAdminScope, canAccessVendorScope, isAdminRole } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
 
 type AuthenticatedSession = NonNullable<Awaited<ReturnType<typeof getAuthSession>>>
 type AuthenticatedDbUser = Prisma.UserGetPayload<{
-  include: { vendorProfile: true }
+  include: { vendorProfile: { include: { subscription: true } } }
 }>
 
-export async function requireAuthenticatedUser() {
+export const requireAuthenticatedUser = cache(async function requireAuthenticatedUser() {
   const session = await getAuthSession()
 
   if (!session?.user?.email || !session.user.role) {
@@ -20,11 +23,11 @@ export async function requireAuthenticatedUser() {
 
   const dbUser = await prisma.user.findUnique({
     where: { email: session.user.email.toLowerCase() },
-    include: { vendorProfile: true },
+    include: { vendorProfile: { include: { subscription: true } } },
   })
 
   return { session, dbUser }
-}
+})
 
 export async function requireVendorAccess() {
   const context = await requireAuthenticatedUser()
@@ -46,7 +49,7 @@ export async function requireAdminAccess() {
   return context
 }
 
-export async function requireVendorProfileAccess() {
+export const requireVendorProfileAccess = cache(async function requireVendorProfileAccess() {
   const context = await requireVendorAccess()
 
   if (!context.dbUser?.vendorProfile) {
@@ -59,12 +62,33 @@ export async function requireVendorProfileAccess() {
 
   const dbUser = context.dbUser as AuthenticatedDbUser
   const vendorProfile = dbUser.vendorProfile as NonNullable<AuthenticatedDbUser["vendorProfile"]>
+  const subscription = vendorProfile.subscription ?? null
 
   return {
     session: context.session as AuthenticatedSession,
     dbUser,
     vendorProfile,
+    subscription,
   }
+})
+
+export function getVendorSubscriptionStatusMessage() {
+  return "An active platform subscription is required before you can access vendor operations."
+}
+
+export const requireSubscribedVendorProfileAccess = cache(async function requireSubscribedVendorProfileAccess() {
+  const context = await requireVendorProfileAccess()
+  const { subscription } = context
+
+  if (!subscription || !hasActiveSubscription(subscription)) {
+    redirect("/vendor/subscribe")
+  }
+
+  return { ...context, subscription }
+})
+
+export async function requireSubscribedVendorAccess() {
+  return requireSubscribedVendorProfileAccess()
 }
 
 export function isVendorApproved(vendorProfile: Pick<VendorProfile, "reviewStatus">) {
@@ -116,4 +140,28 @@ export function ensureVendorApproved(vendorProfile: Pick<VendorProfile, "reviewS
     },
     { status: 403 }
   )
+}
+
+export async function ensureVendorSubscriptionEligible(vendorId: string) {
+  const accessState = await getVendorSubscriptionAccessState(vendorId)
+
+  if (accessState.allowed) {
+    return {
+      response: null,
+      subscription: accessState.subscription,
+    }
+  }
+
+  return {
+    response: NextResponse.json(
+      {
+        success: false,
+        code: "SUBSCRIPTION_REQUIRED",
+        redirectTo: "/vendor/subscribe",
+        message: getVendorSubscriptionStatusMessage(),
+      },
+      { status: 402 }
+    ),
+    subscription: accessState.subscription,
+  }
 }

@@ -4,9 +4,11 @@ import { NextResponse } from "next/server"
 import QRCode from "qrcode"
 import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 
-import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { canUseKyc, remainingKycVerifications, remainingQrCodes, remainingTransactions } from "@/features/subscriptions/server/feature-gates"
+import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
+import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
-import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
@@ -14,6 +16,12 @@ import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 export async function GET(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { searchParams } = new URL(request.url)
     const pagination = resolvePagination(
       { page: searchParams.get("page"), pageSize: searchParams.get("pageSize") },
@@ -67,6 +75,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response, subscription } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response || !subscription) {
+      return response ?? NextResponse.json({ success: false, message: "Subscription required." }, { status: 402 })
+    }
+
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) {
@@ -81,6 +95,7 @@ export async function POST(request: Request) {
       amount,
       depositAmount,
       requiresKyc,
+      generateQr,
     } = body
 
     if (!title) {
@@ -110,6 +125,38 @@ export async function POST(request: Request) {
     }
 
     const needsStripe = Boolean(normalizedAmount || normalizedDepositAmount || requiresKyc)
+
+    if ((remainingTransactions(subscription) ?? 1) <= 0) {
+      return NextResponse.json(
+        { success: false, message: "Your current plan has reached its monthly transaction limit." },
+        { status: 422 }
+      )
+    }
+
+    if (generateQr === true && (remainingQrCodes(subscription) ?? 1) <= 0) {
+      return NextResponse.json(
+        { success: false, message: "Your current plan has reached its monthly QR code limit. Upgrade to create more." },
+        { status: 422 }
+      )
+    }
+
+    if (requiresKyc) {
+      if (!canUseKyc(subscription)) {
+        return NextResponse.json(
+          { success: false, message: "Identity verification is not available on your current plan." },
+          { status: 422 }
+        )
+      }
+
+      const remainingKyc = remainingKycVerifications(subscription)
+
+      if (remainingKyc !== null && remainingKyc <= 0) {
+        return NextResponse.json(
+          { success: false, message: "Your included KYC verification quota has been reached for this billing period." },
+          { status: 422 }
+        )
+      }
+    }
 
     if (
       needsStripe &&
@@ -147,7 +194,10 @@ export async function POST(request: Request) {
     const token = randomBytes(16).toString("hex")
     const baseUrl = getAppBaseUrl()
     const secureLink = `${baseUrl}/t/${token}`
-    const qrCodeSvg = await QRCode.toString(secureLink, { type: "svg", margin: 1 })
+    const qrCodeSvg =
+      generateQr === true
+        ? await QRCode.toString(secureLink, { type: "svg", margin: 1 })
+        : null
 
     // A financial amount is mandatory
     if (!normalizedAmount && !normalizedDepositAmount) {
@@ -209,25 +259,37 @@ export async function POST(request: Request) {
         dedupeKey: `event:link-created:${newTransaction.id}`,
       })
 
-      return { ...newTransaction, link }
+      await incrementVendorSubscriptionUsage(tx, vendorProfile.id, "transactionsUsed")
+      if (generateQr === true) {
+        await incrementVendorSubscriptionUsage(tx, vendorProfile.id, "qrCodesUsed")
+      }
+
+      const updatedSubscription = await tx.vendorSubscription.findUnique({
+        where: { vendorId: vendorProfile.id },
+      })
+
+      return { ...newTransaction, link, updatedSubscription }
     })
+
+    const { updatedSubscription, ...transactionPayload } = transaction
 
     return NextResponse.json(
       {
-        ...transaction,
+        ...transactionPayload,
         linkRecord: buildVendorLinkRecord({
-          id: transaction.id,
-          reference: transaction.reference,
-          title: transaction.title,
-          kind: transaction.kind,
-          amount: transaction.amount,
-          depositAmount: transaction.depositAmount,
-          currency: transaction.currency,
-          notes: transaction.notes,
-          updatedAt: transaction.updatedAt,
+          id: transactionPayload.id,
+          reference: transactionPayload.reference,
+          title: transactionPayload.title,
+          kind: transactionPayload.kind,
+          amount: transactionPayload.amount,
+          depositAmount: transactionPayload.depositAmount,
+          currency: transactionPayload.currency,
+          notes: transactionPayload.notes,
+          updatedAt: transactionPayload.updatedAt,
           clientProfile: null,
-          link: transaction.link,
-        }),
+          link: transactionPayload.link,
+        }, { qrRemaining: remainingQrCodes(updatedSubscription) }),
+        actionUsage: buildVendorActionsUsage(updatedSubscription),
       },
       { status: 201 }
     )

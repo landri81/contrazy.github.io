@@ -21,6 +21,8 @@
     "db:setup": "dotenv -e .env.local -- node scripts/db-setup.mjs",
     "db:clear": "dotenv -e .env.local -- node scripts/clear-db.mjs",
     "db:studio": "dotenv -e .env.local -- node scripts/db-studio.mjs",
+    "stripe:setup-plans": "dotenv -e .env.local -- node scripts/stripe-setup-plans.mjs",
+    "stripe:listen-account-webhook": "stripe listen --forward-to http://localhost:3000/api/webhooks/stripe-account",
     "e2e:env": "node scripts/setup-e2e-env.mjs",
     "prisma:migrate:deploy:test": "dotenv -e .env.test.local -- node scripts/run-prisma-command.mjs migrate deploy",
     "e2e:seed": "dotenv -e .env.test.local -- node scripts/seed-e2e.mjs",

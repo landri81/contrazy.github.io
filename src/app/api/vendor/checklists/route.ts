@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { RequirementType } from "@prisma/client"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
@@ -7,6 +7,12 @@ import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 export async function GET(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { searchParams } = new URL(request.url)
     const pagination = resolvePagination(
       { page: searchParams.get("page"), pageSize: searchParams.get("pageSize") },
@@ -41,6 +47,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
     if (blockedResponse) {

@@ -15,10 +15,13 @@ Verified locally:
 - `npm ci`
 - `npm run prisma:migrate:deploy`
 - `npm run prisma:generate`
-- `npm run test:e2e`
 - `npm run typecheck`
-- `npm run lint`
 - `npm run build`
+
+Not re-run in this billing pass:
+
+- `npm run test:e2e`
+- `npm run lint`
 
 Completed closeout work:
 
@@ -46,8 +49,9 @@ Not yet verified from this repo alone:
    - Google OAuth through Auth.js.
    - Env-backed super admin bootstrap login.
    - Role-based route protection for vendor and admin areas.
+   - Vendor subscription gating with a soft-lock path for profile and plan onboarding.
 3. Data and integrations
-   - Prisma schema expanded for vendors, transactions, requirements, documents, KYC, signatures, payments, deposits, invites, sessions, audit logs, and webhook events.
+   - Prisma schema expanded for vendors, subscriptions, transactions, requirements, documents, KYC, signatures, payments, deposits, invites, sessions, audit logs, and webhook events.
    - Stripe Connect, Checkout, and Identity integration paths added.
    - Cloudinary direct upload signing flow added.
    - Resend email delivery helpers added.
@@ -62,6 +66,7 @@ Not yet verified from this repo alone:
    - Contract template management.
    - Checklist / requirement management.
    - Transaction creation with secure token link and persisted QR code output.
+   - Stripe-hosted subscription checkout and webhook-synced vendor billing state.
    - Transaction detail view backed by real transaction state, finance records, signature, documents, KYC, and event timeline.
    - Deposit control actions for release and capture.
 3. Vendor data views

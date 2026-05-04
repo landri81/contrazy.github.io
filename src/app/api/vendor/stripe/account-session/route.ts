@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -9,6 +9,11 @@ export const maxDuration = 30
 export async function POST() {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
 
     if (!vendorProfile.stripeAccountId) {
       return NextResponse.json({ message: "No Stripe account linked." }, { status: 400 })

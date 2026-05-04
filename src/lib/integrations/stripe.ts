@@ -10,6 +10,10 @@ export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   },
 })
 
+export function getStripePublishableKey() {
+  return env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? env.STRIPE_PUBLISHABLE_KEY
+}
+
 export function getAppBaseUrl() {
   if (env.NEXT_PUBLIC_APP_URL) {
     return env.NEXT_PUBLIC_APP_URL

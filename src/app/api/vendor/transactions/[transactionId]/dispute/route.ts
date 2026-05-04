@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
-import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { sendAdminDisputeAlert } from "@/lib/integrations/resend"
 import { env } from "@/lib/env"
@@ -16,6 +16,10 @@ export async function POST(
   try {
     const { transactionId } = await params
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) return response
+
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) return blockedResponse

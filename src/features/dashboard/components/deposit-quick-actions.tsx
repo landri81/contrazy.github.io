@@ -102,11 +102,12 @@ export function DepositQuickActions({
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex min-w-[190px] items-center justify-start gap-2">
       <Button
         type="button"
         size="sm"
         variant="outline"
+        className="h-8 cursor-pointer gap-1.5 whitespace-nowrap px-3"
         onClick={() => {
           setError(null)
           setCaptureMode("full")
@@ -121,6 +122,7 @@ export function DepositQuickActions({
         type="button"
         size="sm"
         variant="outline"
+        className="h-8 cursor-pointer gap-1.5 whitespace-nowrap px-3"
         onClick={() => {
           setError(null)
           setReleaseOpen(true)
@@ -233,7 +235,7 @@ export function DepositQuickActions({
               Release deposit
             </DialogTitle>
             <DialogDescription>
-              This releases the {formatMoney(amountCents, currency)} hold back to the customer's card.
+              This releases the {formatMoney(amountCents, currency)} hold back to the customer&apos;s card.
             </DialogDescription>
           </DialogHeader>
 

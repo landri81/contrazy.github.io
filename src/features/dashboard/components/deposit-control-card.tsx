@@ -250,7 +250,7 @@ export function DepositControlCard({
             Active deposit - {fmt(amount, currency)}
           </CardTitle>
           <CardDescription>
-            The amount is held on the customer's card. Choose the next action for this transaction.
+            The amount is held on the customer&apos;s card. Choose the next action for this transaction.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -4,8 +4,7 @@ import { getNextFinanceStage, type FinanceTransaction } from "@/features/transac
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
-import { env } from "@/lib/env"
-import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
+import { getConnectedAccountRequestOptions, getStripePublishableKey, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -101,7 +100,7 @@ export async function POST(
       success: true,
       clientSecret: intent.client_secret,
       stripeAccountId,
-      publishableKey: env.STRIPE_PUBLISHABLE_KEY,
+      publishableKey: getStripePublishableKey(),
       financeStage: nextStage,
       amountCents,
       currency: transaction.currency,

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { requireVendorProfileAccess } from "@/lib/auth/guards"
+import { requireSubscribedVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 
 export default async function StripeReturnPage() {
   try {
-    const { vendorProfile } = await requireVendorProfileAccess()
+    const { vendorProfile } = await requireSubscribedVendorProfileAccess()
 
     if (!vendorProfile.stripeAccountId) {
       redirect("/vendor/stripe?status=no_account")

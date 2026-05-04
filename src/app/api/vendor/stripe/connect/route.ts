@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server"
-import { ensureVendorApproved, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export async function DELETE() {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
 
     if (!vendorProfile.stripeAccountId) {
       return NextResponse.json({ message: "No Stripe account linked." }, { status: 400 })
@@ -52,6 +57,12 @@ export const maxDuration = 60
 export async function POST() {
   try {
     const { dbUser, vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) {

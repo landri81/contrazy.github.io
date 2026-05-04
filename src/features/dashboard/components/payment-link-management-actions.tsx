@@ -3,8 +3,7 @@
 import Link from "next/link"
 import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Copy, Download, ExternalLink, Loader2, MoreHorizontal, PencilLine, QrCode, ShieldX } from "lucide-react"
-import { QRCodeSVG } from "qrcode.react"
+import { Copy, Download, ExternalLink, Loader2, MoreHorizontal, PencilLine, QrCode, ShieldX, WandSparkles } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -25,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import type { VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { cn } from "@/lib/utils"
 
 function toDateTimeLocal(value: string | null) {
@@ -40,12 +39,14 @@ type PaymentLinkManagementActionsProps = {
   record: VendorLinkRecord
   variant?: "compact" | "detail"
   onRecordChange?: (record: VendorLinkRecord) => void
+  onUsageChange?: (usage: VendorActionsUsageRecord | null) => void
 }
 
 export function PaymentLinkManagementActions({
   record,
   variant = "compact",
   onRecordChange,
+  onUsageChange,
 }: PaymentLinkManagementActionsProps) {
   const router = useRouter()
   const qrContainerRef = useRef<HTMLDivElement | null>(null)
@@ -53,6 +54,7 @@ export function PaymentLinkManagementActions({
   const [qrOpen, setQrOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -70,6 +72,10 @@ export function PaymentLinkManagementActions({
     }
 
     router.refresh()
+  }
+
+  function applyUsage(nextUsage: VendorActionsUsageRecord | null | undefined) {
+    onUsageChange?.(nextUsage ?? null)
   }
 
   async function copyShareLink() {
@@ -97,6 +103,35 @@ export function PaymentLinkManagementActions({
     link.download = `${record.reference.toLowerCase()}-qr.svg`
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function handleGenerateQr() {
+    setIsGeneratingQr(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/vendor/links/${record.id}/qr`, {
+        method: "POST",
+      })
+
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setError(payload?.message ?? "Unable to generate this QR code.")
+        return
+      }
+
+      if (payload?.item) {
+        applyUpdatedRecord(payload.item)
+      }
+      applyUsage(payload?.actionUsage)
+      setQrOpen(true)
+    } catch (err) {
+      console.error(err)
+      setError("Unable to generate this QR code.")
+    } finally {
+      setIsGeneratingQr(false)
+    }
   }
 
   async function handleSave() {
@@ -161,71 +196,103 @@ export function PaymentLinkManagementActions({
   }
 
   const actionButtons = (
-    <div className="flex items-center justify-end gap-1.5">
-      <Link
-        href={detailHref}
-        className={cn(
-          buttonVariants({ variant: "outline", size: variant === "detail" ? "sm" : "icon-sm" }),
-          "cursor-pointer"
-        )}
-        title="Open transaction detail"
-      >
-        <ExternalLink className="size-3.5" />
-        {variant === "detail" ? "Transaction" : null}
-      </Link>
-      <Button
-        type="button"
-        variant="outline"
-        size={variant === "detail" ? "sm" : "icon-sm"}
-        onClick={copyShareLink}
-        title="Copy secure link"
-      >
-        <Copy className="size-3.5" />
-        {variant === "detail" ? (copied ? "Copied" : "Copy link") : null}
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label="Open payment link actions"
+    <div className="space-y-2">
+      <div className="flex items-center justify-end gap-1.5">
+        <Link
+          href={detailHref}
           className={cn(
             buttonVariants({ variant: "outline", size: variant === "detail" ? "sm" : "icon-sm" }),
             "cursor-pointer"
           )}
+          title="Open transaction detail"
         >
-          <MoreHorizontal className="size-3.5" />
-          {variant === "detail" ? "More" : null}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" sideOffset={8} className="w-48">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => window.open(record.shareLink, "_blank", "noopener,noreferrer")}
+          <ExternalLink className="size-3.5" />
+          {variant === "detail" ? "Transaction" : null}
+        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          size={variant === "detail" ? "sm" : "icon-sm"}
+          onClick={copyShareLink}
+          title="Copy secure link"
+        >
+          <Copy className="size-3.5" />
+          {variant === "detail" ? (copied ? "Copied" : "Copy link") : null}
+        </Button>
+        {variant === "detail" && !record.qrReady && record.canGenerateQr ? (
+          <Button type="button" variant="outline" size="sm" onClick={handleGenerateQr} disabled={isGeneratingQr}>
+            {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
+            Generate QR
+          </Button>
+        ) : null}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Open payment link actions"
+            className={cn(
+              buttonVariants({ variant: "outline", size: variant === "detail" ? "sm" : "icon-sm" }),
+              "cursor-pointer"
+            )}
           >
-            <ExternalLink className="size-4" />
-            Open customer link
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onClick={() => setQrOpen(true)}>
-            <QrCode className="size-4" />
-            Preview QR code
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer"
-            disabled={!record.canEdit}
-            onClick={() => setEditOpen(true)}
-          >
-            <PencilLine className="size-4" />
-            Edit link
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            disabled={!record.canCancel}
-            variant="destructive"
-            onClick={() => setCancelOpen(true)}
-          >
-            <ShieldX className="size-4" />
-            Cancel link
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <MoreHorizontal className="size-3.5" />
+            {variant === "detail" ? "More" : null}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={8} className="w-56">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => window.open(record.shareLink, "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="size-4" />
+              Open customer link
+            </DropdownMenuItem>
+            {record.qrReady ? (
+              <DropdownMenuItem className="cursor-pointer" onClick={() => setQrOpen(true)}>
+                <QrCode className="size-4" />
+                Preview QR code
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                disabled={!record.canGenerateQr || isGeneratingQr}
+                onClick={handleGenerateQr}
+                title={record.qrUnavailableReason ?? undefined}
+              >
+                {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
+                Generate QR code
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
+              disabled={!record.canEdit}
+              onClick={() => setEditOpen(true)}
+            >
+              <PencilLine className="size-4" />
+              Edit link
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              disabled={!record.canCancel}
+              variant="destructive"
+              onClick={() => setCancelOpen(true)}
+            >
+              <ShieldX className="size-4" />
+              Cancel link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {variant === "detail" && !record.qrReady ? (
+        <p className="text-right text-xs text-muted-foreground">
+          {record.canGenerateQr
+            ? "Create the QR only when you need an in-person scan flow."
+            : record.qrUnavailableReason ?? "QR is not available for this link."}
+        </p>
+      ) : null}
+      {error && !editOpen && !cancelOpen ? (
+        <p className="text-right text-xs text-destructive">{error}</p>
+      ) : null}
+
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -235,19 +302,29 @@ export function PaymentLinkManagementActions({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div ref={qrContainerRef} className="flex justify-center rounded-2xl border bg-white p-6">
-              <QRCodeSVG value={record.shareLink} size={220} includeMargin />
-            </div>
+            {record.qrCodeSvg ? (
+              <div
+                ref={qrContainerRef}
+                className="flex justify-center rounded-2xl border bg-white p-6 [&_svg]:block [&_svg]:h-[220px] [&_svg]:w-[220px]"
+                dangerouslySetInnerHTML={{ __html: record.qrCodeSvg }}
+              />
+            ) : (
+              <div className="rounded-2xl border border-dashed bg-muted/25 p-5 text-sm text-muted-foreground">
+                No QR has been generated for this link yet.
+              </div>
+            )}
             <div className="rounded-xl border bg-muted/25 p-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">{record.shortCode}</p>
               <p className="mt-1 break-all">{record.shareLink}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={downloadQr}>
-              <Download className="size-4" />
-              Download SVG
-            </Button>
+            {record.qrCodeSvg ? (
+              <Button type="button" variant="outline" onClick={downloadQr}>
+                <Download className="size-4" />
+                Download SVG
+              </Button>
+            ) : null}
           </DialogFooter>
         </DialogContent>
       </Dialog>

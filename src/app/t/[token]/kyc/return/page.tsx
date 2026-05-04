@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { TransactionLinkStatus } from "@prisma/client"
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
+import { canUseKyc, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
+import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
@@ -23,6 +25,23 @@ export default async function ClientKycReturnPage(props: {
 
   if (searchParams.session_id) {
     try {
+      const subscription = await prisma.vendorSubscription.findUnique({
+        where: { vendorId: transaction.vendorId },
+      })
+
+      if (!canUseKyc(subscription)) {
+        redirect(`/t/${token}/kyc?error=verification_unavailable`)
+      }
+
+      const remainingKyc = remainingKycVerifications(subscription)
+
+      if (remainingKyc !== null && remainingKyc <= 0) {
+        redirect(`/t/${token}/kyc?error=verification_unavailable`)
+      }
+
+      const existingVerification = await prisma.kycVerification.findUnique({
+        where: { transactionId: transaction.id },
+      })
       const session = await stripe.identity.verificationSessions.retrieve(
         searchParams.session_id,
         {},
@@ -51,6 +70,10 @@ export default async function ClientKycReturnPage(props: {
             where: { id: transaction.id },
             data: { status: "KYC_VERIFIED" },
           })
+
+          if (!existingVerification) {
+            await incrementVendorSubscriptionUsage(tx, transaction.vendorId, "kycVerificationsUsed")
+          }
 
           await recordTransactionEvent(tx, {
             transactionId: transaction.id,

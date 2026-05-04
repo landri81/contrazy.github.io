@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server"
 
 import { getVendorLinksPageData, getVendorRecentLinksData } from "@/features/dashboard/server/dashboard-data"
-import { requireVendorAccess } from "@/lib/auth/guards"
+import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
 export async function GET(request: Request) {
   try {
-    const { session } = await requireVendorAccess()
+    const { session, vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { searchParams } = new URL(request.url)
     const page = searchParams.get("page")
     const pageSize = searchParams.get("pageSize")

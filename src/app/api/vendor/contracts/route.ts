@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server"
-import { ensureVendorPreparationAllowed, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { getContractTemplateLimit } from "@/features/subscriptions/server/feature-gates"
 import { prisma } from "@/lib/db/prisma"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
 export async function GET(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { searchParams } = new URL(request.url)
     const pagination = resolvePagination(
       { page: searchParams.get("page"), pageSize: searchParams.get("pageSize") },
@@ -35,6 +42,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
 
     if (blockedResponse) {
@@ -45,6 +58,26 @@ export async function POST(request: Request) {
 
     if (!name || !content) {
       return NextResponse.json({ success: false, message: "Name and content are required" }, { status: 400 })
+    }
+
+    const subscription = await prisma.vendorSubscription.findUnique({
+      where: { vendorId: vendorProfile.id },
+    })
+    const templateLimit = getContractTemplateLimit(subscription)
+
+    if (templateLimit !== null) {
+      const existingCount = await prisma.contractTemplate.count({
+        where: { vendorId: vendorProfile.id },
+      })
+      if (existingCount >= templateLimit) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Your current plan allows up to ${templateLimit} contract template${templateLimit === 1 ? "" : "s"}. Upgrade to add more.`,
+          },
+          { status: 422 }
+        )
+      }
     }
 
     const template = await prisma.contractTemplate.create({

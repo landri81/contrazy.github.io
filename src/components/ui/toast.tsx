@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 
 export type ToastVariant = "success" | "error" | "warning" | "info"
@@ -17,6 +17,7 @@ interface ToastItem {
 
 // Module-level event bus — no React context needed
 const listeners = new Set<(t: ToastItem) => void>()
+const subscribeToHydration = () => () => {}
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
@@ -59,11 +60,7 @@ const variantConfig: Record<
 
 export function Toaster() {
   const [toasts, setToasts] = useState<ToastItem[]>([])
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false)
 
   useEffect(() => {
     const handler = (item: ToastItem) => {
@@ -80,7 +77,7 @@ export function Toaster() {
 
   const dismiss = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id))
 
-  if (!mounted) return null
+  if (!mounted || typeof document === "undefined") return null
 
   return createPortal(
     <div className="fixed bottom-5 right-5 z-[9999] flex w-full max-w-sm flex-col gap-2.5">

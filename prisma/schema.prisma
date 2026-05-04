@@ -28,6 +28,28 @@ enum StripeConnectionStatus {
   ERROR
 }
 
+enum SubscriptionPlanKey {
+  STARTER
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionBillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum VendorSubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
+}
+
 enum TransactionKind {
   PAYMENT
   DEPOSIT
@@ -189,6 +211,38 @@ model VendorProfile {
   transactions           Transaction[]
   invitations            Invitation[]
   webhookEvents          WebhookEvent[]
+  subscription           VendorSubscription?
+}
+
+model VendorSubscription {
+  id                  String                       @id @default(cuid())
+  vendorId            String                       @unique
+  planKey             SubscriptionPlanKey
+  billingInterval     SubscriptionBillingInterval
+  status              VendorSubscriptionStatus
+  stripeCustomerId    String?                      @unique
+  stripeSubscriptionId String?                     @unique
+  stripePriceId       String?
+  stripeProductId     String?
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean                      @default(false)
+  trialStart          DateTime?
+  trialEnd            DateTime?
+  transactionsUsed    Int                          @default(0)
+  eSignaturesUsed     Int                          @default(0)
+  kycVerificationsUsed Int                         @default(0)
+  qrCodesUsed         Int                          @default(0)
+  smsWhatsappUsed     Int                          @default(0)
+  teamUsersUsed       Int                          @default(0)
+  usagePeriodStart    DateTime?
+  usagePeriodEnd      DateTime?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  vendor              VendorProfile                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([status, currentPeriodEnd])
+  @@index([planKey, billingInterval])
 }
 
 model ClientProfile {

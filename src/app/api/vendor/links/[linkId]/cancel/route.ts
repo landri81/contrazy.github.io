@@ -2,8 +2,9 @@ import { NextResponse } from "next/server"
 import { TransactionLinkActor } from "@prisma/client"
 
 import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { cancelTransactionLink } from "@/features/transactions/server/transaction-links"
-import { requireVendorProfileAccess } from "@/lib/auth/guards"
+import { ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 
 export async function POST(
@@ -12,6 +13,12 @@ export async function POST(
 ) {
   try {
     const { vendorProfile } = await requireVendorProfileAccess()
+    const { response, subscription } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
     const { linkId } = await params
     const { reason } = await request.json().catch(() => ({ reason: null }))
 
@@ -70,7 +77,7 @@ export async function POST(
         updatedAt: updated.updatedAt,
         clientProfile: updated.clientProfile,
         link: updated.link,
-      }),
+      }, { qrRemaining: remainingQrCodes(subscription) }),
     })
   } catch (error) {
     console.error("Cancel Vendor Link Error:", error)

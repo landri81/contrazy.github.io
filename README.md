@@ -51,6 +51,8 @@ legacy-html/
 - Vendor registration and login
 - Env-backed super admin login
 - Google OAuth
+- Vendor subscription onboarding with Stripe Checkout
+- Subscription gating for vendor workspace access
 - Vendor profile completion and admin review
 - Stripe Connect onboarding for vendors
 - Contract template management
@@ -88,8 +90,18 @@ Required keys:
 - `CLOUDINARY_API_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_ACCOUNT_WEBHOOK_SECRET`
 - `STRIPE_CONNECT_CLIENT_ID`
+- `STRIPE_PRICE_STARTER_MONTHLY`
+- `STRIPE_PRICE_STARTER_YEARLY`
+- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_PRO_YEARLY`
+- `STRIPE_PRICE_BUSINESS_MONTHLY`
+- `STRIPE_PRICE_BUSINESS_YEARLY`
+- `STRIPE_PRO_TRIAL_DAYS`
+- `STRIPE_BUSINESS_TRIAL_DAYS`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 - `SUPER_ADMIN_EMAIL`
@@ -110,6 +122,13 @@ Database setup and Prisma Studio shortcuts:
 ```bash
 npm run db:setup
 npm run db:studio
+```
+
+Stripe billing plan setup:
+
+```bash
+npm run stripe:setup-plans
+npm run stripe:listen-account-webhook
 ```
 
 Vercel production build:
@@ -156,6 +175,7 @@ The remaining non-code work is:
 - Vercel project creation and env wiring
 - production callback URL configuration
 - Stripe webhook registration
+- Stripe billing webhook registration
 - Resend sender/domain verification
 - final production smoke test with real provider credentials
 
