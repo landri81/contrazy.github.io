@@ -453,8 +453,8 @@ export function TransactionCreationForm({
   // ── Success state ─────────────────────────────────────────────────────────
   if (successLink) {
     return (
-      <div className="flex h-full flex-col bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,1))]">
-        <div className="border-b border-emerald-100/80 px-4 py-4 sm:px-6">
+      <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,1))]">
+        <div className="shrink-0 border-b border-emerald-100/80 px-4 py-4 sm:px-6">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100">
               <CheckCircle2 className="size-5 text-emerald-600" />
@@ -470,7 +470,7 @@ export function TransactionCreationForm({
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+        <div className="scrollbar-thin-subtle min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input readOnly value={successLink} className="bg-white text-xs" />
             <Button type="button" variant="outline" className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={handleCopy}>
@@ -503,7 +503,7 @@ export function TransactionCreationForm({
           )}
         </div>
 
-        <div className="border-t border-emerald-100/80 bg-white/90 px-4 py-4 sm:px-6">
+        <div className="shrink-0 border-t border-emerald-100/80 bg-white/90 px-4 py-4 sm:px-6">
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleReset}>
             Create another transaction
           </Button>
@@ -514,10 +514,12 @@ export function TransactionCreationForm({
 
   // ── Wizard ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full min-h-[min(760px,78dvh)] flex-col bg-white">
-      <StepProgress current={step} />
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="shrink-0">
+        <StepProgress current={step} />
+      </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={step}
@@ -526,7 +528,7 @@ export function TransactionCreationForm({
             initial="enter"
             animate="center"
             exit="exit"
-            className="h-full"
+            className="min-h-full"
           >
             {/* ── Step 1: Info ────────────────────────────────────────── */}
             {step === 1 && (
@@ -944,7 +946,7 @@ export function TransactionCreationForm({
       </AnimatePresence>
 
       {/* ── Navigation ─────────────────────────────────────────────────────── */}
-      <div className="border-t border-border/70 bg-white/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
+      <div className="shrink-0 border-t border-border/70 bg-white/95 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {step > 1 ? (
           <Button

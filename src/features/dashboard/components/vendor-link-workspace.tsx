@@ -408,10 +408,10 @@ export function VendorLinkWorkspace({
 
       <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent
-          className="h-[100dvh] max-w-none overflow-hidden rounded-none border-0 bg-background p-0 shadow-none ring-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-5xl sm:rounded-[28px] sm:border sm:border-border/70 sm:shadow-[0_32px_80px_-40px_rgba(15,23,42,0.45)]"
+          className="flex h-[100dvh] max-w-none flex-col overflow-hidden rounded-none border-0 bg-background p-0 shadow-none ring-0 sm:h-[min(92dvh,960px)] sm:max-h-[92dvh] sm:max-w-5xl sm:rounded-[28px] sm:border sm:border-border/70 sm:shadow-[0_32px_80px_-40px_rgba(15,23,42,0.45)]"
           showCloseButton={false}
         >
-          <div className="flex h-full min-h-0 flex-col">
+          <div className="flex h-full min-h-0 flex-1 flex-col">
             <DialogHeader className="border-b border-border/70 px-4 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
