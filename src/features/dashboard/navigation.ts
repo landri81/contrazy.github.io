@@ -41,19 +41,20 @@ export const vendorNavigation: DashboardNavSection[] = [
     ],
   },
   {
-    label: "Transactions",
+    label: "Contract Flow",
     items: [
+      { href: "/vendor/links", label: "Links and QR", icon: "link2" },
       { href: "/vendor/transactions", label: "Transactions", icon: "creditCard" },
       { href: "/vendor/contracts", label: "Contract templates", icon: "scrollText" },
       { href: "/vendor/checklists", label: "Checklists", icon: "badgeCheck" },
     ],
   },
   {
-    label: "Verification",
+    label: "Clients & Verification",
     items: [
+      { href: "/vendor/clients", label: "Clients", icon: "users" },
       { href: "/vendor/kyc", label: "KYC", icon: "shield" },
       { href: "/vendor/signatures", label: "Signatures", icon: "signature" },
-      { href: "/vendor/clients", label: "Clients", icon: "users" },
     ],
   },
   {
@@ -62,14 +63,13 @@ export const vendorNavigation: DashboardNavSection[] = [
       { href: "/vendor/deposits", label: "Deposits", icon: "wallet" },
       { href: "/vendor/payments", label: "Payments", icon: "receiptText" },
       { href: "/vendor/disputes", label: "Disputes", icon: "fileClock" },
-      { href: "/vendor/stripe", label: "Stripe", icon: "briefcaseBusiness" },
-      { href: "/vendor/billing", label: "Billing", icon: "creditCard" },
     ],
   },
   {
-    label: "Operations",
+    label: "Platform",
     items: [
-      { href: "/vendor/links", label: "Links and QR", icon: "link2" },
+      { href: "/vendor/stripe", label: "Stripe", icon: "briefcaseBusiness" },
+      { href: "/vendor/billing", label: "Billing", icon: "creditCard" },
       { href: "/vendor/webhooks", label: "Events", icon: "logs" },
     ],
   },

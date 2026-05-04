@@ -5,9 +5,6 @@ import { loadStripe } from "@stripe/stripe-js"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   AlertTriangle,
-  ArrowRight,
-  Check,
-  CheckCircle2,
   CreditCard,
   Download,
   ExternalLink,
@@ -19,7 +16,6 @@ import {
   QrCode,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   X,
   XCircle,
 } from "lucide-react"
@@ -43,6 +39,7 @@ import {
   type SubscriptionBillingIntervalSlug,
   type SubscriptionPlanSlug,
 } from "@/features/subscriptions/config"
+import { SubscriptionPlanCard } from "@/features/subscriptions/components/subscription-plan-card"
 import type {
   BillingInvoice,
   BillingPaymentMethod,
@@ -218,20 +215,8 @@ function BillingPlanGrid({
           plan.key !== "enterprise" &&
           (currentIntervalSlug === null || currentIntervalSlug === billingInterval)
 
-        const amount =
-          billingInterval === "yearly"
-            ? plan.yearlyAmountCents
-            : plan.monthlyAmountCents
-
         const isLoadingThis = loading === plan.key
         const isAnyLoading = loading !== null
-
-        const intervalMeta =
-          billingInterval === "yearly" && plan.yearlyMonthlyEquivalentCents
-            ? `/ an · ${formatEuroAmount(plan.yearlyMonthlyEquivalentCents)}/mois`
-            : billingInterval === "yearly"
-              ? "/ an"
-              : "/ mois"
 
         let ctaLabel = plan.ctaLabel
 
@@ -256,131 +241,16 @@ function BillingPlanGrid({
         }
 
         return (
-          <div
+          <SubscriptionPlanCard
             key={plan.key}
-            className={cn(
-              "relative flex h-full min-h-[450px] flex-col overflow-hidden rounded-[22px] border bg-background p-6 shadow-sm transition-all duration-200",
-              "hover:-translate-y-0.5 hover:shadow-md",
-              plan.recommended
-                ? "border-[var(--contrazy-teal)] shadow-[0_0_0_4px_rgba(17,201,176,0.08)]"
-                : "border-border",
-              isCurrent && "ring-2 ring-[var(--contrazy-teal)] ring-offset-2"
-            )}
-          >
-            {plan.recommended && (
-              <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,rgba(17,201,176,0.18),rgba(17,201,176,0.9),rgba(17,201,176,0.18))]" />
-            )}
-
-            <div className="flex min-h-[58px] items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[17px] font-bold leading-tight text-foreground">
-                  {plan.name}
-                </p>
-                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {plan.subtitle}
-                </p>
-              </div>
-
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                {plan.recommended && (
-                  <Badge className="gap-1 border-transparent bg-[var(--contrazy-teal)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--contrazy-teal)] hover:bg-[var(--contrazy-teal)]/10">
-                    <Sparkles className="size-3" />
-                    Recommandé
-                  </Badge>
-                )}
-
-                {isCurrent && (
-                  <Badge className="gap-1 border-transparent bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100">
-                    <CheckCircle2 className="size-3" />
-                    Actuel
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 flex min-h-[76px] flex-col justify-end">
-              {amount !== null ? (
-                <>
-                  <div className="flex items-end gap-1.5">
-                    {billingInterval === "yearly" &&
-                      plan.yearlyOriginalAmountCents && (
-                        <span className="pb-1 text-base font-semibold text-muted-foreground/40 line-through">
-                          {formatEuroAmount(plan.yearlyOriginalAmountCents)}
-                        </span>
-                      )}
-
-                    <span className="text-[38px] font-extrabold leading-none tracking-tight text-foreground">
-                      {formatEuroAmount(amount)}
-                    </span>
-
-                    <span className="pb-1 text-[13px] text-muted-foreground">
-                      HT
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                    {intervalMeta}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[38px] font-extrabold leading-none tracking-tight text-foreground">
-                    Sur devis
-                  </p>
-
-                  <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                    Facturation annuelle
-                  </p>
-                </>
-              )}
-            </div>
-
-            <ul className="mt-5 flex-1 space-y-2.5">
-              {plan.items.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-start gap-2 text-[12px] leading-5 text-muted-foreground"
-                >
-                  <Check className="mt-[3px] size-3.5 shrink-0 text-[var(--contrazy-teal)]" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-6 pt-2">
-              {isCurrent ? (
-                <div className="flex h-11 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700">
-                  <CheckCircle2 className="mr-2 size-4" />
-                  Plan actuel
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  className={cn(
-                    "h-11 w-full rounded-xl text-[13px] font-semibold transition-all",
-                    plan.contactOnly || plan.key === "starter"
-                      ? "border border-border bg-background text-foreground hover:border-[var(--contrazy-teal)] hover:bg-[var(--contrazy-teal)]/5 hover:text-[var(--contrazy-teal)]"
-                      : "bg-[var(--contrazy-teal)] text-white shadow-sm hover:bg-[#0eb8a0]"
-                  )}
-                  variant={
-                    plan.contactOnly || plan.key === "starter"
-                      ? "outline"
-                      : "default"
-                  }
-                  disabled={isAnyLoading}
-                  onClick={() => handleAction(plan)}
-                >
-                  {isLoadingThis ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : null}
-
-                  {ctaLabel}
-
-                  {!isLoadingThis ? <ArrowRight className="ml-2 size-4" /> : null}
-                </Button>
-              )}
-            </div>
-          </div>
+            plan={plan}
+            billingInterval={billingInterval}
+            isCurrent={isCurrent}
+            isLoading={isLoadingThis}
+            actionLabel={ctaLabel}
+            actionDisabled={isAnyLoading}
+            onAction={() => handleAction(plan)}
+          />
         )
       })}
     </div>

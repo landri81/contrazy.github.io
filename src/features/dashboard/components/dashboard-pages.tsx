@@ -447,18 +447,33 @@ export function VendorLinksView({
         searchParams={searchParams}
         columns={["Reference", "Client", "Title", "Amounts", "Short code", "Last activity", "Status", "Actions"]}
         rows={data.items.map((record) => [
-          <Link key={`${record.reference}-reference`} href={`/vendor/transactions/${record.transactionId}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+          <Link
+            key={`${record.reference}-reference`}
+            href={`/vendor/transactions/${record.transactionId}`}
+            className="inline-block min-w-[130px] font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+          >
             {record.reference}
           </Link>,
-          <div key={`${record.reference}-client`}>
-            <p className="font-medium text-foreground">{record.clientName}</p>
-            <p className="text-xs text-muted-foreground">{record.clientEmail}</p>
+          <div key={`${record.reference}-client`} className="w-[180px] min-w-[180px]">
+            <p className="truncate font-medium text-foreground" title={record.clientName}>
+              {record.clientName}
+            </p>
+            <p className="truncate text-xs text-muted-foreground" title={record.clientEmail}>
+              {record.clientEmail}
+            </p>
           </div>,
-          <div key={`${record.reference}-title`}>
-            <p className="font-medium text-foreground">{record.title}</p>
-            <p className="text-xs text-muted-foreground">{record.kind.replaceAll("_", " ")}</p>
+          <div key={`${record.reference}-title`} className="w-[240px] min-w-[240px]">
+            <p
+              className="truncate text-sm font-medium text-foreground"
+              title={record.title}
+            >
+              {record.title}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {record.kind.replaceAll("_", " ")}
+            </p>
           </div>,
-          <div key={`${record.reference}-amounts`} className="space-y-1">
+          <div key={`${record.reference}-amounts`} className="min-w-[132px] space-y-1">
             {record.kind !== "DEPOSIT" && (
               <p className="text-sm font-medium text-foreground">Service: {record.serviceAmount}</p>
             )}
@@ -466,8 +481,12 @@ export function VendorLinksView({
               <p className="text-xs text-muted-foreground">Deposit: {record.depositAmount}</p>
             )}
           </div>,
-          record.shortCode,
-          record.lastActivity,
+          <span key={`${record.reference}-short-code`} className="inline-block min-w-[88px]">
+            {record.shortCode}
+          </span>,
+          <span key={`${record.reference}-last-activity`} className="inline-block min-w-[112px]">
+            {record.lastActivity}
+          </span>,
           <StatusBadge key={`${record.reference}-state`} tone={getStatusTone(record.status)}>
             {record.status}
           </StatusBadge>,

@@ -34,18 +34,20 @@ export default async function VendorChecklistsPage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="mb-4 bg-white p-4 rounded-md shadow-sm">
         <h1 className="text-3xl font-bold tracking-tight">Requirement Checklists</h1>
         <p className="text-muted-foreground mt-2">
           Create templates for the documents or photos clients must upload during a transaction.
         </p>
       </div>
 
-      <ChecklistTemplateList
-        initialTemplates={templates}
-        canEdit={isVendorPreparationAllowed(vendorProfile)}
-        blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
-      />
+      <div className="bg-white p-4 rounded-md shadow-sm">
+        <ChecklistTemplateList
+          initialTemplates={templates}
+          canEdit={isVendorPreparationAllowed(vendorProfile)}
+          blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+        />
+      </div>
 
       <PaginationControls
         currentPage={pagination.page}

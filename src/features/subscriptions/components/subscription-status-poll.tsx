@@ -74,19 +74,26 @@ export function SubscriptionStatusPoll({
 
   if (allowed) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
+      <div className="rounded-[26px] border border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.95),rgba(240,253,250,1))] p-4 text-emerald-900 shadow-sm sm:p-5">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-          <div className="space-y-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-emerald-700 shadow-sm ring-1 ring-emerald-200/70">
+            <CheckCircle2 className="size-5" />
+          </div>
+          <div className="min-w-0 space-y-3">
             <div>
-              <p className="font-semibold">Subscription confirmed</p>
-              <p className="mt-1 text-sm text-emerald-700">
-                Your vendor workspace is now active. You can continue to the dashboard.
+              <p className="text-base font-semibold text-foreground">
+                Subscription confirmed
+              </p>
+              <p className="mt-1 text-sm leading-6 text-emerald-800/85">
+                Your workspace is active now. You can continue directly to the vendor dashboard.
               </p>
             </div>
             <Link
               href="/vendor"
-              className={buttonVariants({ className: "bg-emerald-600 text-white hover:bg-emerald-700" })}
+              className={buttonVariants({
+                className:
+                  "h-10 rounded-xl bg-[var(--contrazy-teal)] px-4 text-white hover:bg-[#0eb8a0]",
+              })}
             >
               Open workspace
             </Link>
@@ -97,17 +104,42 @@ export function SubscriptionStatusPoll({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-[26px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,0.96))] p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
-        <Loader2 className={`mt-0.5 size-5 shrink-0 ${isLoading ? "animate-spin" : ""}`} />
-        <div className="space-y-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted/60 text-foreground shadow-sm ring-1 ring-border/70">
+          <Loader2 className={`size-4.5 ${isLoading ? "animate-spin" : ""}`} />
+        </div>
+        <div className="min-w-0 space-y-3">
           <div>
-            <p className="font-semibold text-foreground">Waiting for Stripe confirmation</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The checkout redirect was received. Access will unlock as soon as the billing webhook updates your workspace.
+            <p className="text-base font-semibold text-foreground">
+              Waiting for Stripe confirmation
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Your checkout is complete. This page will unlock the workspace as soon as the subscription webhook is recorded.
             </p>
           </div>
-          <Button variant="outline" onClick={() => router.refresh()}>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/70 bg-background/85 p-3 shadow-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Status
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {isLoading ? "Checking Stripe" : "Awaiting webhook"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-background/85 p-3 shadow-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Refresh
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                Every 3.5 seconds
+              </p>
+            </div>
+          </div>
+
+          <Button variant="outline" className="h-10 rounded-xl" onClick={() => router.refresh()}>
             Check again
           </Button>
         </div>

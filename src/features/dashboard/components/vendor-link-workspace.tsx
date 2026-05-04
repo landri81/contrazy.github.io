@@ -350,18 +350,27 @@ export function VendorLinkWorkspace({
               <Link
                 key={`${record.id}-reference`}
                 href={`/vendor/transactions/${record.transactionId}`}
-                className="font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+                className="inline-block min-w-[130px] font-medium text-foreground hover:text-[var(--contrazy-teal)]"
               >
                 {record.reference}
               </Link>,
 
-              <div key={`${record.id}-client`} className="min-w-[150px]">
-                <p className="font-medium text-foreground">{record.clientName}</p>
-                <p className="text-xs text-muted-foreground">{record.clientEmail}</p>
+              <div key={`${record.id}-client`} className="w-[180px] min-w-[180px]">
+                <p className="truncate font-medium text-foreground" title={record.clientName}>
+                  {record.clientName}
+                </p>
+                <p className="truncate text-xs text-muted-foreground" title={record.clientEmail}>
+                  {record.clientEmail}
+                </p>
               </div>,
 
-              <div key={`${record.id}-title`} className="min-w-[200px]">
-                <p className="font-medium text-foreground">{record.title}</p>
+              <div key={`${record.id}-title`} className="w-[240px] min-w-[240px]">
+                <p
+                  className="truncate text-sm font-medium text-foreground"
+                  title={record.title}
+                >
+                  {record.title}
+                </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="capitalize">{record.kind.replaceAll("_", " ").toLowerCase()}</span>
                   {record.qrReady ? (
@@ -377,7 +386,7 @@ export function VendorLinkWorkspace({
                 </div>
               </div>,
 
-              <div key={`${record.id}-amounts`} className="space-y-0.5">
+              <div key={`${record.id}-amounts`} className="min-w-[132px] space-y-0.5">
                 {record.kind !== "DEPOSIT" && (
                   <p className="text-sm font-medium text-foreground">{record.serviceAmount}</p>
                 )}
@@ -386,7 +395,10 @@ export function VendorLinkWorkspace({
                 )}
               </div>,
 
-              <span key={`${record.id}-last-activity`} className="text-sm text-muted-foreground">
+              <span
+                key={`${record.id}-last-activity`}
+                className="inline-block min-w-[112px] text-sm text-muted-foreground"
+              >
                 {record.lastActivity}
               </span>,
 
