@@ -1,13 +1,42 @@
-import { RequirementType } from "@prisma/client"
+import { PaymentCollectionTiming, RequirementCategory, RequirementType } from "@prisma/client"
 import { z } from "zod"
 
 import {
   INPUT_LIMITS,
   MIN_DISPUTE_SUMMARY_LENGTH,
 } from "@/lib/validation/input-limits"
-import { optionalText, requiredText } from "@/lib/validation/text-schemas"
+import { optionalNullableText, optionalText, requiredText } from "@/lib/validation/text-schemas"
 
 const optionalIdSchema = z.union([z.string().trim().min(1), z.null()]).optional()
+
+const requirementItemSchema = z
+  .object({
+    label: requiredText("Requirement label", INPUT_LIMITS.checklistItemLabel, {
+      requiredMessage: "Requirement label is required",
+    }),
+    description: optionalNullableText("Requirement instructions", INPUT_LIMITS.checklistItemInstructions).optional(),
+    type: z.nativeEnum(RequirementType),
+    category: z.nativeEnum(RequirementCategory),
+    customCategoryLabel: optionalNullableText("Custom category label", INPUT_LIMITS.checklistItemLabel).optional(),
+    required: z.boolean(),
+  })
+  .superRefine((item, ctx) => {
+    if (item.category === RequirementCategory.OTHER && !item.customCategoryLabel?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customCategoryLabel"],
+        message: "Provide a display label when category is Other.",
+      })
+    }
+  })
+  .transform((item) => ({
+    ...item,
+    description: typeof item.description === "string" && item.description.length > 0 ? item.description : null,
+    customCategoryLabel:
+      item.category === RequirementCategory.OTHER && typeof item.customCategoryLabel === "string" && item.customCategoryLabel.length > 0
+        ? item.customCategoryLabel
+        : null,
+  }))
 
 export const vendorTransactionCreateSchema = z
   .object({
@@ -21,6 +50,9 @@ export const vendorTransactionCreateSchema = z
     depositAmount: z.number().int().nullable().optional(),
     requiresKyc: z.boolean().optional(),
     generateQr: z.boolean().optional(),
+    paymentCollectionTiming: z.nativeEnum(PaymentCollectionTiming).optional(),
+    requireClientCompany: z.boolean().optional(),
+    requirements: z.array(requirementItemSchema).optional(),
   })
   .transform((data) => ({
     ...data,
@@ -31,6 +63,9 @@ export const vendorTransactionCreateSchema = z
     depositAmount: data.depositAmount ?? null,
     requiresKyc: Boolean(data.requiresKyc),
     generateQr: Boolean(data.generateQr),
+    paymentCollectionTiming: data.paymentCollectionTiming ?? PaymentCollectionTiming.AFTER_SIGNING,
+    requireClientCompany: Boolean(data.requireClientCompany),
+    requirements: Array.isArray(data.requirements) ? data.requirements : [],
   }))
 
 export const contractTemplatePayloadSchema = z
@@ -54,26 +89,11 @@ export const checklistTemplatePayloadSchema = z
       requiredMessage: "Checklist name is required",
     }),
     description: optionalText("Checklist description", INPUT_LIMITS.checklistDescription).optional(),
-    items: z
-      .array(
-        z.object({
-          label: requiredText("Requirement label", INPUT_LIMITS.checklistItemLabel, {
-            requiredMessage: "Requirement label is required",
-          }),
-          description: optionalText("Requirement instructions", INPUT_LIMITS.checklistItemInstructions).optional(),
-          type: z.nativeEnum(RequirementType),
-          required: z.boolean(),
-        })
-      )
-      .min(1, "Add at least one requirement item"),
+    items: z.array(requirementItemSchema).min(1, "Add at least one requirement item"),
   })
   .transform((data) => ({
     ...data,
     description: typeof data.description === "string" && data.description.length > 0 ? data.description : null,
-    items: data.items.map((item) => ({
-      ...item,
-      description: typeof item.description === "string" && item.description.length > 0 ? item.description : null,
-    })),
   }))
 
 export const vendorLinkUpdateSchema = z

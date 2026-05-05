@@ -2494,7 +2494,8 @@ export type AdminDisputeDetailRecord = AdminDisputeRecord & {
     label: string
     type: string
     fileName: string | null
-    assetUrl: string
+    assetUrl: string | null
+    textValue: string | null
     uploadedAt: string
   }[]
   history: {
@@ -2672,6 +2673,7 @@ export async function getAdminDisputeDetail(disputeId: string): Promise<AdminDis
       type: doc.type,
       fileName: doc.fileName,
       assetUrl: doc.assetUrl,
+      textValue: doc.textValue,
       uploadedAt: formatDate(doc.uploadedAt),
     })),
     history: [

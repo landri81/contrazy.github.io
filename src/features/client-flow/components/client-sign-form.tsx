@@ -22,10 +22,13 @@ export function ClientSignForm({ token }: { token: string }) {
     setError(null)
 
     try {
+      const signedTimezone =
+        typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined
+
       const response = await fetch(`/api/client/${token}/sign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signatureDataUrl }),
+        body: JSON.stringify({ signatureDataUrl, signedTimezone }),
       })
 
       if (response.ok) {

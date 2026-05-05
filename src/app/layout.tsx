@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "quill/dist/quill.snow.css";
 import { AppProviders } from "@/app/providers";
 import { getSiteUrl } from "@/lib/site-url";
 

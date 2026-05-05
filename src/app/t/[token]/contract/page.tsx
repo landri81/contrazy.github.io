@@ -3,6 +3,7 @@ import {
   buildPopulatedContractContent,
   getNextClientStep,
   getTransactionByToken,
+  hasContractStep,
   validateClientStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { ContractReviewForm } from "@/features/client-flow/components/contract-review-form"
@@ -18,7 +19,7 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
   validateClientStep(transaction, 'contract')
 
   // Auto-populate the contract text if it exists
-  if (!transaction.contractTemplate) {
+  if (!hasContractStep(transaction)) {
     redirect(`/t/${token}/${getNextClientStep(transaction)}`)
   }
 
@@ -35,7 +36,7 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
 
       <ContractReviewForm 
         token={token} 
-        content={populatedContract} 
+        contentHtml={populatedContract} 
       />
     </div>
   )

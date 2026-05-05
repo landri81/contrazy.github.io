@@ -81,14 +81,18 @@ export async function POST(request: Request) {
             label: item.label,
             description: item.description,
             type: item.type,
+            category: item.category,
+            customCategoryLabel: item.customCategoryLabel,
             required: item.required,
             sortOrder: i,
-          }))
-        }
+          })),
+        },
       },
       include: {
-        items: true
-      }
+        items: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
     })
 
     return NextResponse.json(template, { status: 201 })

@@ -40,9 +40,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 })
     }
 
-    const { fullName, businessName, supportEmail, businessPhone, businessAddress, businessCountry } =
+    const {
+      ownerFirstName,
+      ownerLastName,
+      businessName,
+      supportEmail,
+      businessPhone,
+      businessAddress,
+      businessCountry,
+      registrationNumber,
+      vatNumber,
+    } =
       parsedBody.data
     const accountEmail = session.user.email.toLowerCase()
+    const fullName = `${ownerFirstName} ${ownerLastName}`.trim()
 
     const nextSlugBase = slugify(businessName)
     const nextSlug = user.vendorProfile?.businessSlug ?? `${nextSlugBase || "business"}-${user.id.slice(-6)}`
@@ -54,21 +65,29 @@ export async function PATCH(request: Request) {
         vendorProfile: {
           upsert: {
             create: {
+              ownerFirstName,
+              ownerLastName,
               businessName,
               businessEmail: accountEmail,
               supportEmail: supportEmail ? supportEmail.toLowerCase() : null,
               businessPhone,
               businessAddress,
               businessCountry,
+              registrationNumber,
+              vatNumber: vatNumber ? vatNumber : null,
               businessSlug: nextSlug,
             },
             update: {
+              ownerFirstName,
+              ownerLastName,
               businessName,
               businessEmail: accountEmail,
               supportEmail: supportEmail ? supportEmail.toLowerCase() : null,
               businessPhone,
               businessAddress,
               businessCountry,
+              registrationNumber,
+              vatNumber: vatNumber ? vatNumber : null,
               businessSlug: nextSlug,
             },
           },

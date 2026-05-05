@@ -35,23 +35,46 @@ export async function POST(
 
     await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
 
+    const requirements = await prisma.transactionRequirement.findMany({
+      where: { transactionId },
+    })
+    const requirementsById = new Map(requirements.map((requirement) => [requirement.id, requirement]))
+
     for (const document of documents as Array<{
       requirementId?: string
       label?: string
       type?: string
-      secure_url: string
-      public_id: string
+      secure_url?: string
+      public_id?: string
       original_filename?: string
+      textValue?: string
     }>) {
+      const requirement = document.requirementId ? requirementsById.get(document.requirementId) : null
+      const resolvedType = (document.type || requirement?.type || "DOCUMENT") as RequirementType
+      const trimmedTextValue = typeof document.textValue === "string" ? document.textValue.trim() : null
+
+      if (document.requirementId && !requirement) {
+        return NextResponse.json({ success: false, message: "A requested requirement could not be found." }, { status: 400 })
+      }
+
+      if (resolvedType === "TEXT" && !trimmedTextValue) {
+        return NextResponse.json({ success: false, message: "Complete every required text field before continuing." }, { status: 400 })
+      }
+
+      if (resolvedType !== "TEXT" && (!document.secure_url || !document.public_id)) {
+        return NextResponse.json({ success: false, message: "Upload every required file before continuing." }, { status: 400 })
+      }
+
       const nextData = {
         transactionId,
         clientProfileId: link.transaction.clientProfileId,
         requirementId: document.requirementId ?? null,
-        label: document.label || "Uploaded Document",
-        type: (document.type || "DOCUMENT") as RequirementType,
-        assetUrl: document.secure_url,
-        publicId: document.public_id,
-        fileName: document.original_filename || null,
+        label: requirement?.label || document.label || "Uploaded Document",
+        type: resolvedType,
+        assetUrl: resolvedType === "TEXT" ? null : document.secure_url!,
+        textValue: resolvedType === "TEXT" ? trimmedTextValue : null,
+        publicId: resolvedType === "TEXT" ? null : document.public_id!,
+        fileName: resolvedType === "TEXT" ? null : document.original_filename || null,
       }
 
       if (document.requirementId) {
@@ -78,8 +101,8 @@ export async function POST(
     await recordTransactionEvent(prisma, {
       transactionId,
       type: "DOCUMENTS_SUBMITTED",
-      title: "Client documents submitted",
-      detail: `${documents.length} required file(s) were uploaded.`,
+      title: "Client requirements submitted",
+      detail: `${documents.length} required item(s) were submitted.`,
       dedupeKey: `event:documents:${transactionId}`,
     })
 

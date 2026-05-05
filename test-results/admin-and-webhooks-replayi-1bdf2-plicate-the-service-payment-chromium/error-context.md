@@ -124,15 +124,18 @@ Received array:  []
 > 100 |   expect(payments).toHaveLength(1)
       |                    ^ Error: expect(received).toHaveLength(expected)
   101 |   expect(payments[0]?.status).toBe("SUCCEEDED")
-  102 | 
-  103 |   const webhookEvents = await prisma.transactionEvent.findMany({
-  104 |     where: {
-  105 |       transactionId: "e2e-webhook-transaction",
-  106 |       type: "WEBHOOK_PROCESSED",
-  107 |     },
-  108 |   })
-  109 | 
-  110 |   expect(webhookEvents).toHaveLength(1)
-  111 | })
+  102 |   expect(payments[0]?.stripeFeeAmount).toBe(0)
+  103 |   expect(payments[0]?.platformFeeAmount).toBe(0)
+  104 |   expect(payments[0]?.vendorNetAmount).toBe(25000)
+  105 | 
+  106 |   const webhookEvents = await prisma.transactionEvent.findMany({
+  107 |     where: {
+  108 |       transactionId: "e2e-webhook-transaction",
+  109 |       type: "WEBHOOK_PROCESSED",
+  110 |     },
+  111 |   })
   112 | 
+  113 |   expect(webhookEvents).toHaveLength(1)
+  114 | })
+  115 | 
 ```

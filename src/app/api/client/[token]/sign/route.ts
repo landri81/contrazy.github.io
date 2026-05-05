@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { generateSignedContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
@@ -32,7 +33,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
-    const { signatureDataUrl } = await request.json()
+    const { signatureDataUrl, signedTimezone } = await request.json()
 
     if (
       !signatureDataUrl ||
@@ -101,6 +102,12 @@ export async function POST(
     if (!existingSignature) {
       await incrementVendorSubscriptionUsage(prisma, vendorId, "eSignaturesUsed")
     }
+
+    await generateSignedContractArtifact(prisma, {
+      transactionId,
+      signatureDataUrl,
+      signedTimezone: typeof signedTimezone === "string" ? signedTimezone : null,
+    })
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },

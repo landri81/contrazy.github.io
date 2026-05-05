@@ -35,9 +35,16 @@ export async function POST(
       )
     }
 
-    const { fullName, email, phone, companyName } = parsedBody.data
+    const { firstName, lastName, fullName, email, phone, companyName, address, country } = parsedBody.data
 
     const transactionId = link.transaction.id
+
+    if (link.transaction.requireClientCompany && !companyName) {
+      return NextResponse.json(
+        { success: false, message: "Company name is required for this transaction." },
+        { status: 400 }
+      )
+    }
 
     await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
 
@@ -46,16 +53,20 @@ export async function POST(
     if (clientProfileId) {
       await prisma.clientProfile.update({
         where: { id: clientProfileId },
-        data: { fullName, email, phone, companyName },
+        data: { firstName, lastName, fullName, email, phone, companyName, address, country },
       })
     } else {
       const newProfile = await prisma.clientProfile.create({
         data: {
           vendorId: link.transaction.vendorId,
+          firstName,
+          lastName,
           fullName,
           email,
           phone,
           companyName,
+          address,
+          country,
         },
       })
       clientProfileId = newProfile.id

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { AuditActorType } from "@prisma/client"
 
+import { recordDepositOutcome } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { canAccessAdminScope } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
@@ -74,6 +76,8 @@ export async function PATCH(
       where: { email: session.user.email.toLowerCase() },
       select: { id: true },
     })
+    const actorType =
+      session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
 
     // ── Mark under review ────────────────────────────────────────────────────
     if (action === "mark_under_review") {
@@ -96,7 +100,7 @@ export async function PATCH(
         await prisma.auditLog.create({
           data: {
             actorId: adminUser?.id,
-            actorType: session.user.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER",
+            actorType,
             action: "Marked dispute as under review",
             entityType: "Dispute",
             entityId: disputeId,
@@ -149,7 +153,7 @@ export async function PATCH(
         await prisma.auditLog.create({
           data: {
             actorId: adminUser?.id,
-            actorType: session.user.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER",
+            actorType,
             action: "Resolved dispute: vendor wins — deposit control returned to vendor",
             entityType: "Dispute",
             entityId: disputeId,
@@ -215,25 +219,38 @@ export async function PATCH(
       })
     })
 
-    try {
-      await recordTransactionEvent(prisma, {
-        transactionId: tx.id,
-        type: "DEPOSIT_RELEASED",
-        title: "Dispute resolved — deposit released to client",
-        detail: resolutionText || "Admin ruled in client's favour. Deposit hold released.",
-        dedupeKey: `event:dispute-resolved:${disputeId}`,
-      })
-    } catch { /* non-blocking */ }
+    await recordDepositOutcome(prisma, {
+      transactionId: tx.id,
+      amount: depositAuth.amount,
+      actualAmount: depositAuth.amount,
+      currency: depositAuth.currency,
+      stripeIntentId: depositAuth.stripeIntentId,
+      action: "release",
+      reason: "admin_dispute_release",
+      vendorBusinessEmail: tx.vendor?.businessEmail,
+      vendorBusinessName: tx.vendor?.businessName,
+      clientFullName: tx.clientProfile?.fullName,
+      clientEmail: tx.clientProfile?.email,
+      occurredAt: now,
+    })
 
     try {
       await prisma.auditLog.create({
         data: {
           actorId: adminUser?.id,
-          actorType: session.user.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER",
+          actorType,
           action: "Resolved dispute: client wins — deposit released",
           entityType: "Dispute",
           entityId: disputeId,
-          metadata: { resolution: resolutionText || null },
+          metadata: {
+            resolution: resolutionText || null,
+            transactionId: tx.id,
+            depositAuthorizationId: depositAuth.id,
+            releaseReason: "admin_dispute_release",
+            amount: depositAuth.amount,
+            currency: depositAuth.currency,
+            stripeIntentId: depositAuth.stripeIntentId,
+          },
         },
       })
     } catch { /* non-blocking */ }

@@ -31,13 +31,16 @@ import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type VendorProfileFormProps = {
   initialValues: {
-    fullName: string
+    ownerFirstName: string
+    ownerLastName: string
     businessName: string
     businessEmail: string
     supportEmail: string
     businessPhone: string
     businessAddress: string
     businessCountry: string
+    registrationNumber: string
+    vatNumber: string
     reviewStatus: string
     stripeConnectionStatus: string
   }
@@ -67,15 +70,18 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [isPending, startTransition] = useTransition()
+  const ownerDisplayName = [form.ownerFirstName, form.ownerLastName].filter(Boolean).join(" ").trim()
 
   const profileCompletion = useMemo(() => {
     const requiredValues = [
+      form.ownerFirstName,
+      form.ownerLastName,
       form.businessName,
       form.businessEmail,
-      form.supportEmail,
       form.businessPhone,
       form.businessAddress,
       form.businessCountry,
+      form.registrationNumber,
     ]
     const filled = requiredValues.filter((value) => value.trim().length > 0).length
     return Math.round((filled / requiredValues.length) * 100)
@@ -164,7 +170,7 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
     <div className="space-y-4">
       <ProfileOverview
         businessName={form.businessName}
-        fullName={form.fullName}
+        fullName={ownerDisplayName}
         profileCompletion={profileCompletion}
         reviewStatus={reviewStatusLabel}
         stripeConnectionStatus={stripeStatusLabel}
@@ -215,18 +221,32 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               description="Update your business details here. Your signed-in email is locked and used as the primary business email."
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Account owner" htmlFor="fullName" error={fieldErrors.fullName}>
+                <Field label="First name" htmlFor="ownerFirstName" error={fieldErrors.ownerFirstName}>
                   <Input
-                    id="fullName"
-                    autoComplete="name"
-                    placeholder="Enter your full name"
+                    id="ownerFirstName"
+                    autoComplete="given-name"
+                    placeholder="Enter your first name"
                     maxLength={INPUT_LIMITS.personName}
-                    value={form.fullName}
-                    onChange={(event) => updateField("fullName", event.target.value)}
-                    aria-invalid={!!fieldErrors.fullName}
+                    value={form.ownerFirstName}
+                    onChange={(event) => updateField("ownerFirstName", event.target.value)}
+                    aria-invalid={!!fieldErrors.ownerFirstName}
                   />
                 </Field>
 
+                <Field label="Last name" htmlFor="ownerLastName" error={fieldErrors.ownerLastName}>
+                  <Input
+                    id="ownerLastName"
+                    autoComplete="family-name"
+                    placeholder="Enter your last name"
+                    maxLength={INPUT_LIMITS.personName}
+                    value={form.ownerLastName}
+                    onChange={(event) => updateField("ownerLastName", event.target.value)}
+                    aria-invalid={!!fieldErrors.ownerLastName}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Business name" htmlFor="businessName" error={fieldErrors.businessName}>
                   <Input
                     id="businessName"
@@ -235,6 +255,17 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                     value={form.businessName}
                     onChange={(event) => updateField("businessName", event.target.value)}
                     aria-invalid={!!fieldErrors.businessName}
+                  />
+                </Field>
+
+                <Field label="Registration number" htmlFor="registrationNumber" error={fieldErrors.registrationNumber}>
+                  <Input
+                    id="registrationNumber"
+                    placeholder="Enter your company registration number"
+                    maxLength={INPUT_LIMITS.registrationNumber}
+                    value={form.registrationNumber}
+                    onChange={(event) => updateField("registrationNumber", event.target.value)}
+                    aria-invalid={!!fieldErrors.registrationNumber}
                   />
                 </Field>
               </div>
@@ -270,6 +301,19 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                     value={form.businessPhone}
                     onChange={(value) => updateField("businessPhone", value)}
                     maxLength={INPUT_LIMITS.phone}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="VAT number" htmlFor="vatNumber" error={fieldErrors.vatNumber}>
+                  <Input
+                    id="vatNumber"
+                    placeholder="Enter your VAT number"
+                    maxLength={INPUT_LIMITS.vatNumber}
+                    value={form.vatNumber}
+                    onChange={(event) => updateField("vatNumber", event.target.value)}
+                    aria-invalid={!!fieldErrors.vatNumber}
                   />
                 </Field>
               </div>
@@ -338,8 +382,8 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               <DisplayField
                 icon={UserCircle}
                 label="Account owner"
-                value={form.fullName}
-                emptyLabel="Add your full name"
+                value={ownerDisplayName}
+                emptyLabel="Add account owner details"
               />
               <DisplayField
                 icon={Mail}
@@ -371,6 +415,18 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                 label="Business name"
                 value={form.businessName}
                 emptyLabel="Add your business name"
+              />
+              <DisplayField
+                icon={Building2}
+                label="Registration number"
+                value={form.registrationNumber}
+                emptyLabel="Add your registration number"
+              />
+              <DisplayField
+                icon={Building2}
+                label="VAT number"
+                value={form.vatNumber}
+                emptyLabel="Add your VAT number"
               />
               <DisplayField
                 icon={Globe}

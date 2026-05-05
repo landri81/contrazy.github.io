@@ -45,6 +45,7 @@ const sourceContent = fs.readFileSync(sourcePath, "utf8")
 const sourceEntries = parseEnvFile(sourceContent)
 const targetEntries = fs.existsSync(targetPath) ? parseEnvFile(fs.readFileSync(targetPath, "utf8")) : []
 const envMap = new Map(targetEntries.length > 0 ? targetEntries : sourceEntries)
+const sourceMap = new Map(sourceEntries)
 
 if (!envMap.get("DATABASE_URL")) {
   console.error("DATABASE_URL is required in .env.local before generating .env.test.local.")
@@ -54,6 +55,20 @@ if (!envMap.get("DATABASE_URL")) {
 envMap.set("NEXTAUTH_URL", "http://127.0.0.1:3100")
 envMap.set("NEXT_PUBLIC_APP_URL", "http://127.0.0.1:3100")
 envMap.delete("NODE_ENV")
+
+for (const key of [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "NEXTAUTH_SECRET",
+]) {
+  const sourceValue = sourceMap.get(key)
+
+  if (sourceValue) {
+    envMap.set(key, sourceValue)
+  }
+}
 
 if (targetEntries.length === 0) {
   envMap.set("DATABASE_URL", withE2eSchema(envMap.get("DATABASE_URL")))

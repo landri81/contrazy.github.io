@@ -1,12 +1,16 @@
 import { z } from "zod"
 
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
-import { emailText, optionalEmailText, phoneText, requiredText } from "@/lib/validation/text-schemas"
+import { emailText, optionalEmailText, optionalText, phoneText, requiredText } from "@/lib/validation/text-schemas"
 
 export const vendorProfileSchema = z.object({
-  fullName: requiredText("Full name", INPUT_LIMITS.personName, {
+  ownerFirstName: requiredText("First name", INPUT_LIMITS.personName, {
     min: 2,
-    requiredMessage: "Full name is required",
+    requiredMessage: "First name is required",
+  }),
+  ownerLastName: requiredText("Last name", INPUT_LIMITS.personName, {
+    min: 2,
+    requiredMessage: "Last name is required",
   }),
   businessName: requiredText("Business name", INPUT_LIMITS.businessName, {
     min: 2,
@@ -23,6 +27,11 @@ export const vendorProfileSchema = z.object({
     min: 2,
     requiredMessage: "Country is required",
   }),
+  registrationNumber: requiredText("Registration number", INPUT_LIMITS.registrationNumber, {
+    min: 2,
+    requiredMessage: "Registration number is required",
+  }),
+  vatNumber: optionalText("VAT number", INPUT_LIMITS.vatNumber).optional(),
 })
 
 export const vendorReviewSchema = z.object({

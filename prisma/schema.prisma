@@ -56,6 +56,11 @@ enum TransactionKind {
   HYBRID
 }
 
+enum PaymentCollectionTiming {
+  AFTER_SIGNING
+  AFTER_SERVICE
+}
+
 enum TransactionStatus {
   DRAFT
   LINK_SENT
@@ -74,6 +79,16 @@ enum RequirementType {
   DOCUMENT
   PHOTO
   TEXT
+}
+
+enum RequirementCategory {
+  ID
+  PROOF_OF_ADDRESS
+  DRIVER_LICENSE
+  COMPANY_REGISTRATION
+  CONTRACT_ATTACHMENT
+  CUSTOM
+  OTHER
 }
 
 enum KycStatus {
@@ -151,6 +166,7 @@ enum TransactionEventType {
   LINK_OPENED
   LINK_UPDATED
   LINK_CANCELLED
+  CONTRACT_SNAPSHOT_CREATED
   PROFILE_SUBMITTED
   DOCUMENTS_SUBMITTED
   KYC_STARTED
@@ -158,7 +174,9 @@ enum TransactionEventType {
   KYC_FAILED
   CONTRACT_REVIEWED
   SIGNATURE_COMPLETED
+  SIGNED_PDF_GENERATED
   PAYMENT_SESSION_CREATED
+  SERVICE_PAYMENT_REQUESTED
   SERVICE_PAYMENT_SUCCEEDED
   DEPOSIT_AUTHORIZED
   DEPOSIT_CAPTURED
@@ -192,6 +210,8 @@ model User {
 model VendorProfile {
   id                     String                 @id @default(cuid())
   userId                 String                 @unique
+  ownerFirstName         String?
+  ownerLastName          String?
   businessName           String?
   businessSlug           String?                @unique
   businessEmail          String?
@@ -199,6 +219,8 @@ model VendorProfile {
   businessPhone          String?
   businessAddress        String?
   businessCountry        String?
+  registrationNumber     String?
+  vatNumber              String?
   stripeAccountId        String?
   stripeConnectionStatus StripeConnectionStatus @default(NOT_CONNECTED)
   reviewStatus           VendorStatus           @default(PENDING)
@@ -250,9 +272,13 @@ model ClientProfile {
   userId      String?
   vendorId    String?
   fullName    String
+  firstName   String?
+  lastName    String?
   email       String
   phone       String?
   companyName String?
+  address     String?
+  country     String?
   metadata    Json?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -293,6 +319,8 @@ model ChecklistItem {
   label       String
   description String?
   type        RequirementType  @default(DOCUMENT)
+  category    RequirementCategory @default(CUSTOM)
+  customCategoryLabel String?
   required    Boolean          @default(true)
   sortOrder   Int              @default(0)
   template    ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -308,11 +336,15 @@ model Transaction {
   title              String
   kind               TransactionKind    @default(HYBRID)
   status             TransactionStatus  @default(DRAFT)
+  paymentCollectionTiming PaymentCollectionTiming @default(AFTER_SIGNING)
   currency           String             @default("EUR")
   amount             Int?
   depositAmount      Int?
   requiresKyc        Boolean            @default(false)
+  requireClientCompany Boolean          @default(false)
   stripePaymentIntentId String?
+  servicePaymentRequestedAt DateTime?
+  customerCompletedAt DateTime?
   notes              String?            @db.Text
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -325,6 +357,7 @@ model Transaction {
   documents          DocumentAsset[]
   kycVerification    KycVerification?
   signatureRecord    SignatureRecord?
+  contractArtifact   TransactionContractArtifact?
   payments           Payment[]
   depositAuthorization DepositAuthorization?
   dispute            Dispute?
@@ -360,7 +393,10 @@ model TransactionRequirement {
   label         String
   instructions  String?
   type          RequirementType @default(DOCUMENT)
+  category      RequirementCategory @default(CUSTOM)
+  customCategoryLabel String?
   required      Boolean         @default(true)
+  sortOrder     Int             @default(0)
   transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   documents     DocumentAsset[]
 }
@@ -373,7 +409,8 @@ model DocumentAsset {
   label           String
   type            RequirementType @default(DOCUMENT)
   fileName        String?
-  assetUrl        String
+  assetUrl        String?
+  textValue       String?        @db.Text
   publicId        String?
   uploadedAt      DateTime       @default(now())
   transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
@@ -409,6 +446,30 @@ model SignatureRecord {
   transaction      Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
 
+model TransactionContractArtifact {
+  id                           String      @id @default(cuid())
+  transactionId                String      @unique
+  sourceTemplateId             String?
+  sourceTemplateName           String?
+  sourceTemplateDescription    String?
+  templateContentSnapshot      String?     @db.Text
+  renderedContentBeforeSignature String?   @db.Text
+  renderedContentAfterSignature  String?   @db.Text
+  signatureImageUrl            String?
+  signatureImagePublicId       String?
+  signedPdfUrl                 String?
+  signedPdfPublicId            String?
+  signedPdfHash                String?
+  reviewCompletedAt            DateTime?
+  generatedAt                  DateTime    @default(now())
+  signedAt                     DateTime?
+  signedTimezone               String?
+  updatedAt                    DateTime    @updatedAt
+  transaction                  Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([signedAt])
+}
+
 model Payment {
   id              String        @id @default(cuid())
   transactionId   String
@@ -416,6 +477,9 @@ model Payment {
   status          PaymentStatus @default(PENDING)
   amount          Int
   currency        String        @default("EUR")
+  stripeFeeAmount Int?
+  platformFeeAmount Int?
+  vendorNetAmount Int?
   stripeIntentId  String?
   processedAt     DateTime?
   createdAt       DateTime      @default(now())

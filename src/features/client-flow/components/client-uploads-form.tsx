@@ -7,6 +7,11 @@ import { AlertCircle, CheckCircle2, Loader2, UploadCloud } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { CharacterCount } from "@/components/ui/character-count"
+import { Textarea } from "@/components/ui/textarea"
+import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
+import { getRequirementCategoryLabel, getTextRequirementPlaceholder } from "@/features/transactions/contract-flow"
 
 export function ClientUploadsForm({
   token,
@@ -23,6 +28,7 @@ export function ClientUploadsForm({
   const [uploads, setUploads] = useState<
     Record<string, { secure_url: string; public_id: string; original_filename: string }>
   >({})
+  const [textInputs, setTextInputs] = useState<Record<string, string>>({})
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({})
 
   // If there are no requirements, we should ideally skip this step
@@ -66,7 +72,8 @@ export function ClientUploadsForm({
       formData.append("signature", signature)
       if (folder) formData.append("folder", folder)
 
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+      const uploadEndpoint = isPdfFile(file) ? "raw" : "auto"
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${uploadEndpoint}/upload`, {
         method: "POST",
         body: formData,
       })
@@ -98,16 +105,39 @@ export function ClientUploadsForm({
     setIsPending(true)
     setError(null)
 
-    // Map the uploads object into an array for the API
-    const docsPayload = Object.keys(uploads).map(reqId => {
-      const req = requirements.find(r => r.id === reqId)
-      return {
-        ...uploads[reqId],
-        requirementId: reqId,
-        label: req?.label,
-        type: req?.type
+    const docsPayload = requirements.reduce<Array<Record<string, string>>>((payload, requirement) => {
+      if (requirement.type === "TEXT") {
+        const textValue = textInputs[requirement.id]?.trim()
+
+        if (!textValue) {
+          return payload
+        }
+
+        payload.push({
+          requirementId: requirement.id,
+          label: requirement.label,
+          type: requirement.type,
+          textValue,
+        })
+
+        return payload
       }
-    })
+
+      const upload = uploads[requirement.id]
+
+      if (!upload) {
+        return payload
+      }
+
+      payload.push({
+        ...upload,
+        requirementId: requirement.id,
+        label: requirement.label,
+        type: requirement.type,
+      })
+
+      return payload
+    }, [])
 
     try {
       const res = await fetch(`/api/client/${token}/documents`, {
@@ -136,10 +166,14 @@ export function ClientUploadsForm({
     }
   }
 
-  // Check if all required uploads have a corresponding file
+  // Check if all required uploads have a corresponding file or text answer
   const allRequiredMet = requirements
     .filter(r => r.required)
-    .every(r => uploads[r.id])
+    .every((requirement) =>
+      requirement.type === "TEXT"
+        ? Boolean(textInputs[requirement.id]?.trim())
+        : Boolean(uploads[requirement.id])
+    )
 
   return (
     <Card className="border-border/70 bg-card/95 shadow-sm">
@@ -162,19 +196,47 @@ export function ClientUploadsForm({
             <div key={req.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h4 className="font-medium text-sm">
-                    {req.label} {req.required && <span className="text-destructive">*</span>}
-                  </h4>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-medium text-sm">
+                      {req.label} {req.required && <span className="text-destructive">*</span>}
+                    </h4>
+                    <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                      {getRequirementCategoryLabel(req.category, req.customCategoryLabel)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {req.type === "TEXT" ? "Text response" : req.type === "PHOTO" ? "Photo upload" : "Document upload"}
+                  </p>
                   {req.instructions && (
                     <p className="text-xs text-muted-foreground mt-1">{req.instructions}</p>
                   )}
                 </div>
-                {uploads[req.id] && (
+                {(req.type === "TEXT" ? Boolean(textInputs[req.id]?.trim()) : Boolean(uploads[req.id])) && (
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
                 )}
               </div>
 
-              {uploads[req.id] ? (
+              {req.type === "TEXT" ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={textInputs[req.id] ?? ""}
+                    onChange={(event) =>
+                      setTextInputs((current) => ({
+                        ...current,
+                        [req.id]: event.target.value,
+                      }))
+                    }
+                    placeholder={getTextRequirementPlaceholder(req.category)}
+                    maxLength={INPUT_LIMITS.checklistItemInstructions}
+                    className="min-h-[104px] resize-none bg-white"
+                  />
+                  <CharacterCount
+                    current={(textInputs[req.id] ?? "").length}
+                    limit={INPUT_LIMITS.checklistItemInstructions}
+                    className="text-right"
+                  />
+                </div>
+              ) : uploads[req.id] ? (
                 <div className="truncate rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-700">
                   {uploads[req.id].original_filename}
                 </div>

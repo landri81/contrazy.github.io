@@ -37,6 +37,17 @@ export function optionalText(label: string, max: number) {
   )
 }
 
+export function optionalNullableText(label: string, max: number) {
+  return z.preprocess(
+    trimString,
+    z.union([
+      z.literal(""),
+      z.string().max(max, `${label} must be ${max} characters or fewer`),
+      z.null(),
+    ])
+  )
+}
+
 export function emailText(label = "Email address") {
   return z.preprocess(
     trimString,

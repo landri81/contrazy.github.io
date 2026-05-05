@@ -1,6 +1,8 @@
 import { Resend } from "resend"
 
 import { env } from "@/lib/env"
+import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
+import { getSiteUrl } from "@/lib/site-url"
 
 export const resend = new Resend(env.RESEND_API_KEY)
 
@@ -38,7 +40,15 @@ async function deliverEmail({
   }
 }
 
-export async function sendTransactionCompletedEmail(to: string, clientName: string, vendorName: string, transactionId: string) {
+export async function sendTransactionCompletedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionId: string,
+  signedAgreementUrl?: string | null
+) {
+  const signedAgreementHref = resolveDocumentAssetUrl(signedAgreementUrl, `${transactionId}-signed.pdf`, getSiteUrl())
+
   return deliverEmail({
     to,
     subject: `Transaction Completed with ${vendorName}`,
@@ -46,6 +56,11 @@ export async function sendTransactionCompletedEmail(to: string, clientName: stri
       <h2>Hi ${clientName},</h2>
       <p>Your transaction with <strong>${vendorName}</strong> has been successfully completed.</p>
       <p>Transaction ID: ${transactionId}</p>
+      ${
+        signedAgreementHref
+          ? `<p><a href="${signedAgreementHref}" target="_blank" rel="noreferrer">Download your signed agreement</a></p>`
+          : ""
+      }
       <p>If you have any questions, please contact the vendor directly.</p>
       <br />
       <p>Thanks,<br />The Conntrazy Team</p>
@@ -115,6 +130,30 @@ export async function sendCustomerDepositStatusEmail(
       <h2>Hi ${clientName},</h2>
       <p>${bodyCopy}</p>
       <p>Vendor: <strong>${vendorName}</strong></p>
+      <br />
+      <p>Thanks,<br />The Conntrazy Team</p>
+    `,
+  })
+}
+
+export async function sendDeferredServicePaymentRequestEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionReference: string,
+  amount: number,
+  currency: string,
+  paymentUrl: string
+) {
+  return deliverEmail({
+    to,
+    subject: `Payment requested — ${vendorName}`,
+    html: `
+      <h2>Hi ${clientName},</h2>
+      <p>${vendorName} has now requested the service payment for transaction <strong>${transactionReference}</strong>.</p>
+      <p>Amount due: <strong>${formatEmailMoney(amount, currency)}</strong></p>
+      <p><a href="${paymentUrl}" target="_blank" rel="noreferrer">Open the secure payment link</a></p>
+      <p>The rest of your agreement details remain unchanged. Use the same secure flow to complete the payment step.</p>
       <br />
       <p>Thanks,<br />The Conntrazy Team</p>
     `,

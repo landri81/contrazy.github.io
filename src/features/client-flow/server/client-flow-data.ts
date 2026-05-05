@@ -1,6 +1,7 @@
 import { Prisma, SignatureStatus, TransactionLinkActor, TransactionLinkStatus, TransactionStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 
+import { renderContractContent } from "@/features/contracts/server/contract-rendering"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import {
   cancelTransactionLink,
@@ -33,7 +34,7 @@ export const clientFlowTransactionInclude = {
   vendor: true,
   clientProfile: true,
   requirements: {
-    orderBy: { label: "asc" },
+    orderBy: { sortOrder: "asc" },
   },
   documents: {
     orderBy: { uploadedAt: "asc" },
@@ -43,6 +44,7 @@ export const clientFlowTransactionInclude = {
   payments: true,
   depositAuthorization: true,
   contractTemplate: true,
+  contractArtifact: true,
   events: {
     orderBy: { occurredAt: "asc" },
   },
@@ -51,6 +53,14 @@ export const clientFlowTransactionInclude = {
 export type ClientFlowTransaction = Prisma.TransactionGetPayload<{
   include: typeof clientFlowTransactionInclude
 }>
+
+export function hasContractStep(transaction: Pick<ClientFlowTransaction, "contractTemplateId" | "contractTemplate" | "contractArtifact">) {
+  return Boolean(
+    transaction.contractArtifact?.templateContentSnapshot ||
+      transaction.contractTemplateId ||
+      transaction.contractTemplate
+  )
+}
 
 function getClientRoute(transaction: ClientFlowTransaction, step: ClientFlowStep) {
   return `/t/${transaction.link?.token}/${step}`
@@ -129,13 +139,16 @@ export function hasRequiredDocuments(transaction: ClientFlowTransaction) {
 
   return requiredRequirements.every((requirement) =>
     transaction.documents.some(
-      (document) => document.requirementId === requirement.id || document.label.trim().toLowerCase() === requirement.label.trim().toLowerCase()
+      (document) =>
+        (document.requirementId === requirement.id ||
+          document.label.trim().toLowerCase() === requirement.label.trim().toLowerCase()) &&
+        (requirement.type === "TEXT" ? Boolean(document.textValue?.trim()) : Boolean(document.assetUrl))
     )
   )
 }
 
 export function hasReviewedContract(transaction: ClientFlowTransaction) {
-  if (!transaction.contractTemplateId) {
+  if (!hasContractStep(transaction)) {
     return true
   }
 
@@ -146,7 +159,7 @@ export function hasReviewedContract(transaction: ClientFlowTransaction) {
 }
 
 export function hasCompletedSignature(transaction: ClientFlowTransaction) {
-  if (!transaction.contractTemplateId) {
+  if (!hasContractStep(transaction)) {
     return true
   }
 
@@ -196,11 +209,11 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
     return "kyc"
   }
 
-  if (transaction.contractTemplateId && !state.reviewedContract) {
+  if (hasContractStep(transaction) && !state.reviewedContract) {
     return "contract"
   }
 
-  if (transaction.contractTemplateId && !state.hasSignature) {
+  if (hasContractStep(transaction) && !state.hasSignature) {
     return "sign"
   }
 
@@ -220,19 +233,25 @@ export function canCancelClientFlow(transaction: ClientFlowTransaction) {
 }
 
 export function buildPopulatedContractContent(transaction: ClientFlowTransaction) {
-  if (!transaction.contractTemplate) {
+  const templateContent =
+    transaction.contractArtifact?.templateContentSnapshot ??
+    transaction.contractTemplate?.content
+
+  if (!templateContent) {
     return ""
   }
 
-  return transaction.contractTemplate.content
-    .replace(/{{clientName}}/g, transaction.clientProfile?.fullName || "")
-    .replace(/{{clientEmail}}/g, transaction.clientProfile?.email || "")
-    .replace(/{{clientPhone}}/g, transaction.clientProfile?.phone || "")
-    .replace(/{{clientCompany}}/g, transaction.clientProfile?.companyName || "")
-    .replace(/{{vendorName}}/g, transaction.vendor?.businessName || "Vendor")
-    .replace(/{{transactionReference}}/g, transaction.reference || "")
-    .replace(/{{paymentAmount}}/g, transaction.amount ? (transaction.amount / 100).toFixed(2) : "0.00")
-    .replace(/{{depositAmount}}/g, transaction.depositAmount ? (transaction.depositAmount / 100).toFixed(2) : "0.00")
+  return (
+    transaction.contractArtifact?.renderedContentBeforeSignature ??
+    renderContractContent({
+      templateContent,
+      clientProfile: transaction.clientProfile,
+      vendorName: transaction.vendor?.businessName,
+      transactionReference: transaction.reference,
+      amount: transaction.amount,
+      depositAmount: transaction.depositAmount,
+    })
+  )
 }
 
 export function validateClientStep(transaction: ClientFlowTransaction, currentStep: ClientFlowStep) {
@@ -280,7 +299,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
       }
-      if (!transaction.contractTemplateId) {
+      if (!hasContractStep(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
       }
       return state
@@ -294,7 +313,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
       }
-      if (!transaction.contractTemplateId) {
+      if (!hasContractStep(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
       }
       if (!state.reviewedContract) {
@@ -311,10 +330,10 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
       }
-      if (transaction.contractTemplateId && !state.reviewedContract) {
+      if (hasContractStep(transaction) && !state.reviewedContract) {
         redirect(getClientRoute(transaction, "contract"))
       }
-      if (transaction.contractTemplateId && !state.hasSignature) {
+      if (hasContractStep(transaction) && !state.hasSignature) {
         redirect(getClientRoute(transaction, "sign"))
       }
       if (state.financeComplete) {

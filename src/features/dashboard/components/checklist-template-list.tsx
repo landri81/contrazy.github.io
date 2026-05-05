@@ -27,8 +27,20 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+import {
+  getRequirementCategoryLabel,
+  requirementCategoryOptions,
+} from "@/features/transactions/contract-flow"
 
 type FullChecklist = ChecklistTemplate & { items: ChecklistItem[] }
+type DraftItem = {
+  label: string
+  description: string
+  type: string
+  category: string
+  customCategoryLabel: string
+  required: boolean
+}
 
 export function ChecklistTemplateList({ 
   initialTemplates,
@@ -46,17 +58,17 @@ export function ChecklistTemplateList({
   // Form State
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
-  const [items, setItems] = useState<{ label: string, description: string, type: string, required: boolean }[]>([])
+  const [items, setItems] = useState<DraftItem[]>([])
 
   function openNewDialog() {
     setName("")
     setDescription("")
-    setItems([{ label: "ID Card", description: "Front and back", type: "PHOTO", required: true }])
+    setItems([{ label: "ID Card", description: "Front and back", type: "PHOTO", category: "ID", customCategoryLabel: "", required: true }])
     setIsDialogOpen(true)
   }
 
   function addItem() {
-    setItems([...items, { label: "", description: "", type: "DOCUMENT", required: true }])
+    setItems([...items, { label: "", description: "", type: "DOCUMENT", category: "CUSTOM", customCategoryLabel: "", required: true }])
   }
 
   function updateItem(index: number, field: string, value: string | boolean) {
@@ -187,6 +199,46 @@ export function ChecklistTemplateList({
                             </Select>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="grid gap-1">
+                            <Label className="text-xs">Category</Label>
+                            <Select
+                              value={item.category}
+                              onValueChange={(value) => {
+                                if (value) {
+                                  const newItems = [...items]
+                                  newItems[index] = {
+                                    ...newItems[index],
+                                    category: value,
+                                    customCategoryLabel: value === "OTHER" ? newItems[index].customCategoryLabel : "",
+                                  }
+                                  setItems(newItems)
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {requirementCategoryOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid gap-1">
+                            <Label className="text-xs">Other label</Label>
+                            <Input
+                              value={item.customCategoryLabel}
+                              onChange={e => updateItem(index, "customCategoryLabel", e.target.value)}
+                              placeholder="Custom display label"
+                              maxLength={INPUT_LIMITS.checklistItemLabel}
+                              disabled={item.category !== "OTHER"}
+                            />
+                          </div>
+                        </div>
                         <div className="grid gap-1">
                           <Label className="text-xs">Description / Instructions</Label>
                           <Input
@@ -223,7 +275,16 @@ export function ChecklistTemplateList({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
-              <Button onClick={handleSave} disabled={!canEdit || isSaving || !name || items.length === 0 || items.some(i => !i.label)}>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  !canEdit ||
+                  isSaving ||
+                  !name ||
+                  items.length === 0 ||
+                  items.some((item) => !item.label || (item.category === "OTHER" && !item.customCategoryLabel.trim()))
+                }
+              >
                 {isSaving ? "Saving..." : "Save Checklist"}
               </Button>
             </DialogFooter>
@@ -262,6 +323,9 @@ export function ChecklistTemplateList({
                     <li key={i} className="flex items-center gap-2 text-muted-foreground">
                       {item.type === 'PHOTO' ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                       <span className="truncate">{item.label}</span>
+                      <span className="rounded-full border border-border/70 bg-muted/30 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em]">
+                        {getRequirementCategoryLabel(item.category, item.customCategoryLabel)}
+                      </span>
                       {item.required && <span className="text-destructive text-xs">*</span>}
                     </li>
                   ))}

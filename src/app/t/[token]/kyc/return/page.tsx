@@ -9,6 +9,16 @@ import { stripe } from "@/lib/integrations/stripe"
 
 export const dynamic = "force-dynamic"
 
+function isNextRedirectError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof error.digest === "string" &&
+      error.digest.startsWith("NEXT_REDIRECT")
+  )
+}
+
 export default async function ClientKycReturnPage(props: {
   params: Promise<{ token: string }>
 }) {
@@ -118,6 +128,9 @@ export default async function ClientKycReturnPage(props: {
       })
     }
   } catch (error) {
+    if (isNextRedirectError(error)) {
+      throw error
+    }
     console.error("KYC Return Error:", error)
   }
 

@@ -29,6 +29,7 @@ export default async function ClientProfilePage(props: { params: Promise<{ token
       <ClientProfileForm 
         token={token} 
         initialData={transaction.clientProfile}
+        requireCompany={transaction.requireClientCompany}
       />
     </div>
   )

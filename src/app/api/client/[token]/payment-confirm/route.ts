@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import {
+  getNextFinanceStage,
   syncTransactionFinanceState,
   upsertDepositAuthorizationFromIntent,
   upsertServicePaymentFromIntent,
@@ -113,19 +114,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
     }
 
-    const nextFinanceStage = (() => {
-      const needsService = Boolean(updated.amount && updated.amount > 0)
-      const needsDeposit = Boolean(updated.depositAmount && updated.depositAmount > 0)
-      const hasService = updated.payments.some(
-        (p: { kind: string; status: string }) => p.kind === "SERVICE_PAYMENT" && (p.status === "SUCCEEDED" || p.status === "CAPTURED")
-      )
-      const hasDeposit = updated.depositAuthorization &&
-        ["AUTHORIZED", "CAPTURED", "RELEASED"].includes(updated.depositAuthorization.status)
-
-      if (needsDeposit && !hasDeposit) return "deposit_authorization"
-      if (needsService && !hasService) return "service_payment"
-      return "complete"
-    })()
+    const nextFinanceStage = getNextFinanceStage(updated)
 
     const nextStep = nextFinanceStage === "complete" ? "complete" : "payment"
 

@@ -1,4 +1,6 @@
 import {
+  AuditActorType,
+  PaymentCollectionTiming,
   PaymentKind,
   PaymentStatus,
   Prisma,
@@ -8,6 +10,7 @@ import {
   type Payment,
   type Transaction,
   type TransactionLink,
+  type TransactionContractArtifact,
   type VendorProfile,
   type ClientProfile,
 } from "@prisma/client"
@@ -30,8 +33,30 @@ export type FinanceTransaction = Transaction & {
   link: TransactionLink | null
   payments: Payment[]
   depositAuthorization: DepositAuthorization | null
+  contractArtifact: TransactionContractArtifact | null
   vendor: VendorProfile | null
   clientProfile: ClientProfile | null
+}
+
+export type DepositFeeBreakdown = {
+  stripeFeeAmount: number
+  platformFeeAmount: number
+  vendorNetAmount: number
+}
+
+export type DepositOutcomeReason =
+  | "manual_capture"
+  | "manual_release"
+  | "transaction_cancelled"
+  | "admin_dispute_release"
+
+type FinanceAuditLogInput = {
+  actorId?: string | null
+  actorType?: AuditActorType
+  action: string
+  entityType: string
+  entityId?: string | null
+  metadata?: Prisma.InputJsonValue
 }
 
 const authorizedDepositStatuses = new Set<PaymentStatus>([
@@ -55,20 +80,79 @@ function hasAuthorizedDeposit(transaction: FinanceTransaction) {
   )
 }
 
-export function getNextFinanceStage(transaction: FinanceTransaction): FinanceStage {
-  const needsServicePayment = Boolean(transaction.amount && transaction.amount > 0)
-  const needsDepositAuthorization = Boolean(transaction.depositAmount && transaction.depositAmount > 0)
+function needsServicePayment(transaction: Pick<Transaction, "amount">) {
+  return Boolean(transaction.amount && transaction.amount > 0)
+}
 
-  if (!needsServicePayment && !needsDepositAuthorization) {
+function needsDepositAuthorization(transaction: Pick<Transaction, "depositAmount">) {
+  return Boolean(transaction.depositAmount && transaction.depositAmount > 0)
+}
+
+function isDeferredServicePayment(transaction: Pick<Transaction, "paymentCollectionTiming">) {
+  return transaction.paymentCollectionTiming === PaymentCollectionTiming.AFTER_SERVICE
+}
+
+function hasDeferredServicePaymentPending(transaction: FinanceTransaction) {
+  return (
+    needsServicePayment(transaction) &&
+    isDeferredServicePayment(transaction) &&
+    !transaction.servicePaymentRequestedAt &&
+    !hasSuccessfulServicePayment(transaction)
+  )
+}
+
+export function calculateCapturedDepositFeeBreakdown(amount: number): DepositFeeBreakdown {
+  const stripeFeeAmount = Math.round(amount * 0.015) + 25
+  const platformFeeAmount = Math.round(amount * 0.005)
+  const vendorNetAmount = Math.max(0, amount - stripeFeeAmount - platformFeeAmount)
+
+  return {
+    stripeFeeAmount,
+    platformFeeAmount,
+    vendorNetAmount,
+  }
+}
+
+export async function recordFinanceAuditLog(
+  db: DatabaseClient,
+  {
+    actorId,
+    actorType = AuditActorType.USER,
+    action,
+    entityType,
+    entityId,
+    metadata,
+  }: FinanceAuditLogInput
+) {
+  return db.auditLog.create({
+    data: {
+      actorId: actorId ?? null,
+      actorType,
+      action,
+      entityType,
+      entityId: entityId ?? null,
+      metadata,
+    },
+  })
+}
+
+export function getNextFinanceStage(transaction: FinanceTransaction): FinanceStage {
+  const requiresServicePayment = needsServicePayment(transaction)
+  const requiresDepositAuthorization = needsDepositAuthorization(transaction)
+
+  if (!requiresServicePayment && !requiresDepositAuthorization) {
     return "complete"
   }
 
-  // Deposit authorization always comes first (Az's flow: deposit → then service payment)
-  if (needsDepositAuthorization && !hasAuthorizedDeposit(transaction)) {
+  if (requiresDepositAuthorization && !hasAuthorizedDeposit(transaction)) {
     return "deposit_authorization"
   }
 
-  if (needsServicePayment && !hasSuccessfulServicePayment(transaction)) {
+  if (requiresServicePayment && !hasSuccessfulServicePayment(transaction)) {
+    if (hasDeferredServicePaymentPending(transaction)) {
+      return "complete"
+    }
+
     return "service_payment"
   }
 
@@ -93,7 +177,8 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       transaction.clientProfile.email,
       transaction.clientProfile.fullName,
       vendorName,
-      transaction.reference
+      transaction.reference,
+      transaction.contractArtifact?.signedPdfUrl ?? null
     )
 
     if (sent) {
@@ -151,6 +236,23 @@ async function markTransactionCompleted(db: DatabaseClient, transaction: Finance
   await sendCompletionNotifications(db, transaction)
 }
 
+async function markClientOnboardingCompleted(db: DatabaseClient, transaction: FinanceTransaction) {
+  if (!transaction.customerCompletedAt) {
+    await db.transaction.update({
+      where: { id: transaction.id },
+      data: { customerCompletedAt: new Date() },
+    })
+  }
+
+  await recordTransactionEvent(db, {
+    transactionId: transaction.id,
+    type: "LINK_UPDATED",
+    title: "Client onboarding completed",
+    detail: "The client finished the agreement flow. The service payment can be requested later from the vendor dashboard.",
+    dedupeKey: `event:customer-completed:${transaction.id}`,
+  })
+}
+
 export async function completeTransactionWithoutPayment(db: DatabaseClient, transactionId: string) {
   const transaction = await db.transaction.findUnique({
     where: { id: transactionId },
@@ -160,6 +262,7 @@ export async function completeTransactionWithoutPayment(db: DatabaseClient, tran
       clientProfile: true,
       payments: true,
       depositAuthorization: true,
+      contractArtifact: true,
     },
   })
 
@@ -168,6 +271,11 @@ export async function completeTransactionWithoutPayment(db: DatabaseClient, tran
   }
 
   if (getNextFinanceStage(transaction) !== "complete") {
+    return transaction
+  }
+
+  if (hasDeferredServicePaymentPending(transaction)) {
+    await markClientOnboardingCompleted(db, transaction)
     return transaction
   }
 
@@ -185,6 +293,7 @@ export async function syncTransactionFinanceState(db: DatabaseClient, transactio
       clientProfile: true,
       payments: true,
       depositAuthorization: true,
+      contractArtifact: true,
     },
   })
 
@@ -195,6 +304,11 @@ export async function syncTransactionFinanceState(db: DatabaseClient, transactio
   const nextStage = getNextFinanceStage(transaction)
 
   if (nextStage === "complete") {
+    if (hasDeferredServicePaymentPending(transaction)) {
+      await markClientOnboardingCompleted(db, transaction)
+      return transaction
+    }
+
     await markTransactionCompleted(db, transaction)
     return transaction
   }
@@ -230,6 +344,9 @@ export async function upsertServicePayment(
       status: PaymentStatus.SUCCEEDED,
       amount,
       currency,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
       stripeIntentId: paymentIntentId,
       processedAt: new Date(),
     },
@@ -239,6 +356,9 @@ export async function upsertServicePayment(
       status: PaymentStatus.SUCCEEDED,
       amount,
       currency,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
       stripeIntentId: paymentIntentId,
       processedAt: new Date(),
     },
@@ -250,6 +370,14 @@ export async function upsertServicePayment(
     title: "Service payment collected",
     detail: `${currency} ${(amount / 100).toFixed(2)} captured successfully.`,
     dedupeKey: `event:service-payment:${transactionId}:${paymentIntentId ?? session.id}`,
+    metadata: {
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
+    },
   })
 }
 
@@ -313,6 +441,12 @@ export async function upsertDepositAuthorization(
     title: "Deposit hold authorized",
     detail: `${currency} ${(amount / 100).toFixed(2)} placed on hold.`,
     dedupeKey: `event:deposit-authorized:${transactionId}:${paymentIntentId ?? session.id}`,
+    metadata: {
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      status: PaymentStatus.AUTHORIZED,
+    },
   })
 }
 
@@ -327,8 +461,28 @@ export async function upsertServicePaymentFromIntent(
 
   await db.payment.upsert({
     where: { transactionId_kind: { transactionId, kind: PaymentKind.SERVICE_PAYMENT } },
-    update: { status: PaymentStatus.SUCCEEDED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
-    create: { transactionId, kind: PaymentKind.SERVICE_PAYMENT, status: PaymentStatus.SUCCEEDED, amount, currency, stripeIntentId: paymentIntentId, processedAt: new Date() },
+    update: {
+      status: PaymentStatus.SUCCEEDED,
+      amount,
+      currency,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
+      stripeIntentId: paymentIntentId,
+      processedAt: new Date(),
+    },
+    create: {
+      transactionId,
+      kind: PaymentKind.SERVICE_PAYMENT,
+      status: PaymentStatus.SUCCEEDED,
+      amount,
+      currency,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
+      stripeIntentId: paymentIntentId,
+      processedAt: new Date(),
+    },
   })
 
   await recordTransactionEvent(db, {
@@ -337,6 +491,14 @@ export async function upsertServicePaymentFromIntent(
     title: "Service payment collected",
     detail: `${currency} ${(amount / 100).toFixed(2)} captured successfully.`,
     dedupeKey: `event:service-payment:${transactionId}:${paymentIntentId}`,
+    metadata: {
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      stripeFeeAmount: 0,
+      platformFeeAmount: 0,
+      vendorNetAmount: amount,
+    },
   })
 }
 
@@ -367,7 +529,31 @@ export async function upsertDepositAuthorizationFromIntent(
     title: "Deposit hold authorized",
     detail: `${currency} ${(amount / 100).toFixed(2)} placed on hold.`,
     dedupeKey: `event:deposit-authorized:${transactionId}:${paymentIntentId}`,
+    metadata: {
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      status: PaymentStatus.AUTHORIZED,
+    },
   })
+}
+
+function getDepositReleaseDetail(
+  currency: string,
+  recordedAmount: number,
+  reason?: DepositOutcomeReason
+) {
+  const amountLabel = `${currency} ${(recordedAmount / 100).toFixed(2)}`
+
+  if (reason === "transaction_cancelled") {
+    return `${amountLabel} released back to the client because the transaction was cancelled.`
+  }
+
+  if (reason === "admin_dispute_release") {
+    return `${amountLabel} released back to the client after dispute resolution.`
+  }
+
+  return `${amountLabel} released back to the client.`
 }
 
 export async function recordDepositOutcome(
@@ -383,17 +569,21 @@ export async function recordDepositOutcome(
     vendorBusinessName,
     clientFullName,
     clientEmail,
+    reason,
+    occurredAt,
   }: {
     transactionId: string
     amount: number
     actualAmount?: number
     currency: string
-    stripeIntentId: string
+    stripeIntentId?: string | null
     action: "release" | "capture"
     vendorBusinessEmail?: string | null
     vendorBusinessName?: string | null
     clientFullName?: string | null
     clientEmail?: string | null
+    reason?: DepositOutcomeReason
+    occurredAt?: Date
   }
 ) {
   const paymentKind = action === "capture" ? PaymentKind.DEPOSIT_CAPTURE : PaymentKind.DEPOSIT_RELEASE
@@ -401,6 +591,9 @@ export async function recordDepositOutcome(
   const eventType = action === "capture" ? "DEPOSIT_CAPTURED" : "DEPOSIT_RELEASED"
   const title = action === "capture" ? "Deposit captured" : "Deposit released"
   const recordedAmount = actualAmount ?? amount
+  const dedupeToken = stripeIntentId ?? `${action}:${reason ?? "local"}`
+  const feeBreakdown =
+    action === "capture" ? calculateCapturedDepositFeeBreakdown(recordedAmount) : null
 
   await db.payment.upsert({
     where: {
@@ -413,7 +606,10 @@ export async function recordDepositOutcome(
       status: paymentStatus,
       amount: recordedAmount,
       currency,
-      stripeIntentId,
+      stripeFeeAmount: feeBreakdown?.stripeFeeAmount ?? null,
+      platformFeeAmount: feeBreakdown?.platformFeeAmount ?? null,
+      vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
+      stripeIntentId: stripeIntentId ?? null,
       processedAt: new Date(),
     },
     create: {
@@ -422,7 +618,10 @@ export async function recordDepositOutcome(
       status: paymentStatus,
       amount: recordedAmount,
       currency,
-      stripeIntentId,
+      stripeFeeAmount: feeBreakdown?.stripeFeeAmount ?? null,
+      platformFeeAmount: feeBreakdown?.platformFeeAmount ?? null,
+      vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
+      stripeIntentId: stripeIntentId ?? null,
       processedAt: new Date(),
     },
   })
@@ -431,8 +630,29 @@ export async function recordDepositOutcome(
     transactionId,
     type: eventType,
     title,
-    detail: `${currency} ${(recordedAmount / 100).toFixed(2)} ${action === "capture" ? "converted into a charge" : "released back to the client"}.`,
-    dedupeKey: `event:deposit-${action}:${transactionId}:${stripeIntentId}`,
+    detail:
+      action === "capture"
+        ? `${currency} ${(recordedAmount / 100).toFixed(2)} captured. Stripe fee ${currency} ${((feeBreakdown?.stripeFeeAmount ?? 0) / 100).toFixed(2)}, platform fee ${currency} ${((feeBreakdown?.platformFeeAmount ?? 0) / 100).toFixed(2)}, vendor net ${currency} ${((feeBreakdown?.vendorNetAmount ?? 0) / 100).toFixed(2)}.`
+        : getDepositReleaseDetail(currency, recordedAmount, reason),
+    dedupeKey: `event:deposit-${action}:${transactionId}:${dedupeToken}`,
+    occurredAt,
+    metadata: {
+      action,
+      reason: reason ?? null,
+      authorizedAmount: amount,
+      processedAmount: recordedAmount,
+      currency,
+      stripeIntentId: stripeIntentId ?? null,
+      stripeFeeAmount: feeBreakdown?.stripeFeeAmount ?? null,
+      platformFeeAmount: feeBreakdown?.platformFeeAmount ?? null,
+      vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
+      captureType:
+        action === "capture"
+          ? recordedAmount === amount
+            ? "full"
+            : "partial"
+          : null,
+    },
   })
 
   if (vendorBusinessEmail && clientFullName) {

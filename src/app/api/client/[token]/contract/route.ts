@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { persistReviewedContractSnapshot } from "@/features/contracts/server/contract-artifacts"
 import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -36,6 +37,8 @@ export async function POST(
       where: { id: transactionId },
       data: { status: "CONTRACT_GENERATED" },
     })
+
+    await persistReviewedContractSnapshot(prisma, transactionId)
 
     await recordTransactionEvent(prisma, {
       transactionId,

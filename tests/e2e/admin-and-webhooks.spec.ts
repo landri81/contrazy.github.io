@@ -99,6 +99,9 @@ test("replaying the same Stripe webhook does not duplicate the service payment",
 
   expect(payments).toHaveLength(1)
   expect(payments[0]?.status).toBe("SUCCEEDED")
+  expect(payments[0]?.stripeFeeAmount).toBe(0)
+  expect(payments[0]?.platformFeeAmount).toBe(0)
+  expect(payments[0]?.vendorNetAmount).toBe(25000)
 
   const webhookEvents = await prisma.transactionEvent.findMany({
     where: {

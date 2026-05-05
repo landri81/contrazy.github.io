@@ -6,6 +6,7 @@ import { TransactionLinkStatus } from "@prisma/client"
 import { buttonVariants } from "@/components/ui/button"
 import { ClientProcessingCard } from "@/features/client-flow/components/client-processing-card"
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
+import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { cn } from "@/lib/utils"
 
 export default async function ClientCompletePage(props: {
@@ -24,7 +25,12 @@ export default async function ClientCompletePage(props: {
     redirect(`/t/${token}/cancelled`)
   }
 
-  if (transaction.status !== "COMPLETED") {
+  const nextStep = getNextClientStep(transaction)
+  const customerFlowComplete = nextStep === "complete"
+  const transactionComplete = transaction.status === "COMPLETED"
+  const signedPdfHref = resolveDocumentAssetUrl(transaction.contractArtifact?.signedPdfUrl, `${transaction.reference}-signed.pdf`)
+
+  if (!customerFlowComplete) {
     if (searchParams.session_id) {
       return (
         <div className="mx-auto max-w-lg space-y-6 py-12">
@@ -36,7 +42,7 @@ export default async function ClientCompletePage(props: {
       )
     }
 
-    redirect(`/t/${token}/${getNextClientStep(transaction)}`)
+    redirect(`/t/${token}/${nextStep}`)
   }
 
   return (
@@ -48,16 +54,32 @@ export default async function ClientCompletePage(props: {
       </div>
       
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">You&apos;re All Set!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {transactionComplete ? "You're All Set!" : "Agreement Completed"}
+        </h1>
         <p className="text-muted-foreground">
-          Your transaction with {transaction.vendor?.businessName} has been successfully completed.
+          {transactionComplete
+            ? `Your transaction with ${transaction.vendor?.businessName} has been successfully completed.`
+            : `Your agreement and required verification with ${transaction.vendor?.businessName} are complete. The vendor will request the service payment later if needed.`}
         </p>
       </div>
 
       <div className="pt-8">
         <p className="text-sm text-muted-foreground mb-4">
-          A receipt and a copy of your signed agreement will be emailed to you shortly.
+          {transactionComplete
+            ? "A receipt and a copy of your signed agreement will be emailed to you shortly."
+            : "Keep this secure link available. If the vendor triggers payment later, this same flow will reopen the payment step for you."}
         </p>
+        {transaction.contractArtifact?.signedPdfUrl ? (
+          <Link
+            href={signedPdfHref ?? transaction.contractArtifact.signedPdfUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(buttonVariants({ variant: "secondary" }), "mb-3 inline-flex w-full")}
+          >
+            Download Signed Agreement
+          </Link>
+        ) : null}
         <Link
           href="/"
           className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}

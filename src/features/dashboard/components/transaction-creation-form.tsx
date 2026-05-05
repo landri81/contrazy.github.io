@@ -3,20 +3,24 @@
 import React, { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { Variants } from "framer-motion"
-import type { ContractTemplate, ChecklistTemplate } from "@prisma/client"
+import type { ChecklistItem, ChecklistTemplate, ContractTemplate } from "@prisma/client"
 import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Building2,
   CheckCircle2,
+  Clock3,
   CreditCard,
   FileText,
   Info,
   Link as LinkIcon,
   Loader2,
   LockKeyhole,
+  Plus,
   QrCode,
   ShieldCheck,
+  Trash2,
   Wallet,
 } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
@@ -36,10 +40,20 @@ import {
 import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import {
+  getPaymentCollectionTimingLabel,
+  getRequirementCategoryLabel,
+  paymentCollectionTimingOptions,
+  requirementCategoryOptions,
+  requirementTypeOptions,
+  type PaymentCollectionTimingValue,
+  type RequirementCategoryValue,
+  type RequirementTypeValue,
+} from "@/features/transactions/contract-flow"
 
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
-  checklists: ChecklistTemplate[]
+  checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
   hasStripe: boolean
   canLaunch: boolean
   blockedMessage: string
@@ -47,6 +61,26 @@ type TransactionCreationFormProps = {
   onLinkCreated?: (record: VendorLinkRecord, usage: VendorActionsUsageRecord | null) => void
   onDirtyChange?: (dirty: boolean) => void
   onSuccessStateChange?: (success: boolean) => void
+}
+
+type DraftRequirement = {
+  label: string
+  description: string
+  type: RequirementTypeValue
+  category: RequirementCategoryValue
+  customCategoryLabel: string
+  required: boolean
+}
+
+function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement {
+  return {
+    label: item?.label ?? "",
+    description: item?.description ?? "",
+    type: (item?.type as RequirementTypeValue | undefined) ?? "DOCUMENT",
+    category: (item?.category as RequirementCategoryValue | undefined) ?? "CUSTOM",
+    customCategoryLabel: item?.customCategoryLabel ?? "",
+    required: item?.required ?? true,
+  }
 }
 
 function getTemplateLabel(
@@ -65,7 +99,15 @@ function parseEur(val: string): number | null {
 }
 
 function depositFee(amountEur: number) {
-  return amountEur * 0.02 + 0.25
+  const stripeFee = amountEur * 0.015 + 0.25
+  const platformFee = amountEur * 0.005
+
+  return {
+    total: stripeFee + platformFee,
+    stripeFee,
+    platformFee,
+    vendorNet: Math.max(0, amountEur - stripeFee - platformFee),
+  }
 }
 
 // ── Step config ────────────────────────────────────────────────────────────
@@ -259,6 +301,9 @@ export function TransactionCreationForm({
   const [checklistId, setChecklistId] = useState<string>("none")
   const [requiresKyc, setRequiresKyc] = useState(false)
   const [generateQr, setGenerateQr] = useState(false)
+  const [paymentCollectionTiming, setPaymentCollectionTiming] = useState<PaymentCollectionTimingValue>("AFTER_SIGNING")
+  const [requireClientCompany, setRequireClientCompany] = useState(false)
+  const [requirements, setRequirements] = useState<DraftRequirement[]>([])
 
   // UI state
   const [isPending, setIsPending] = useState(false)
@@ -269,7 +314,7 @@ export function TransactionCreationForm({
 
   const amountNum = parseFloat(amount) || 0
   const depositNum = parseFloat(depositAmount) || 0
-  const platformFee = depositNum > 0 ? depositFee(depositNum) : 0
+  const depositPricing = depositNum > 0 ? depositFee(depositNum) : null
   const financeDisabled = !hasStripe || !canLaunch
   const qrRemaining = usage?.qrCodes.remaining ?? null
   const canUseKycInPlan = usage?.kyc.allowed ?? false
@@ -299,10 +344,14 @@ export function TransactionCreationForm({
 
   const clientSteps = [
     { key: "profile", label: "Profile" },
-    checklistId !== "none" && { key: "documents", label: "Documents" },
+    requirements.length > 0 && { key: "documents", label: "Documents" },
     requiresKyc && { key: "kyc", label: "ID Verification" },
     contractId !== "none" && { key: "contract", label: "Review & Sign" },
-    (amountNum > 0 || depositNum > 0) && { key: "payment", label: "Payment" },
+    depositNum > 0 && { key: "payment", label: "Deposit hold" },
+    amountNum > 0 && paymentCollectionTiming === "AFTER_SIGNING" && {
+      key: "service-payment",
+      label: depositNum > 0 ? "Service payment" : "Payment",
+    },
     { key: "complete", label: "Complete" },
   ].filter(Boolean) as { key: string; label: string }[]
 
@@ -316,8 +365,26 @@ export function TransactionCreationForm({
     contractId !== "none" ||
     checklistId !== "none" ||
     requiresKyc ||
-    generateQr
+    generateQr ||
+    paymentCollectionTiming !== "AFTER_SIGNING" ||
+    requireClientCompany ||
+    requirements.length > 0
   )
+
+  useEffect(() => {
+    if (checklistId === "none") {
+      setRequirements([])
+      return
+    }
+
+    setRequirements((selectedChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
+  }, [checklistId, selectedChecklist])
+
+  useEffect(() => {
+    if (amountNum <= 0 && paymentCollectionTiming === "AFTER_SERVICE") {
+      setPaymentCollectionTiming("AFTER_SIGNING")
+    }
+  }, [amountNum, paymentCollectionTiming])
 
   useEffect(() => {
     onDirtyChange?.(isDirty)
@@ -331,6 +398,31 @@ export function TransactionCreationForm({
     setStepError(null)
     setDir(next > step ? 1 : -1)
     setStep(next)
+  }
+
+  function addRequirement() {
+    setRequirements((current) => [...current, createDraftRequirement()])
+  }
+
+  function updateRequirement(index: number, patch: Partial<DraftRequirement>) {
+    setRequirements((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              ...patch,
+              customCategoryLabel:
+                (patch.category ?? item.category) === "OTHER"
+                  ? (patch.customCategoryLabel ?? item.customCategoryLabel)
+                  : "",
+            }
+          : item
+      )
+    )
+  }
+
+  function removeRequirement(index: number) {
+    setRequirements((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
   function handleNext() {
@@ -354,6 +446,17 @@ export function TransactionCreationForm({
       }
       if (depositAmount && (isNaN(parseFloat(depositAmount)) || parseFloat(depositAmount) < 0.5)) {
         setStepError("Minimum deposit hold is €0.50")
+        return
+      }
+    }
+
+    if (step === 3) {
+      const invalidRequirement = requirements.find(
+        (item) => !item.label.trim() || (item.category === "OTHER" && !item.customCategoryLabel.trim())
+      )
+
+      if (invalidRequirement) {
+        setStepError("Complete every requirement label and add a custom category label when using Other.")
         return
       }
     }
@@ -387,6 +490,16 @@ export function TransactionCreationForm({
           depositAmount: depositAmount ? parseEur(depositAmount) : null,
           requiresKyc,
           generateQr,
+          paymentCollectionTiming,
+          requireClientCompany,
+          requirements: requirements.map((item) => ({
+            label: item.label,
+            description: item.description || null,
+            type: item.type,
+            category: item.category,
+            customCategoryLabel: item.category === "OTHER" ? item.customCategoryLabel || null : null,
+            required: item.required,
+          })),
         }),
       })
 
@@ -423,6 +536,9 @@ export function TransactionCreationForm({
     setDepositAmount("")
     setRequiresKyc(false)
     setGenerateQr(false)
+    setPaymentCollectionTiming("AFTER_SIGNING")
+    setRequireClientCompany(false)
+    setRequirements([])
     setStepError(null)
     setError(null)
     setStep(1)
@@ -616,11 +732,15 @@ export function TransactionCreationForm({
                             <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
                           </div>
                           <div className="mt-1 flex justify-between text-muted-foreground">
-                            <span>Platform fee</span>
-                            <span>€{platformFee.toFixed(2)}</span>
+                            <span>Stripe fee estimate</span>
+                            <span>€{depositPricing?.stripeFee.toFixed(2)}</span>
+                          </div>
+                          <div className="mt-1 flex justify-between text-muted-foreground">
+                            <span>Conntrazy margin</span>
+                            <span>€{depositPricing?.platformFee.toFixed(2)}</span>
                           </div>
                           <div className="mt-2 border-t border-amber-100 pt-2 text-muted-foreground">
-                            If captured you receive <strong>€{(depositNum - platformFee).toFixed(2)}</strong>.
+                            If captured you receive <strong>€{depositPricing?.vendorNet.toFixed(2)}</strong>.
                           </div>
                         </div>
                       ) : null}
@@ -672,6 +792,43 @@ export function TransactionCreationForm({
                     </span>
                   </div>
                 )}
+
+                {amountNum > 0 ? (
+                  <div className="rounded-3xl border border-border/70 bg-background p-4 shadow-sm">
+                    <div className="mb-3 flex items-start gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+                        <Clock3 className="size-4 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Service payment timing</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          Choose whether the client pays the service amount during this flow or only after you request it later.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      {paymentCollectionTimingOptions.map((option) => {
+                        const active = paymentCollectionTiming === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setPaymentCollectionTiming(option.value)}
+                            className={cn(
+                              "rounded-2xl border px-4 py-3 text-left transition-all",
+                              active
+                                ? "border-[var(--contrazy-teal)]/40 bg-[var(--contrazy-teal)]/8 shadow-sm"
+                                : "border-border/70 bg-muted/15 hover:bg-muted/30"
+                            )}
+                          >
+                            <p className="text-sm font-medium text-foreground">{option.label}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{option.description}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -725,6 +882,148 @@ export function TransactionCreationForm({
                     </SelectContent>
                   </Select>
                 </div>
+                </div>
+
+                <div className="space-y-4 rounded-3xl border border-border/70 bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Per-transaction requirements</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Start from a checklist template, then adjust the required uploads or text fields before you launch the link.
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={addRequirement}>
+                      <Plus className="mr-1.5 size-3.5" />
+                      Add requirement
+                    </Button>
+                  </div>
+
+                  {requirements.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
+                      No extra requirements yet. Add uploads or text prompts only when this transaction needs them.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {requirements.map((item, index) => (
+                        <div key={`${item.label}-${index}`} className="rounded-2xl border border-border/70 bg-muted/10 p-3">
+                          <div className="grid gap-3 lg:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Label</Label>
+                              <Input
+                                value={item.label}
+                                onChange={(event) => updateRequirement(index, { label: event.target.value })}
+                                placeholder="e.g. Driver's license"
+                                maxLength={INPUT_LIMITS.checklistItemLabel}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Type</Label>
+                              <Select
+                                value={item.type}
+                                onValueChange={(value) => updateRequirement(index, { type: value as RequirementTypeValue })}
+                              >
+                                <SelectTrigger>
+                                  <span className="truncate text-sm">
+                                    {requirementTypeOptions.find((option) => option.value === item.type)?.label ?? "Document"}
+                                  </span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {requirementTypeOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Category</Label>
+                              <Select
+                                value={item.category}
+                                onValueChange={(value) => updateRequirement(index, { category: value as RequirementCategoryValue })}
+                              >
+                                <SelectTrigger>
+                                  <span className="truncate text-sm">{getRequirementCategoryLabel(item.category, item.customCategoryLabel)}</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {requirementCategoryOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Other label</Label>
+                              <Input
+                                value={item.customCategoryLabel}
+                                onChange={(event) => updateRequirement(index, { customCategoryLabel: event.target.value })}
+                                placeholder="Custom category label"
+                                maxLength={INPUT_LIMITS.checklistItemLabel}
+                                disabled={item.category !== "OTHER"}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Instructions</Label>
+                              <div>
+                                <Textarea
+                                  value={item.description}
+                                  onChange={(event) => updateRequirement(index, { description: event.target.value })}
+                                  placeholder={item.type === "TEXT" ? "Explain what the client should type." : "Add optional upload guidance."}
+                                  maxLength={INPUT_LIMITS.checklistItemInstructions}
+                                  className="min-h-[72px] resize-none"
+                                />
+                                <CharacterCount
+                                  current={item.description.length}
+                                  limit={INPUT_LIMITS.checklistItemInstructions}
+                                  className="mt-1 text-right"
+                                />
+                              </div>
+                            </div>
+                            <label className="flex items-center gap-2 rounded-xl border border-border/70 bg-background px-3 py-2 text-xs font-medium text-foreground">
+                              <Switch
+                                checked={item.required}
+                                onCheckedChange={(checked) => updateRequirement(index, { required: Boolean(checked) })}
+                              />
+                              Required
+                            </label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => removeRequirement(index)}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-start justify-between gap-4 rounded-3xl border border-border/70 bg-muted/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+                      <Building2 className="size-4 text-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Require company name</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Make the client company field mandatory on this transaction when the agreement or invoicing needs it.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={requireClientCompany}
+                    onCheckedChange={setRequireClientCompany}
+                    className="mt-0.5 shrink-0"
+                  />
                 </div>
 
                 <div className="flex items-start justify-between gap-4 rounded-3xl border border-border/70 bg-muted/20 p-4">
@@ -808,6 +1107,13 @@ export function TransactionCreationForm({
                         </div>
                       )}
 
+                      {amountNum > 0 && (
+                        <div className="flex items-center justify-between px-4 py-3">
+                          <span className="text-muted-foreground">Payment timing</span>
+                          <span className="font-medium text-foreground">{getPaymentCollectionTimingLabel(paymentCollectionTiming)}</span>
+                        </div>
+                      )}
+
                       {contractId !== "none" && (
                         <div className="flex items-start justify-between px-4 py-3">
                           <span className="text-muted-foreground">Contract</span>
@@ -815,10 +1121,12 @@ export function TransactionCreationForm({
                         </div>
                       )}
 
-                      {checklistId !== "none" && (
+                      {requirements.length > 0 && (
                         <div className="flex items-start justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Uploads</span>
-                          <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">{checklistLabel}</span>
+                          <span className="text-muted-foreground">Requirements</span>
+                          <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">
+                            {requirements.length} item{requirements.length === 1 ? "" : "s"}
+                          </span>
                         </div>
                       )}
 
@@ -826,6 +1134,13 @@ export function TransactionCreationForm({
                         <span className="text-muted-foreground">ID verification</span>
                         <span className={cn("font-medium", requiresKyc ? "text-foreground" : "text-muted-foreground")}>
                           {requiresKyc ? "Required" : "Not required"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between px-4 py-3">
+                        <span className="text-muted-foreground">Company name</span>
+                        <span className={cn("font-medium", requireClientCompany ? "text-foreground" : "text-muted-foreground")}>
+                          {requireClientCompany ? "Required" : "Optional"}
                         </span>
                       </div>
                     </div>
@@ -846,6 +1161,11 @@ export function TransactionCreationForm({
                           </div>
                         ))}
                       </div>
+                      {amountNum > 0 && paymentCollectionTiming === "AFTER_SERVICE" ? (
+                        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                          The service amount is not collected during the initial client flow. You will request it later from the vendor dashboard after the service is delivered.
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">

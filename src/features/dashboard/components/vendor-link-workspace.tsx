@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import type { ChecklistTemplate, ContractTemplate } from "@prisma/client"
+import type { ChecklistItem, ChecklistTemplate, ContractTemplate } from "@prisma/client"
 import {
   AlertCircle,
   ArrowUpRight,
@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils"
 
 type VendorLinkWorkspaceProps = {
   contracts: ContractTemplate[]
-  checklists: ChecklistTemplate[]
+  checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
   usage: VendorActionsUsageRecord | null
   hasStripe: boolean
   canLaunch: boolean

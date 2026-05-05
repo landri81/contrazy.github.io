@@ -6,6 +6,8 @@ export const INPUT_LIMITS = {
   phone: 32,
   address: 160,
   country: 80,
+  registrationNumber: 64,
+  vatNumber: 64,
   transactionTitle: 140,
   transactionNotes: 500,
   contractTemplateName: 120,

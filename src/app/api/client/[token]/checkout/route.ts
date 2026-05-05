@@ -40,6 +40,7 @@ export async function POST(
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
+            contractArtifact: true,
           },
         },
       },
@@ -57,6 +58,7 @@ export async function POST(
       clientProfile: transaction.clientProfile,
       payments: transaction.payments,
       depositAuthorization: transaction.depositAuthorization,
+      contractArtifact: transaction.contractArtifact,
     } as FinanceTransaction
 
     const nextStage = getNextFinanceStage(financeTransaction)

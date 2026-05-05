@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
+import { AuditActorType } from "@prisma/client"
 
-import { recordDepositOutcome } from "@/features/transactions/server/transaction-finance"
+import {
+  calculateCapturedDepositFeeBreakdown,
+  recordDepositOutcome,
+  recordFinanceAuditLog,
+} from "@/features/transactions/server/transaction-finance"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
@@ -14,7 +19,7 @@ export async function POST(
 ) {
   try {
     const { transactionId } = await params
-    const { vendorProfile } = await requireVendorProfileAccess()
+    const { dbUser, session, vendorProfile } = await requireVendorProfileAccess()
     const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
 
     if (response) return response
@@ -40,6 +45,8 @@ export async function POST(
     }
 
     const depositAuth = transaction.depositAuthorization
+    const actorType =
+      session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
 
     if (depositAuth.status !== "AUTHORIZED") {
       return NextResponse.json({ success: false, message: "Deposit is not in an authorized state" }, { status: 400 })
@@ -50,6 +57,7 @@ export async function POST(
     }
 
     const stripeOpts = getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
+    let feeBreakdown = null as ReturnType<typeof calculateCapturedDepositFeeBreakdown> | null
 
     if (action === "release") {
       await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
@@ -71,9 +79,15 @@ export async function POST(
         }
       }
 
+      const capturedAmount = partialCents ?? depositAuth.amount
+      feeBreakdown = calculateCapturedDepositFeeBreakdown(capturedAmount)
+
       await stripe.paymentIntents.capture(
         depositAuth.stripeIntentId,
-        partialCents ? { amount_to_capture: partialCents } : {},
+        {
+          ...(partialCents ? { amount_to_capture: partialCents } : {}),
+          application_fee_amount: feeBreakdown.platformFeeAmount,
+        },
         stripeOpts
       )
 
@@ -94,10 +108,33 @@ export async function POST(
       currency: depositAuth.currency,
       stripeIntentId: depositAuth.stripeIntentId,
       action,
+      reason: action === "capture" ? "manual_capture" : "manual_release",
       vendorBusinessEmail: transaction.vendor?.businessEmail,
       vendorBusinessName: transaction.vendor?.businessName,
       clientFullName: transaction.clientProfile?.fullName,
       clientEmail: transaction.clientProfile?.email,
+    })
+
+    await recordFinanceAuditLog(prisma, {
+      actorId: dbUser.id,
+      actorType,
+      action: action === "capture" ? "Captured deposit hold" : "Released deposit hold",
+      entityType: "Transaction",
+      entityId: transaction.id,
+      metadata: {
+        transactionId: transaction.id,
+        depositAuthorizationId: depositAuth.id,
+        action,
+        captureType: action === "capture" ? (actualAmount === depositAuth.amount ? "full" : "partial") : null,
+        releaseReason: action === "release" ? "manual_release" : null,
+        authorizedAmount: depositAuth.amount,
+        processedAmount: actualAmount,
+        currency: depositAuth.currency,
+        stripeIntentId: depositAuth.stripeIntentId,
+        stripeFeeAmount: feeBreakdown?.stripeFeeAmount ?? null,
+        platformFeeAmount: feeBreakdown?.platformFeeAmount ?? null,
+        vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
+      },
     })
 
     return NextResponse.json({ success: true })

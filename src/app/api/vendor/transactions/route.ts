@@ -5,9 +5,10 @@ import QRCode from "qrcode"
 import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 
 import { canUseKyc, remainingKycVerifications, remainingQrCodes, remainingTransactions } from "@/features/subscriptions/server/feature-gates"
-import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
+import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
 import { vendorTransactionCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import { createTransactionContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
@@ -91,8 +92,22 @@ export async function POST(request: Request) {
     const parsedBody = vendorTransactionCreateSchema.safeParse(body)
 
     if (!parsedBody.success) {
+      const firstIssue = parsedBody.error.issues[0]
+      const issuePath =
+        firstIssue?.path && firstIssue.path.length > 0
+          ? firstIssue.path
+              .map((segment) => typeof segment === "number" ? `[${segment}]` : segment)
+              .join(".")
+              .replace(".[", "[")
+          : null
+
       return NextResponse.json(
-        { success: false, message: parsedBody.error.issues[0]?.message ?? "Invalid transaction data." },
+        {
+          success: false,
+          message: issuePath
+            ? `${issuePath}: ${firstIssue?.message ?? "Invalid transaction data."}`
+            : firstIssue?.message ?? "Invalid transaction data.",
+        },
         { status: 400 }
       )
     }
@@ -106,6 +121,9 @@ export async function POST(request: Request) {
       depositAmount,
       requiresKyc,
       generateQr,
+      paymentCollectionTiming,
+      requireClientCompany,
+      requirements,
     } = parsedBody.data
 
     const normalizedAmount = typeof amount === "number" ? amount : null
@@ -204,6 +222,15 @@ export async function POST(request: Request) {
       generateQr === true
         ? await QRCode.toString(secureLink, { type: "svg", margin: 1 })
         : null
+    const requirementOverrides = requirements.map((item, index) => ({
+      label: item.label,
+      instructions: item.description,
+      type: item.type,
+      category: item.category,
+      customCategoryLabel: item.customCategoryLabel,
+      required: item.required,
+      sortOrder: index,
+    }))
 
     // A financial amount is mandatory
     if (!normalizedAmount && !normalizedDepositAmount) {
@@ -229,6 +256,8 @@ export async function POST(request: Request) {
           amount: normalizedAmount,
           depositAmount: normalizedDepositAmount,
           requiresKyc: Boolean(requiresKyc),
+          paymentCollectionTiming,
+          requireClientCompany,
           contractTemplateId: contractTemplate?.id ?? null,
           checklistTemplateId: checklistTemplate?.id ?? null,
           status: "LINK_SENT",
@@ -245,16 +274,44 @@ export async function POST(request: Request) {
         },
       })
 
-      if (checklistTemplate?.items.length) {
+      if (requirementOverrides.length > 0) {
+          await tx.transactionRequirement.createMany({
+            data: requirementOverrides.map((item) => ({
+              transactionId: newTransaction.id,
+              label: item.label,
+              instructions: item.instructions,
+              type: item.type,
+              category: item.category,
+              customCategoryLabel: item.customCategoryLabel,
+              required: item.required,
+              sortOrder: item.sortOrder,
+            })),
+          })
+      } else if (checklistTemplate?.items.length) {
           await tx.transactionRequirement.createMany({
             data: checklistTemplate.items.map((item) => ({
               transactionId: newTransaction.id,
               label: item.label,
               instructions: item.description,
               type: item.type,
+              category: item.category,
+              customCategoryLabel: item.customCategoryLabel,
               required: item.required,
+              sortOrder: item.sortOrder,
             })),
           })
+      }
+
+      if (contractTemplate) {
+        await createTransactionContractArtifact(tx, {
+          transactionId: newTransaction.id,
+          contractTemplate: {
+            id: contractTemplate.id,
+            name: contractTemplate.name,
+            description: contractTemplate.description,
+            content: contractTemplate.content,
+          },
+        })
       }
 
       await recordTransactionEvent(tx, {
@@ -265,35 +322,36 @@ export async function POST(request: Request) {
         dedupeKey: `event:link-created:${newTransaction.id}`,
       })
 
-      await incrementVendorSubscriptionUsage(tx, vendorProfile.id, "transactionsUsed")
-      if (generateQr === true) {
-        await incrementVendorSubscriptionUsage(tx, vendorProfile.id, "qrCodesUsed")
-      }
-
-      const updatedSubscription = await tx.vendorSubscription.findUnique({
-        where: { vendorId: vendorProfile.id },
+      await incrementVendorSubscriptionUsageFields(tx, vendorProfile.id, {
+        transactionsUsed: 1,
+        qrCodesUsed: generateQr === true ? 1 : 0,
       })
 
-      return { ...newTransaction, link, updatedSubscription }
+      return { ...newTransaction, link }
+    }, {
+      maxWait: 10_000,
+      timeout: 15_000,
     })
 
-    const { updatedSubscription, ...transactionPayload } = transaction
+    const updatedSubscription = await prisma.vendorSubscription.findUnique({
+      where: { vendorId: vendorProfile.id },
+    })
 
     return NextResponse.json(
       {
-        ...transactionPayload,
+        ...transaction,
         linkRecord: buildVendorLinkRecord({
-          id: transactionPayload.id,
-          reference: transactionPayload.reference,
-          title: transactionPayload.title,
-          kind: transactionPayload.kind,
-          amount: transactionPayload.amount,
-          depositAmount: transactionPayload.depositAmount,
-          currency: transactionPayload.currency,
-          notes: transactionPayload.notes,
-          updatedAt: transactionPayload.updatedAt,
+          id: transaction.id,
+          reference: transaction.reference,
+          title: transaction.title,
+          kind: transaction.kind,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          currency: transaction.currency,
+          notes: transaction.notes,
+          updatedAt: transaction.updatedAt,
           clientProfile: null,
-          link: transactionPayload.link,
+          link: transaction.link,
         }, { qrRemaining: remainingQrCodes(updatedSubscription) }),
         actionUsage: buildVendorActionsUsage(updatedSubscription),
       },

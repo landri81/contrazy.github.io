@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { ContractDocumentViewer } from "@/features/contracts/components/contract-document-viewer"
 
-export function ContractReviewForm({ token, content }: { token: string, content: string }) {
+export function ContractReviewForm({ token, contentHtml }: { token: string, contentHtml: string }) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [reviewed, setReviewed] = useState(false)
@@ -66,8 +67,12 @@ export function ContractReviewForm({ token, content }: { token: string, content:
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <div className="h-[400px] overflow-y-auto rounded-xl border border-border/70 bg-muted/30 p-6 font-mono text-sm whitespace-pre-wrap">
-            {content}
+          <div className="rounded-[28px] border border-border/70 bg-[var(--contrazy-bg-muted)]/70 p-3 sm:p-5">
+            <ContractDocumentViewer
+              html={contentHtml}
+              layout="paged"
+              className="mx-auto max-w-[1100px]"
+            />
           </div>
 
           <div className="flex items-start space-x-3 rounded-xl border border-border/70 bg-primary/5 p-4">

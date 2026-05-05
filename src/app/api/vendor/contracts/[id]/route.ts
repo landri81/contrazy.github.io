@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { stripContractMarkup } from "@/features/contracts/contract-content"
 import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
+import { sanitizeContractTemplateContent } from "@/features/contracts/server/contract-rendering"
 import { prisma } from "@/lib/db/prisma"
 
 export async function PUT(
@@ -33,6 +35,15 @@ export async function PUT(
     }
 
     const { name, description, content } = parsedBody.data
+    const sanitizedContent = sanitizeContractTemplateContent(content)
+
+    if (!stripContractMarkup(sanitizedContent).trim()) {
+      return NextResponse.json(
+        { success: false, message: "Contract content is required" },
+        { status: 400 }
+      )
+    }
+
     const templateId = id
 
     // Ensure vendor owns the template
@@ -49,7 +60,7 @@ export async function PUT(
       data: {
         name,
         description,
-        content,
+        content: sanitizedContent,
       },
     })
 

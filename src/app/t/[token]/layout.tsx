@@ -7,6 +7,7 @@ import {
   canCancelClientFlow,
   getClientFlowState,
   getTransactionByToken,
+  hasContractStep,
   type ClientFlowStep,
 } from "@/features/client-flow/server/client-flow-data"
 
@@ -35,20 +36,31 @@ export default async function TokenLayout({
 
   const enabledSteps: ClientFlowStep[] = ["profile", "documents"]
   if (transaction.requiresKyc) enabledSteps.push("kyc")
-  if (transaction.contractTemplateId) {
+  if (hasContractStep(transaction)) {
     enabledSteps.push("contract", "sign")
   }
-  enabledSteps.push("payment", "complete")
+  const shouldShowPaymentStep =
+    Boolean(transaction.depositAmount && transaction.depositAmount > 0) ||
+    Boolean(
+      transaction.amount &&
+        transaction.amount > 0 &&
+        (transaction.paymentCollectionTiming === "AFTER_SIGNING" || transaction.servicePaymentRequestedAt)
+    )
+
+  if (shouldShowPaymentStep) {
+    enabledSteps.push("payment")
+  }
+  enabledSteps.push("complete")
 
   const state = getClientFlowState(transaction)
   const completedSteps: ClientFlowStep[] = []
   if (state.hasProfile) completedSteps.push("profile")
   if (state.hasDocs) completedSteps.push("documents")
   if (state.hasKyc && transaction.requiresKyc) completedSteps.push("kyc")
-  if (state.reviewedContract && transaction.contractTemplateId) completedSteps.push("contract")
-  if (state.hasSignature && transaction.contractTemplateId) completedSteps.push("sign")
-  if (state.financeComplete) completedSteps.push("payment")
-  if (transaction.status === "COMPLETED") completedSteps.push("complete")
+  if (state.reviewedContract && hasContractStep(transaction)) completedSteps.push("contract")
+  if (state.hasSignature && hasContractStep(transaction)) completedSteps.push("sign")
+  if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")
+  if (transaction.status === "COMPLETED" || state.financeComplete) completedSteps.push("complete")
 
   return (
     <ClientFlowShell

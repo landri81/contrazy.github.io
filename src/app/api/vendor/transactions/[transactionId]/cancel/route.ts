@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
+import { AuditActorType } from "@prisma/client"
 
+import {
+  recordDepositOutcome,
+  recordFinanceAuditLog,
+} from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
@@ -14,7 +19,7 @@ export async function POST(
 ) {
   try {
     const { transactionId } = await params
-    const { vendorProfile } = await requireVendorProfileAccess()
+    const { dbUser, session, vendorProfile } = await requireVendorProfileAccess()
     const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
 
     if (response) return response
@@ -22,10 +27,12 @@ export async function POST(
     const blockedResponse = ensureVendorApproved(vendorProfile)
 
     if (blockedResponse) return blockedResponse
+    const actorType =
+      session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
 
     const transaction = await prisma.transaction.findFirst({
       where: { id: transactionId, vendorId: vendorProfile.id },
-      include: { depositAuthorization: true, vendor: true },
+      include: { depositAuthorization: true, vendor: true, clientProfile: true },
     })
 
     if (!transaction) {
@@ -53,15 +60,17 @@ export async function POST(
 
     await prisma.$transaction(async (tx) => {
       // Release the Stripe hold if deposit is still authorized
-      if (depositAuth?.status === "AUTHORIZED" && depositAuth.stripeIntentId) {
-        try {
-          await stripe.paymentIntents.cancel(
-            depositAuth.stripeIntentId,
-            {},
-            getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
-          )
-        } catch (stripeErr) {
-          console.warn("Stripe cancel intent failed during transaction cancel:", stripeErr)
+      if (depositAuth?.status === "AUTHORIZED") {
+        if (depositAuth.stripeIntentId) {
+          try {
+            await stripe.paymentIntents.cancel(
+              depositAuth.stripeIntentId,
+              {},
+              getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
+            )
+          } catch (stripeErr) {
+            console.warn("Stripe cancel intent failed during transaction cancel:", stripeErr)
+          }
         }
 
         await tx.depositAuthorization.update({
@@ -76,19 +85,53 @@ export async function POST(
       })
     })
 
-    try {
-      await recordTransactionEvent(prisma, {
+    if (depositAuth?.status === "AUTHORIZED") {
+      await recordDepositOutcome(prisma, {
         transactionId: transaction.id,
-        type: "TRANSACTION_CANCELLED",
-        title: "Transaction cancelled",
-        detail: depositAuth?.status === "AUTHORIZED"
-          ? "Transaction cancelled and deposit hold released."
-          : "Transaction cancelled.",
-        dedupeKey: `event:cancelled:${transaction.id}`,
+        amount: depositAuth.amount,
+        actualAmount: depositAuth.amount,
+        currency: depositAuth.currency,
+        stripeIntentId: depositAuth.stripeIntentId,
+        action: "release",
+        reason: "transaction_cancelled",
+        vendorBusinessEmail: transaction.vendor?.businessEmail,
+        vendorBusinessName: transaction.vendor?.businessName,
+        clientFullName: transaction.clientProfile?.fullName,
+        clientEmail: transaction.clientProfile?.email,
       })
-    } catch (eventErr) {
-      console.warn("Cancel event recording failed (run prisma migrate dev):", eventErr)
+
+      await recordFinanceAuditLog(prisma, {
+        actorId: dbUser.id,
+        actorType,
+        action: "Cancelled transaction and released deposit hold",
+        entityType: "Transaction",
+        entityId: transaction.id,
+        metadata: {
+          transactionId: transaction.id,
+          depositAuthorizationId: depositAuth.id,
+          releaseReason: "transaction_cancelled",
+          depositStatusAfterRelease: "CANCELLED",
+          amount: depositAuth.amount,
+          currency: depositAuth.currency,
+          stripeIntentId: depositAuth.stripeIntentId ?? null,
+        },
+      })
     }
+
+    await recordTransactionEvent(prisma, {
+      transactionId: transaction.id,
+      type: "TRANSACTION_CANCELLED",
+      title: "Transaction cancelled",
+      detail: depositAuth?.status === "AUTHORIZED"
+        ? "Transaction cancelled and deposit hold released."
+        : "Transaction cancelled.",
+      dedupeKey: `event:cancelled:${transaction.id}`,
+      metadata: {
+        hadAuthorizedDeposit: depositAuth?.status === "AUTHORIZED",
+        depositReleaseReason: depositAuth?.status === "AUTHORIZED" ? "transaction_cancelled" : null,
+        stripeIntentId: depositAuth?.stripeIntentId ?? null,
+      },
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

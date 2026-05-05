@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
 
 type UploadedDoc = {
   publicId: string
@@ -50,8 +51,9 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       formData.append("signature", signature)
       if (folder) formData.append("folder", folder)
 
+      const uploadEndpoint = isPdfFile(file) ? "raw" : "auto"
       const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/${uploadEndpoint}/upload`,
         { method: "POST", body: formData }
       )
       const uploadData = await uploadRes.json()

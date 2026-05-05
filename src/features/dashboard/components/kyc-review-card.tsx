@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/toast"
+import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { cn } from "@/lib/utils"
 
 type KycVerificationRecord = {
@@ -65,7 +66,7 @@ function statusLabel(status: string) {
 }
 
 function isImageUrl(url: string) {
-  return /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url) || url.includes("cloudinary")
+  return /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)
 }
 
 export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
@@ -77,6 +78,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
   const isManualFailed = kyc.provider === "Manual" && kyc.status === "FAILED"
   const documentUrl = kyc.provider === "Manual" ? kyc.summary : null
   const isPdf = documentUrl ? documentUrl.includes(".pdf") || documentUrl.includes("/raw/") : false
+  const documentHref = resolveDocumentAssetUrl(documentUrl)
 
   async function runAction(action: "approve" | "reject" | "request_again") {
     setLoading(true)
@@ -198,13 +200,13 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                   <span className="text-[13px] font-medium text-foreground">Submitted document</span>
                 </div>
                 <a
-                  href={documentUrl}
+                  href={documentHref ?? documentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-[var(--contrazy-teal)] hover:underline"
                 >
                   <ExternalLink className="size-3" />
-                  Open
+                  {isPdf ? "Download" : "Open"}
                 </a>
               </div>
 
@@ -213,12 +215,12 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                   <FileText className="size-5" />
                   PDF document —{" "}
                   <a
-                    href={documentUrl}
+                    href={documentHref ?? documentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[var(--contrazy-teal)] hover:underline"
                   >
-                    click to open
+                    click to download
                   </a>
                 </div>
               ) : isImageUrl(documentUrl) ? (
@@ -234,7 +236,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                 <div className="flex items-center justify-center gap-2 py-6 bg-muted/10 text-sm text-muted-foreground">
                   <ExternalLink className="size-4" />
                   <a
-                    href={documentUrl}
+                    href={documentHref ?? documentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[var(--contrazy-teal)] hover:underline"

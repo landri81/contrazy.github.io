@@ -7,6 +7,7 @@ import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBa
 import { DepositQuickActions } from "@/features/dashboard/components/deposit-quick-actions"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
+import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import type {
   AdminDisputeDetailRecord,
   AdminDisputeListData,
@@ -1134,16 +1135,26 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
             {dispute.documents.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {dispute.documents.map((doc) => (
-                  <a
-                    key={doc.id}
-                    href={doc.assetUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[13px] text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:bg-(--contrazy-teal)/5"
-                  >
-                    <span className="text-[15px]">{doc.type === "PHOTO" ? "🖼" : "📄"}</span>
-                    {doc.fileName ?? doc.label}
-                  </a>
+                  doc.assetUrl ? (
+                    <a
+                      key={doc.id}
+                      href={resolveDocumentAssetUrl(doc.assetUrl, doc.fileName) ?? doc.assetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[13px] text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:bg-(--contrazy-teal)/5"
+                    >
+                      <span className="text-[15px]">{doc.type === "PHOTO" ? "🖼" : "📄"}</span>
+                      {doc.fileName ?? doc.label}
+                    </a>
+                  ) : (
+                    <div
+                      key={doc.id}
+                      className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[13px] text-foreground"
+                    >
+                      <p className="font-medium">{doc.label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{doc.textValue ?? "Text response submitted"}</p>
+                    </div>
+                  )
                 ))}
               </div>
             ) : (

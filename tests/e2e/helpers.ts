@@ -12,7 +12,7 @@ export const e2eUsers = {
 export async function loginAs(page: Page, email: string, password = E2E_PASSWORD) {
   await page.goto("/login")
   await page.getByLabel("Email").fill(email)
-  await page.getByLabel("Password").fill(password)
+  await page.locator("#password").fill(password)
   await page.getByRole("button", { name: "Sign In" }).click()
   await expect(page).not.toHaveURL(/\/login$/)
 }

@@ -22,19 +22,45 @@ export async function incrementVendorSubscriptionUsage(
   field: UsageField,
   amount = 1
 ) {
-  const subscription = await getVendorSubscription(tx, vendorId)
-
-  if (!subscription) {
-    return null
-  }
-
-  return tx.vendorSubscription.update({
+  const result = await tx.vendorSubscription.updateMany({
     where: { vendorId },
     data: {
       [field]: {
         increment: amount,
       },
     },
+  })
+
+  if (result.count === 0) {
+    return null
+  }
+
+  return result
+}
+
+export async function incrementVendorSubscriptionUsageFields(
+  tx: Prisma.TransactionClient | Prisma.DefaultPrismaClient,
+  vendorId: string,
+  increments: Partial<Record<UsageField, number>>
+) {
+  const data = Object.fromEntries(
+    Object.entries(increments)
+      .filter(([, amount]) => typeof amount === "number" && amount > 0)
+      .map(([field, amount]) => [
+        field,
+        {
+          increment: amount as number,
+        },
+      ])
+  ) as Prisma.VendorSubscriptionUpdateInput
+
+  if (Object.keys(data).length === 0) {
+    return getVendorSubscription(tx, vendorId)
+  }
+
+  return tx.vendorSubscription.update({
+    where: { vendorId },
+    data,
   })
 }
 

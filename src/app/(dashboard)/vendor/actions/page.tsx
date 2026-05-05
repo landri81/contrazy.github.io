@@ -15,6 +15,11 @@ export default async function VendorActionsPage() {
     }),
     prisma.checklistTemplate.findMany({
       where: { vendorId: vendorProfile.id },
+      include: {
+        items: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
       orderBy: { name: "asc" },
     }),
     getVendorRecentLinksData(session.user.email, 6),
