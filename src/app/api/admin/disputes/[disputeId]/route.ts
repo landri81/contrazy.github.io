@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { AuditActorType } from "@prisma/client"
+import { AuditActorType, UserRole } from "@prisma/client"
 
 import { recordDepositOutcome } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
-import { canAccessAdminScope } from "@/lib/auth/roles"
+import { canAccessAdminScope, isSuperAdminEmail } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
+import { env } from "@/lib/env"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 import {
   sendClientDisputeResolved,
@@ -19,11 +20,53 @@ export const runtime = "nodejs"
 export const maxDuration = 60
 
 type DisputeAction = "mark_under_review" | "resolve_vendor_wins" | "resolve_client_wins"
+type ResolutionOutcome = "vendor_wins" | "client_wins"
 
 const disputeActionSchema = z.object({
   action: z.enum(["mark_under_review", "resolve_vendor_wins", "resolve_client_wins"]),
   resolution: optionalText("Resolution note", INPUT_LIMITS.adminDisputeResolution).optional(),
 })
+
+function getResolutionOutcome(action: Exclude<DisputeAction, "mark_under_review">): ResolutionOutcome {
+  return action === "resolve_vendor_wins" ? "vendor_wins" : "client_wins"
+}
+
+async function resolveAdminActorUser(
+  session: NonNullable<Awaited<ReturnType<typeof getAuthSession>>>
+) {
+  const email = session.user.email?.toLowerCase()
+
+  if (!email) {
+    return null
+  }
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  })
+
+  if (existingAdmin) {
+    return existingAdmin
+  }
+
+  if (session.user.role !== "SUPER_ADMIN" || !isSuperAdminEmail(email, env.SUPER_ADMIN_EMAIL)) {
+    return null
+  }
+
+  return prisma.user.upsert({
+    where: { email },
+    update: {
+      name: session.user.name ?? "Super Admin",
+      role: UserRole.SUPER_ADMIN,
+    },
+    create: {
+      email,
+      name: session.user.name ?? "Super Admin",
+      role: UserRole.SUPER_ADMIN,
+    },
+    select: { id: true },
+  })
+}
 
 export async function PATCH(
   request: Request,
@@ -72,10 +115,7 @@ export async function PATCH(
 
     const tx = dispute.transaction
     const depositAuth = tx.depositAuthorization
-    const adminUser = await prisma.user.findUnique({
-      where: { email: session.user.email.toLowerCase() },
-      select: { id: true },
-    })
+    const adminUser = await resolveAdminActorUser(session)
     const actorType =
       session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
 
@@ -122,12 +162,15 @@ export async function PATCH(
     // Stripe is NOT touched. Deposit stays AUTHORIZED so vendor can choose
     // full capture, partial capture, or release from their own dashboard.
     if (action === "resolve_vendor_wins") {
+      const resolutionOutcome = getResolutionOutcome(action)
+      const persistedResolution = resolutionText || resolutionOutcome
+
       await prisma.$transaction(async (txClient) => {
         await txClient.dispute.update({
           where: { id: disputeId },
           data: {
             status: "RESOLVED",
-            resolution: resolutionText || null,
+            resolution: persistedResolution,
             resolvedByAdminId: adminUser?.id ?? null,
             resolvedAt: now,
           },
@@ -146,6 +189,11 @@ export async function PATCH(
           title: "Dispute resolved — vendor's claim upheld",
           detail: resolutionText || "Admin ruled in vendor's favour. Deposit control returned to vendor.",
           dedupeKey: `event:dispute-resolved:${disputeId}`,
+          metadata: {
+            resolutionOutcome,
+            resolutionNote: resolutionText || null,
+            resolvedByAdminId: adminUser?.id ?? null,
+          },
         })
       } catch { /* non-blocking */ }
 
@@ -157,7 +205,11 @@ export async function PATCH(
             action: "Resolved dispute: vendor wins — deposit control returned to vendor",
             entityType: "Dispute",
             entityId: disputeId,
-            metadata: { resolution: resolutionText || null },
+            metadata: {
+              resolution: persistedResolution,
+              resolutionOutcome,
+              resolutionNote: resolutionText || null,
+            },
           },
         })
       } catch { /* non-blocking */ }
@@ -203,11 +255,14 @@ export async function PATCH(
         data: { status: "RELEASED", releasedAt: now },
       })
 
+      const resolutionOutcome = getResolutionOutcome(action)
+      const persistedResolution = resolutionText || resolutionOutcome
+
       await txClient.dispute.update({
         where: { id: disputeId },
         data: {
           status: "LOST",
-          resolution: resolutionText || null,
+          resolution: persistedResolution,
           resolvedByAdminId: adminUser?.id ?? null,
           resolvedAt: now,
         },
@@ -218,6 +273,9 @@ export async function PATCH(
         data: { status: "COMPLETED" },
       })
     })
+
+    const resolutionOutcome = getResolutionOutcome(action)
+    const persistedResolution = resolutionText || resolutionOutcome
 
     await recordDepositOutcome(prisma, {
       transactionId: tx.id,
@@ -243,7 +301,9 @@ export async function PATCH(
           entityType: "Dispute",
           entityId: disputeId,
           metadata: {
-            resolution: resolutionText || null,
+            resolution: persistedResolution,
+            resolutionOutcome,
+            resolutionNote: resolutionText || null,
             transactionId: tx.id,
             depositAuthorizationId: depositAuth.id,
             releaseReason: "admin_dispute_release",
