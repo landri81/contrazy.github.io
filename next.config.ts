@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
   outputFileTracingIncludes: {
     "/api/client/*/sign": ["./node_modules/@sparticuz/chromium/bin/**/*"],
-    "/api/dev/signed-document-pdf": ["./node_modules/@sparticuz/chromium/bin/**/*"],
   },
   images: {
     remotePatterns: [

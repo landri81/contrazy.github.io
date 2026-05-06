@@ -123,16 +123,87 @@ function normalizeImageToDataUrl(file: File): Promise<string> {
       img.onload = () => {
         const W = 560
         const H = 156
-        const scale = Math.min(W / img.width, H / img.height, 1)
-        const sw = img.width * scale
-        const sh = img.height * scale
+        const CROP_PADDING = 18
+        const sampleCanvas = document.createElement("canvas")
+        sampleCanvas.width = img.width
+        sampleCanvas.height = img.height
+        const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true })!
+        sampleCtx.drawImage(img, 0, 0)
+
+        const pixels = sampleCtx.getImageData(0, 0, img.width, img.height).data
+        const sampleSize = Math.min(16, img.width, img.height)
+        const cornerPoints = [
+          [0, 0],
+          [Math.max(0, img.width - sampleSize), 0],
+          [0, Math.max(0, img.height - sampleSize)],
+          [Math.max(0, img.width - sampleSize), Math.max(0, img.height - sampleSize)],
+        ] as const
+        let bgR = 0
+        let bgG = 0
+        let bgB = 0
+        let bgA = 0
+        let bgCount = 0
+
+        for (const [startX, startY] of cornerPoints) {
+          for (let y = startY; y < startY + sampleSize; y += 1) {
+            for (let x = startX; x < startX + sampleSize; x += 1) {
+              const index = (y * img.width + x) * 4
+              bgR += pixels[index]
+              bgG += pixels[index + 1]
+              bgB += pixels[index + 2]
+              bgA += pixels[index + 3]
+              bgCount += 1
+            }
+          }
+        }
+
+        bgR /= bgCount
+        bgG /= bgCount
+        bgB /= bgCount
+        bgA /= bgCount
+
+        let minX = img.width
+        let minY = img.height
+        let maxX = -1
+        let maxY = -1
+
+        for (let y = 0; y < img.height; y += 1) {
+          for (let x = 0; x < img.width; x += 1) {
+            const index = (y * img.width + x) * 4
+            const r = pixels[index]
+            const g = pixels[index + 1]
+            const b = pixels[index + 2]
+            const a = pixels[index + 3]
+            const backgroundDistance =
+              Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) + Math.abs(a - bgA) * 0.5
+            const isInk = a > 24 && backgroundDistance > 54
+
+            if (isInk) {
+              minX = Math.min(minX, x)
+              minY = Math.min(minY, y)
+              maxX = Math.max(maxX, x)
+              maxY = Math.max(maxY, y)
+            }
+          }
+        }
+
+        const hasCrop = maxX >= minX && maxY >= minY
+        const sx = hasCrop ? Math.max(0, minX - CROP_PADDING) : 0
+        const sy = hasCrop ? Math.max(0, minY - CROP_PADDING) : 0
+        const sWidth = hasCrop ? Math.min(img.width - sx, maxX - sx + CROP_PADDING + 1) : img.width
+        const sHeight = hasCrop ? Math.min(img.height - sy, maxY - sy + CROP_PADDING + 1) : img.height
+        const scale = Math.min((W - 32) / sWidth, (H - 24) / sHeight)
+        const sw = sWidth * scale
+        const sh = sHeight * scale
         const canvas = document.createElement("canvas")
         canvas.width = W
         canvas.height = H
         const ctx = canvas.getContext("2d")!
         ctx.fillStyle = "#ffffff"
         ctx.fillRect(0, 0, W, H)
-        ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh)
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = "high"
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, (W - sw) / 2, (H - sh) / 2, sw, sh)
         resolve(canvas.toDataURL("image/png"))
       }
       img.src = e.target!.result as string

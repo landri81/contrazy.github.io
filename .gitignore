@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+Codex History - Migrate sample to Next.js app.md
 
 # debug
 npm-debug.log*

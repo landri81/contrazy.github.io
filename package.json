@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs generate",
     "prisma:migrate:deploy": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs migrate deploy",
-    "all": "npm run prisma:generate && npm run prisma:migrate:deploy",
+    "all": "rm -rf .next && npm run prisma:generate && npm run prisma:migrate:deploy && npm run dev",
     "prisma:migrate:dev": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs migrate dev",
     "prisma:push": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs db push",
     "prisma:studio": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs studio",

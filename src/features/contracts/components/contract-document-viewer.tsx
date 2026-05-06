@@ -6,6 +6,7 @@ import { normalizeContractTemplateMarkup } from "@/features/contracts/contract-c
 import { cn } from "@/lib/utils"
 
 export type ContractDocumentMeta = {
+  title?: string | null
   vendorName?: string | null
   clientName?: string | null
   reference?: string | null
@@ -15,9 +16,9 @@ export type ContractDocumentMeta = {
 }
 
 function formatMoney(amount: number | null | undefined, currency: string | null | undefined) {
-  if (!amount) return null
+  if (amount == null) return null
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: currency ?? "EUR",
     }).format(amount / 100)
@@ -26,100 +27,104 @@ function formatMoney(amount: number | null | undefined, currency: string | null 
   }
 }
 
+function ContrazyWordmark() {
+  return (
+    <div className="inline-flex items-center gap-2" aria-label="Contrazy">
+      <img
+        src="/logo/favicon-contrazy-64.png"
+        alt="Contrazy"
+        width={24}
+        height={24}
+        className="size-6"
+      />
+      <span className="font-sans text-[1.05rem] font-extrabold tracking-tight text-slate-950">
+        Con<span className="text-(--contrazy-teal)">trazy</span>
+      </span>
+    </div>
+  )
+}
+
 function DocumentHeader({ meta }: { meta: ContractDocumentMeta }) {
   const formattedAmount = formatMoney(meta.amount, meta.currency)
   const formattedDeposit = formatMoney(meta.depositAmount, meta.currency)
 
   return (
-    <div className="mb-7 border-b border-slate-200 pb-6">
-      {/* Badge + reference */}
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div className="inline-flex items-center rounded-sm border border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-          Agreement
-        </div>
-        {meta.reference && (
-          <span className="font-mono text-[11px] text-slate-400">
-            {meta.reference}
-          </span>
-        )}
+    <header className="mb-5">
+      <div className="flex items-end justify-between border-b border-slate-200 pb-3">
+        <ContrazyWordmark />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+          Agreement Review
+        </p>
       </div>
 
-      {/* Parties table */}
-      <div className="space-y-2">
-        {meta.vendorName && (
-          <div className="grid grid-cols-[140px_1fr] items-baseline gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Service provider
-            </span>
-            <span className="text-sm font-semibold text-slate-800">{meta.vendorName}</span>
-          </div>
-        )}
-        {meta.clientName && (
-          <div className="grid grid-cols-[140px_1fr] items-baseline gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Client
-            </span>
-            <span className="text-sm font-semibold text-slate-800">{meta.clientName}</span>
-          </div>
-        )}
-        {(formattedAmount || formattedDeposit) && (
-          <div className="mt-3 flex flex-wrap gap-4 pt-1">
-            {formattedAmount && (
-              <div className="rounded border border-slate-200 bg-slate-50 px-3 py-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  Total amount
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-slate-800">{formattedAmount}</p>
-              </div>
-            )}
-            {formattedDeposit && (
-              <div className="rounded border border-slate-200 bg-slate-50 px-3 py-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                  Deposit
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-slate-800">{formattedDeposit}</p>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="mb-3 mt-3 flex flex-col gap-0.5">
+        <h1 className="text-xl font-semibold leading-snug tracking-tight text-slate-900">
+          {meta.title?.trim() || "Agreement"}
+        </h1>
+        <p className="text-xs text-slate-400">
+          Review copy - locked transaction snapshot
+        </p>
       </div>
-    </div>
+
+      <table className="w-full border-collapse">
+        <tbody>
+          {meta.vendorName && <DocumentHeaderRow label="Service Provider" value={meta.vendorName} />}
+          {meta.clientName && <DocumentHeaderRow label="Client" value={meta.clientName} />}
+          {meta.reference && <DocumentHeaderRow label="Reference" value={meta.reference} mono />}
+          {formattedAmount && (
+            <DocumentHeaderRow label="Service Amount" value={formattedAmount} />
+          )}
+          {formattedDeposit && (
+            <DocumentHeaderRow label="Deposit" value={formattedDeposit} />
+          )}
+        </tbody>
+      </table>
+    </header>
   )
 }
 
-function SignaturePlaceholder() {
+function DocumentHeaderRow({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string
+  value: string
+  mono?: boolean
+}) {
   return (
-    <div className="mt-10 border-t border-slate-200 pt-7">
-      <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-        Electronic signature
-      </p>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <div className="h-14 rounded border border-dashed border-slate-300 bg-slate-50" />
-          <div className="mt-2 flex justify-between text-[11px] text-slate-400">
-            <span>Client signature</span>
-          </div>
-        </div>
-        <div className="space-y-2 pt-1">
-          <div className="flex justify-between text-[11px]">
-            <span className="text-slate-400">Signer</span>
-            <span className="text-slate-500">—</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-slate-400">Date</span>
-            <span className="text-slate-500">—</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-slate-400">Method</span>
-            <span className="text-slate-500">Electronic</span>
-          </div>
-        </div>
+    <tr className="border-b border-slate-100 last:border-0">
+      <td className="w-36 whitespace-nowrap py-1.5 pr-6 align-middle text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+        {label}
+      </td>
+      <td className={cn("py-1.5 text-[13px] font-medium text-slate-800", mono && "font-mono text-slate-600")}>
+        {value}
+      </td>
+    </tr>
+  )
+}
+
+function ReviewFooter({ reference }: { reference?: string | null }) {
+  return (
+    <footer className="mt-8 flex items-center justify-between border-t border-slate-200 pt-3">
+      <div className="inline-flex items-center gap-2" aria-label="Contrazy">
+        <img
+          src="/logo/favicon-contrazy-64.png"
+          alt="Contrazy"
+          width={16}
+          height={16}
+          className="size-4 opacity-75"
+        />
+        <span className="font-sans text-[0.78rem] font-extrabold tracking-tight text-slate-400">
+          Con<span className="text-(--contrazy-teal) opacity-80">trazy</span>
+        </span>
       </div>
-      <p className="mt-4 text-[11px] leading-relaxed text-slate-400">
-        This document will be electronically signed and a signed PDF artifact will be generated
-        upon completion.
-      </p>
-    </div>
+      {reference ? (
+        <p className="font-mono text-[10px] text-slate-400">
+          {reference} - contrazy.com
+        </p>
+      ) : null}
+    </footer>
   )
 }
 
@@ -161,7 +166,7 @@ export function ContractDocumentViewer({
                 className="contract-document"
                 dangerouslySetInnerHTML={{ __html: normalizedHtml }}
               />
-              {documentMeta && <SignaturePlaceholder />}
+              <ReviewFooter reference={documentMeta?.reference} />
             </div>
           </div>
         </div>

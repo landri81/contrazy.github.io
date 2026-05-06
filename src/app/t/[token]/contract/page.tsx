@@ -26,6 +26,10 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
   const populatedContract = buildPopulatedContractContent(transaction)
 
   const documentMeta = {
+    title:
+      transaction.contractArtifact?.sourceTemplateName ??
+      transaction.contractTemplate?.name ??
+      transaction.title,
     vendorName: transaction.vendor?.businessName ?? null,
     clientName: buildClientDisplayName(transaction.clientProfile) || null,
     reference: transaction.reference,
@@ -35,19 +39,19 @@ export default async function ClientContractPage(props: { params: Promise<{ toke
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <div className="rounded-lg border border-white bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur-sm sm:p-6">
-        <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+    <div className="mx-auto max-w-5xl space-y-5">
+      <section className="flex flex-col items-center text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           Review agreement
-        </div>
-        <h2 className="mt-3 font-heading text-2xl font-semibold tracking-tight text-foreground">
+        </p>
+        <h2 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-foreground">
           Read the agreement carefully
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
           Review all terms before signing. Tick the box at the bottom to confirm you have read
           and understood the agreement.
         </p>
-      </div>
+      </section>
 
       <ContractReviewForm
         token={token}

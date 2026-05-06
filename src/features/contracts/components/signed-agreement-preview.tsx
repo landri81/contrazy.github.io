@@ -135,15 +135,15 @@ export function SignedAgreementPreview({
                   Electronic Signature
                 </p>
 
-                <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
+                <div className="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)]">
                   {/* Signature image */}
                   <div>
-                    <div className="flex h-28 items-center justify-center rounded-lg border border-slate-200 bg-white px-4">
+                    <div className="flex h-36 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-3">
                       {signatureImageUrl ? (
                         <img
                           src={signatureImageUrl}
                           alt="Signature"
-                          className="max-h-14 w-auto object-contain"
+                          className="max-h-28 max-w-full object-contain"
                         />
                       ) : (
                         <span className="text-xs text-slate-400 italic">Unavailable</span>

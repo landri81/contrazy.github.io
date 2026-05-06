@@ -70,7 +70,7 @@ export function ClientFlowShell({
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(17,201,176,0.13),transparent_32rem),linear-gradient(180deg,#f8fafc_0%,#eef3f7_100%)] text-foreground">
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 shadow-sm shadow-slate-900/5 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full  items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--contrazy-navy)] text-white shadow-sm shadow-slate-900/15">
               <span className="text-sm font-extrabold tracking-tight">
@@ -107,7 +107,7 @@ export function ClientFlowShell({
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8 lg:py-8">
+      <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8 lg:py-8">
         <motion.aside
           initial={reduceMotion ? false : { opacity: 0, x: -18 }}
           animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
@@ -180,7 +180,9 @@ export function ClientFlowShell({
         </motion.aside>
 
         <section className="min-w-0">
-          <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} />
+          <div className="sticky top-24 z-50">
+            <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} />
+          </div>
 
           <div className="relative mt-6">
             <AnimatePresence mode="wait">
