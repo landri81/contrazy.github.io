@@ -3,7 +3,9 @@ import { readFile } from "fs/promises"
 import { join } from "path"
 
 import type { Prisma, PrismaClient } from "@prisma/client"
+import sparticuzChromium from "@sparticuz/chromium"
 import { PDFDocument, StandardFonts, rgb, type PDFImage, type PDFPage, type PDFFont } from "pdf-lib"
+import { chromium as playwrightCoreChromium } from "playwright-core"
 
 import { renderContractContent } from "@/features/contracts/server/contract-rendering"
 import { htmlToDocumentBlocks } from "@/features/contracts/contract-document-model"
@@ -62,22 +64,16 @@ async function importRuntimeModule<T = any>(specifier: string): Promise<T> {
 
 async function launchPdfBrowser() {
   if (isProductionPdfRuntime()) {
-    const [{ chromium: playwrightChromium }, chromiumModule] = await Promise.all([
-      importRuntimeModule<any>("playwright-core"),
-      importRuntimeModule<any>("@sparticuz/chromium"),
-    ])
-
-    const chromium = chromiumModule.default ?? chromiumModule
-    const executablePath = await chromium.executablePath()
+    const executablePath = await sparticuzChromium.executablePath()
 
     if (!executablePath) {
       throw new Error("Unable to resolve serverless Chromium executable path.")
     }
 
-    return playwrightChromium.launch({
-      args: chromium.args ?? [],
+    return playwrightCoreChromium.launch({
+      args: sparticuzChromium.args ?? [],
       executablePath,
-      headless: typeof chromium.headless === "boolean" ? chromium.headless : true,
+      headless: true,
     })
   }
 
