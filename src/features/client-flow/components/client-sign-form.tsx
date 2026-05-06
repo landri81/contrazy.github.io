@@ -245,7 +245,7 @@ function TypeMethod({
           onChange={(e) => setTypedName(e.target.value)}
           placeholder="e.g. Jane Smith"
           maxLength={100}
-          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-(--contrazy-teal) focus:ring-1 focus:ring-(--contrazy-teal)/20"
+          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-(--contrazy-teal) focus:ring-1 focus:ring-(--contrazy-teal)/20 md:text-sm"
         />
       </div>
 
