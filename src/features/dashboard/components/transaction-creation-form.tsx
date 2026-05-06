@@ -626,7 +626,7 @@ export function TransactionCreationForm({
           >
             {/* ── Step 1: Info ────────────────────────────────────────── */}
             {step === 1 && (
-              <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
+              <div className="mx-auto w-full  space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={FileText}
                   eyebrow="Step one"
@@ -815,7 +815,7 @@ export function TransactionCreationForm({
                             type="button"
                             onClick={() => setPaymentCollectionTiming(option.value)}
                             className={cn(
-                              "rounded-2xl border px-4 py-3 text-left transition-all",
+                              "rounded-2xl cursor-pointer border px-4 py-3 text-left transition-all",
                               active
                                 ? "border-[var(--contrazy-teal)]/40 bg-[var(--contrazy-teal)]/8 shadow-sm"
                                 : "border-border/70 bg-muted/15 hover:bg-muted/30"

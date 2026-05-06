@@ -9,9 +9,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { ContractDocumentViewer } from "@/features/contracts/components/contract-document-viewer"
+import {
+  ContractDocumentViewer,
+  type ContractDocumentMeta,
+} from "@/features/contracts/components/contract-document-viewer"
 
-export function ContractReviewForm({ token, contentHtml }: { token: string, contentHtml: string }) {
+export function ContractReviewForm({
+  token,
+  contentHtml,
+  documentMeta,
+}: {
+  token: string
+  contentHtml: string
+  documentMeta?: ContractDocumentMeta
+}) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [reviewed, setReviewed] = useState(false)
@@ -27,7 +38,7 @@ export function ContractReviewForm({ token, contentHtml }: { token: string, cont
       const res = await fetch(`/api/client/${token}/contract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewed: true })
+        body: JSON.stringify({ reviewed: true }),
       })
 
       if (res.ok) {
@@ -67,19 +78,20 @@ export function ContractReviewForm({ token, contentHtml }: { token: string, cont
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <div className="rounded-[28px] border border-border/70 bg-[var(--contrazy-bg-muted)]/70 p-3 sm:p-5">
+          <div className="rounded-[28px] border border-border/70 bg-(--contrazy-bg-muted)/70 p-3 sm:p-5">
             <ContractDocumentViewer
               html={contentHtml}
               layout="paged"
-              className="mx-auto max-w-[1100px]"
+              className="mx-auto max-w-275"
+              documentMeta={documentMeta}
             />
           </div>
 
           <div className="flex items-start space-x-3 rounded-xl border border-border/70 bg-primary/5 p-4">
-            <Checkbox 
-              id="reviewed" 
-              checked={reviewed} 
-              onCheckedChange={(c: boolean) => setReviewed(c)} 
+            <Checkbox
+              id="reviewed"
+              checked={reviewed}
+              onCheckedChange={(c: boolean) => setReviewed(c)}
             />
             <div className="grid gap-1.5 leading-none">
               <Label htmlFor="reviewed" className="text-base font-medium">
@@ -94,7 +106,7 @@ export function ContractReviewForm({ token, contentHtml }: { token: string, cont
         <CardFooter>
           <Button
             type="submit"
-            className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
+            className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
             disabled={isPending || !reviewed}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

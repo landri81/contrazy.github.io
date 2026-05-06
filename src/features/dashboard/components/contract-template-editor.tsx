@@ -742,12 +742,20 @@ export function ContractTemplateEditor({
           </Button>
         </div>
 
-        <div className="rounded-[30px] border border-border/70 bg-[var(--contrazy-bg-muted)]/85 p-3 shadow-sm sm:p-5">
+        <div className="rounded-[30px] border border-border/70 bg-(--contrazy-bg-muted)/85 p-3 shadow-sm sm:p-5">
           <ContractDocumentViewer
             html={previewHtml}
             layout="paged"
             sampleMode
-            className="mx-auto max-w-[1100px]"
+            className="mx-auto max-w-275"
+            documentMeta={{
+              vendorName: "Polarsoft BD",
+              clientName: "Alex Morgan",
+              reference: "TX-2048-A",
+              amount: 320000,
+              depositAmount: 80000,
+              currency: "EUR",
+            }}
           />
         </div>
       </section>

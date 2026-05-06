@@ -440,6 +440,8 @@ model SignatureRecord {
   signerEmail      String?
   method           String?         @default("Canvas Signature")
   signatureDataUrl String?         @db.Text
+  typedValue       String?
+  fontKey          String?
   ipAddress        String?
   signedAt         DateTime?
   createdAt        DateTime        @default(now())

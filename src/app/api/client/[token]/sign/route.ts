@@ -8,6 +8,9 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 
+export const runtime = "nodejs"
+export const maxDuration = 60
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> }
@@ -33,18 +36,39 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
-    const { signatureDataUrl, signedTimezone } = await request.json()
+    const body = await request.json()
+
+    const signatureDataUrl: unknown = body.signatureDataUrl
+    const signedTimezone: string | null =
+      typeof body.signedTimezone === "string" ? body.signedTimezone : null
+    const signatureMethod: string =
+      typeof body.signatureMethod === "string" ? body.signatureMethod : "draw"
+    const typedValue: string | null =
+      typeof body.typedValue === "string" ? body.typedValue.slice(0, 500) : null
+    const fontKey: string | null =
+      typeof body.fontKey === "string" ? body.fontKey.slice(0, 100) : null
 
     if (
       !signatureDataUrl ||
       typeof signatureDataUrl !== "string" ||
-      !signatureDataUrl.startsWith("data:image/png;base64,")
+      !signatureDataUrl.startsWith("data:image/")
     ) {
-      return NextResponse.json({ success: false, message: "A drawn signature is required." }, { status: 400 })
+      return NextResponse.json(
+        { success: false, message: "A valid signature image is required." },
+        { status: 400 }
+      )
     }
 
+    const methodLabel =
+      signatureMethod === "type"
+        ? "Typed Signature"
+        : signatureMethod === "upload"
+          ? "Uploaded Signature"
+          : "Canvas Signature"
+
     const forwardedFor = request.headers.get("x-forwarded-for")
-    const ipAddress = forwardedFor?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? null
+    const ipAddress =
+      forwardedFor?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? null
 
     const transactionId = link.transaction.id
     const vendorId = link.transaction.vendorId
@@ -69,8 +93,10 @@ export async function POST(
         status: "SIGNED",
         signerName,
         signerEmail,
-        method: "Canvas Signature",
+        method: methodLabel,
         signatureDataUrl,
+        typedValue,
+        fontKey,
         ipAddress,
         signedAt: new Date(),
       },
@@ -79,8 +105,10 @@ export async function POST(
         status: "SIGNED",
         signerName,
         signerEmail,
-        method: "Canvas Signature",
+        method: methodLabel,
         signatureDataUrl,
+        typedValue,
+        fontKey,
         ipAddress,
         signedAt: new Date(),
       },
@@ -91,11 +119,19 @@ export async function POST(
       data: { status: "SIGNED" },
     })
 
+    const signatureEventMeta = {
+      signatureMethod,
+      methodLabel,
+      ...(signatureMethod === "type" && typedValue ? { typedValue } : null),
+      ...(signatureMethod === "type" && fontKey ? { fontKey } : null),
+    }
+
     await recordTransactionEvent(prisma, {
       transactionId,
       type: "SIGNATURE_COMPLETED",
       title: "Agreement signed",
-      detail: `${signerName} confirmed the agreement.`,
+      detail: `${signerName} confirmed the agreement via ${methodLabel}.`,
+      metadata: signatureEventMeta,
       dedupeKey: `event:signature:${transactionId}`,
     })
 
@@ -106,7 +142,7 @@ export async function POST(
     await generateSignedContractArtifact(prisma, {
       transactionId,
       signatureDataUrl,
-      signedTimezone: typeof signedTimezone === "string" ? signedTimezone : null,
+      signedTimezone,
     })
 
     const transaction = await prisma.transaction.findUnique({
