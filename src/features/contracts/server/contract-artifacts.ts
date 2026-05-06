@@ -29,6 +29,8 @@ const contractArtifactInclude = {
   signatureRecord: true,
 } satisfies Prisma.TransactionInclude
 
+const PDF_RENDER_TIMEOUT_MS = Number(process.env.CONTRAZY_PDF_TIMEOUT_MS ?? 45_000)
+
 type TransactionWithContractContext = Prisma.TransactionGetPayload<{
   include: typeof contractArtifactInclude
 }>
@@ -66,11 +68,16 @@ async function launchPdfBrowser() {
     ])
 
     const chromium = chromiumModule.default ?? chromiumModule
+    const executablePath = await chromium.executablePath()
+
+    if (!executablePath) {
+      throw new Error("Unable to resolve serverless Chromium executable path.")
+    }
 
     return playwrightChromium.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
+      args: chromium.args ?? [],
+      executablePath,
+      headless: typeof chromium.headless === "boolean" ? chromium.headless : true,
     })
   }
 
@@ -504,7 +511,8 @@ async function buildSignedContractPdf({
     const renderToken = createSignedDocumentRenderToken(transactionId)
     const renderUrl = `${baseUrl}/print/signed-agreement/${transactionId}?sig=${renderToken}`
 
-    await page.goto(renderUrl, { waitUntil: "networkidle", timeout: 60_000 })
+    page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS)
+    await page.goto(renderUrl, { waitUntil: "networkidle", timeout: PDF_RENDER_TIMEOUT_MS })
 
     const contentHeight = await page.evaluate(() =>
       Math.max(

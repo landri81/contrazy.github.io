@@ -5,9 +5,11 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
   AlertCircle,
+  CheckCircle2,
   ImageUp,
   Loader2,
   PenLine,
+  RefreshCcw,
   ShieldCheck,
   Type,
   X,
@@ -26,6 +28,23 @@ const SIGNATURE_FONTS = [
 
 type SigFont = (typeof SIGNATURE_FONTS)[number]
 type SignatureMethod = "draw" | "type" | "upload"
+type ExistingSignatureState = {
+  status: string
+  isFinalized: boolean
+  signerName?: string | null
+  signerEmail?: string | null
+  method?: string | null
+  signatureDataUrl?: string | null
+  typedValue?: string | null
+  fontKey?: string | null
+  signedAt?: string | null
+}
+
+type ClientSignFormProps = {
+  token: string
+  existingSignature?: ExistingSignatureState | null
+  nextStepAfterSignature?: string
+}
 
 const GFONTS_URL =
   "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat:wght@700&family=Great+Vibes&family=Pacifico&display=swap"
@@ -79,6 +98,19 @@ async function renderTypedSignature(text: string, font: SigFont): Promise<string
   ctx.fillText(text, W / 2, H / 2)
 
   return canvas.toDataURL("image/png")
+}
+
+function methodFromSignatureLabel(method: string | null | undefined): SignatureMethod {
+  const normalized = method?.toLowerCase() ?? ""
+
+  if (normalized.includes("type")) return "type"
+  if (normalized.includes("upload")) return "upload"
+
+  return "draw"
+}
+
+function fontFromKey(fontKey: string | null | undefined): SigFont {
+  return SIGNATURE_FONTS.find((font) => font.key === fontKey) ?? SIGNATURE_FONTS[0]
 }
 
 function normalizeImageToDataUrl(file: File): Promise<string> {
@@ -259,23 +291,46 @@ function UploadMethod({
 
 // ─── Main form ───────────────────────────────────────────────────────────────
 
-export function ClientSignForm({ token }: { token: string }) {
+export function ClientSignForm({
+  token,
+  existingSignature,
+  nextStepAfterSignature = "payment",
+}: ClientSignFormProps) {
   const router = useRouter()
   useSignatureFonts()
 
-  const [method, setMethod] = useState<SignatureMethod>("draw")
+  const initialMethod = methodFromSignatureLabel(existingSignature?.method)
+  const initialSignatureDataUrl = existingSignature?.signatureDataUrl ?? null
+  const hasFinalizedSignature = Boolean(
+    existingSignature?.status === "SIGNED" &&
+      existingSignature.isFinalized &&
+      initialSignatureDataUrl
+  )
+  const hasUnfinalizedSignature = Boolean(
+    existingSignature?.signatureDataUrl && !existingSignature.isFinalized
+  )
+
+  const [method, setMethod] = useState<SignatureMethod>(initialMethod)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Per-method captured data URLs
-  const [drawDataUrl, setDrawDataUrl] = useState<string | null>(null)
+  const [drawDataUrl, setDrawDataUrl] = useState<string | null>(
+    initialMethod === "draw" ? initialSignatureDataUrl : null
+  )
 
-  const [typedName, setTypedName] = useState("")
-  const [selectedFont, setSelectedFont] = useState<SigFont>(SIGNATURE_FONTS[0])
-  const [typeDataUrl, setTypeDataUrl] = useState<string | null>(null)
+  const [typedName, setTypedName] = useState(existingSignature?.typedValue ?? "")
+  const [selectedFont, setSelectedFont] = useState<SigFont>(
+    fontFromKey(existingSignature?.fontKey)
+  )
+  const [typeDataUrl, setTypeDataUrl] = useState<string | null>(
+    initialMethod === "type" ? initialSignatureDataUrl : null
+  )
   const typeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(null)
+  const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(
+    initialMethod === "upload" ? initialSignatureDataUrl : null
+  )
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   // Regenerate typed preview with debounce
@@ -298,6 +353,7 @@ export function ClientSignForm({ token }: { token: string }) {
     method === "draw"   ? drawDataUrl :
     method === "type"   ? typeDataUrl :
     uploadDataUrl
+  const continueStep = nextStepAfterSignature === "sign" ? "payment" : nextStepAfterSignature
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -321,9 +377,12 @@ export function ClientSignForm({ token }: { token: string }) {
     e.target.value = ""
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!signatureDataUrl) return
+  async function submitSignature(input: {
+    dataUrl: string
+    method: SignatureMethod
+    typedName?: string
+    fontKey?: string
+  }) {
     setIsPending(true)
     setError(null)
 
@@ -332,13 +391,13 @@ export function ClientSignForm({ token }: { token: string }) {
 
     try {
       const body: Record<string, unknown> = {
-        signatureDataUrl,
+        signatureDataUrl: input.dataUrl,
         signedTimezone,
-        signatureMethod: method,
+        signatureMethod: input.method,
       }
-      if (method === "type") {
-        body.typedValue = typedName
-        body.fontKey = selectedFont.key
+      if (input.method === "type") {
+        body.typedValue = input.typedName ?? typedName
+        body.fontKey = input.fontKey ?? selectedFont.key
       }
 
       const response = await fetch(`/api/client/${token}/sign`, {
@@ -368,14 +427,105 @@ export function ClientSignForm({ token }: { token: string }) {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!signatureDataUrl) return
+
+    await submitSignature({
+      dataUrl: signatureDataUrl,
+      method,
+      typedName,
+      fontKey: selectedFont.key,
+    })
+  }
+
   const tabs = [
     { key: "draw"   as SignatureMethod, label: "Draw",   Icon: PenLine  },
     { key: "type"   as SignatureMethod, label: "Type",   Icon: Type     },
     { key: "upload" as SignatureMethod, label: "Upload", Icon: ImageUp  },
   ]
 
+  if (hasFinalizedSignature) {
+    return (
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 shadow-sm">
+          <div className="flex items-start gap-3 border-b border-emerald-100 px-4 py-4">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+            <div>
+              <h3 className="text-sm font-semibold text-emerald-950">Signature already recorded</h3>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800/80">
+                Your signed agreement has been generated. Continue to the next step.
+              </p>
+            </div>
+          </div>
+          <div className="bg-white px-4 py-4">
+            <div className="flex h-32 items-center justify-center rounded-xl border border-border/60 bg-white px-4">
+              <img
+                src={initialSignatureDataUrl!}
+                alt="Saved signature"
+                className="max-h-20 w-auto object-contain"
+              />
+            </div>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+              {existingSignature?.signerName && (
+                <>
+                  <dt className="font-medium text-muted-foreground">Name</dt>
+                  <dd className="text-foreground">{existingSignature.signerName}</dd>
+                </>
+              )}
+              {existingSignature?.signerEmail && (
+                <>
+                  <dt className="font-medium text-muted-foreground">Email</dt>
+                  <dd className="text-foreground">{existingSignature.signerEmail}</dd>
+                </>
+              )}
+              {existingSignature?.method && (
+                <>
+                  <dt className="font-medium text-muted-foreground">Method</dt>
+                  <dd className="text-foreground">{existingSignature.method}</dd>
+                </>
+              )}
+            </dl>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          className="h-12 w-full bg-(--contrazy-navy) text-base font-semibold text-white hover:bg-(--contrazy-navy-soft) active:scale-[0.98]"
+          onClick={() => router.push(`/t/${token}/${continueStep}`)}
+        >
+          Continue
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {hasUnfinalizedSignature && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-950">
+          <div className="flex gap-2.5">
+            <RefreshCcw className="mt-0.5 size-4 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold">Saved signature found</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-900/80">
+                Your signature image was saved, but the final signed agreement still needs to be
+                generated. Tap Sign and Continue again to finish this step.
+              </p>
+            </div>
+          </div>
+          {initialSignatureDataUrl && (
+            <div className="mt-3 flex h-24 items-center justify-center rounded-lg border border-amber-200 bg-white px-3">
+              <img
+                src={initialSignatureDataUrl}
+                alt="Saved signature"
+                className="max-h-16 w-auto object-contain"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-sm">
         {/* Method tabs */}
         <div className="flex border-b border-border/50">

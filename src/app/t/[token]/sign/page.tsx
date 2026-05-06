@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation"
 
 import { ClientSignForm } from "@/features/client-flow/components/client-sign-form"
-import { getTransactionByToken, validateClientStep } from "@/features/client-flow/server/client-flow-data"
+import {
+  getNextClientStep,
+  getTransactionByToken,
+  validateClientStep,
+} from "@/features/client-flow/server/client-flow-data"
 
 export default async function ClientSignPage(props: { params: Promise<{ token: string }> }) {
   const { token } = await props.params
@@ -15,6 +19,23 @@ export default async function ClientSignPage(props: { params: Promise<{ token: s
 
   const vendorName = transaction.vendor?.businessName ?? "Vendor"
   const reference = transaction.reference
+  const signatureRecord = transaction.signatureRecord
+  const existingSignature = signatureRecord
+    ? {
+        status: signatureRecord.status,
+        isFinalized: Boolean(
+          signatureRecord.status === "SIGNED" && transaction.contractArtifact?.signedPdfUrl
+        ),
+        signerName: signatureRecord.signerName,
+        signerEmail: signatureRecord.signerEmail,
+        method: signatureRecord.method,
+        signatureDataUrl: signatureRecord.signatureDataUrl,
+        typedValue: signatureRecord.typedValue,
+        fontKey: signatureRecord.fontKey,
+        signedAt: signatureRecord.signedAt?.toISOString() ?? null,
+      }
+    : null
+  const nextStepAfterSignature = getNextClientStep(transaction)
 
   return (
     <div className="mx-auto max-w-lg space-y-4 sm:space-y-5">
@@ -39,7 +60,11 @@ export default async function ClientSignPage(props: { params: Promise<{ token: s
         <p className="mt-0.5 text-xs text-muted-foreground">Reference: {reference}</p>
       </div>
 
-      <ClientSignForm token={token} />
+      <ClientSignForm
+        token={token}
+        existingSignature={existingSignature}
+        nextStepAfterSignature={nextStepAfterSignature}
+      />
     </div>
   )
 }

@@ -74,9 +74,11 @@ export async function POST(
     const vendorId = link.transaction.vendorId
     const signerName = link.transaction.clientProfile?.fullName || "Unknown"
     const signerEmail = link.transaction.clientProfile?.email || "Unknown"
+    const signedAt = new Date()
     const existingSignature = await prisma.signatureRecord.findUnique({
       where: { transactionId },
     })
+    const preparedSignatureStatus = existingSignature?.status === "SIGNED" ? "SIGNED" : "PENDING"
 
     // Run each write independently — no interactive transaction so large
     // base64 payloads don't hit the 5 s connection-hold timeout.
@@ -90,7 +92,7 @@ export async function POST(
     await prisma.signatureRecord.upsert({
       where: { transactionId },
       update: {
-        status: "SIGNED",
+        status: preparedSignatureStatus,
         signerName,
         signerEmail,
         method: methodLabel,
@@ -98,10 +100,35 @@ export async function POST(
         typedValue,
         fontKey,
         ipAddress,
-        signedAt: new Date(),
+        signedAt,
       },
       create: {
         transactionId,
+        status: preparedSignatureStatus,
+        signerName,
+        signerEmail,
+        method: methodLabel,
+        signatureDataUrl,
+        typedValue,
+        fontKey,
+        ipAddress,
+        signedAt,
+      },
+    })
+
+    const artifact = await generateSignedContractArtifact(prisma, {
+      transactionId,
+      signatureDataUrl,
+      signedTimezone,
+    })
+
+    if (!artifact?.signedPdfUrl) {
+      throw new Error("Signed contract artifact was not generated.")
+    }
+
+    await prisma.signatureRecord.update({
+      where: { transactionId },
+      data: {
         status: "SIGNED",
         signerName,
         signerEmail,
@@ -110,7 +137,7 @@ export async function POST(
         typedValue,
         fontKey,
         ipAddress,
-        signedAt: new Date(),
+        signedAt,
       },
     })
 
@@ -132,18 +159,13 @@ export async function POST(
       title: "Agreement signed",
       detail: `${signerName} confirmed the agreement via ${methodLabel}.`,
       metadata: signatureEventMeta,
+      occurredAt: signedAt,
       dedupeKey: `event:signature:${transactionId}`,
     })
 
-    if (!existingSignature) {
+    if (existingSignature?.status !== "SIGNED") {
       await incrementVendorSubscriptionUsage(prisma, vendorId, "eSignaturesUsed")
     }
-
-    await generateSignedContractArtifact(prisma, {
-      transactionId,
-      signatureDataUrl,
-      signedTimezone,
-    })
 
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },

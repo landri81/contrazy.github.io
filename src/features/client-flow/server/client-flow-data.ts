@@ -163,7 +163,10 @@ export function hasCompletedSignature(transaction: ClientFlowTransaction) {
     return true
   }
 
-  return transaction.signatureRecord?.status === SignatureStatus.SIGNED
+  return (
+    transaction.signatureRecord?.status === SignatureStatus.SIGNED &&
+    Boolean(transaction.contractArtifact?.signedPdfUrl)
+  )
 }
 
 export function getClientFlowState(transaction: ClientFlowTransaction) {
