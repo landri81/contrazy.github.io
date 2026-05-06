@@ -85,10 +85,14 @@ async function launchPdfBrowser() {
 }
 
 function getPdfRenderBaseUrl() {
-  if (process.env.VERCEL_URL) {
-    return process.env.VERCEL_URL.startsWith("http")
-      ? process.env.VERCEL_URL
-      : `https://${process.env.VERCEL_URL}`
+  const explicitRenderUrl =
+    process.env.CONTRAZY_PDF_RENDER_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+
+  if (explicitRenderUrl) {
+    return explicitRenderUrl.startsWith("http") ? explicitRenderUrl : `https://${explicitRenderUrl}`
   }
 
   return getSiteUrl()
@@ -508,7 +512,26 @@ async function buildSignedContractPdf({
     const renderUrl = `${baseUrl}/print/signed-agreement/${transactionId}?sig=${renderToken}`
 
     page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS)
-    await page.goto(renderUrl, { waitUntil: "networkidle", timeout: PDF_RENDER_TIMEOUT_MS })
+    const response = await page.goto(renderUrl, {
+      waitUntil: "networkidle",
+      timeout: PDF_RENDER_TIMEOUT_MS,
+    })
+
+    if (!response?.ok()) {
+      throw new Error(`Signed document render failed with HTTP ${response?.status() ?? "unknown"}.`)
+    }
+
+    const renderedVercelLogin = await page
+      .getByText("Log in to Vercel", { exact: true })
+      .first()
+      .isVisible({ timeout: 1_000 })
+      .catch(() => false)
+
+    if (renderedVercelLogin) {
+      throw new Error(
+        "Signed document render resolved to a Vercel login page. Set CONTRAZY_PDF_RENDER_BASE_URL or NEXT_PUBLIC_APP_URL to the public production app URL."
+      )
+    }
 
     const contentHeight = await page.evaluate(() =>
       Math.max(

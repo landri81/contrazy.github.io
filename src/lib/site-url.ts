@@ -9,6 +9,12 @@ export function getSiteUrl() {
     return env.NEXTAUTH_URL
   }
 
+  if (env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return env.VERCEL_PROJECT_PRODUCTION_URL.startsWith("http")
+      ? env.VERCEL_PROJECT_PRODUCTION_URL
+      : `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+
   if (env.VERCEL_URL) {
     return env.VERCEL_URL.startsWith("http") ? env.VERCEL_URL : `https://${env.VERCEL_URL}`
   }
