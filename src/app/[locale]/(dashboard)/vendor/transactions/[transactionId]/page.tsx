@@ -25,6 +25,98 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
   const { transactionId } = await props.params
   const t = await getTranslations("dashboard.vendor.transactionDetailPage")
   const sharedT = await getTranslations("dashboard.shared")
+
+  const eventTitleMap: Record<string, string> = {
+    LINK_CREATED: t("eventTitles.LINK_CREATED"),
+    LINK_OPENED: t("eventTitles.LINK_OPENED"),
+    LINK_UPDATED: t("eventTitles.LINK_UPDATED"),
+    LINK_CANCELLED: t("eventTitles.LINK_CANCELLED"),
+    CONTRACT_SNAPSHOT_CREATED: t("eventTitles.CONTRACT_SNAPSHOT_CREATED"),
+    PROFILE_SUBMITTED: t("eventTitles.PROFILE_SUBMITTED"),
+    DOCUMENTS_SUBMITTED: t("eventTitles.DOCUMENTS_SUBMITTED"),
+    KYC_STARTED: t("eventTitles.KYC_STARTED"),
+    KYC_VERIFIED: t("eventTitles.KYC_VERIFIED"),
+    KYC_FAILED: t("eventTitles.KYC_FAILED"),
+    CONTRACT_REVIEWED: t("eventTitles.CONTRACT_REVIEWED"),
+    SIGNATURE_COMPLETED: t("eventTitles.SIGNATURE_COMPLETED"),
+    SIGNED_PDF_GENERATED: t("eventTitles.SIGNED_PDF_GENERATED"),
+    PAYMENT_SESSION_CREATED: t("eventTitles.PAYMENT_SESSION_CREATED"),
+    SERVICE_PAYMENT_REQUESTED: t("eventTitles.SERVICE_PAYMENT_REQUESTED"),
+    SERVICE_PAYMENT_SUCCEEDED: t("eventTitles.SERVICE_PAYMENT_SUCCEEDED"),
+    DEPOSIT_AUTHORIZED: t("eventTitles.DEPOSIT_AUTHORIZED"),
+    DEPOSIT_CAPTURED: t("eventTitles.DEPOSIT_CAPTURED"),
+    DEPOSIT_RELEASED: t("eventTitles.DEPOSIT_RELEASED"),
+    DISPUTE_OPENED: t("eventTitles.DISPUTE_OPENED"),
+    TRANSACTION_CANCELLED: t("eventTitles.TRANSACTION_CANCELLED"),
+    COMPLETED: t("eventTitles.COMPLETED"),
+    EMAIL_SENT: t("eventTitles.EMAIL_SENT"),
+    WEBHOOK_PROCESSED: t("eventTitles.WEBHOOK_PROCESSED"),
+  }
+
+  const staticDetailMap: Record<string, string> = {
+    LINK_CREATED: t("eventDetails.LINK_CREATED"),
+    LINK_OPENED: t("eventDetails.LINK_OPENED"),
+    LINK_UPDATED: t("eventDetails.LINK_UPDATED"),
+    LINK_CANCELLED: t("eventDetails.LINK_CANCELLED"),
+    COMPLETED: t("eventDetails.COMPLETED"),
+    SIGNED_PDF_GENERATED: t("eventDetails.SIGNED_PDF_GENERATED"),
+    CONTRACT_REVIEWED: t("eventDetails.CONTRACT_REVIEWED"),
+    KYC_STARTED: t("eventDetails.KYC_STARTED"),
+    SERVICE_PAYMENT_REQUESTED: t("eventDetails.SERVICE_PAYMENT_REQUESTED"),
+  }
+
+  function formatEventMoney(amount: number, currency: string) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount / 100)
+    } catch {
+      return `${currency} ${(amount / 100).toFixed(2)}`
+    }
+  }
+
+  type TransactionEvent = { type: string; title: string; detail: string | null; metadata: unknown }
+
+  function getTranslatedEvent(event: TransactionEvent): { title: string; detail: string | null } {
+    const title = eventTitleMap[event.type] ?? event.title
+    const meta =
+      typeof event.metadata === "object" && event.metadata !== null && !Array.isArray(event.metadata)
+        ? (event.metadata as Record<string, unknown>)
+        : null
+
+    const rawAmount =
+      meta && typeof meta.processedAmount === "number"
+        ? meta.processedAmount
+        : meta && typeof meta.amount === "number"
+          ? meta.amount
+          : null
+    const currency = meta && typeof meta.currency === "string" ? meta.currency : null
+
+    switch (event.type) {
+      case "DEPOSIT_AUTHORIZED":
+        if (rawAmount !== null && currency) {
+          return { title, detail: t("eventDetails.DEPOSIT_AUTHORIZED", { amount: formatEventMoney(rawAmount, currency) }) }
+        }
+        break
+      case "DEPOSIT_CAPTURED":
+        if (rawAmount !== null && currency) {
+          return { title, detail: t("eventDetails.DEPOSIT_CAPTURED", { amount: formatEventMoney(rawAmount, currency) }) }
+        }
+        break
+      case "DEPOSIT_RELEASED":
+        if (rawAmount !== null && currency) {
+          return { title, detail: t("eventDetails.DEPOSIT_RELEASED", { amount: formatEventMoney(rawAmount, currency) }) }
+        }
+        break
+      case "SERVICE_PAYMENT_SUCCEEDED":
+        if (rawAmount !== null && currency) {
+          return { title, detail: t("eventDetails.SERVICE_PAYMENT_SUCCEEDED", { amount: formatEventMoney(rawAmount, currency) }) }
+        }
+        break
+    }
+
+    const staticDetail = staticDetailMap[event.type]
+    return { title, detail: staticDetail ?? event.detail }
+  }
+
   const { session, dbUser, subscription } = await requireSubscribedVendorAccess()
   const isAdmin = isAdminRole(session.user.role)
 
@@ -377,17 +469,20 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         <CardContent>
           <div className="space-y-4">
             {transaction.events.length > 0 ? (
-              transaction.events.map((event: (typeof transaction.events)[number]) => (
-                <div key={event.id} className="flex gap-4">
-                  <div className="w-28 shrink-0 text-sm text-muted-foreground">
-                    {event.occurredAt.toLocaleDateString()}
+              transaction.events.map((event: (typeof transaction.events)[number]) => {
+                const { title, detail } = getTranslatedEvent(event)
+                return (
+                  <div key={event.id} className="flex gap-4">
+                    <div className="w-28 shrink-0 text-sm text-muted-foreground">
+                      {event.occurredAt.toLocaleDateString()}
+                    </div>
+                    <div className="space-y-1 text-sm">
+                      <div>{title}</div>
+                      {detail ? <div className="text-muted-foreground">{detail}</div> : null}
+                    </div>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <div>{event.title}</div>
-                    {event.detail ? <div className="text-muted-foreground">{event.detail}</div> : null}
-                  </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="flex gap-4">
                 <div className="w-28 shrink-0 text-sm text-muted-foreground">
