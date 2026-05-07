@@ -473,7 +473,15 @@
       "transactionDetailPage": {
         "reference": "Référence",
         "client": "Client",
-        "paymentStatus": "Statut du paiement",
+        "paymentStatus": {
+          "PENDING": "En attente",
+          "AUTHORIZED": "Autorisé",
+          "SUCCEEDED": "Réussi",
+          "CAPTURED": "Prélevé",
+          "RELEASED": "Libéré",
+          "FAILED": "Échoué",
+          "CANCELLED": "Annulé"
+        },
         "depositStatus": "Statut de la caution",
         "docsUploaded": "Documents envoyés",
         "pending": "En attente",
@@ -512,6 +520,25 @@
         "downloadUploadedFile": "Télécharger le fichier envoyé",
         "timelineDescription": "Historique d'activité de cette transaction",
         "transactionCreated": "Transaction créée",
+        "transactionStatus": {
+          "DRAFT": "Brouillon",
+          "LINK_SENT": "Lien envoyé",
+          "CUSTOMER_STARTED": "En cours",
+          "DOCS_SUBMITTED": "Documents soumis",
+          "KYC_VERIFIED": "Identité vérifiée",
+          "CONTRACT_GENERATED": "Contrat prêt",
+          "SIGNED": "Signé",
+          "PAYMENT_AUTHORIZED": "Paiement autorisé",
+          "COMPLETED": "Complété",
+          "CANCELLED": "Annulé",
+          "DISPUTED": "Litige"
+        },
+        "linkStatus": {
+          "ACTIVE": "Active",
+          "PROCESSING": "En cours",
+          "COMPLETED": "Complété",
+          "CANCELLED": "Annulé"
+        },
         "eventTitles": {
           "LINK_CREATED": "Lien sécurisé créé",
           "LINK_OPENED": "Lien sécurisé ouvert",
@@ -552,7 +579,8 @@
           "DEPOSIT_CAPTURED": "{amount} prélevé.",
           "DEPOSIT_RELEASED": "{amount} restitué au client.",
           "SERVICE_PAYMENT_SUCCEEDED": "{amount} collecté."
-        }
+        },
+        "paymentStatusLabel": "Statut du paiement"
       },
       "webhooks": {
         "title": "Historique des événements",

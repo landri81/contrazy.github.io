@@ -473,7 +473,15 @@
       "transactionDetailPage": {
         "reference": "Reference",
         "client": "Client",
-        "paymentStatus": "Payment status",
+        "paymentStatus": {
+          "PENDING": "Pending",
+          "AUTHORIZED": "Authorized",
+          "SUCCEEDED": "Succeeded",
+          "CAPTURED": "Captured",
+          "RELEASED": "Released",
+          "FAILED": "Failed",
+          "CANCELLED": "Cancelled"
+        },
         "depositStatus": "Deposit status",
         "docsUploaded": "Docs uploaded",
         "pending": "Pending",
@@ -512,6 +520,25 @@
         "downloadUploadedFile": "Download uploaded file",
         "timelineDescription": "Activity log for this transaction",
         "transactionCreated": "Transaction created",
+        "transactionStatus": {
+          "DRAFT": "Draft",
+          "LINK_SENT": "Link sent",
+          "CUSTOMER_STARTED": "In progress",
+          "DOCS_SUBMITTED": "Docs submitted",
+          "KYC_VERIFIED": "KYC verified",
+          "CONTRACT_GENERATED": "Contract ready",
+          "SIGNED": "Signed",
+          "PAYMENT_AUTHORIZED": "Payment authorized",
+          "COMPLETED": "Completed",
+          "CANCELLED": "Cancelled",
+          "DISPUTED": "Disputed"
+        },
+        "linkStatus": {
+          "ACTIVE": "Active",
+          "PROCESSING": "Processing",
+          "COMPLETED": "Completed",
+          "CANCELLED": "Cancelled"
+        },
         "eventTitles": {
           "LINK_CREATED": "Secure link created",
           "LINK_OPENED": "Secure link opened",
@@ -552,7 +579,8 @@
           "DEPOSIT_CAPTURED": "{amount} captured.",
           "DEPOSIT_RELEASED": "{amount} released back to the client.",
           "SERVICE_PAYMENT_SUCCEEDED": "{amount} collected."
-        }
+        },
+        "paymentStatusLabel": "Payment status"
       },
       "webhooks": {
         "title": "Event history",

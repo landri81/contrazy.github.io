@@ -26,6 +26,37 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
   const t = await getTranslations("dashboard.vendor.transactionDetailPage")
   const sharedT = await getTranslations("dashboard.shared")
 
+  const transactionStatusMap: Record<string, string> = {
+    DRAFT: t("transactionStatus.DRAFT"),
+    LINK_SENT: t("transactionStatus.LINK_SENT"),
+    CUSTOMER_STARTED: t("transactionStatus.CUSTOMER_STARTED"),
+    DOCS_SUBMITTED: t("transactionStatus.DOCS_SUBMITTED"),
+    KYC_VERIFIED: t("transactionStatus.KYC_VERIFIED"),
+    CONTRACT_GENERATED: t("transactionStatus.CONTRACT_GENERATED"),
+    SIGNED: t("transactionStatus.SIGNED"),
+    PAYMENT_AUTHORIZED: t("transactionStatus.PAYMENT_AUTHORIZED"),
+    COMPLETED: t("transactionStatus.COMPLETED"),
+    CANCELLED: t("transactionStatus.CANCELLED"),
+    DISPUTED: t("transactionStatus.DISPUTED"),
+  }
+
+  const paymentStatusMap: Record<string, string> = {
+    PENDING: t("paymentStatus.PENDING"),
+    AUTHORIZED: t("paymentStatus.AUTHORIZED"),
+    SUCCEEDED: t("paymentStatus.SUCCEEDED"),
+    CAPTURED: t("paymentStatus.CAPTURED"),
+    RELEASED: t("paymentStatus.RELEASED"),
+    FAILED: t("paymentStatus.FAILED"),
+    CANCELLED: t("paymentStatus.CANCELLED"),
+  }
+
+  const linkStatusMap: Record<string, string> = {
+    ACTIVE: t("linkStatus.ACTIVE"),
+    PROCESSING: t("linkStatus.PROCESSING"),
+    COMPLETED: t("linkStatus.COMPLETED"),
+    CANCELLED: t("linkStatus.CANCELLED"),
+  }
+
   const eventTitleMap: Record<string, string> = {
     LINK_CREATED: t("eventTitles.LINK_CREATED"),
     LINK_OPENED: t("eventTitles.LINK_OPENED"),
@@ -193,7 +224,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           </p>
         </div>
         <Badge variant={transaction.status === "COMPLETED" ? "default" : "secondary"}>
-          {transaction.status}
+          {transactionStatusMap[transaction.status] ?? transaction.status}
         </Badge>
       </div>
 
@@ -216,13 +247,18 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("paymentStatus")}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t("paymentStatusLabel")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold">
-              {transaction.payments.find(
-                (payment: (typeof transaction.payments)[number]) => payment.kind === "SERVICE_PAYMENT"
-              )?.status || (transaction.amount ? t("pending") : t("na"))}
+              {(() => {
+                const status = transaction.payments.find(
+                  (payment: (typeof transaction.payments)[number]) => payment.kind === "SERVICE_PAYMENT"
+                )?.status
+                return status
+                  ? (paymentStatusMap[status] ?? status)
+                  : (transaction.amount ? t("pending") : t("na"))
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -233,7 +269,12 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold">
-              {transaction.depositAuthorization?.status || (transaction.depositAmount ? t("pending") : t("none"))}
+              {(() => {
+                const status = transaction.depositAuthorization?.status
+                return status
+                  ? (paymentStatusMap[status] ?? status)
+                  : (transaction.depositAmount ? t("pending") : t("none"))
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -281,7 +322,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
               </div>
               {linkRecord ? (
                 <StatusBadge tone={getStatusTone(linkRecord.status)}>
-                  {linkRecord.status}
+                  {linkStatusMap[linkRecord.status] ?? linkRecord.status}
                 </StatusBadge>
               ) : null}
             </div>
