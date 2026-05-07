@@ -448,6 +448,59 @@ const embeddedPaymentFR = {
 en.clientFlow.embeddedPayment = Object.assign({}, en.clientFlow.embeddedPayment, embeddedPaymentEN);
 fr.clientFlow.embeddedPayment = Object.assign({}, fr.clientFlow.embeddedPayment, embeddedPaymentFR);
 
+// ── dashboard.vendor.contractTemplateEditor — toolbar + link keys ─────────────
+const editorToolbarEN = {
+  headingNormal: 'Normal',
+  headingH1: 'Heading 1',
+  headingH2: 'Heading 2',
+  headingH3: 'Heading 3',
+  toolBold: 'Bold (Ctrl+B)',
+  toolItalic: 'Italic (Ctrl+I)',
+  toolUnderline: 'Underline (Ctrl+U)',
+  toolStrike: 'Strikethrough',
+  toolOrderedList: 'Numbered list',
+  toolBulletList: 'Bullet list',
+  toolAlignLeft: 'Align left',
+  toolAlignCenter: 'Align center',
+  toolAlignRight: 'Align right',
+  toolAlignJustify: 'Justify',
+  toolBlockquote: 'Blockquote',
+  toolLink: 'Insert / edit link',
+  toolClearFormat: 'Clear formatting',
+  linkPlaceholder: 'https://example.com',
+  linkApply: 'Apply link',
+  linkRemove: 'Remove link',
+  cancel: 'Cancel',
+};
+const editorToolbarFR = {
+  headingNormal: 'Normal',
+  headingH1: 'Titre 1',
+  headingH2: 'Titre 2',
+  headingH3: 'Titre 3',
+  toolBold: 'Gras (Ctrl+B)',
+  toolItalic: 'Italique (Ctrl+I)',
+  toolUnderline: 'Souligné (Ctrl+U)',
+  toolStrike: 'Barré',
+  toolOrderedList: 'Liste numérotée',
+  toolBulletList: 'Liste à puces',
+  toolAlignLeft: 'Aligner à gauche',
+  toolAlignCenter: 'Centrer',
+  toolAlignRight: 'Aligner à droite',
+  toolAlignJustify: 'Justifier',
+  toolBlockquote: 'Citation',
+  toolLink: 'Insérer / modifier un lien',
+  toolClearFormat: 'Supprimer la mise en forme',
+  linkPlaceholder: 'https://exemple.com',
+  linkApply: 'Appliquer le lien',
+  linkRemove: 'Supprimer le lien',
+  cancel: 'Annuler',
+};
+
+if (!en.dashboard.vendor.contractTemplateEditor) en.dashboard.vendor.contractTemplateEditor = {};
+if (!fr.dashboard.vendor.contractTemplateEditor) fr.dashboard.vendor.contractTemplateEditor = {};
+en.dashboard.vendor.contractTemplateEditor = Object.assign({}, en.dashboard.vendor.contractTemplateEditor, editorToolbarEN);
+fr.dashboard.vendor.contractTemplateEditor = Object.assign({}, fr.dashboard.vendor.contractTemplateEditor, editorToolbarFR);
+
 fs.writeFileSync(enPath, JSON.stringify(en, null, 2));
 fs.writeFileSync(frPath, JSON.stringify(fr, null, 2));
 console.log('Both files updated successfully');

@@ -8,7 +8,6 @@ import { routing } from "@/i18n/routing"
 import { normalizeLocale } from "@/lib/i18n/locale-utils"
 import { getSiteUrl } from "@/lib/site-url"
 import "@/app/globals.css"
-import "quill/dist/quill.snow.css"
 
 type LocaleLayoutProps = {
   children: React.ReactNode

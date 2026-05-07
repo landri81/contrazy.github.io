@@ -1,231 +1,113 @@
 "use client"
 
+import { Node, mergeAttributes } from "@tiptap/core"
+import type { Editor } from "@tiptap/react"
+
 import { normalizeContractTemplateMarkup } from "@/features/contracts/contract-content"
 import { contractMergeFields } from "@/features/contracts/template-authoring"
-
-export type MergeFieldChipValue = {
-  token: string
-  label: string
-}
-
-type QuillInstance = import("quill").default
-type QuillConstructor = typeof import("quill").default
-type EmbedBlotConstructor = {
-  new (...args: never[]): object
-  create(value?: unknown): HTMLElement
-}
-
-const CHIP_BLOT_NAME = "contractMergeField"
-const CHIP_CLASS_NAME = "contract-merge-chip"
-const CHIP_SELECTOR = `span.${CHIP_CLASS_NAME}`
 
 const mergeFieldLabelLookup = new Map(
   contractMergeFields.map((field) => [field.token, field.label])
 )
 
-const mergeFieldTokenPattern = new RegExp(
-  `(${contractMergeFields.map((field) => escapeRegExp(field.token)).join("|")})`,
-  "g"
-)
-
-let blotRegistered = false
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-function getMergeFieldLabel(token: string) {
+export function getMergeFieldLabel(token: string): string {
   return mergeFieldLabelLookup.get(token) ?? token.replace(/[{}]/g, "")
 }
 
-function createChipMarkup(token: string) {
-  const label = getMergeFieldLabel(token)
+// TipTap inline atom node that renders {{token}} as a styled chip
+export const MergeFieldExtension = Node.create({
+  name: "mergeField",
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  draggable: false,
 
-  return `<span class="${CHIP_CLASS_NAME}" data-token="${escapeHtmlAttribute(token)}" data-label="${escapeHtmlAttribute(label)}" contenteditable="false">${escapeHtml(label)}</span>`
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;")
-}
-
-function escapeHtmlAttribute(value: string) {
-  return escapeHtml(value)
-}
-
-function collectTextNodes(root: HTMLElement) {
-  const textNodes: Text[] = []
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-
-  let current = walker.nextNode()
-
-  while (current) {
-    if (current.nodeType === Node.TEXT_NODE) {
-      textNodes.push(current as Text)
+  addAttributes() {
+    return {
+      token: {
+        default: null,
+        parseHTML: (element) => (element as HTMLElement).getAttribute("data-token"),
+        renderHTML: (attrs) => ({ "data-token": attrs.token }),
+      },
+      label: {
+        default: null,
+        parseHTML: (element) => {
+          const el = element as HTMLElement
+          return el.getAttribute("data-label") ?? el.textContent?.trim() ?? null
+        },
+        renderHTML: (attrs) => (attrs.label ? { "data-label": attrs.label } : {}),
+      },
     }
+  },
 
-    current = walker.nextNode()
-  }
+  parseHTML() {
+    return [{ tag: "span[data-token]" }]
+  },
 
-  return textNodes
-}
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        class: "contract-merge-chip",
+        contenteditable: "false",
+      }),
+      String(node.attrs.label ?? node.attrs.token ?? ""),
+    ]
+  },
 
-export function templateMarkupToEditorHtml(content: string) {
+  renderText({ node }) {
+    return String(node.attrs.token ?? "")
+  },
+})
+
+// Convert stored HTML (with raw {{token}} text) → editor HTML (with <span data-token> chips)
+export function templateMarkupToEditorHtml(content: string): string {
   const normalized = normalizeContractTemplateMarkup(content)
+  return normalized.replace(/\{\{([^}]+)\}\}/g, (match) => {
+    const label = getMergeFieldLabel(match)
+    return `<span data-token="${match}" data-label="${label}">${label}</span>`
+  })
+}
+
+// Convert editor HTML (with <span data-token> chips) → stored HTML (with {{token}} text)
+export function editorHtmlToTemplateMarkup(html: string): string {
+  if (typeof document === "undefined") return html
   const parser = new DOMParser()
-  const doc = parser.parseFromString(`<div id="contract-editor-root">${normalized}</div>`, "text/html")
-  const root = doc.getElementById("contract-editor-root")
+  const doc = parser.parseFromString(`<div id="root">${html}</div>`, "text/html")
+  const root = doc.getElementById("root")
+  if (!root) return html
 
-  if (!root) {
-    return normalized
-  }
+  root.querySelectorAll<HTMLElement>("span[data-token]").forEach((chip) => {
+    const token = chip.dataset.token
+    if (token) chip.replaceWith(doc.createTextNode(token))
+  })
 
-  const textNodes = collectTextNodes(root)
-
-  for (const textNode of textNodes) {
-    const original = textNode.nodeValue ?? ""
-
-    mergeFieldTokenPattern.lastIndex = 0
-
-    if (!mergeFieldTokenPattern.test(original)) {
-      continue
-    }
-
-    mergeFieldTokenPattern.lastIndex = 0
-
-    const fragment = doc.createDocumentFragment()
-    let lastIndex = 0
-
-    for (const match of original.matchAll(mergeFieldTokenPattern)) {
-      const token = match[0]
-      const matchIndex = match.index ?? 0
-
-      if (matchIndex > lastIndex) {
-        fragment.appendChild(doc.createTextNode(original.slice(lastIndex, matchIndex)))
-      }
-
-      const chipContainer = doc.createElement("div")
-      chipContainer.innerHTML = createChipMarkup(token)
-      fragment.appendChild(chipContainer.firstChild!)
-      lastIndex = matchIndex + token.length
-    }
-
-    if (lastIndex < original.length) {
-      fragment.appendChild(doc.createTextNode(original.slice(lastIndex)))
-    }
-
-    textNode.parentNode?.replaceChild(fragment, textNode)
-  }
+  // Handle any legacy chip markup
+  root.querySelectorAll<HTMLElement>("span.contract-merge-chip").forEach((chip) => {
+    const token = chip.dataset.token
+    if (token) chip.replaceWith(doc.createTextNode(token))
+  })
 
   return root.innerHTML
 }
 
-export function editorHtmlToTemplateMarkup(html: string) {
-  const normalized = normalizeContractTemplateMarkup(html)
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(`<div id="contract-editor-root">${normalized}</div>`, "text/html")
-  const root = doc.getElementById("contract-editor-root")
+const TIPTAP_EMPTY = new Set(["", "<p></p>", "<p><br></p>", "<p><br/></p>"])
 
-  if (!root) {
-    return normalized
-  }
-
-  root.querySelectorAll<HTMLElement>(CHIP_SELECTOR).forEach((chip) => {
-    const token = chip.dataset.token ?? ""
-    chip.replaceWith(doc.createTextNode(token))
-  })
-
-  return normalizeContractTemplateMarkup(root.innerHTML)
+export function getEditorMarkup(html: string): string {
+  if (TIPTAP_EMPTY.has(html.trim())) return ""
+  return editorHtmlToTemplateMarkup(html)
 }
 
-function isEmptyDelta(quill: QuillInstance) {
-  const delta = quill.getContents()
-
-  return (
-    delta.ops.length === 1 &&
-    typeof delta.ops[0]?.insert === "string" &&
-    delta.ops[0].insert === "\n"
-  )
-}
-
-export function getEditorMarkup(quill: QuillInstance) {
-  if (isEmptyDelta(quill)) {
-    return ""
-  }
-
-  return editorHtmlToTemplateMarkup(quill.root.innerHTML)
-}
-
-export function ensureContractMergeFieldBlot(QuillClass: QuillConstructor) {
-  if (blotRegistered) {
-    return
-  }
-
-  const Embed = QuillClass.import("blots/embed") as EmbedBlotConstructor
-
-  class ContractMergeFieldBlot extends Embed {
-    static blotName = CHIP_BLOT_NAME
-    static tagName = "span"
-    static className = CHIP_CLASS_NAME
-
-    static create(value: MergeFieldChipValue) {
-      const node = super.create() as HTMLElement
-      const token = value?.token ?? ""
-      const label = value?.label ?? getMergeFieldLabel(token)
-
-      node.setAttribute("contenteditable", "false")
-      node.dataset.token = token
-      node.dataset.label = label
-      node.textContent = label
-
-      return node
-    }
-
-    static value(node: HTMLElement): MergeFieldChipValue {
-      const token = node.dataset.token ?? ""
-      const label = node.dataset.label ?? getMergeFieldLabel(token)
-
-      return { token, label }
-    }
-  }
-
-  QuillClass.register("formats/contractMergeField", ContractMergeFieldBlot, true)
-  blotRegistered = true
-}
-
-export function attachContractMergeFieldMatcher(quill: QuillInstance, QuillClass: QuillConstructor) {
-  const Delta = QuillClass.import("delta")
-
-  quill.clipboard.addMatcher(CHIP_SELECTOR, (node) => {
-    const element = node as HTMLElement
-    const token = element.dataset.token ?? ""
-    const label = element.dataset.label ?? getMergeFieldLabel(token)
-
-    return new Delta().insert({
-      [CHIP_BLOT_NAME]: { token, label },
-    })
-  })
-}
-
-export function insertMergeFieldChip(
-  quill: QuillInstance,
-  token: string,
-  selection: { index: number; length: number }
-) {
+export function insertMergeFieldInEditor(editor: Editor, token: string): void {
   const label = getMergeFieldLabel(token)
-
-  if (selection.length > 0) {
-    quill.deleteText(selection.index, selection.length, "user")
-  }
-
-  quill.insertEmbed(selection.index, CHIP_BLOT_NAME, { token, label }, "user")
-  quill.setSelection(selection.index + 1, 0, "silent")
+  editor.chain().focus().insertContent({ type: "mergeField", attrs: { token, label } }).run()
 }
 
-export function resolveMergeFieldLabel(token: string) {
+// Legacy no-op stubs — kept so no other import sites break
+export function ensureContractMergeFieldBlot(_QuillClass: unknown): void {}
+export function attachContractMergeFieldMatcher(_quill: unknown, _QuillClass: unknown): void {}
+export function insertMergeFieldChip(_quill: unknown, _token: string, _selection: unknown): void {}
+export function resolveMergeFieldLabel(token: string): string {
   return getMergeFieldLabel(token)
 }
