@@ -66,7 +66,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
   const shareLink = transaction.link ? `${getAppBaseUrl()}/${transaction.locale.toLowerCase()}/t/${transaction.link.token}` : null
   const signedPdfHref = resolveDocumentAssetUrl(transaction.contractArtifact?.signedPdfUrl, `${transaction.reference}-signed.pdf`)
   const servicePaymentAlreadyCollected = transaction.payments.some(
-    (payment) => payment.kind === "SERVICE_PAYMENT" && (payment.status === "SUCCEEDED" || payment.status === "CAPTURED")
+    (payment: (typeof transaction.payments)[number]) =>
+      payment.kind === "SERVICE_PAYMENT" &&
+      (payment.status === "SUCCEEDED" || payment.status === "CAPTURED")
   )
   const linkRecord = transaction.link
     ? buildVendorLinkRecord({
@@ -126,7 +128,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           </CardHeader>
           <CardContent>
             <div className="text-lg font-bold">
-              {transaction.payments.find(p => p.kind === "SERVICE_PAYMENT")?.status || (transaction.amount ? t("pending") : t("na"))}
+              {transaction.payments.find(
+                (payment: (typeof transaction.payments)[number]) => payment.kind === "SERVICE_PAYMENT"
+              )?.status || (transaction.amount ? t("pending") : t("na"))}
             </div>
           </CardContent>
         </Card>
@@ -319,8 +323,10 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
             <CardDescription>{t("requirementsDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {transaction.requirements.map((requirement) => {
-              const response = transaction.documents.find((document) => document.requirementId === requirement.id)
+            {transaction.requirements.map((requirement: (typeof transaction.requirements)[number]) => {
+              const response = transaction.documents.find(
+                (document: (typeof transaction.documents)[number]) => document.requirementId === requirement.id
+              )
 
               return (
                 <div key={requirement.id} className="rounded-lg border bg-muted/20 p-4">
@@ -371,7 +377,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         <CardContent>
           <div className="space-y-4">
             {transaction.events.length > 0 ? (
-              transaction.events.map((event) => (
+              transaction.events.map((event: (typeof transaction.events)[number]) => (
                 <div key={event.id} className="flex gap-4">
                   <div className="w-28 shrink-0 text-sm text-muted-foreground">
                     {event.occurredAt.toLocaleDateString()}
