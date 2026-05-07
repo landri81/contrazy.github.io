@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useRouter } from "next/navigation"
-import { isValidPhoneNumber } from "react-phone-number-input"
+import { useTranslations } from "next-intl"
+import { useRouter } from "@/i18n/navigation"
+import { isValidPhoneNumber, parsePhoneNumber } from "react-phone-number-input"
 import { ArrowRight, Building2, CheckCircle2, Globe, Loader2, Mail, MapPin, ShieldCheck, UserCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,7 @@ export function ClientProfileForm({
   requireCompany?: boolean
 }) {
   const router = useRouter()
+  const t = useTranslations("clientFlow.profile")
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export function ClientProfileForm({
     if (!value.trim()) return null
     const localPart = value.replace(/^\+\d+\s*/, "").trim()
     if (!localPart) return null
-    return isValidPhoneNumber(value) ? null : "Please enter a valid phone number"
+    return isValidPhoneNumber(value) ? null : t("phoneInvalid")
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,10 +83,10 @@ export function ClientProfileForm({
       }
 
       const payload = await res.json().catch(() => null)
-      setError(payload?.message ?? "Unable to save details right now")
+      setError(payload?.message ?? t("unableToSave"))
     } catch (err) {
       console.error(err)
-      setError("Unable to save details right now")
+      setError(t("unableToSave"))
     } finally {
       setIsPending(false)
     }
@@ -101,9 +103,9 @@ export function ClientProfileForm({
           <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle className="font-heading text-xl font-semibold tracking-tight">Contact information</CardTitle>
+                <CardTitle className="font-heading text-xl font-semibold tracking-tight">{t("contactTitle")}</CardTitle>
                 <CardDescription className="mt-1">
-                  Enter the details that should appear on this transaction.
+                  {t("contactDescription")}
                 </CardDescription>
               </div>
               <div className="hidden size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 sm:flex">
@@ -115,7 +117,7 @@ export function ClientProfileForm({
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="firstName" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  First Name <span className="text-destructive">*</span>
+                  {t("firstName")} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <UserCircle className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -123,7 +125,7 @@ export function ClientProfileForm({
                     id="firstName"
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
-                    placeholder="Enter your first name"
+                    placeholder={t("firstNamePlaceholder")}
                     maxLength={INPUT_LIMITS.personName}
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
@@ -132,7 +134,7 @@ export function ClientProfileForm({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="lastName" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Last Name <span className="text-destructive">*</span>
+                  {t("lastName")} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <UserCircle className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -140,7 +142,7 @@ export function ClientProfileForm({
                     id="lastName"
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
-                    placeholder="Enter your last name"
+                    placeholder={t("lastNamePlaceholder")}
                     maxLength={INPUT_LIMITS.personName}
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
@@ -152,7 +154,7 @@ export function ClientProfileForm({
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Email Address <span className="text-destructive">*</span>
+                  {t("emailAddress")} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -161,7 +163,7 @@ export function ClientProfileForm({
                     type="email"
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
-                    placeholder="Enter your email address"
+                    placeholder={t("emailPlaceholder")}
                     maxLength={INPUT_LIMITS.email}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -172,11 +174,24 @@ export function ClientProfileForm({
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="phone" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">{t("phone")}</Label>
                 <PhoneInput
                   id="phone"
                   value={phone}
-                  onChange={(v) => { setPhone(v); setPhoneError(null) }}
+                  onChange={(v) => {
+                    setPhone(v)
+                    setPhoneError(null)
+                    if (v && v.startsWith("+")) {
+                      try {
+                        const parsed = parsePhoneNumber(v)
+                        if (parsed?.country) {
+                          setCountry((prev) => prev || parsed.country!)
+                        }
+                      } catch {
+                        // ignore parse errors while typing
+                      }
+                    }
+                  }}
                   onBlur={() => setPhoneError(validatePhone(phone))}
                   invalid={!!phoneError}
                   maxLength={INPUT_LIMITS.phone}
@@ -197,7 +212,7 @@ export function ClientProfileForm({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="country" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Country <span className="text-destructive">*</span>
+                  {t("country")} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -214,7 +229,7 @@ export function ClientProfileForm({
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor="address" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Address <span className="text-destructive">*</span>
+                  {t("address")} <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -222,7 +237,7 @@ export function ClientProfileForm({
                     id="address"
                     required
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
-                    placeholder="Enter your address"
+                    placeholder={t("addressPlaceholder")}
                     maxLength={INPUT_LIMITS.address}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -234,7 +249,7 @@ export function ClientProfileForm({
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="companyName" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-                  Company {requireCompany ? <span className="text-destructive">*</span> : "(Optional)"}
+                  {t("company")} {requireCompany ? <span className="text-destructive">*</span> : <span className="font-normal text-muted-foreground">{t("companyOptional")}</span>}
                 </Label>
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -242,7 +257,7 @@ export function ClientProfileForm({
                     id="companyName"
                     required={requireCompany}
                     className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
-                    placeholder={requireCompany ? "Enter your company name" : "Enter your company name (optional)"}
+                    placeholder={requireCompany ? t("companyPlaceholder") : t("companyOptionalPlaceholder")}
                     maxLength={INPUT_LIMITS.clientCompanyName}
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
@@ -250,7 +265,7 @@ export function ClientProfileForm({
                 </div>
                 {requireCompany ? (
                   <p className="text-xs text-muted-foreground">
-                    This transaction requires the company name for the agreement and records.
+                    {t("companyRequired")}
                   </p>
                 ) : null}
               </div>
@@ -270,7 +285,7 @@ export function ClientProfileForm({
             </AnimatePresence>
 
             <div className="grid gap-3 rounded-lg border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600 sm:grid-cols-3">
-              {["Saved securely", "Used for receipts", "Editable before signing"].map((item) => (
+              {([t("savedSecurely"), t("usedForReceipts"), t("editableBeforeSigning")] as string[]).map((item) => (
                 <div key={item} className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
                   <span>{item}</span>
@@ -287,11 +302,11 @@ export function ClientProfileForm({
               {isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Saving...
+                  {t("saving")}
                 </>
               ) : (
                 <>
-                  Continue
+                  {t("continue")}
                   <ArrowRight className="size-4" />
                 </>
               )}

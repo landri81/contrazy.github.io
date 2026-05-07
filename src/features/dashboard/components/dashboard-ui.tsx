@@ -1,9 +1,12 @@
-import Link from "next/link"
+"use client"
+
 import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Clock3, ExternalLink, RotateCcw, Search } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Link } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-route-link"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -257,7 +260,7 @@ export function ResourceCards({
 export function TableFilters({
   basePath,
   searchValue = "",
-  searchPlaceholder = "Search records",
+  searchPlaceholder,
   filters = [],
 }: {
   basePath: string
@@ -270,6 +273,7 @@ export function TableFilters({
     options: DashboardFilterOption[]
   }[]
 }) {
+  const t = useTranslations("common")
   const searchId = `${basePath.replaceAll("/", "-")}-search`
 
   return (
@@ -279,7 +283,7 @@ export function TableFilters({
     >
       <div className="min-w-0 flex-1">
         <label htmlFor={searchId} className="mb-1.5 block text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-          Search
+          {t("search")}
         </label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -287,7 +291,7 @@ export function TableFilters({
             id={searchId}
             name="q"
             defaultValue={searchValue}
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder ?? t("search")}
             className="h-9 pl-9"
           />
         </div>
@@ -304,7 +308,7 @@ export function TableFilters({
               defaultValue={filter.value ?? "all"}
               className="h-9 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-9 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
             >
-              <option value="all">All</option>
+              <option value="all">{t("all")}</option>
               {filter.options.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -318,11 +322,11 @@ export function TableFilters({
 
       <div className="flex items-center gap-2 lg:ml-auto">
         <Button type="submit" size="sm">
-          Apply
+          {t("apply")}
         </Button>
         <Link href={basePath} className={buttonVariants({ variant: "outline", size: "sm" })}>
           <RotateCcw className="size-3.5" />
-          Reset
+          {t("reset")}
         </Link>
       </div>
     </form>
@@ -361,6 +365,8 @@ export function PaginationControls({
   basePath: string
   searchParams?: Record<string, string>
 }) {
+  const t = useTranslations("common")
+
   if (totalCount <= pageSize) return null
 
   const start = (currentPage - 1) * pageSize + 1
@@ -375,20 +381,19 @@ export function PaginationControls({
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-muted-foreground">
-        Showing <span className="font-medium text-foreground">{start}–{end}</span> of{" "}
-        <span className="font-medium text-foreground">{totalCount}</span> results
+        {t("showingResults", { start, end, total: totalCount })}
       </p>
 
       <div className="flex items-center gap-1">
         {currentPage > 1 ? (
           <Link href={pageHref(currentPage - 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <ChevronLeft className="size-3.5" />
-            Prev
+            {t("prev")}
           </Link>
         ) : (
           <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-40")}>
             <ChevronLeft className="size-3.5" />
-            Prev
+            {t("prev")}
           </span>
         )}
 
@@ -414,12 +419,12 @@ export function PaginationControls({
 
         {currentPage < totalPages ? (
           <Link href={pageHref(currentPage + 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Next
+            {t("next")}
             <ChevronRight className="size-3.5" />
           </Link>
         ) : (
           <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "pointer-events-none opacity-40")}>
-            Next
+            {t("next")}
             <ChevronRight className="size-3.5" />
           </span>
         )}

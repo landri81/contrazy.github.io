@@ -1,27 +1,32 @@
 import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 
-import { apiSections } from "@/content/site"
 import { PageHero, ProseSections } from "@/features/marketing/components/content-pages"
 import { PublicShell } from "@/features/marketing/components/public-shell"
+import { routing } from "@/i18n/routing"
 
-export const metadata: Metadata = {
-  title: "Platform Guide | Conntrazy",
-  description: "An overview of how Conntrazy handles setup, reviews, customer flows, and payments.",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations({ locale: routing.defaultLocale, namespace: "marketing.guidePage" })
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  }
 }
 
-export default function ApiDocsPage() {
+export default async function ApiDocsPage() {
+  const t = await getTranslations({ locale: routing.defaultLocale, namespace: "marketing.guidePage" })
   return (
     <PublicShell>
       <PageHero
-        eyebrow="Guide"
-        title="How Conntrazy works"
-        description="A simple guide to the main account, review, customer, and payment flows inside the platform."
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("description")}
       />
       <ProseSections
-        eyebrow="Overview"
-        title="Core platform flows"
-        description="Use this guide to understand how vendors get started, how reviews work, and how customer journeys move forward."
-        sections={apiSections}
+        eyebrow={t("sectionsEyebrow")}
+        title={t("sectionsTitle")}
+        description={t("sectionsDescription")}
+        sections={t.raw("sections") as Array<{ title: string; paragraphs: string[]; bullets?: string[] }>}
       />
     </PublicShell>
   )

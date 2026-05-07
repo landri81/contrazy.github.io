@@ -2,7 +2,8 @@
 
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +15,7 @@ export function ClientProcessingCard({
   title: string
   description: string
 }) {
+  const t = useTranslations("clientFlow.processingCard")
   const router = useRouter()
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function ClientProcessingCard({
       </CardHeader>
       <CardContent>
         <Button variant="outline" onClick={() => router.refresh()}>
-          Refresh status
+          {t("refreshBtn")}
         </Button>
       </CardContent>
     </Card>

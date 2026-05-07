@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react"
 import { Trash2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 
@@ -19,6 +20,7 @@ function applyStyle(ctx: CanvasRenderingContext2D) {
 }
 
 export function SignaturePad({ onChange, className }: SignaturePadProps) {
+  const t = useTranslations("common")
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const drawing = useRef(false)
@@ -159,8 +161,8 @@ export function SignaturePad({ onChange, className }: SignaturePadProps) {
             <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
           </svg>
           <div className="text-center">
-            <p className="text-sm font-medium text-muted-foreground/50">Sign here</p>
-            <p className="text-xs text-muted-foreground/35">Mouse, stylus or finger</p>
+            <p className="text-sm font-medium text-muted-foreground/50">{t("signHere")}</p>
+            <p className="text-xs text-muted-foreground/35">{t("signHereHint")}</p>
           </div>
         </div>
       )}
@@ -173,7 +175,7 @@ export function SignaturePad({ onChange, className }: SignaturePadProps) {
           className="absolute right-2 top-2 flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/90 px-2.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground active:scale-95"
         >
           <Trash2 className="size-3" />
-          Clear
+          {t("clear")}
         </button>
       )}
     </div>

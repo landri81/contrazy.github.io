@@ -5,40 +5,10 @@ import { ChevronDown, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 import { createPortal } from "react-dom"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { formatValueLabel } from "@/features/dashboard/lib/format-value-label"
-
-const REVIEW_ACTIONS = [
-  {
-    status: "APPROVED" as const,
-    label: "Approve",
-    activeLabel: "Approved",
-    activeCls: "bg-emerald-600 border-emerald-600 text-white",
-    idleCls: "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
-  },
-  {
-    status: "PENDING" as const,
-    label: "Mark pending",
-    activeLabel: "Pending",
-    activeCls: "bg-amber-500 border-amber-500 text-white",
-    idleCls: "border-amber-300 text-amber-700 hover:bg-amber-50",
-  },
-  {
-    status: "REJECTED" as const,
-    label: "Reject",
-    activeLabel: "Rejected",
-    activeCls: "bg-red-600 border-red-600 text-white",
-    idleCls: "border-red-300 text-red-700 hover:bg-red-50",
-  },
-  {
-    status: "SUSPENDED" as const,
-    label: "Suspend",
-    activeLabel: "Suspended",
-    activeCls: "bg-slate-600 border-slate-600 text-white",
-    idleCls: "border-slate-300 text-slate-700 hover:bg-slate-50",
-  },
-] as const
 
 export function VendorReviewActions({
   userId,
@@ -48,9 +18,41 @@ export function VendorReviewActions({
   currentStatus: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.admin.userActions")
   const [localStatus, setLocalStatus] = useState(currentStatus)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const REVIEW_ACTIONS = [
+    {
+      status: "APPROVED" as const,
+      label: t("reviewActions.approve"),
+      activeLabel: t("reviewActions.approved"),
+      activeCls: "bg-emerald-600 border-emerald-600 text-white",
+      idleCls: "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
+    },
+    {
+      status: "PENDING" as const,
+      label: t("reviewActions.markPending"),
+      activeLabel: t("reviewActions.pendingLabel"),
+      activeCls: "bg-amber-500 border-amber-500 text-white",
+      idleCls: "border-amber-300 text-amber-700 hover:bg-amber-50",
+    },
+    {
+      status: "REJECTED" as const,
+      label: t("reviewActions.reject"),
+      activeLabel: t("reviewActions.rejected"),
+      activeCls: "bg-red-600 border-red-600 text-white",
+      idleCls: "border-red-300 text-red-700 hover:bg-red-50",
+    },
+    {
+      status: "SUSPENDED" as const,
+      label: t("reviewActions.suspend"),
+      activeLabel: t("reviewActions.suspended"),
+      activeCls: "bg-slate-600 border-slate-600 text-white",
+      idleCls: "border-slate-300 text-slate-700 hover:bg-slate-50",
+    },
+  ] as const
 
   async function updateStatus(reviewStatus: "APPROVED" | "REJECTED" | "SUSPENDED" | "PENDING") {
     if (reviewStatus === localStatus) return
@@ -67,14 +69,14 @@ export function VendorReviewActions({
         const payload = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? "Unable to update review status.")
+          setError(payload.message ?? t("errors.updateReview"))
           return
         }
 
         setLocalStatus(reviewStatus)
         router.refresh()
       } catch {
-        setError("Unable to update review status right now.")
+        setError(t("errors.updateReviewNetwork"))
       }
     })
   }
@@ -96,7 +98,7 @@ export function VendorReviewActions({
             >
               {isPending && isActive ? <Loader2 className="size-3.5 animate-spin" /> : null}
               {isActive ? action.activeLabel : action.label}
-              {isActive ? <span className="text-xs opacity-80">· current</span> : null}
+              {isActive ? <span className="text-xs opacity-80">· {t("reviewActions.current")}</span> : null}
             </button>
           )
         })}
@@ -117,12 +119,6 @@ export function VendorReviewActions({
   )
 }
 
-const ROLE_OPTIONS: { value: string; label: string; description: string }[] = [
-  { value: "VENDOR", label: "Vendor", description: "Workspace access for running customer workflows." },
-  { value: "ADMIN", label: "Admin", description: "Internal team access for vendor review and platform management." },
-  { value: "SUPER_ADMIN", label: "Super Admin", description: "Full platform control. Assign carefully." },
-]
-
 export function UserRoleActions({
   userId,
   currentRole,
@@ -131,9 +127,16 @@ export function UserRoleActions({
   currentRole: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.admin.userActions")
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  const ROLE_OPTIONS = [
+    { value: "VENDOR", label: t("roleOptions.vendor.label"), description: t("roleOptions.vendor.description") },
+    { value: "ADMIN", label: t("roleOptions.admin.label"), description: t("roleOptions.admin.description") },
+    { value: "SUPER_ADMIN", label: t("roleOptions.superAdmin.label"), description: t("roleOptions.superAdmin.description") },
+  ]
 
   async function changeRole(role: string) {
     setMessage(null)
@@ -150,14 +153,14 @@ export function UserRoleActions({
         const payload = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? "Unable to update role.")
+          setError(payload.message ?? t("errors.updateRole"))
           return
         }
 
-        setMessage(`Role updated to ${formatValueLabel(role)}.`)
+        setMessage(t("roleUpdated", { role: formatValueLabel(role) }))
         router.refresh()
       } catch {
-        setError("Unable to update role right now.")
+        setError(t("errors.updateRoleNetwork"))
       }
     })
   }
@@ -165,7 +168,7 @@ export function UserRoleActions({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Current role: <span className="font-medium text-foreground">{formatValueLabel(currentRole)}</span>
+        {t("currentRole", { role: formatValueLabel(currentRole) })}
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         {ROLE_OPTIONS.map((option) => (
@@ -185,7 +188,7 @@ export function UserRoleActions({
               {option.label}
               {option.value === currentRole ? (
                 <span className="ml-auto rounded-full bg-[var(--contrazy-teal)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--contrazy-teal)] uppercase tracking-wide">
-                  Current
+                  {t("reviewActions.current")}
                 </span>
               ) : null}
             </span>
@@ -227,6 +230,7 @@ export function UserDeleteAction({
   userEmail: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.admin.userActions")
   const [isOpen, setIsOpen] = useState(false)
   const [confirmValue, setConfirmValue] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -247,14 +251,14 @@ export function UserDeleteAction({
         const payload = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? "Unable to delete user.")
+          setError(payload.message ?? t("errors.deleteUser"))
           return
         }
 
         router.push("/admin/users")
         router.refresh()
       } catch {
-        setError("Unable to delete the account right now.")
+        setError(t("errors.deleteUserNetwork"))
       }
     })
   }
@@ -268,14 +272,14 @@ export function UserDeleteAction({
           className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
           onClick={() => setIsOpen(true)}
         >
-          Delete account
+          {t("deleteAccount.button")}
         </Button>
       ) : (
         <div className="space-y-4 rounded-lg border border-red-200 bg-red-50 p-4">
           <div>
-            <p className="text-sm font-medium text-red-800">This action is permanent and cannot be undone.</p>
+            <p className="text-sm font-medium text-red-800">{t("deleteAccount.warningPermanent")}</p>
             <p className="mt-1 text-sm text-red-700">
-              Type <span className="font-mono font-semibold">{userEmail}</span> below to confirm.
+              {t("deleteAccount.warningConfirm", { email: userEmail })}
             </p>
           </div>
           <input
@@ -294,7 +298,7 @@ export function UserDeleteAction({
               className="h-9 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
             >
               {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Permanently delete
+              {t("deleteAccount.confirmButton")}
             </Button>
             <Button
               type="button"
@@ -306,7 +310,7 @@ export function UserDeleteAction({
                 setError(null)
               }}
             >
-              Cancel
+              {t("deleteAccount.cancel")}
             </Button>
           </div>
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -333,6 +337,7 @@ export function VendorQuickReview({
   currentStatus: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.admin.userActions")
   const [isPending, startTransition] = useTransition()
   const [localStatus, setLocalStatus] = useState(currentStatus)
   const [isOpen, setIsOpen] = useState(false)
@@ -341,21 +346,26 @@ export function VendorQuickReview({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+    APPROVED: t("reviewActions.approved"),
+    PENDING: t("reviewActions.pendingLabel"),
+    REJECTED: t("reviewActions.rejected"),
+    SUSPENDED: t("reviewActions.suspended"),
+  }
+
   function openDropdown() {
     if (!triggerRef.current) return
     const rect = triggerRef.current.getBoundingClientRect()
     const DROPDOWN_WIDTH = 148
-    const DROPDOWN_HEIGHT = 140 // approximate: 4 options × ~35px
+    const DROPDOWN_HEIGHT = 140
     const GAP = 4
     const EDGE = 8
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
-    // Flip up if not enough space below
     const spaceBelow = viewportHeight - rect.bottom
     const openUpward = spaceBelow < DROPDOWN_HEIGHT + GAP && rect.top > DROPDOWN_HEIGHT + GAP
 
-    // Right-align if would overflow right edge
     const left =
       rect.left + DROPDOWN_WIDTH > viewportWidth - EDGE
         ? Math.max(EDGE, rect.right - DROPDOWN_WIDTH)
@@ -415,14 +425,14 @@ export function VendorQuickReview({
         const payload = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? "Failed to update.")
+          setError(payload.message ?? t("errors.updateFailed"))
           return
         }
 
         setLocalStatus(reviewStatus)
         router.refresh()
       } catch {
-        setError("Request failed.")
+        setError(t("errors.requestFailed"))
       }
     })
   }
@@ -444,7 +454,7 @@ export function VendorQuickReview({
           ) : (
             <ChevronDown className={`size-3 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`} />
           )}
-          {config.label}
+          {REVIEW_STATUS_LABELS[localStatus as ReviewStatus] ?? config.label}
         </button>
         {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
       </div>
@@ -470,9 +480,9 @@ export function VendorQuickReview({
                     }`}
                   >
                     <span className={`size-1.5 shrink-0 rounded-full ${opt.dot}`} />
-                    {opt.label}
+                    {REVIEW_STATUS_LABELS[status]}
                     {isCurrent ? (
-                      <span className="ml-auto text-[10px] text-muted-foreground">current</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground">{t("reviewActions.current")}</span>
                     ) : null}
                   </button>
                 )

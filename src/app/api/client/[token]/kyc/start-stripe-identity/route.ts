@@ -4,6 +4,7 @@ import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -39,6 +40,7 @@ export async function POST(
     }
 
     const { transaction } = link
+    const locale = normalizeLocale(transaction.locale)
 
     const subscription = await prisma.vendorSubscription.findUnique({
       where: { vendorId: transaction.vendorId },
@@ -72,7 +74,7 @@ export async function POST(
     // the database at creation so the return page and webhooks can look it up
     // without depending on URL parameters (the {VERIFICATION_SESSION_ID} placeholder
     // is only substituted by Stripe in mobile SDKs, not the hosted web redirect).
-    const returnUrl = `${baseUrl}/t/${token}/kyc/return`
+    const returnUrl = `${baseUrl}${withLocalePath(locale, `/t/${token}/kyc/return`)}`
 
     // Create the VerificationSession on the PLATFORM Stripe account.
     // Stripe Identity is platform-level; the vendor's Connect account is for payments

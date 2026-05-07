@@ -58,7 +58,7 @@ function isProductionPdfRuntime() {
   )
 }
 
-async function importRuntimeModule<T = any>(specifier: string): Promise<T> {
+async function importRuntimeModule<T = unknown>(specifier: string): Promise<T> {
   return (0, eval)(`import(${JSON.stringify(specifier)})`) as Promise<T>
 }
 
@@ -77,7 +77,7 @@ async function launchPdfBrowser() {
     })
   }
 
-  const { chromium } = await importRuntimeModule<any>("playwright")
+  const { chromium } = await importRuntimeModule<typeof import("playwright")>("playwright")
 
   return chromium.launch({
     headless: true,

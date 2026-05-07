@@ -1,5 +1,6 @@
 import { cache } from "react"
 import { Prisma, type VendorProfile, type VendorStatus } from "@prisma/client"
+import { getLocale } from "next-intl/server"
 import { redirect } from "next/navigation"
 import { NextResponse } from "next/server"
 
@@ -7,18 +8,29 @@ import { hasActiveSubscription } from "@/features/subscriptions/server/feature-g
 import { getVendorSubscriptionAccessState } from "@/features/subscriptions/server/subscription-service"
 import { prisma } from "@/lib/db/prisma"
 import { canAccessAdminScope, canAccessVendorScope, isAdminRole } from "@/lib/auth/roles"
+import { routing } from "@/i18n/routing"
 import { getAuthSession } from "@/lib/auth/session"
+import { withLocalePath } from "@/lib/i18n/locale-utils"
 
 type AuthenticatedSession = NonNullable<Awaited<ReturnType<typeof getAuthSession>>>
 type AuthenticatedDbUser = Prisma.UserGetPayload<{
   include: { vendorProfile: { include: { subscription: true } } }
 }>
 
+async function getCurrentLocalePath(path: string) {
+  try {
+    const locale = await getLocale()
+    return withLocalePath(locale, path)
+  } catch {
+    return withLocalePath(routing.defaultLocale, path)
+  }
+}
+
 export const requireAuthenticatedUser = cache(async function requireAuthenticatedUser() {
   const session = await getAuthSession()
 
   if (!session?.user?.email || !session.user.role) {
-    redirect("/login")
+    redirect(await getCurrentLocalePath("/login"))
   }
 
   const dbUser = await prisma.user.findUnique({
@@ -33,7 +45,7 @@ export async function requireVendorAccess() {
   const context = await requireAuthenticatedUser()
 
   if (!canAccessVendorScope(context.session.user.role)) {
-    redirect("/login")
+    redirect(await getCurrentLocalePath("/login"))
   }
 
   return context
@@ -43,7 +55,7 @@ export async function requireAdminAccess() {
   const context = await requireAuthenticatedUser()
 
   if (!canAccessAdminScope(context.session.user.role)) {
-    redirect("/login")
+    redirect(await getCurrentLocalePath("/login"))
   }
 
   return context
@@ -54,10 +66,10 @@ export const requireVendorProfileAccess = cache(async function requireVendorProf
 
   if (!context.dbUser?.vendorProfile) {
     if (isAdminRole(context.session.user.role)) {
-      redirect("/admin")
+      redirect(await getCurrentLocalePath("/admin"))
     }
 
-    redirect("/login")
+    redirect(await getCurrentLocalePath("/login"))
   }
 
   const dbUser = context.dbUser as AuthenticatedDbUser
@@ -81,7 +93,7 @@ export const requireSubscribedVendorProfileAccess = cache(async function require
   const { subscription } = context
 
   if (!subscription || !hasActiveSubscription(subscription)) {
-    redirect("/vendor/subscribe")
+    redirect(await getCurrentLocalePath("/vendor/subscribe"))
   }
 
   return { ...context, subscription }
@@ -157,7 +169,7 @@ export async function ensureVendorSubscriptionEligible(vendorId: string) {
       {
         success: false,
         code: "SUBSCRIPTION_REQUIRED",
-        redirectTo: "/vendor/subscribe",
+        redirectTo: withLocalePath(routing.defaultLocale, "/vendor/subscribe"),
         message: getVendorSubscriptionStatusMessage(),
       },
       { status: 402 }

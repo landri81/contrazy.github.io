@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
 import { AlertCircle, Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -22,6 +23,7 @@ export function ContractReviewForm({
   contentHtml: string
   documentMeta?: ContractDocumentMeta
 }) {
+  const t = useTranslations("clientFlow.contractReview")
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [reviewed, setReviewed] = useState(false)
@@ -50,11 +52,11 @@ export function ContractReviewForm({
         }
 
         const payload = await res.json().catch(() => null)
-        setError(payload?.message ?? "Unable to continue right now.")
+        setError(payload?.message ?? t("errorContinue"))
       }
     } catch (err) {
       console.error(err)
-      setError("Unable to continue right now.")
+      setError(t("errorContinue"))
     } finally {
       setIsPending(false)
     }
@@ -92,10 +94,10 @@ export function ContractReviewForm({
           />
           <div className="grid flex-1 gap-1.5 leading-none">
             <Label htmlFor="reviewed" className="text-base font-medium">
-              I have reviewed this agreement
+              {t("reviewedLabel")}
             </Label>
             <p className="text-sm text-muted-foreground">
-              Continue to the next step when you are ready to sign.
+              {t("reviewedDesc")}
             </p>
           </div>
         </div>
@@ -106,7 +108,7 @@ export function ContractReviewForm({
             disabled={isPending || !reviewed}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue to Signature
+            {t("continueToSign")}
           </Button>
         </div>
       </div>

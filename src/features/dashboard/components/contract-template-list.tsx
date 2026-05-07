@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import type { ContractTemplate } from "@prisma/client"
 import {
   CalendarClock,
@@ -62,7 +63,7 @@ function formatDate(value: Date | string) {
   const parsed = value instanceof Date ? value : new Date(value)
 
   if (Number.isNaN(parsed.getTime())) {
-    return "Unknown"
+    return "—"
   }
 
   return parsed.toLocaleDateString()
@@ -111,6 +112,7 @@ export function ContractTemplateList({
   templateLimit: number | null
   templateLimitMessage: string | null
 }) {
+  const t = useTranslations("dashboard.vendor.contractTemplates")
   const requestSequenceRef = useRef(0)
   const [templates, setTemplates] = useState(initialTemplates)
   const [pagination, setPagination] = useState({
@@ -226,9 +228,8 @@ export function ContractTemplateList({
 
       toast({
         variant: "error",
-        title: "Failed to load templates",
-        description:
-          error instanceof Error ? error.message : "An unexpected error occurred.",
+        title: t("errorLoad"),
+        description: error instanceof Error ? error.message : t("errorLoadDesc"),
       })
     } finally {
       if (requestId === requestSequenceRef.current) {
@@ -290,8 +291,8 @@ export function ContractTemplateList({
       if (!response.ok && response.status !== 204) {
         toast({
           variant: "error",
-          title: "Delete failed",
-          description: payload?.message ?? "Unable to delete this template right now.",
+          title: t("errorDelete"),
+          description: payload?.message ?? t("errorDeleteDesc"),
         })
         return
       }
@@ -304,8 +305,8 @@ export function ContractTemplateList({
 
       toast({
         variant: "success",
-        title: "Template deleted",
-        description: `${deletedName} has been removed.`,
+        title: t("successDelete"),
+        description: t("successDeleteDesc", { name: deletedName }),
       })
 
       await loadTemplates({
@@ -318,8 +319,8 @@ export function ContractTemplateList({
       console.error(error)
       toast({
         variant: "error",
-        title: "Network error",
-        description: "Unable to delete this template right now.",
+        title: t("networkError"),
+        description: t("networkErrorDesc"),
       })
     } finally {
       setDeletingId(null)
@@ -339,25 +340,25 @@ export function ContractTemplateList({
 
                 <div className="space-y-1.5">
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                    Contract templates
+                    {t("title")}
                   </h1>
                   <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                    Maintain reusable agreements in one place, then attach them to transactions when needed.
+                    {t("description")}
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="rounded-full border-border/80 bg-muted/30 px-2.5 py-1">
-                  {pagination.totalCount} total
+                  {t("total", { count: pagination.totalCount })}
                 </Badge>
                 {templateLimit === null ? (
                   <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
-                    Unlimited on current plan
+                    {t("unlimited")}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="rounded-full border-border/80 bg-muted/30 px-2.5 py-1">
-                    {Math.max(templateLimit - pagination.totalCount, 0)} remaining
+                    {t("remaining", { count: Math.max(templateLimit - pagination.totalCount, 0) })}
                   </Badge>
                 )}
               </div>
@@ -366,14 +367,14 @@ export function ContractTemplateList({
             {canCreate ? (
               <DashboardRouteLink
                 href="/vendor/contracts/new"
-                pendingLabel="Opening editor"
+                pendingLabel={t("pendingLabel")}
                 className={cn(
                   buttonVariants({ size: "lg" }),
                   "w-full bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0] sm:w-auto"
                 )}
               >
                 <Plus className="size-4" />
-                New template
+                {t("newTemplate")}
               </DashboardRouteLink>
             ) : (
               <Button
@@ -384,21 +385,21 @@ export function ContractTemplateList({
                 className="w-full sm:w-auto"
               >
                 <Plus className="size-4" />
-                New template
+                {t("newTemplate")}
               </Button>
             )}
           </div>
 
           {!canEdit ? (
             <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-              <AlertTitle>Editing unavailable</AlertTitle>
+              <AlertTitle>{t("editingUnavailable")}</AlertTitle>
               <AlertDescription>{blockedMessage}</AlertDescription>
             </Alert>
           ) : null}
 
           {canEdit && hasReachedTemplateLimit && createBlockedMessage ? (
             <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-              <AlertTitle>Template limit reached</AlertTitle>
+              <AlertTitle>{t("templateLimitReached")}</AlertTitle>
               <AlertDescription>{createBlockedMessage}</AlertDescription>
             </Alert>
           ) : null}
@@ -411,14 +412,14 @@ export function ContractTemplateList({
               {/* Search */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Search
+                  {t("searchLabel")}
                 </label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={draftQuery}
                     onChange={(e) => setDraftQuery(e.target.value)}
-                    placeholder="Search by template name or note"
+                    placeholder={t("searchPlaceholder")}
                     className="h-10 bg-white pl-9"
                     disabled={isLoading}
                   />
@@ -428,7 +429,7 @@ export function ContractTemplateList({
               {/* Filter */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Filter
+                  {t("filterLabel")}
                 </label>
                 <Select
                   value={draftFilter}
@@ -452,7 +453,7 @@ export function ContractTemplateList({
               {/* Sort */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Sort
+                  {t("sortLabel")}
                 </label>
                 <Select
                   value={draftSort}
@@ -483,10 +484,10 @@ export function ContractTemplateList({
                   {isLoading ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Applying
+                      {t("applying")}
                     </>
                   ) : (
-                    "Apply"
+                    t("applyBtn")
                   )}
                 </Button>
 
@@ -498,7 +499,7 @@ export function ContractTemplateList({
                   className="h-10 px-4"
                 >
                   <RotateCcw className="size-4" />
-                  Reset
+                  {t("resetBtn")}
                 </Button>
               </div>
             </div>
@@ -507,13 +508,13 @@ export function ContractTemplateList({
           <div className="rounded-2xl border border-border/80 bg-white shadow-sm">
             <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 sm:px-5">
               <div className="space-y-1">
-                <h2 className="text-sm font-semibold text-foreground">Template library</h2>
+                <h2 className="text-sm font-semibold text-foreground">{t("libraryTitle")}</h2>
                 <p className="text-xs text-muted-foreground">
                   {pagination.totalCount > 0
-                    ? `Showing ${visibleRangeStart}-${visibleRangeEnd} of ${pagination.totalCount}`
+                    ? t("showingRange", { start: visibleRangeStart, end: visibleRangeEnd, total: pagination.totalCount })
                     : hasActiveFilters
-                      ? "No templates match the current search or filter."
-                      : "No templates created yet."}
+                      ? t("noMatchFilter")
+                      : t("noTemplatesYet")}
                 </p>
               </div>
             </div>
@@ -523,7 +524,7 @@ export function ContractTemplateList({
                 <div className="absolute inset-0 z-10 flex items-center justify-center rounded-b-2xl bg-white/80 backdrop-blur-[1px]">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
-                    Updating templates
+                    {t("updatingTemplates")}
                   </div>
                 </div>
               ) : null}
@@ -535,34 +536,34 @@ export function ContractTemplateList({
                   </div>
 
                   <h3 className="mt-4 text-lg font-semibold text-foreground">
-                    {hasActiveFilters ? "No matching templates" : "No templates yet"}
+                    {hasActiveFilters ? t("noMatchTitle") : t("emptyTitle")}
                   </h3>
 
                   <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                     {hasActiveFilters
-                      ? "Try a different search term or reset the current filters."
-                      : "Create your first reusable agreement and keep it ready for future transactions."}
+                      ? t("noMatchDescription")
+                      : t("emptyDescription")}
                   </p>
 
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
                     {hasActiveFilters ? (
                       <Button type="button" variant="outline" onClick={handleReset}>
                         <RotateCcw className="size-4" />
-                        Clear filters
+                        {t("clearFilters")}
                       </Button>
                     ) : null}
 
                     {canCreate ? (
                       <DashboardRouteLink
                         href="/vendor/contracts/new"
-                        pendingLabel="Opening editor"
+                        pendingLabel={t("pendingLabel")}
                         className={cn(
                           buttonVariants({ size: "lg" }),
                           "bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]"
                         )}
                       >
                         <Plus className="size-4" />
-                        Create first template
+                        {t("createFirst")}
                       </DashboardRouteLink>
                     ) : null}
                   </div>
@@ -573,10 +574,10 @@ export function ContractTemplateList({
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="h-11 px-5">Template</TableHead>
-                          <TableHead className="h-11 px-5">Summary</TableHead>
-                          <TableHead className="h-11 px-5">Updated</TableHead>
-                          <TableHead className="h-11 px-5 text-right">Actions</TableHead>
+                          <TableHead className="h-11 px-5">{t("thTemplate")}</TableHead>
+                          <TableHead className="h-11 px-5">{t("thSummary")}</TableHead>
+                          <TableHead className="h-11 px-5">{t("thUpdated")}</TableHead>
+                          <TableHead className="h-11 px-5 text-right">{t("thActions")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -593,13 +594,13 @@ export function ContractTemplateList({
                                     <p className="font-semibold text-foreground">{template.name}</p>
                                     {template.isDefault ? (
                                       <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
-                                        Default
-                                      </Badge>
+                                        {t("defaultBadge")}
+</Badge>
                                     ) : null}
                                   </div>
 
                                   <p className="line-clamp-2 text-sm text-muted-foreground">
-                                    {template.description?.trim() || "No internal note added."}
+                                    {template.description?.trim() || t("noNote")}
                                   </p>
                                 </div>
                               </div>
@@ -619,7 +620,7 @@ export function ContractTemplateList({
                                     {formatDate(template.updatedAt)}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    Created {formatDate(template.createdAt)}
+                                    {t("createdOn", { date: formatDate(template.createdAt) })}
                                   </p>
                                 </div>
                               </div>
@@ -630,16 +631,16 @@ export function ContractTemplateList({
                                 {canEdit ? (
                                   <DashboardRouteLink
                                     href={`/vendor/contracts/${template.id}/edit`}
-                                    pendingLabel="Opening editor"
+                                    pendingLabel={t("pendingLabel")}
                                     className={buttonVariants({ variant: "outline", size: "sm" })}
                                   >
                                     <Edit className="size-4" />
-                                    Edit
+                                    {t("editBtn")}
                                   </DashboardRouteLink>
                                 ) : (
                                   <Button type="button" variant="outline" size="sm" disabled>
                                     <Edit className="size-4" />
-                                    Edit
+                                    {t("editBtn")}
                                   </Button>
                                 )}
 
@@ -656,7 +657,7 @@ export function ContractTemplateList({
                                   ) : (
                                     <Trash2 className="size-4" />
                                   )}
-                                  Delete
+                                  {t("deleteBtn")}
                                 </Button>
                               </div>
                             </TableCell>
@@ -690,13 +691,13 @@ export function ContractTemplateList({
                                         variant="outline"
                                         className="shrink-0 rounded-full border-blue-200 bg-blue-50 px-2 py-0 text-[10px] text-blue-700"
                                       >
-                                        Default
-                                      </Badge>
+                                        {t("defaultBadge")}
+</Badge>
                                     ) : null}
                                   </div>
 
                                   <p className="mt-1 line-clamp-1 text-xs text-muted-foreground sm:text-sm">
-                                    {template.description?.trim() || "No internal note added."}
+                                    {template.description?.trim() || t("noNote")}
                                   </p>
                                 </div>
 
@@ -704,7 +705,7 @@ export function ContractTemplateList({
                                   {canEdit ? (
                                     <DashboardRouteLink
                                       href={`/vendor/contracts/${template.id}/edit`}
-                                      pendingLabel="Opening editor"
+                                      pendingLabel={t("pendingLabel")}
                                       className={cn(
                                         buttonVariants({ variant: "ghost", size: "icon" }),
                                         "size-8 rounded-full"
@@ -750,7 +751,7 @@ export function ContractTemplateList({
 
                               <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground sm:text-xs">
                                 <CalendarClock className="size-3.5 shrink-0" />
-                                <span className="truncate">Updated {formatDate(template.updatedAt)}</span>
+                                <span className="truncate">{t("thUpdated")} {formatDate(template.updatedAt)}</span>
                               </div>
                             </div>
                           </div>
@@ -764,8 +765,7 @@ export function ContractTemplateList({
             {pagination.totalCount > pagination.pageSize ? (
               <div className="flex flex-col gap-3 border-t border-border/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <p className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium text-foreground">{visibleRangeStart}-{visibleRangeEnd}</span> of{" "}
-                  <span className="font-medium text-foreground">{pagination.totalCount}</span> templates
+                  {t("showingPage", { start: visibleRangeStart, end: visibleRangeEnd, total: pagination.totalCount })}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-1">
@@ -776,7 +776,7 @@ export function ContractTemplateList({
                     onClick={() => handlePageChange(pagination.page - 1)}
                     disabled={pagination.page <= 1 || isLoading}
                   >
-                    Prev
+                    {t("prevPage")}
                   </Button>
 
                   {pageWindow.map((entry, index) =>
@@ -813,7 +813,7 @@ export function ContractTemplateList({
                     onClick={() => handlePageChange(pagination.page + 1)}
                     disabled={pagination.page >= pagination.totalPages || isLoading}
                   >
-                    Next
+                    {t("nextPage")}
                   </Button>
                 </div>
               </div>
@@ -832,11 +832,11 @@ export function ContractTemplateList({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete template</DialogTitle>
+            <DialogTitle>{t("deleteDialogTitle")}</DialogTitle>
             <DialogDescription>
               {deletingTemplate
-                ? `Delete "${deletingTemplate.name}"? Existing transaction snapshots stay unchanged.`
-                : "Delete this template?"}
+                ? t("deleteDialogDesc", { name: deletingTemplate.name })
+                : t("deleteDialogDefault")}
             </DialogDescription>
           </DialogHeader>
 
@@ -847,7 +847,7 @@ export function ContractTemplateList({
               onClick={() => setDeletingTemplate(null)}
               disabled={Boolean(deletingId)}
             >
-              Cancel
+              {t("cancelDelete")}
             </Button>
             <Button
               type="button"
@@ -856,7 +856,7 @@ export function ContractTemplateList({
               disabled={Boolean(deletingId)}
             >
               {deletingId ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-              Delete
+              {t("confirmDelete")}
             </Button>
           </DialogFooter>
         </DialogContent>

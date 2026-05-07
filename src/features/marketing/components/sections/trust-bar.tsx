@@ -1,17 +1,12 @@
 "use client"
 
 import { Stagger, StaggerItem } from "@/components/ui/motion"
-
-const signals = [
-  "Stripe Connect",
-  "Stripe Identity",
-  "3D Secure · DSP2",
-  "E-Signature simple eIDAS",
-  "QR Codes dynamiques",
-  "Conçu pour la conformité RGPD",
-]
+import { useTranslations } from "next-intl"
 
 export function TrustBar() {
+  const t = useTranslations("marketing.trustBar")
+  const signals = t.raw("signals") as string[]
+
   return (
     <div className="border-b border-border bg-background px-5 py-6 lg:px-10">
       <Stagger

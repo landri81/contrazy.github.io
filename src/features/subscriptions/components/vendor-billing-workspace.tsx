@@ -20,10 +20,11 @@ import {
   XCircle,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "@/i18n/navigation"
 import {
   Dialog,
   DialogContent,
@@ -109,6 +110,7 @@ function PaymentMethodForm({
   onSuccess: (pmId: string) => void
   onCancel: () => void
 }) {
+  const t = useTranslations("subscriptions.billing")
   const stripe = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
@@ -128,7 +130,7 @@ function PaymentMethodForm({
     })
 
     if (result.error) {
-      setError(result.error.message ?? "Failed to save card.")
+      setError(result.error.message ?? t("toastPmFailed"))
       setLoading(false)
       return
     }
@@ -152,11 +154,11 @@ function PaymentMethodForm({
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="sticky bottom-0 flex gap-2 bg-background pt-2 pb-1">
         <Button variant="outline" type="button" onClick={onCancel} disabled={loading} className="flex-1">
-          Cancel
+          {t("cancelCard")}
         </Button>
         <Button type="submit" disabled={loading || !stripe || !elements} className="flex-1 bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]">
           {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-          Save card
+          {t("saveCard")}
         </Button>
       </div>
     </form>
@@ -182,6 +184,7 @@ function BillingPlanGrid({
   canFreshCheckout: boolean
   loading: string | null
 }) {
+  const t = useTranslations("subscriptions.billing")
   const router = useRouter()
 
   function handleSelect(planKey: SubscriptionPlanSlug) {
@@ -228,15 +231,15 @@ function BillingPlanGrid({
             (p) => p.key === plan.key
           )
 
-          if (thisPlanOrder > currentPlanOrder) ctaLabel = "Upgrade"
-          else ctaLabel = "Downgrade"
+          if (thisPlanOrder > currentPlanOrder) ctaLabel = t("upgrade")
+          else ctaLabel = t("downgrade")
 
           if (
             currentIntervalSlug &&
             currentIntervalSlug !== billingInterval &&
             plan.key === currentPlanSlug
           ) {
-            ctaLabel = "Switch interval"
+            ctaLabel = t("switchInterval")
           }
         }
 
@@ -260,16 +263,17 @@ function BillingPlanGrid({
 // ── UsageSection ──────────────────────────────────────────────────────────────
 
 function UsageBar({ used, limit, locked }: { used: number; limit: number | null; locked?: boolean }) {
+  const t = useTranslations("subscriptions.billing")
   if (locked) {
     return (
       <div className="space-y-1">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted" />
-        <p className="text-[11px] text-muted-foreground">Not included in plan</p>
+        <p className="text-[11px] text-muted-foreground">{t("notIncluded")}</p>
       </div>
     )
   }
   if (limit === null) {
-    return <p className="text-[12px] font-semibold text-[var(--contrazy-teal)]">Unlimited · {used} used</p>
+    return <p className="text-[12px] font-semibold text-[var(--contrazy-teal)]">{`${t("unlimited")} · ${used} used`}</p>
   }
   const pct = Math.min((used / Math.max(limit, 1)) * 100, 100)
   const color = pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-[var(--contrazy-teal)]"
@@ -286,6 +290,7 @@ function UsageBar({ used, limit, locked }: { used: number; limit: number | null;
 }
 
 function UsageSection({ usage }: { usage: BillingUsage }) {
+  const t = useTranslations("subscriptions.billing")
   const usageItems: {
     label: string
     shortLabel: string
@@ -294,42 +299,11 @@ function UsageSection({ usage }: { usage: BillingUsage }) {
     locked?: boolean
     icon: LucideIcon
   }[] = [
-      {
-        label: "Transactions / month",
-        shortLabel: "Transactions",
-        used: usage.transactions.used,
-        limit: usage.transactions.limit,
-        icon: CreditCard,
-      },
-      {
-        label: "E-Signatures / month",
-        shortLabel: "Signatures",
-        used: usage.eSignatures.used,
-        limit: usage.eSignatures.limit,
-        icon: FileSignature,
-      },
-      {
-        label: "QR Codes / month",
-        shortLabel: "QR Codes",
-        used: usage.qrCodes.used,
-        limit: usage.qrCodes.limit,
-        icon: QrCode,
-      },
-      {
-        label: "KYC verifications / month",
-        shortLabel: "KYC",
-        used: usage.kyc.used,
-        limit: usage.kyc.limit,
-        locked: !usage.kyc.allowed,
-        icon: ShieldCheck,
-      },
-      {
-        label: "Contract templates",
-        shortLabel: "Templates",
-        used: usage.contractTemplates.used,
-        limit: usage.contractTemplates.limit,
-        icon: FileText,
-      },
+      { label: t("usageTxLabel"), shortLabel: t("usageTxShort"), used: usage.transactions.used, limit: usage.transactions.limit, icon: CreditCard },
+      { label: t("usageSigLabel"), shortLabel: t("usageSigShort"), used: usage.eSignatures.used, limit: usage.eSignatures.limit, icon: FileSignature },
+      { label: t("usageQrLabel"), shortLabel: t("usageQrShort"), used: usage.qrCodes.used, limit: usage.qrCodes.limit, icon: QrCode },
+      { label: t("usageKycLabel"), shortLabel: t("usageKycShort"), used: usage.kyc.used, limit: usage.kyc.limit, locked: !usage.kyc.allowed, icon: ShieldCheck },
+      { label: t("usageTemplatesLabel"), shortLabel: t("usageTemplatesShort"), used: usage.contractTemplates.used, limit: usage.contractTemplates.limit, icon: FileText },
     ]
 
   return (
@@ -353,10 +327,11 @@ function UsageMetricCard({
     icon: LucideIcon
   }
 }) {
+  const t = useTranslations("subscriptions.billing")
   const Icon = item.icon
 
   const limitLabel =
-    item.locked ? "Locked" : item.limit === null ? "Unlimited" : item.limit
+    item.locked ? t("locked") : item.limit === null ? t("unlimited") : item.limit
 
   return (
     <div className="group rounded-2xl border border-border bg-background p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:p-4">
@@ -413,22 +388,23 @@ function PaymentMethodSection({
   onDelete: (id: string) => void
   actionLoadingId: string | null
 }) {
+  const t = useTranslations("subscriptions.billing")
   return (
     <div className="rounded-[18px] border border-border bg-background shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <CreditCard className="size-4 text-muted-foreground" />
-          <span className="text-[13px] font-semibold text-foreground">Payment methods</span>
+          <span className="text-[13px] font-semibold text-foreground">{t("paymentMethodsLabel")}</span>
         </div>
         <Button variant="outline" size="sm" onClick={onAdd} disabled={addLoading}>
           {addLoading ? <Loader2 className="mr-2 size-3.5 animate-spin" /> : null}
-          Add card
+          {t("addCard")}
         </Button>
       </div>
 
       {paymentMethods.length === 0 ? (
         <div className="px-5 py-6 text-center text-[13px] text-muted-foreground">
-          No cards saved. Add one to continue.
+          {t("noCards")}
         </div>
       ) : (
         <ul className="divide-y divide-border">
@@ -449,7 +425,7 @@ function PaymentMethodSection({
                     </p>
                     {pm.isDefault && (
                       <span className="rounded-full bg-[var(--contrazy-teal)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--contrazy-teal)]">
-                        Default
+                        {t("defaultLabel")}
                       </span>
                     )}
                   </div>
@@ -466,7 +442,7 @@ function PaymentMethodSection({
                       disabled={busy}
                       onClick={() => onSetDefault(pm.id)}
                     >
-                      {busy ? <Loader2 className="size-3 animate-spin" /> : "Set default"}
+                      {busy ? <Loader2 className="size-3 animate-spin" /> : t("setDefault")}
                     </Button>
                   )}
                   <Button
@@ -474,7 +450,7 @@ function PaymentMethodSection({
                     size="sm"
                     className={cn("h-7 w-7 p-0", canDelete ? "text-destructive hover:text-destructive" : "cursor-not-allowed opacity-40")}
                     disabled={busy || !canDelete}
-                    title={!canDelete ? "Cannot remove the only card while subscription is active" : "Remove card"}
+                    title={!canDelete ? t("cannotRemove") : t("removeCard")}
                     onClick={() => canDelete && onDelete(pm.id)}
                   >
                     {busy ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3.5" />}
@@ -492,9 +468,10 @@ function PaymentMethodSection({
 // ── InvoiceTable ──────────────────────────────────────────────────────────────
 
 function InvoiceTable({ invoices }: { invoices: BillingInvoice[] }) {
+  const t = useTranslations("subscriptions.billing")
   if (invoices.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">Aucune facture pour le moment.</p>
+      <p className="py-6 text-center text-sm text-muted-foreground">{t("noInvoices")}</p>
     )
   }
 
@@ -503,12 +480,12 @@ function InvoiceTable({ invoices }: { invoices: BillingInvoice[] }) {
       <table className="w-full text-[13px]">
         <thead>
           <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <th className="py-3 pr-4 text-left">Date</th>
-            <th className="py-3 pr-4 text-left">Numéro</th>
-            <th className="py-3 pr-4 text-left">Période</th>
-            <th className="py-3 pr-4 text-right">Montant</th>
-            <th className="py-3 pr-4 text-left">Statut</th>
-            <th className="py-3 text-right">Actions</th>
+            <th className="py-3 pr-4 text-left">{t("thDate")}</th>
+            <th className="py-3 pr-4 text-left">{t("thNumber")}</th>
+            <th className="py-3 pr-4 text-left">{t("thPeriod")}</th>
+            <th className="py-3 pr-4 text-right">{t("thAmount")}</th>
+            <th className="py-3 pr-4 text-left">{t("thStatus")}</th>
+            <th className="py-3 text-right">{t("thActions")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -532,13 +509,13 @@ function InvoiceTable({ invoices }: { invoices: BillingInvoice[] }) {
                   {inv.hostedInvoiceUrl && (
                     <a href={inv.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer"
                        className="inline-flex items-center gap-1 text-[11px] text-[var(--contrazy-teal)] hover:underline">
-                      <ExternalLink className="size-3" /> Voir
+                      <ExternalLink className="size-3" /> {t("viewInvoice")}
                     </a>
                   )}
                   {inv.invoicePdf && (
                     <a href={inv.invoicePdf} target="_blank" rel="noopener noreferrer"
                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                      <Download className="size-3" /> PDF
+                      <Download className="size-3" /> {t("downloadPdf")}
                     </a>
                   )}
                 </div>
@@ -552,15 +529,16 @@ function InvoiceTable({ invoices }: { invoices: BillingInvoice[] }) {
 }
 
 function SubscriptionStatusBand({ subscription }: { subscription: SerializedSubscription }) {
+  const t = useTranslations("subscriptions.billing")
   const planDef = subscriptionPlans.find((plan) => plan.key === subscription.planSlug)
   const statusLabels: Record<string, string> = {
-    ACTIVE: "Active",
-    TRIALING: "Trial",
-    PAST_DUE: "Past due",
-    UNPAID: "Unpaid",
-    INCOMPLETE: "Incomplete",
-    CANCELED: "Canceled",
-    INCOMPLETE_EXPIRED: "Expired",
+    ACTIVE: t("statusActive"),
+    TRIALING: t("statusTrialing"),
+    PAST_DUE: t("statusPastDue"),
+    UNPAID: t("statusUnpaid"),
+    INCOMPLETE: t("statusIncomplete"),
+    CANCELED: t("statusCanceled"),
+    INCOMPLETE_EXPIRED: t("statusExpired"),
   }
   const statusTones: Record<string, string> = {
     ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -582,7 +560,7 @@ function SubscriptionStatusBand({ subscription }: { subscription: SerializedSubs
         </div>
         <div>
           <p className="text-[15px] font-bold text-foreground">
-            {planDef?.name ?? subscription.planKey} · {subscription.intervalSlug === "yearly" ? "Annuel" : "Mensuel"}
+            {planDef?.name ?? subscription.planKey} · {subscription.intervalSlug === "yearly" ? t("annualLabel") : t("monthlyLabel")}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", toneClass)}>
@@ -615,6 +593,7 @@ export function VendorBillingWorkspace({
   stripePublishableKey: string
 }) {
   const router = useRouter()
+  const t = useTranslations("subscriptions.billing")
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey])
 
   const sub = workspace.subscription
@@ -855,12 +834,12 @@ export function VendorBillingWorkspace({
               Billing
             </Badge>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Activate your vendor workspace
+              {t("activateTitle")}
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-              Transactions, payments, KYC, contracts, and customer links are locked until an active subscription is in place.
+              {t("activateDesc")}
               {sub?.status === "CANCELED" || sub?.status === "INCOMPLETE_EXPIRED"
-                ? " Your previous subscription has ended — choose a plan to resubscribe."
+                ? " " + t("resubscribeNote")
                 : ""}
             </p>
           </div>
@@ -868,13 +847,13 @@ export function VendorBillingWorkspace({
 
         <section className="space-y-5">
           <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-muted-foreground">
-            <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>Mensuel</span>
+            <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>{t("monthlyLabel")}</span>
             <button
               type="button"
               onClick={() => setBillingInterval((v) => v === "monthly" ? "yearly" : "monthly")}
               className="relative h-7 w-[54px] cursor-pointer rounded-full transition-colors"
               style={{ background: billingInterval === "yearly" ? "var(--contrazy-teal)" : "#CBD5E1" }}
-              aria-label="Toggle billing interval"
+              aria-label={t("toggleAriaLabel")}
             >
               <motion.span
                 layout
@@ -883,9 +862,9 @@ export function VendorBillingWorkspace({
                 style={{ transform: billingInterval === "yearly" ? "translateX(24px)" : "translateX(0)" }}
               />
             </button>
-            <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>Annuel</span>
+            <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>{t("annualLabel")}</span>
             <span className="rounded-full bg-[#E8FAF7] px-2.5 py-0.5 text-[11px] font-bold text-[var(--contrazy-teal)]">
-              {billingInterval === "yearly" ? "-15%" : "Jusqu'à -15%"}
+              {billingInterval === "yearly" ? t("discountLabel") : t("discountTeaser")}
             </span>
           </div>
           <BillingPlanGrid
@@ -912,13 +891,13 @@ export function VendorBillingWorkspace({
         <div className="flex items-start gap-4 rounded-[22px] border border-red-200 bg-red-50/60 p-5">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-600" />
           <div className="flex-1 space-y-1">
-            <p className="font-semibold text-red-800">Payment issue — action required</p>
+            <p className="font-semibold text-red-800">{t("recoveryTitle")}</p>
             <p className="text-sm text-red-700">
               {sub.status === "PAST_DUE"
-                ? "Your latest invoice could not be collected. Please update your payment method to restore full access."
+                ? t("pastDueDesc")
                 : sub.status === "UNPAID"
-                  ? "Your subscription is unpaid. Update your payment method and we will retry."
-                  : "Your payment is incomplete. Please update your payment method to activate your subscription."}
+                  ? t("unpaidDesc")
+                  : t("incompleteDesc")}
             </p>
           </div>
           <Button
@@ -928,13 +907,13 @@ export function VendorBillingWorkspace({
             disabled={pmLoading}
           >
             {pmLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Update payment method
+            {t("updatePmBtn")}
           </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-4">
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Payment methods</h3>
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("paymentMethodsLabel")}</h3>
             <PaymentMethodSection
               paymentMethods={workspace.paymentMethods}
               hasActiveSubscription={isActive}
@@ -946,7 +925,7 @@ export function VendorBillingWorkspace({
             />
           </div>
           <div className="space-y-4">
-            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Recent invoices</h3>
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("recentInvoices")}</h3>
             <div className="rounded-[18px] border border-border bg-background p-4 shadow-sm">
               <InvoiceTable invoices={workspace.invoices.slice(0, 3)} />
             </div>
@@ -957,8 +936,8 @@ export function VendorBillingWorkspace({
         <Dialog open={pmModal} onOpenChange={(open) => { if (!open) { setPmModal(false); setSetupClientSecret(null) } }}>
           <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-md">
             <DialogHeader className="shrink-0">
-              <DialogTitle>Update payment method</DialogTitle>
-              <DialogDescription>Enter your card details. Your existing subscription will be retried with the new card.</DialogDescription>
+              <DialogTitle>{t("updatePmTitle")}</DialogTitle>
+              <DialogDescription>{t("updatePmDesc")}</DialogDescription>
             </DialogHeader>
             <div className="min-h-0 flex-1 overflow-y-auto py-2 pr-1">
               {setupClientSecret && (
@@ -991,7 +970,7 @@ export function VendorBillingWorkspace({
             <div className="flex items-center gap-3">
               <AlertTriangle className="size-5 shrink-0 text-amber-600" />
               <p className="text-sm font-medium text-amber-800">
-                Your subscription ends on <strong>{formatDate(sub.currentPeriodEnd)}</strong>. Reactivate to keep access.
+                {t("cancelingBanner", { date: formatDate(sub.currentPeriodEnd) })}
               </p>
             </div>
             <Button
@@ -1002,7 +981,7 @@ export function VendorBillingWorkspace({
               disabled={actionLoading === "reactivate"}
             >
               {actionLoading === "reactivate" ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RefreshCw className="mr-2 size-4" />}
-              Reactivate
+              {t("reactivateBtn")}
             </Button>
           </motion.div>
         )}
@@ -1010,11 +989,11 @@ export function VendorBillingWorkspace({
 
       {/* Usage */}
       <section className="space-y-4">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Usage this period</h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("usageTitle")}</h2>
         <UsageSection usage={workspace.usage} />
         {workspace.usage.periodEnd && (
           <p className="text-[12px] text-muted-foreground">
-            Usage resets on {formatDate(workspace.usage.periodEnd)}
+            {t("usageResets", { date: formatDate(workspace.usage.periodEnd) })}
           </p>
         )}
       </section>
@@ -1022,14 +1001,15 @@ export function VendorBillingWorkspace({
       {/* Plan grid */}
       <section className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Plans</h2>
+          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("plansTitle")}</h2>
           <div className="flex items-center gap-3 text-sm font-semibold text-muted-foreground">
-            <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>Mensuel</span>
+            <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>{t("monthlyLabel")}</span>
             <button
               type="button"
               onClick={() => setBillingInterval((v) => v === "monthly" ? "yearly" : "monthly")}
               className="relative h-7 w-[54px] cursor-pointer rounded-full transition-colors"
               style={{ background: billingInterval === "yearly" ? "var(--contrazy-teal)" : "#CBD5E1" }}
+              aria-label={t("toggleAriaLabel")}
             >
               <motion.span
                 layout
@@ -1038,9 +1018,9 @@ export function VendorBillingWorkspace({
                 style={{ transform: billingInterval === "yearly" ? "translateX(24px)" : "translateX(0)" }}
               />
             </button>
-            <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>Annuel</span>
+            <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>{t("annualLabel")}</span>
             <span className="rounded-full bg-[#E8FAF7] px-2.5 py-0.5 text-[11px] font-bold text-[var(--contrazy-teal)]">
-              {billingInterval === "yearly" ? "-15%" : "Jusqu'à -15%"}
+              {billingInterval === "yearly" ? t("discountLabel") : t("discountTeaser")}
             </span>
           </div>
         </div>
@@ -1057,7 +1037,7 @@ export function VendorBillingWorkspace({
 
       {/* Payment methods */}
       <section className="space-y-4">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Payment methods</h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("paymentMethodsLabel")}</h2>
         <PaymentMethodSection
           paymentMethods={workspace.paymentMethods}
           hasActiveSubscription={isActive}
@@ -1071,7 +1051,7 @@ export function VendorBillingWorkspace({
 
       {/* Invoices */}
       <section className="space-y-4">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Invoice history</h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("invoiceHistoryTitle")}</h2>
         <div className="overflow-hidden rounded-[18px] border border-border bg-background shadow-sm">
           <div className="p-4">
             <InvoiceTable invoices={workspace.invoices} />
@@ -1082,13 +1062,13 @@ export function VendorBillingWorkspace({
       {/* Danger zone */}
       {!isCanceling && (
         <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Danger zone</h2>
+          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("dangerZoneTitle")}</h2>
           <div className="rounded-[18px] border border-red-200/60 bg-background p-5 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[13px] font-semibold text-foreground">Cancel subscription</p>
+                <p className="text-[13px] font-semibold text-foreground">{t("cancelSubTitle")}</p>
                 <p className="text-[12px] text-muted-foreground">
-                  Your access continues until {formatDate(sub.currentPeriodEnd)}. You can reactivate before that date.
+                  {t("cancelSubDesc", { date: formatDate(sub.currentPeriodEnd) })}
                 </p>
               </div>
               <Button
@@ -1099,7 +1079,7 @@ export function VendorBillingWorkspace({
                 disabled={actionLoading !== null}
               >
                 <XCircle className="mr-2 size-4" />
-                Cancel plan
+                {t("cancelPlanBtn")}
               </Button>
             </div>
           </div>
@@ -1110,42 +1090,42 @@ export function VendorBillingWorkspace({
       <Dialog open={planModal.open} onOpenChange={(open) => { if (!planLoading) setPlanModal((p) => ({ ...p, open })) }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Confirm plan change</DialogTitle>
+            <DialogTitle>{t("planChangeTitle")}</DialogTitle>
             <DialogDescription>
-              Review the details before confirming.
+              {t("planChangeDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 rounded-2xl border border-border bg-muted/30 p-4 text-[13px]">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">New plan</span>
+              <span className="text-muted-foreground">{t("newPlanLabel")}</span>
               <span className="font-semibold">
                 {selectedPlanDef?.name} · {intervalLabel}
               </span>
             </div>
             {planPrice !== null && planPrice !== undefined && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Price</span>
-                <span className="font-semibold">{formatEuroAmount(planPrice)} HT</span>
+                <span className="text-muted-foreground">{t("priceLabel")}</span>
+                <span className="font-semibold">{formatEuroAmount(planPrice)} {t("vatLabel")}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Effective</span>
-              <span className="font-semibold">Immediately</span>
+              <span className="text-muted-foreground">{t("effectiveLabel")}</span>
+              <span className="font-semibold">{t("effectiveValue")}</span>
             </div>
             {isIntervalChange && (
               <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-700">
-                Billing cycle resets today. A prorated invoice will be issued immediately.
+                {t("intervalChangeNote")}
               </div>
             )}
             {!isIntervalChange && (
               <div className="rounded-xl border border-border bg-background px-3 py-2 text-[12px] text-muted-foreground">
-                A prorated credit or charge will be applied to your next invoice.
+                {t("proratedNote")}
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPlanModal({ open: false, plan: null, interval: null })} disabled={!!planLoading}>
-              Cancel
+              {t("cancelConfirmBtn")}
             </Button>
             <Button
               onClick={confirmPlanChange}
@@ -1153,7 +1133,7 @@ export function VendorBillingWorkspace({
               className="bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]"
             >
               {planLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Confirm change
+              {t("confirmChangeBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1165,15 +1145,15 @@ export function VendorBillingWorkspace({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <XCircle className="size-5 text-destructive" />
-              Cancel subscription
+              {t("cancelSubDialogTitle")}
             </DialogTitle>
             <DialogDescription>
-              Your workspace stays active until <strong>{formatDate(sub.currentPeriodEnd)}</strong>. You can reactivate before that date.
+              {t("cancelSubDialogDesc", { date: formatDate(sub.currentPeriodEnd) })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelModal(false)} disabled={actionLoading === "cancel"}>
-              Keep subscription
+              {t("keepSubscription")}
             </Button>
             <Button
               onClick={handleCancel}
@@ -1181,7 +1161,7 @@ export function VendorBillingWorkspace({
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               {actionLoading === "cancel" ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Cancel at period end
+              {t("cancelAtPeriodEnd")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1191,8 +1171,8 @@ export function VendorBillingWorkspace({
       <Dialog open={pmModal} onOpenChange={(open) => { if (!open) { setPmModal(false); setSetupClientSecret(null) } }}>
         <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-md">
           <DialogHeader className="shrink-0">
-            <DialogTitle>Update payment method</DialogTitle>
-            <DialogDescription>Enter your new card. It will be used for all future charges.</DialogDescription>
+            <DialogTitle>{t("updatePmTitle")}</DialogTitle>
+            <DialogDescription>{t("updatePmDescNew")}</DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto py-2 pr-1">
             {setupClientSecret ? (
@@ -1212,9 +1192,9 @@ export function VendorBillingWorkspace({
       <Dialog open={actionRequired?.open ?? false} onOpenChange={() => setActionRequired(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Payment confirmation required</DialogTitle>
+            <DialogTitle>{t("auth3dsTitle")}</DialogTitle>
             <DialogDescription>
-              Your bank requires additional authentication to complete this change.
+              {t("auth3dsDesc")}
             </DialogDescription>
           </DialogHeader>
           {actionRequired?.clientSecret && (

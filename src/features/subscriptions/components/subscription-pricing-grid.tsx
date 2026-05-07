@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
+import { useRouter } from "@/i18n/navigation"
 import {
   resolveMarketingPlanHref,
   subscriptionPlans,
@@ -24,6 +25,7 @@ export function SubscriptionPricingGrid({
   viewerRole = null,
   initialInterval = "monthly",
 }: SubscriptionPricingGridProps) {
+  const t = useTranslations("subscriptions.billing")
   const router = useRouter()
   const [billingInterval, setBillingInterval] = useState<SubscriptionBillingIntervalSlug>(initialInterval)
   const [pendingPlan, setPendingPlan] = useState<SubscriptionPlanSlug | null>(null)
@@ -31,8 +33,8 @@ export function SubscriptionPricingGrid({
   const [isPending, startTransition] = useTransition()
 
   const discountLabel = useMemo(() => {
-    return billingInterval === "yearly" ? "-15%" : "Jusqu'à -15%"
-  }, [billingInterval])
+    return billingInterval === "yearly" ? t("discountLabel") : t("discountTeaser")
+  }, [billingInterval, t])
 
   function handleVendorPlanSelect(planKey: SubscriptionPlanSlug) {
     if (planKey === "enterprise") {
@@ -59,14 +61,14 @@ export function SubscriptionPricingGrid({
         const data = await response.json()
 
         if (!response.ok || !data?.url) {
-          setError(data?.message ?? "Unable to start the checkout session.")
+          setError(data?.message ?? t("checkoutError"))
           setPendingPlan(null)
           return
         }
 
         window.location.href = data.url
       } catch {
-        setError("Unable to start the checkout session.")
+        setError(t("checkoutError"))
         setPendingPlan(null)
       }
     })
@@ -75,13 +77,13 @@ export function SubscriptionPricingGrid({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-muted-foreground">
-        <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>Mensuel</span>
+        <span className={billingInterval === "monthly" ? "font-bold text-foreground" : ""}>{t("monthlyLabel")}</span>
         <button
           type="button"
           onClick={() => setBillingInterval((value) => (value === "monthly" ? "yearly" : "monthly"))}
           className="relative h-7 w-[54px] cursor-pointer rounded-full transition-colors"
           style={{ background: billingInterval === "yearly" ? "var(--contrazy-teal)" : "#CBD5E1" }}
-          aria-label="Toggle billing interval"
+          aria-label={t("toggleAriaLabel")}
         >
           <motion.span
             layout
@@ -92,7 +94,7 @@ export function SubscriptionPricingGrid({
             }}
           />
         </button>
-        <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>Annuel</span>
+        <span className={billingInterval === "yearly" ? "font-bold text-foreground" : ""}>{t("annualLabel")}</span>
         <span className="rounded-full bg-[#E8FAF7] px-2.5 py-0.5 text-[11px] font-bold text-[var(--contrazy-teal)]">
           {discountLabel}
         </span>

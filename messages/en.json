@@ -1,0 +1,2697 @@
+{
+  "site": {
+    "name": "Contrazy",
+    "tagline": "Contract, KYC, signature, deposit and payment in one secure workflow.",
+    "nav": {
+      "pricing": "Pricing",
+      "blog": "Blog",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "help": "Help Centre",
+      "navigation": "Navigation",
+      "explore": "Explore Contrazy"
+    },
+    "footer": {
+      "tagline": "The platform that centralises contract, KYC, e-signature, deposit and payment in one secure link or QR code.",
+      "copyright": "© 2026 Contrazy SAS · Transaction security platform · Powered by Stripe Connect & Identity",
+      "noFunds": "No third-party fund holding · All rights reserved",
+      "product": "Product",
+      "resources": "Resources",
+      "legal": "Legal",
+      "links": {
+        "features": "Features",
+        "pricing": "Pricing",
+        "freeTrial": "Free trial",
+        "blog": "Blog",
+        "faq": "FAQ",
+        "apiDocs": "API Documentation",
+        "helpCentre": "Help Centre",
+        "status": "Status",
+        "terms": "Terms & Conditions",
+        "privacy": "Privacy Policy",
+        "imprint": "Legal notice",
+        "gdpr": "GDPR",
+        "contact": "Contact"
+      }
+    },
+    "header": {
+      "signIn": "Sign in",
+      "freeTrial": "7-day free trial",
+      "workspace": "My workspace",
+      "profile": "Profile",
+      "signOut": "Sign out",
+      "toggleMenu": "Toggle menu",
+      "closeMenu": "Close menu",
+      "account": "Account",
+      "signedIn": "Signed in",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password"
+    }
+  },
+  "auth": {
+    "sidebar": {
+      "tagline": "Secure the whole transaction, not just the payment.",
+      "subTagline": "Contract, KYC, e-signature, deposit and payment — in one link or QR code.",
+      "features": {
+        "kyc": "Automatic identity verification",
+        "contracts": "Auto-generated and signed contracts",
+        "payments": "Secure deposits and payments",
+        "qr": "Dynamic QR Codes"
+      },
+      "secureLogin": "Secure login for vendors, administrators and account owners"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Access your vendor workspace",
+      "metaTitle": "Sign in | Contrazy",
+      "metaDescription": "Access your Contrazy vendor workspace.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot your password?",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "No account yet?",
+      "register": "Create a free account",
+      "orContinueWith": "Or continue with",
+      "google": "Continue with Google",
+      "errors": {
+        "invalidCredentials": "Invalid email or password.",
+        "generic": "An error occurred. Please try again."
+      },
+      "hidePassword": "Hide password",
+      "showPassword": "Show password"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Start your 7-day free trial",
+      "metaTitle": "Sign up | Contrazy",
+      "metaDescription": "Create your Contrazy account and start your free trial.",
+      "google": "Continue with Google",
+      "orContinueWith": "Or continue with",
+      "nameLabel": "Full name",
+      "namePlaceholder": "Your name",
+      "businessNameLabel": "Business name",
+      "businessNamePlaceholder": "Your business name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "passwordHelp": "At least 8 characters",
+      "confirmPasswordLabel": "Retype password",
+      "confirmPasswordPlaceholder": "Retype your password",
+      "submit": "Create my account",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "terms": "By creating an account, you accept our",
+      "termsLink": "Terms & Conditions",
+      "and": "and our",
+      "privacyLink": "Privacy Policy",
+      "errors": {
+        "generic": "Unable to create account right now",
+        "invalidFormData": "Invalid form data"
+      },
+      "hidePassword": "Hide password",
+      "showPassword": "Show password"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email to receive a reset link",
+      "metaTitle": "Forgot password | Contrazy",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "backToLogin": "Back to sign in",
+      "successTitle": "Email sent",
+      "successMessage": "If an account exists for this email, a reset link has been sent.",
+      "invalidEmail": "Invalid email"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitle": "Enter and confirm your new password",
+      "metaTitle": "Reset password | Contrazy",
+      "passwordLabel": "New password",
+      "confirmLabel": "Confirm password",
+      "submit": "Update password",
+      "submitting": "Updating…",
+      "backToLogin": "Back to sign in",
+      "successTitle": "Password updated",
+      "successMessage": "Your password has been successfully updated.",
+      "missingToken": "This password reset link is missing or has expired.",
+      "passwordPlaceholder": "Minimum 12 characters",
+      "confirmPlaceholder": "Retype your password",
+      "hidePassword": "Hide characters",
+      "showPassword": "Show characters",
+      "invalidRequest": "Invalid reset request",
+      "unableToReset": "Unable to reset password",
+      "unableToResetNow": "Unable to reset password right now"
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "subtitle": "Check your inbox for the verification link",
+      "metaTitle": "Verify email | Contrazy",
+      "resend": "Resend the email",
+      "resending": "Sending…",
+      "backToLogin": "Back to sign in"
+    },
+    "signupSuccess": {
+      "title": "Account created!",
+      "subtitle": "Check your email to verify your account",
+      "metaTitle": "Account created | Contrazy",
+      "cta": "Go to sign in"
+    },
+    "common": {
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "invalidEmail": "Invalid email"
+    }
+  },
+  "dashboard": {
+    "shell": {
+      "navigation": "Navigation",
+      "workspace": "Workspace",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar"
+    },
+    "shared": {
+      "searchLabel": "Search",
+      "all": "All",
+      "apply": "Apply",
+      "applying": "Applying",
+      "reset": "Reset",
+      "updatingResults": "Updating results",
+      "showingResults": "Showing {start}–{end} of {total} results",
+      "prev": "Prev",
+      "next": "Next",
+      "timelineTitle": "Timeline",
+      "timelineDescription": "Key moments across the customer journey.",
+      "openedOn": "Opened on",
+      "responseDeadline": "Response deadline",
+      "attachments": "Attachments",
+      "fileCount": "{count, plural, one {# file} other {# files}}",
+      "adminResolutionNote": "Admin resolution note",
+      "resolvedOn": "Resolved on {date}",
+      "supportingDocuments": "Supporting documents",
+      "textResponseSubmitted": "Text response submitted",
+      "noDocuments": "No documents uploaded for this transaction.",
+      "history": "History",
+      "transactionLabel": "Transaction"
+    },
+    "nav": {
+      "vendor": {
+        "sections": {
+          "cockpit": "Cockpit",
+          "contractFlow": "Contract Flow",
+          "clientsVerification": "Clients & Verification",
+          "finance": "Finance",
+          "platform": "Platform",
+          "setup": "Setup"
+        },
+        "items": {
+          "dashboard": "Dashboard",
+          "businessProfile": "Business profile",
+          "actions": "Actions",
+          "linksAndQr": "Links and QR",
+          "transactions": "Transactions",
+          "contractTemplates": "Contract templates",
+          "checklists": "Checklists",
+          "clients": "Clients",
+          "kyc": "KYC",
+          "signatures": "Signatures",
+          "deposits": "Deposits",
+          "payments": "Payments",
+          "disputes": "Disputes",
+          "stripe": "Stripe",
+          "billing": "Billing",
+          "events": "Events"
+        }
+      },
+      "admin": {
+        "sections": {
+          "overview": "Overview",
+          "userManagement": "User management",
+          "caseManagement": "Case management",
+          "platform": "Platform"
+        },
+        "items": {
+          "dashboard": "Dashboard",
+          "allUsers": "All users",
+          "vendors": "Vendors",
+          "invitations": "Invitations",
+          "disputes": "Disputes",
+          "accessLevels": "Access levels",
+          "activityLogs": "Activity logs",
+          "sessions": "Sessions"
+        }
+      }
+    },
+    "vendor": {
+      "workspace": {
+        "title": "Vendor workspace",
+        "defaultSubtitle": "Vendor operations",
+        "actorLabel": "Vendor account"
+      },
+      "nav": {
+        "overview": "Overview",
+        "transactions": "Transactions",
+        "contracts": "Contracts",
+        "clients": "Clients",
+        "payments": "Payments",
+        "deposits": "Deposits",
+        "signatures": "Signatures",
+        "documents": "Documents",
+        "checklists": "Checklists",
+        "links": "Links",
+        "kyc": "KYC",
+        "stripe": "Stripe",
+        "billing": "Billing",
+        "actions": "Actions",
+        "profile": "Profile",
+        "disputes": "Disputes",
+        "webhooks": "Webhooks"
+      },
+      "overview": {
+        "transactions": {
+          "label": "Transactions",
+          "detail": "Total created"
+        },
+        "activeDeposits": {
+          "label": "Active deposits",
+          "detail": "Authorized holds"
+        },
+        "clients": {
+          "label": "Clients",
+          "detail": "Tracked profiles"
+        },
+        "signedContracts": {
+          "label": "Signed contracts",
+          "detail": "Signatures"
+        },
+        "planUsage": {
+          "title": "Plan & usage",
+          "description": "Your current subscription usage for this billing period.",
+          "billing": "Billing",
+          "manage": "Manage",
+          "renews": "Renews {date}"
+        },
+        "noActivePlan": {
+          "title": "No active plan",
+          "description": "Activate a subscription to start using Contrazy features.",
+          "viewPlans": "View plans"
+        },
+        "businessReadiness": {
+          "title": "Business readiness",
+          "description": "Checklist before accepting your first client."
+        },
+        "readyToGoLive": "Ready to go live",
+        "stepsComplete": "{n}/3 steps complete",
+        "profileCompletion": "Profile completion",
+        "reviewStatus": "Review status",
+        "payoutSetup": "Payout setup",
+        "business": "Business",
+        "completeProfile": "Complete business profile",
+        "setUpPayouts": "Set up payouts",
+        "openActionQueue": "Open action queue",
+        "recentTransactions": {
+          "title": "Recent transactions",
+          "description": "Latest customer workflows for {businessName}.",
+          "allTransactions": "All transactions"
+        },
+        "noWorkflows": "No customer workflows have been created yet.",
+        "usage": {
+          "transactions": "Transactions / month",
+          "eSignatures": "E-Signatures / month",
+          "qrCodes": "QR Codes / month",
+          "contractTemplates": "Contract templates",
+          "kyc": "KYC verifications / month",
+          "unlimited": "Unlimited — {used} used",
+          "notIncluded": "Not included",
+          "trial": "Trial"
+        },
+        "table": {
+          "client": "Client",
+          "reference": "Reference",
+          "type": "Type",
+          "amount": "Amount",
+          "kyc": "KYC",
+          "contract": "Contract",
+          "status": "Status",
+          "date": "Date"
+        }
+      },
+      "actions": {
+        "title": "Action queue",
+        "description": "Priority tasks to keep the account and customer flow moving.",
+        "columns": {
+          "priority": "Priority",
+          "action": "Action",
+          "client": "Client",
+          "reference": "Reference",
+          "due": "Due"
+        },
+        "empty": "Nothing needs attention right now."
+      },
+      "transactions": {
+        "title": "Transactions",
+        "description": "Track every customer workflow from setup to payment and deposit handling.",
+        "searchPlaceholder": "Search by reference, title, client name, or email",
+        "columns": {
+          "client": "Client",
+          "reference": "Reference",
+          "type": "Type",
+          "amount": "Amount",
+          "kyc": "KYC",
+          "contract": "Contract",
+          "status": "Status",
+          "date": "Date"
+        },
+        "empty": "No customer workflows have been created yet."
+      },
+      "contracts": {
+        "title": "Contract templates",
+        "description": "Save the agreements you want to reuse across future workflows.",
+        "emptyTitle": "No contract templates yet",
+        "emptyDescription": "Add your first agreement template before sending customer links."
+      },
+      "kyc": {
+        "title": "Identity checks",
+        "description": "Follow customer verification progress when identity confirmation is required.",
+        "searchPlaceholder": "Search by client, reference, provider, or note",
+        "columns": {
+          "client": "Client",
+          "reference": "Reference",
+          "status": "Status",
+          "provider": "Provider",
+          "note": "Note"
+        },
+        "empty": "No identity checks are waiting right now."
+      },
+      "signatures": {
+        "title": "Signatures",
+        "description": "See which customers have reviewed and accepted their agreements.",
+        "searchPlaceholder": "Search by signer, reference, or template",
+        "columns": {
+          "signer": "Signer",
+          "reference": "Reference",
+          "status": "Status",
+          "template": "Template",
+          "date": "Date"
+        },
+        "empty": "No signatures have been requested yet."
+      },
+      "deposits": {
+        "title": "Deposits",
+        "description": "Monitor active holds, expiry windows, and later release or capture decisions.",
+        "searchPlaceholder": "Search by client name, email, or reference",
+        "columns": {
+          "client": "Client",
+          "reference": "Reference",
+          "amount": "Amount",
+          "status": "Status",
+          "window": "Window",
+          "actions": "Actions"
+        },
+        "empty": "No deposit activity yet."
+      },
+      "payments": {
+        "title": "Payments",
+        "description": "Review payment collection across your customer workflows.",
+        "searchPlaceholder": "Search by client name, email, or reference",
+        "columns": {
+          "client": "Client",
+          "reference": "Reference",
+          "amount": "Amount",
+          "status": "Status",
+          "date": "Date"
+        },
+        "empty": "No payments have been recorded yet."
+      },
+      "disputes": {
+        "title": "Disputes",
+        "description": "Track customer issues related to payments or deposits.",
+        "searchPlaceholder": "Search by client, reference, or summary",
+        "columns": {
+          "client": "Client",
+          "reference": "Reference",
+          "status": "Status",
+          "summary": "Summary"
+        },
+        "empty": "No disputes have been opened."
+      },
+      "clients": {
+        "title": "Clients",
+        "description": "Review recent customers and the workflows connected to them.",
+        "searchPlaceholder": "Search by client name, email, or company",
+        "columns": {
+          "client": "Client",
+          "email": "Email",
+          "status": "Status",
+          "recentTransaction": "Recent transaction"
+        },
+        "empty": "No customer profiles have been captured yet."
+      },
+      "links": {
+        "title": "Customer links",
+        "description": "Share secure links and QR codes for each customer workflow.",
+        "searchPlaceholder": "Search by reference, title, client, or short code",
+        "columns": {
+          "reference": "Reference",
+          "client": "Client",
+          "title": "Title",
+          "type": "Type",
+          "amounts": "Amounts",
+          "shortCode": "Short code",
+          "lastActivity": "Last activity",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "serviceAmount": "Service: {amount}",
+        "depositAmount": "Deposit: {amount}",
+        "empty": "No customer links have been issued yet."
+      },
+      "transactionDetailPage": {
+        "reference": "Reference",
+        "client": "Client",
+        "paymentStatus": "Payment status",
+        "depositStatus": "Deposit status",
+        "docsUploaded": "Docs uploaded",
+        "pending": "Pending",
+        "na": "N/A",
+        "none": "None",
+        "clientAccessTitle": "Client access",
+        "clientAccessDescription": "Reuse the secure link, QR code, or cancellation controls for this transaction.",
+        "customerLink": "Customer link",
+        "openSecureClientFlow": "Open secure client flow",
+        "cancelled": "Cancelled",
+        "noQrGenerated": "No QR generated yet",
+        "generateQrHint": "Generate a QR code when you want to share this transaction in person.",
+        "qrUnavailable": "QR is not available for this link state.",
+        "agreementArtifactTitle": "Agreement artifact",
+        "agreementArtifactDescription": "Review the snapshotted agreement and the immutable signed PDF for this transaction.",
+        "snapshot": "Snapshot",
+        "attached": "Attached",
+        "created": "Created {date}",
+        "noSnapshot": "No transaction snapshot recorded yet.",
+        "review": "Review",
+        "reviewed": "Reviewed",
+        "reviewPending": "Pending",
+        "reviewIncomplete": "The client has not completed the review checkpoint yet.",
+        "signedPdf": "Signed PDF",
+        "generated": "Generated",
+        "signedPdfPending": "Pending",
+        "finalPdfPending": "The final PDF is created immediately after the client signs.",
+        "agreementSnapshot": "Agreement snapshot",
+        "signedAgreement": "Signed agreement",
+        "downloadSignedPdf": "Download signed PDF",
+        "requirementsTitle": "Collected requirements",
+        "requirementsDescription": "Review the uploaded files and text responses attached to this transaction.",
+        "required": "required",
+        "optional": "optional",
+        "submitted": "Submitted",
+        "downloadUploadedFile": "Download uploaded file",
+        "timelineDescription": "Activity log for this transaction",
+        "transactionCreated": "Transaction created"
+      },
+      "webhooks": {
+        "title": "Event history",
+        "description": "Review delivery events and payment updates connected to your account.",
+        "searchPlaceholder": "Search by provider, event name, Stripe ID, or reference",
+        "columns": {
+          "provider": "Provider",
+          "event": "Event",
+          "reference": "Reference",
+          "status": "Status",
+          "date": "Date"
+        },
+        "empty": "No event history is available yet."
+      },
+      "stripe": {
+        "payoutSetup": {
+          "title": "Payout setup",
+          "description": "Review the business details tied to customer payments and deposits."
+        },
+        "nextSteps": {
+          "title": "Recommended next steps",
+          "description": "Use these checks before accepting live customer payments.",
+          "finishPayout": {
+            "title": "Finish payout details",
+            "description": "Confirm the payout account so customer funds and deposit holds can move without delay."
+          },
+          "keepDetails": {
+            "title": "Keep business details current",
+            "description": "Make sure the business email, support email, phone number, and address stay up to date."
+          },
+          "monitorCollections": {
+            "title": "Monitor customer collections",
+            "description": "Check payment and deposit activity here before moving into higher transaction volume."
+          }
+        },
+        "details": {
+          "business": "Business",
+          "reviewStatus": "Review status",
+          "payoutStatus": "Payout status",
+          "primaryEmail": "Primary email",
+          "recentPaymentState": "Recent payment state",
+          "recentDepositState": "Recent deposit state",
+          "noData": "No data"
+        }
+      },
+      "billing": {
+        "title": "Billing",
+        "description": "Manage your subscription, payment method, and invoices."
+      },
+      "profile": {
+        "title": "Business profile",
+        "description": "Review your business details, workspace status, and update only the fields that need changes."
+      },
+      "checklists": {
+        "title": "Requirement Checklists",
+        "description": "Create templates for the documents or photos clients must upload during a transaction.",
+        "emptyTitle": "No checklists yet",
+        "emptyDescription": "Create a checklist when you are ready to request customer documents."
+      },
+      "profileForm": {
+        "editTitle": "Edit details",
+        "editDescription": "Update your business details here. Your signed-in email is locked and used as the primary business email.",
+        "contactTitle": "Contact and identity",
+        "contactDescription": "The main contact details tied to your vendor workspace.",
+        "businessTitle": "Business details",
+        "businessDescription": "These details are used for review and payment-readiness checks.",
+        "fields": {
+          "firstName": "First name",
+          "lastName": "Last name",
+          "businessName": "Business name",
+          "registrationNumber": "Registration number",
+          "loginEmail": "Login email",
+          "supportEmail": "Support email",
+          "businessPhone": "Business phone",
+          "vatNumber": "VAT number",
+          "preferredLocale": "Default customer language",
+          "country": "Country",
+          "businessAddress": "Business address"
+        },
+        "placeholders": {
+          "firstName": "Enter your first name",
+          "lastName": "Enter your last name",
+          "businessName": "Enter your business name",
+          "registrationNumber": "Enter your company registration number",
+          "supportEmail": "Enter your support email",
+          "vatNumber": "Enter your VAT number",
+          "country": "Select your country",
+          "businessAddress": "Enter your full business address",
+          "phoneHint": "Include country code, e.g. +1 202 555 0100"
+        },
+        "localeHint": "New customer links, emails, and PDF labels default to this language.",
+        "localeOptions": {
+          "en": "English",
+          "fr": "French"
+        },
+        "lockedHint": "This matches the email you use to sign in and cannot be edited here.",
+        "lockedBadge": "Locked",
+        "display": {
+          "accountOwner": "Account owner",
+          "loginEmailHint": "Locked to your signed-in account",
+          "emptyOwner": "Add account owner details",
+          "emptySupportEmail": "Add a support email",
+          "emptyPhone": "Add a phone number",
+          "emptyBusinessName": "Add your business name",
+          "emptyRegistration": "Add your registration number",
+          "emptyVat": "Add your VAT number",
+          "emptyCountry": "Select your country",
+          "emptyAddress": "Add your business address",
+          "notAdded": "Not added yet"
+        },
+        "stats": {
+          "profile": "Profile",
+          "review": "Review",
+          "payout": "Payout"
+        },
+        "overview": {
+          "tag": "Vendor workspace",
+          "defaultName": "Business profile",
+          "workspaceHint": "keep your workspace details current for review and payouts.",
+          "editButton": "Edit profile",
+          "closeEditButton": "Close edit mode"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save changes",
+          "saving": "Saving profile..."
+        },
+        "messages": {
+          "success": "Business profile updated.",
+          "fixErrors": "Please fix the highlighted fields and try again.",
+          "saveError": "Unable to save your profile.",
+          "networkError": "Unable to save your profile right now."
+        }
+      },
+      "depositControl": {
+        "statuses": {
+          "disputeTitle": "Dispute in progress",
+          "disputeDesc": "The deposit hold is frozen while the platform reviews the dispute. Capture and release are disabled until a decision is made.",
+          "releasedTitle": "Deposit released",
+          "releasedDesc": "{amount} returned to the customer.",
+          "capturedTitle": "Deposit captured",
+          "capturedDesc": "The hold was converted into a card charge.",
+          "cancelledTitle": "Deposit cancelled",
+          "cancelledDesc": "The transaction was cancelled and the hold was released."
+        },
+        "card": {
+          "title": "Active deposit",
+          "description": "The amount is held on the customer's card. Choose the next action for this transaction."
+        },
+        "actions": {
+          "capture": "Capture deposit",
+          "captureDetail": "Charge all or part of the amount",
+          "release": "Release deposit",
+          "releaseDetail": "Return the hold to the customer",
+          "dispute": "Open dispute",
+          "disputeDetail": "Report an issue on this transaction",
+          "cancel": "Cancel transaction",
+          "cancelDetail": "Automatically releases the deposit"
+        },
+        "captureModal": {
+          "title": "Capture deposit",
+          "description": "Authorized amount: {amount}. Choose the amount to charge.",
+          "fullAmount": "Full amount",
+          "partialAmount": "Partial amount",
+          "setAmount": "Set amount",
+          "amountLabel": "Amount to capture ({currency})",
+          "maximum": "Maximum: {amount}",
+          "warningTitle": "Remaining amount will be released",
+          "warningDesc": "Capturing {captureAmount} will release the remaining {releaseAmount} back to the client's card. That released amount cannot be captured later from this hold.",
+          "cancel": "Cancel",
+          "capturing": "Capturing..."
+        },
+        "disputeModal": {
+          "title": "Open dispute",
+          "description": "Describe the dispute reason. The transaction will be marked as disputed and the deposit will remain held during resolution.",
+          "reasonLabel": "Dispute reason",
+          "placeholder": "Example: returned item has unreported damage...",
+          "minChars": "{min} characters minimum",
+          "cancel": "Cancel",
+          "opening": "Opening...",
+          "submit": "Open dispute"
+        },
+        "toast": {
+          "captured": "Deposit captured",
+          "capturedDesc": "{amount} was charged successfully.",
+          "released": "Deposit released",
+          "releasedDesc": "The hold was released on the customer's card.",
+          "cancelled": "Transaction cancelled",
+          "cancelledDesc": "The deposit hold was released automatically.",
+          "disputeOpened": "Dispute opened",
+          "disputeOpenedDesc": "The transaction is now marked as disputed.",
+          "failed": "Failed",
+          "networkError": "Network error",
+          "unexpectedError": "An unexpected error occurred."
+        },
+        "errors": {
+          "invalidAmount": "Enter a valid amount greater than 0.",
+          "exceedsMax": "The amount cannot exceed {max}."
+        }
+      },
+      "kycReview": {
+        "statusLabels": {
+          "verified": "Verified",
+          "pending": "Pending review",
+          "failed": "Failed / Rejected"
+        },
+        "card": {
+          "title": "Identity Verification",
+          "manualDesc": "Manual document review",
+          "stripeDesc": "Stripe Identity (automated)"
+        },
+        "meta": {
+          "provider": "Provider",
+          "submitted": "Submitted",
+          "verifiedAt": "Verified at",
+          "sessionId": "Session ID"
+        },
+        "document": {
+          "submittedDoc": "Submitted document",
+          "download": "Download",
+          "open": "Open",
+          "pdfDoc": "PDF document",
+          "clickDownload": "click to download",
+          "viewDoc": "View document",
+          "altText": "Identity document"
+        },
+        "banners": {
+          "autoVerifiedTitle": "Automatically verified",
+          "autoVerifiedDesc": "Stripe Identity confirmed the customer record.",
+          "autoFailedTitle": "Verification failed",
+          "autoFailedDesc": "Stripe Identity could not confirm the customer. The client can retry.",
+          "manualRejected": "Document rejected. The client can resubmit a new document via the client flow."
+        },
+        "actions": {
+          "approve": "Approve",
+          "requestAgain": "Request again",
+          "reject": "Reject",
+          "cancel": "Cancel"
+        },
+        "confirmModals": {
+          "approve": {
+            "title": "Approve identity document",
+            "description": "The client's KYC verification will be marked as verified and the transaction will proceed.",
+            "confirm": "Approve"
+          },
+          "reject": {
+            "title": "Reject identity document",
+            "description": "The document will be marked as failed. The client can re-upload, but the transaction will not proceed until you approve a document.",
+            "confirm": "Reject"
+          },
+          "requestAgain": {
+            "title": "Request new document",
+            "description": "The current submission will be cleared. The client will be prompted to upload a new identity document.",
+            "confirm": "Request again"
+          }
+        },
+        "toast": {
+          "actionFailed": "Action failed",
+          "done": "Done",
+          "networkError": "Network error",
+          "unexpectedError": "An unexpected error occurred.",
+          "tryAgain": "Try again.",
+          "approved": "Identity document approved. Transaction proceeding.",
+          "rejected": "Document rejected.",
+          "requestedAgain": "Client will be asked to resubmit their document."
+        }
+      },
+      "stripeConnect": {
+        "title": "Stripe Account",
+        "description": "Connect your Stripe account to process payments and handle deposit holds securely.",
+        "error": "Error",
+        "connected": {
+          "title": "Connected",
+          "description": "Your Stripe account is successfully connected and ready to process transactions."
+        },
+        "pending": {
+          "title": "Information Needed",
+          "description": "You started connecting your Stripe account, but some information is still missing. Please resume onboarding.",
+          "button": "Resume Stripe Onboarding"
+        },
+        "notConnected": {
+          "approvalTitle": "Approval required",
+          "approvalDesc": "Finish your business profile review before connecting Stripe for live customer flows.",
+          "hint": "You must connect a Stripe account before you can create transactions with payment or deposit requirements.",
+          "button": "Connect with Stripe"
+        }
+      },
+      "stripeDisconnect": {
+        "button": "Disconnect Stripe",
+        "confirmTitle": "Disconnect Stripe account?",
+        "confirmDesc": "This will remove the Stripe link from your profile and reset your payout status to Not connected.",
+        "warning1": "You will not be able to collect payments or deposits until you reconnect.",
+        "warning2": "New transactions requiring payment will be blocked.",
+        "warning3": "Your Stripe account itself is not deleted — only the link is removed.",
+        "warning4": "Active transactions with pending payments must be resolved first.",
+        "checkbox": "I understand that disconnecting will pause all payment capabilities until I reconnect.",
+        "confirm": "Confirm disconnect",
+        "confirming": "Disconnecting…",
+        "cancel": "Cancel",
+        "disconnectError": "Failed to disconnect. Please try again.",
+        "networkError": "An unexpected error occurred. Please try again."
+      },
+      "linkWorkspace": {
+        "header": {
+          "planSuffix": "plan",
+          "activePlan": "Active plan",
+          "trialStatus": "Trial",
+          "title": "Transactions and live sharing",
+          "description": "Launch a secure link first, then add QR only when the workflow needs in-person sharing.",
+          "renewsLabel": "Renews",
+          "planUsageLink": "Plan & usage",
+          "newTransaction": "New Transaction",
+          "activitySummary": "{active} active · {processing} processing"
+        },
+        "warnings": {
+          "reviewRequired": "Vendor review required",
+          "stripeRequired": "Stripe setup required",
+          "stripeRequiredDetail": "Connect Stripe before creating secure payment and deposit flows.",
+          "quotaReached": "Transaction quota reached",
+          "quotaReachedDetail": "Upgrade your plan or wait for the next billing period to launch new transactions."
+        },
+        "blockedMessages": {
+          "noStripe": "Connect Stripe before creating live customer transactions.",
+          "quotaFull": "Your monthly transaction quota is fully used for this billing period."
+        },
+        "usage": {
+          "transactions": "Transactions",
+          "qrCodes": "QR Codes",
+          "kyc": "KYC",
+          "unlimited": "Unlimited",
+          "unavailable": "Unavailable",
+          "launchedPeriod": "{used} launched this period",
+          "usedOf": "{used} / {total} used",
+          "generatedPeriod": "{used} generated this period",
+          "generatedOf": "{used} / {total} generated",
+          "verificationRequests": "{used} verification requests",
+          "kycUnavailableHint": "Available from Pro plan."
+        },
+        "table": {
+          "title": "Recent payment links",
+          "description": "Active and in-progress customer links stay here so you can copy, edit, cancel, or add QR later.",
+          "actionLabel": "Open full manager",
+          "columns": {
+            "reference": "Reference",
+            "client": "Client",
+            "title": "Title",
+            "amount": "Amount",
+            "lastActivity": "Last activity",
+            "status": "Status",
+            "actions": "Actions"
+          },
+          "qrReady": "QR ready",
+          "linkOnly": "Link only",
+          "holdPrefix": "Hold:",
+          "empty": "No active or processing links are waiting right now."
+        },
+        "createModal": {
+          "title": "New transaction",
+          "description": "Create the secure link, configure the client journey, and decide whether this workflow needs a QR.",
+          "closeLabel": "Close transaction modal"
+        },
+        "discardModal": {
+          "title": "Discard transaction setup?",
+          "description": "Your current progress inside the transaction modal will be lost.",
+          "keepEditing": "Keep editing",
+          "discard": "Discard"
+        }
+      },
+      "stripePage": {
+        "statusBanners": {
+          "connected": {
+            "title": "Stripe account connected",
+            "description": "Your account is fully verified and ready to process payments and deposit holds."
+          },
+          "incomplete": {
+            "title": "Onboarding incomplete",
+            "description": "Some required information is still missing. Resume onboarding below to finish connecting."
+          },
+          "error": {
+            "title": "Verification failed",
+            "description": "We couldn't verify your Stripe account. Please try again or contact support."
+          },
+          "no_account": {
+            "title": "No Stripe account linked",
+            "description": "It looks like your account wasn't saved. Start the connection process below."
+          },
+          "disconnected": {
+            "title": "Stripe account disconnected",
+            "description": "Your Stripe account has been unlinked. Connect a new account below to resume payment processing."
+          }
+        },
+        "actionRequired": {
+          "title": "Action needed in Stripe",
+          "description": "Stripe needs more information. Open the live alerts below to restore payments and payouts."
+        },
+        "afterConnection": {
+          "tag": "After connection",
+          "title": "Your payment stack turns on",
+          "item1": "Collect client payments inside contract links.",
+          "item2": "Place deposit holds and release unused amounts cleanly.",
+          "item3": "Route payouts directly into your Stripe account."
+        },
+        "statusLabels": {
+          "connected": "Connected",
+          "restricted": "Restricted",
+          "notConnected": "Not connected"
+        },
+        "disconnect": {
+          "title": "Disconnect Stripe",
+          "description": "Unlink Stripe from this workspace. Active payment or deposit flows should be resolved first."
+        }
+      },
+      "stripeEmbedded": {
+        "tabs": {
+          "balances": "Overview",
+          "account": "Account",
+          "payments": "Payments",
+          "payouts": "Payouts"
+        },
+        "loading": {
+          "preparingSession": "Preparing a secure Stripe session.",
+          "loadingTools": "Loading balances, payouts, and account tools.",
+          "stageSession": "Preparing session",
+          "stageDashboard": "Loading tools",
+          "openingWorkspace": "Opening Stripe workspace",
+          "session": "Session",
+          "tools": "Tools",
+          "balances": "Balances",
+          "payouts": "Payouts",
+          "working": "Working",
+          "ready": "Ready",
+          "opening": "Opening",
+          "queued": "Queued",
+          "pending": "Pending"
+        },
+        "errors": {
+          "sessionFailed": "Failed to create account session.",
+          "initFailed": "Failed to initialize Stripe dashboard. Please refresh the page.",
+          "subscriptionRequired": "Subscription required",
+          "accountUnavailable": "Stripe account not available",
+          "generic": "Something went wrong",
+          "toolsBadge": "Stripe tools",
+          "loadFailed": "The Stripe dashboard could not be loaded.",
+          "openBilling": "Open billing",
+          "refreshStatus": "Refresh status",
+          "retry": "Retry"
+        },
+        "shell": {
+          "liveTools": "Live Stripe tools",
+          "chooseModule": "Choose a module"
+        }
+      },
+      "linkActions": {
+        "openTransaction": "Open transaction detail",
+        "transaction": "Transaction",
+        "copyLink": "Copy link",
+        "copied": "Copied",
+        "generating": "Generating...",
+        "generatingQr": "Generating QR...",
+        "generateQr": "Generate QR",
+        "generateQrCode": "Generate QR code",
+        "more": "More",
+        "openCustomerLink": "Open customer link",
+        "previewQr": "Preview QR code",
+        "editLink": "Edit link",
+        "cancelLink": "Cancel link",
+        "qrOnDemand": "Create the QR only when you need an in-person scan flow.",
+        "qrUnavailable": "QR is not available for this link.",
+        "qrTitle": "QR code",
+        "qrDescription": "Share this secure QR code for {reference}. The code resolves to the current customer link.",
+        "qrEmpty": "No QR has been generated for this link yet.",
+        "downloadSvg": "Download SVG",
+        "editTitle": "Edit payment link",
+        "editDescription": "Update the customer-facing title, internal notes, and optional access deadline.",
+        "labelTitle": "Title",
+        "labelExpiry": "Access deadline",
+        "labelNotes": "Internal notes",
+        "titlePlaceholder": "Transaction title",
+        "notesPlaceholder": "Optional internal context",
+        "closeBtn": "Close",
+        "saveChanges": "Save changes",
+        "cancelDialogTitle": "Cancel payment link",
+        "cancelDialogDesc": "This closes the secure link immediately and prevents the customer from continuing the workflow.",
+        "labelReason": "Reason",
+        "reasonPlaceholder": "Optional reason for this cancellation",
+        "keepActive": "Keep active",
+        "cancelConfirm": "Cancel link",
+        "errorGenerate": "Unable to generate this QR code.",
+        "errorUpdate": "Unable to update this payment link.",
+        "errorCancel": "Unable to cancel this payment link."
+      },
+      "checklistEditor": {
+        "editingUnavailable": "Editing unavailable",
+        "newChecklist": "New Checklist",
+        "createTitle": "Create Requirement Checklist",
+        "createDescription": "Define the documents and photos clients must provide.",
+        "labelName": "Checklist Name",
+        "namePlaceholder": "e.g. Car Rental Requirements",
+        "labelDescription": "Description (optional)",
+        "descriptionPlaceholder": "When to use this checklist",
+        "requirementsLabel": "Requirements",
+        "labelLabel": "Label",
+        "labelType": "Type",
+        "labelCategory": "Category",
+        "labelOther": "Other label",
+        "otherPlaceholder": "Custom display label",
+        "labelInstructions": "Description / Instructions",
+        "instructionsPlaceholder": "e.g. Please upload both sides",
+        "typeDocument": "Document (PDF/Image)",
+        "typePhoto": "Photo",
+        "typeText": "Text Input",
+        "required": "Required field",
+        "addRequirement": "Add Requirement",
+        "cancelBtn": "Cancel",
+        "saving": "Saving...",
+        "saveChecklist": "Save Checklist",
+        "empty": "No checklists yet",
+        "emptyDescription": "Create a checklist to standardize the documents and photos you collect from clients.",
+        "items": "items",
+        "moreItems": "+ {count} more",
+        "itemLabelPlaceholder": "e.g. Driver's License",
+        "defaultItemLabel": "ID Card",
+        "defaultItemDesc": "Front and back",
+        "confirmDelete": "Are you sure you want to delete this checklist template?",
+        "updatedAt": "Updated {date}"
+      },
+      "contractTemplates": {
+        "title": "Contract templates",
+        "description": "Maintain reusable agreements in one place, then attach them to transactions when needed.",
+        "total": "{count} total",
+        "unlimited": "Unlimited on current plan",
+        "remaining": "{count} remaining",
+        "newTemplate": "New template",
+        "pendingLabel": "Opening editor",
+        "editingUnavailable": "Editing unavailable",
+        "templateLimitReached": "Template limit reached",
+        "searchLabel": "Search",
+        "searchPlaceholder": "Search by template name or note",
+        "filterLabel": "Filter",
+        "sortLabel": "Sort",
+        "applyBtn": "Apply",
+        "applying": "Applying",
+        "resetBtn": "Reset",
+        "clearFilters": "Clear filters",
+        "createFirst": "Create first template",
+        "libraryTitle": "Template library",
+        "showingRange": "Showing {start}-{end} of {total}",
+        "noMatchFilter": "No templates match the current search or filter.",
+        "noTemplatesYet": "No templates created yet.",
+        "updatingTemplates": "Updating templates",
+        "noMatchTitle": "No matching templates",
+        "noMatchDescription": "Try a different search term or reset the current filters.",
+        "emptyTitle": "No templates yet",
+        "emptyDescription": "Create your first reusable agreement and keep it ready for future transactions.",
+        "thTemplate": "Template",
+        "thSummary": "Summary",
+        "thUpdated": "Updated",
+        "thActions": "Actions",
+        "defaultBadge": "Default",
+        "noNote": "No internal note added.",
+        "createdOn": "Created {date}",
+        "editBtn": "Edit",
+        "deleteBtn": "Delete",
+        "prevPage": "Prev",
+        "nextPage": "Next",
+        "showingPage": "Showing {start}-{end} of {total} templates",
+        "deleteDialogTitle": "Delete template",
+        "deleteDialogDesc": "Delete \"{name}\"? Existing transaction snapshots stay unchanged.",
+        "deleteDialogDefault": "Delete this template?",
+        "cancelDelete": "Cancel",
+        "confirmDelete": "Delete",
+        "errorLoad": "Failed to load templates",
+        "errorLoadDesc": "Unable to load templates right now.",
+        "errorDelete": "Delete failed",
+        "errorDeleteDesc": "Unable to delete this template right now.",
+        "successDelete": "Template deleted",
+        "successDeleteDesc": "{name} has been removed.",
+        "networkError": "Network error",
+        "networkErrorDesc": "Unable to delete this template right now."
+      },
+      "depositQuickActions": {
+        "capture": "Capture",
+        "release": "Release",
+        "captureTitle": "Capture deposit",
+        "captureDesc": "Authorized amount: {amount}. Capture the full hold or enter a partial amount.",
+        "fullAmount": "Full amount",
+        "partialAmount": "Partial amount",
+        "setAmount": "Set amount",
+        "amountLabel": "Amount to capture ({currency})",
+        "maximum": "Maximum: {amount}",
+        "remainingAlert": "Remaining amount will be released",
+        "remainingDesc": "Capturing {capture} will release the remaining {release} back to the client's card. That released amount cannot be captured later from this hold.",
+        "closeBtn": "Close",
+        "releaseTitle": "Release deposit",
+        "releaseDesc": "This releases the {amount} hold back to the customer's card.",
+        "keepHold": "Keep hold",
+        "releaseConfirm": "Release deposit",
+        "amountRangeError": "Enter an amount between {min} and {max}.",
+        "toastCaptured": "Deposit captured",
+        "toastCapturedDesc": "The hold was converted into a card charge.",
+        "toastReleased": "Deposit released",
+        "toastReleasedDesc": "The hold was released on the customer's card.",
+        "errorDeposit": "Unable to process this deposit.",
+        "noAction": "No action"
+      },
+      "transactionCreation": {
+        "stepOf": "Step {current} of {total}",
+        "percentComplete": "{percent}% complete",
+        "currentStep": "Current step",
+        "completed": "Completed",
+        "stepN": "Step {n}",
+        "steps": {
+          "info": {
+            "label": "Info",
+            "title": "Basics",
+            "description": "Set the internal title and context.",
+            "eyebrow": "Step one",
+            "stepTitle": "Name the transaction clearly",
+            "stepDescription": "Use a short operational title so you can find the workflow quickly later."
+          },
+          "payment": {
+            "label": "Payment",
+            "title": "Amounts",
+            "description": "Choose the service payment, deposit, or both.",
+            "eyebrow": "Step two",
+            "stepTitle": "Choose the money flow",
+            "stepDescription": "Set a service payment, a deposit hold, or both. At least one amount is required to launch."
+          },
+          "documents": {
+            "label": "Documents",
+            "title": "Requirements",
+            "description": "Add uploads, contract, and optional KYC.",
+            "eyebrow": "Step three",
+            "stepTitle": "Attach the right requirements",
+            "stepDescription": "Choose what the client must upload, review, or verify before the workflow is complete."
+          },
+          "review": {
+            "label": "Review",
+            "title": "Launch",
+            "description": "Check the flow and decide on QR generation.",
+            "eyebrow": "Final step",
+            "stepTitle": "Review and launch",
+            "stepDescription": "Confirm the client journey, decide whether this transaction needs a QR, then create the secure link."
+          }
+        },
+        "titleLabel": "Title",
+        "titlePlaceholder": "e.g. Rental #104 — BMW X5, 3 days",
+        "notesLabel": "Internal notes",
+        "notesPrivate": "(private, not shown to client)",
+        "notesPlaceholder": "Any internal reference or reminders…",
+        "depositTitle": "Security Deposit",
+        "depositBadge": "Primary",
+        "depositDesc": "The card is held only. Capture or release it after the work is complete.",
+        "depositHoldLabel": "Hold amount (EUR)",
+        "holdAmount": "Hold amount",
+        "stripeFeeEstimate": "Stripe fee estimate",
+        "platformMargin": "Conntrazy margin",
+        "ifCaptured": "If captured you receive {amount}.",
+        "servicePaymentTitle": "Service Payment",
+        "servicePaymentOptional": "Optional",
+        "servicePaymentDesc": "Charged immediately. Stripe fees are deducted from the collected amount.",
+        "amountLabel": "Amount (EUR)",
+        "clientPays": "Client pays {amount}. Estimated payout after fees: {payout}.",
+        "stripeRequired": "Payment features require a connected Stripe account.",
+        "connectStripe": "Connect Stripe",
+        "timingTitle": "Service payment timing",
+        "timingDesc": "Choose whether the client pays the service amount during this flow or only after you request it later.",
+        "kindPayment": "Service Payment only",
+        "kindDeposit": "Deposit Hold only",
+        "kindHybrid": "Payment + Deposit",
+        "requiredUploads": "Required Uploads",
+        "contractTemplate": "Contract Template",
+        "noUploadsNeeded": "No uploads needed",
+        "noContractNeeded": "No contract needed",
+        "untitledChecklist": "Untitled checklist",
+        "untitledContract": "Untitled contract",
+        "noContract": "No contract",
+        "noUploads": "No uploads",
+        "selectedContract": "Selected contract",
+        "selectedChecklist": "Selected checklist",
+        "perTransactionTitle": "Per-transaction requirements",
+        "perTransactionDesc": "Start from a checklist template, then adjust the required uploads or text fields before you launch the link.",
+        "addRequirement": "Add requirement",
+        "noRequirements": "No extra requirements yet. Add uploads or text prompts only when this transaction needs them.",
+        "reqLabel": "Label",
+        "reqType": "Type",
+        "reqCategory": "Category",
+        "reqOtherLabel": "Other label",
+        "reqCustomPlaceholder": "Custom category label",
+        "reqInstructions": "Instructions",
+        "reqTextPlaceholder": "Explain what the client should type.",
+        "reqUploadPlaceholder": "Add optional upload guidance.",
+        "reqRequired": "Required",
+        "requireCompanyTitle": "Require company name",
+        "requireCompanyDesc": "Make the client company field mandatory on this transaction when the agreement or invoicing needs it.",
+        "requireIdTitle": "Require ID document",
+        "requireIdDesc": "Client completes Stripe Identity with a government-issued photo ID and the result is attached to the transaction automatically.",
+        "kycPlanRequired": "Activate a paid plan to enable Stripe Identity verification.",
+        "kycQuotaUsed": "Your included KYC quota is fully used for this billing period.",
+        "kycRemainingOne": "1 verification remaining this period.",
+        "kycRemainingMany": "{count} verifications remaining this period.",
+        "kycNote": "Stripe Identity opens inside the client flow before the next required step.",
+        "summaryTitle": "Transaction summary",
+        "summaryTitleRow": "Title",
+        "summaryType": "Type",
+        "summaryDeposit": "Deposit hold",
+        "summaryService": "Service payment",
+        "summaryTiming": "Payment timing",
+        "summaryContract": "Contract",
+        "summaryRequirements": "Requirements",
+        "summaryRequirementsOne": "1 item",
+        "summaryRequirementsMany": "{count} items",
+        "summaryIdVerification": "ID verification",
+        "summaryCompanyName": "Company name",
+        "required": "Required",
+        "notRequired": "Not required",
+        "optional": "Optional",
+        "clientJourney": "Client journey",
+        "clientStepProfile": "Profile",
+        "clientStepDocuments": "Documents",
+        "clientStepKyc": "ID Verification",
+        "clientStepContract": "Review & Sign",
+        "clientStepPayment": "Deposit hold",
+        "clientStepServicePayment": "Service payment",
+        "clientStepServicePaymentOnly": "Payment",
+        "clientStepComplete": "Complete",
+        "deferredPaymentNote": "The service amount is not collected during the initial client flow. You will request it later from the vendor dashboard after the service is delivered.",
+        "generateQrTitle": "Generate QR now",
+        "generateQrDesc": "Optional. The secure link always works without a QR.",
+        "qrRemainingOne": "1 QR code remaining this billing period.",
+        "qrRemainingMany": "{count} QR codes remaining this billing period.",
+        "qrUnlimited": "Unlimited QR generation on your current plan.",
+        "qrDisabledQuota": "QR generation is unavailable until you have remaining quota.",
+        "qrDisabledReadiness": "Complete workspace readiness first, then generate QR when needed.",
+        "successTitle": "Transaction created",
+        "successDescWithQr": "Share this secure link or stored QR code with your client.",
+        "successDescNoQr": "Share this secure link now. You can generate a QR later from Recent links if you need one.",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "qrReadyLabel": "Stored QR ready to scan",
+        "qrNotGenerated": "QR not generated",
+        "qrNotGeneratedDesc": "This transaction is live with the secure link only. Generate a QR later from the Recent links manager when quota is available.",
+        "createAnother": "Create another transaction",
+        "back": "Back",
+        "next": "Next",
+        "creating": "Creating…",
+        "createTransaction": "Create Transaction",
+        "errorTitle": "Please enter a transaction title to continue.",
+        "errorAmount": "Set at least one amount — a deposit hold, a service payment, or both.",
+        "errorMinService": "Minimum service payment is €0.50",
+        "errorMinDeposit": "Minimum deposit hold is €0.50",
+        "errorRequirements": "Complete every requirement label and add a custom category label when using Other.",
+        "errorNoStripe": "Connect Stripe before creating live customer transactions.",
+        "errorAmountRequired": "Enter a service payment amount, a deposit hold amount, or both before generating a link.",
+        "errorCreate": "Failed to create transaction",
+        "errorUnexpected": "An unexpected error occurred.",
+        "reqLabelPlaceholder": "e.g. Driver's license"
+      },
+      "servicePaymentRequest": {
+        "title": "Deferred service payment",
+        "description": "Use the same secure link later when the service payment should be collected after delivery.",
+        "amountLabel": "Amount",
+        "clientOnboardingLabel": "Client onboarding",
+        "completedOn": "Completed on {date}.",
+        "onboardingPending": "The client must finish the initial profile, documents, agreement, and any deposit step first.",
+        "requestStatusLabel": "Request status",
+        "alreadyCollected": "Service payment already collected.",
+        "requestedOn": "Requested on {date}.",
+        "notRequestedYet": "Not requested yet.",
+        "requestBtn": "Request service payment",
+        "requestError": "Unable to request service payment right now."
+      },
+      "contractTemplateEditor": {
+        "backToTemplates": "Back to templates",
+        "back": "Back",
+        "editTitle": "Edit template",
+        "createTitle": "New template",
+        "subtitle": "Draft the agreement your client will review and sign.",
+        "previewToggleBack": "Back to Editor",
+        "previewToggle": "Preview",
+        "deleteBtn": "Delete",
+        "savingBtn": "Saving...",
+        "saveBtn": "Save",
+        "createBtn": "Create",
+        "nameLabel": "Name",
+        "namePlaceholder": "Standard service agreement",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Optional internal note",
+        "updatedAt": "Updated {date}",
+        "unsavedDraft": "Unsaved draft",
+        "editorPlaceholder": "Write the agreement your client will review and sign.",
+        "localDraftTitle": "Local draft found",
+        "localDraftDesc": "A newer draft from this browser is available for this template.",
+        "discard": "Discard",
+        "resumeDraft": "Resume draft",
+        "draftRestoredTitle": "Local draft restored",
+        "draftRestoredDesc": "Recovered the newer draft saved in this browser.",
+        "editingUnavailableTitle": "Editing unavailable",
+        "templateLimitTitle": "Template limit reached",
+        "planLimitReached": "Your current plan limit has been reached.",
+        "saveFailedTitle": "Save failed",
+        "untitled": "Untitled template",
+        "previewSubtitle": "Review the live A4 document layout with sample values applied.",
+        "contractCardTitle": "Contract",
+        "insertFieldsTitle": "Insert fields",
+        "insertFieldsDesc": "Add client and transaction values at the current cursor.",
+        "changesLocal": "Changes are being saved locally in this browser.",
+        "changesSynced": "All changes are synced with the last manual save.",
+        "contentTooLong": "Contract terms cannot exceed {limit} characters.",
+        "saveErrorUpdate": "Unable to update template right now.",
+        "saveErrorCreate": "Unable to create template right now.",
+        "savedTitle": "Template saved",
+        "savedDesc": "Your changes have been saved.",
+        "createdTitle": "Template created",
+        "createdDesc": "{name} is ready to edit and use in transactions.",
+        "defaultTemplateName": "Your template",
+        "deleteConfirm": "Delete this template? Existing signed transactions will stay unchanged.",
+        "deleteError": "Unable to delete template right now."
+      },
+      "subscribePage": {
+        "badge": "Vendor billing",
+        "heading": "Activate your workspace before launching vendor operations",
+        "description": "Your business profile stays editable, but transactions, payments, KYC, contracts, and live customer links are locked until the workspace has an active subscription.",
+        "canceledNote": "Stripe checkout was cancelled. Select a plan below whenever you are ready.",
+        "billingAccessTitle": "Billing access",
+        "billingAccessDesc": "Plans are billed on the platform account through Stripe Checkout.",
+        "profileStaysOpenTitle": "Profile stays open",
+        "profileStaysOpenDesc": "You can still maintain your business profile while subscription setup is pending.",
+        "pricingSectionLabel": "Tarifs",
+        "pricingSectionHeading": "Choose the plan that matches your volume",
+        "pricingSectionDesc": "Starter, Pro, and Business use secure Stripe-hosted checkout. Enterprise remains contact-only."
+      }
+    },
+    "admin": {
+      "workspace": {
+        "title": "Admin workspace",
+        "subtitle": "Platform oversight",
+        "actorLabel": "Admin account"
+      },
+      "nav": {
+        "overview": "Overview",
+        "users": "Users",
+        "vendors": "Vendors",
+        "roles": "Roles",
+        "sessions": "Sessions",
+        "logs": "Logs",
+        "invites": "Invites",
+        "disputes": "Disputes"
+      },
+      "vendors": {
+        "title": "Vendor accounts",
+        "description": "Manage approval status for all vendor accounts. Use the inline actions to approve, pend, reject, or suspend.",
+        "allUsers": "All users",
+        "searchPlaceholder": "Search by business, owner, email, phone, or country",
+        "filters": {
+          "payouts": "Payouts"
+        },
+        "columns": {
+          "business": "Business",
+          "owner": "Owner",
+          "country": "Country",
+          "profile": "Profile",
+          "transactions": "Transactions",
+          "reviewStatus": "Review status",
+          "joined": "Joined",
+          "actions": "Actions"
+        },
+        "txSummary": "{txCount} tx · {clientCount} clients",
+        "empty": "No vendor accounts have been registered yet."
+      },
+      "users": {
+        "title": "All users",
+        "description": "{count} registered account{plural}. Vendor accounts can be approved directly from this table.",
+        "searchPlaceholder": "Search by name, email, or business",
+        "columns": {
+          "nameEmail": "Name / Email",
+          "role": "Role",
+          "business": "Business",
+          "reviewStatus": "Review status",
+          "joined": "Joined",
+          "quickActions": "Quick actions"
+        },
+        "view": "View →",
+        "empty": "No user accounts have been created yet."
+      },
+      "userDetail": {
+        "joinedLabel": "Joined {date}",
+        "emailVerifiedLabel": "✓ Email verified {date}",
+        "emailNotVerified": "⚠ Email not verified",
+        "kpiTransactions": "Transactions",
+        "kpiClients": "Clients",
+        "kpiProfile": "Profile",
+        "accountDetails": {
+          "title": "Account details",
+          "description": "Login credentials and verification status.",
+          "fullName": "Full name",
+          "email": "Email",
+          "company": "Company",
+          "accountStatus": "Account status",
+          "emailVerified": "Email verified",
+          "notVerified": "Not verified",
+          "joined": "Joined"
+        },
+        "roleManagement": {
+          "title": "Role management",
+          "description": "Change the access level. Super Admin can only be granted by a Super Admin."
+        },
+        "businessProfile": {
+          "title": "Business profile",
+          "description": "Submitted business details and vendor review controls.",
+          "businessName": "Business name",
+          "businessEmail": "Business email",
+          "supportEmail": "Support email",
+          "phone": "Phone",
+          "address": "Address",
+          "country": "Country",
+          "payout": "Payout (Stripe)",
+          "profileComplete": "Profile complete",
+          "reviewStatus": "Review status"
+        },
+        "dangerZone": {
+          "title": "Danger zone",
+          "description": "Permanently deletes this account and all associated data including vendor profiles, transactions, and clients. Active transactions must be resolved first."
+        }
+      },
+      "invites": {
+        "title": "Invitations",
+        "description": "Track outstanding invites for vendors and internal team members.",
+        "searchPlaceholder": "Search by invite email",
+        "columns": {
+          "email": "Email",
+          "role": "Role",
+          "status": "Status",
+          "expires": "Expires"
+        },
+        "empty": "No invitations have been sent yet."
+      },
+      "roles": {
+        "title": "Access levels",
+        "description": "The platform uses a fixed set of access levels to keep reviews and operations separate.",
+        "emptyTitle": "No access levels configured",
+        "emptyDescription": "Access levels will appear here once the platform rules are available."
+      },
+      "logs": {
+        "title": "Activity logs",
+        "description": "Recent platform and operator activity.",
+        "searchPlaceholder": "Search by actor, action, entity, provider, or event",
+        "filters": {
+          "source": "Source"
+        },
+        "columns": {
+          "actor": "Actor",
+          "action": "Action",
+          "entity": "Entity",
+          "date": "Date"
+        },
+        "empty": "No activity has been recorded yet."
+      },
+      "sessions": {
+        "title": "Sessions",
+        "description": "Review current sign-in activity across the platform team.",
+        "searchPlaceholder": "Search by user name or email",
+        "columns": {
+          "user": "User",
+          "role": "Role",
+          "state": "State",
+          "lastSeen": "Last seen"
+        },
+        "empty": "Session activity will appear here as people sign in."
+      },
+      "disputes": {
+        "listTitle": "Dispute cases",
+        "listDescription": "Review vendor disputes. Open each case to capture or release the deposit hold.",
+        "searchPlaceholder": "Search by vendor, client, or transaction reference",
+        "columns": {
+          "case": "Case",
+          "vendor": "Vendor",
+          "client": "Client",
+          "deposit": "Deposit",
+          "deadline": "Deadline",
+          "status": "Status",
+          "opened": "Opened"
+        },
+        "empty": "No disputes have been opened yet.",
+        "backToDisputes": "← Back to disputes",
+        "caseTitle": "Dispute",
+        "detailVendor": "VENDOR",
+        "detailDeposit": "DEPOSIT AMOUNT",
+        "detailStatus": "STATUS",
+        "openedOn": "OPENED ON",
+        "responseDeadline": "RESPONSE DEADLINE",
+        "attachments": "ATTACHMENTS"
+      },
+      "userActions": {
+        "reviewActions": {
+          "approve": "Approve",
+          "approved": "Approved",
+          "markPending": "Mark pending",
+          "pendingLabel": "Pending",
+          "reject": "Reject",
+          "rejected": "Rejected",
+          "suspend": "Suspend",
+          "suspended": "Suspended",
+          "current": "current"
+        },
+        "errors": {
+          "updateReview": "Unable to update review status.",
+          "updateReviewNetwork": "Unable to update review status right now.",
+          "updateRole": "Unable to update role.",
+          "updateRoleNetwork": "Unable to update role right now.",
+          "deleteUser": "Unable to delete user.",
+          "deleteUserNetwork": "Unable to delete the account right now.",
+          "updateFailed": "Failed to update.",
+          "requestFailed": "Request failed."
+        },
+        "roleOptions": {
+          "vendor": {
+            "label": "Vendor",
+            "description": "Workspace access for running customer workflows."
+          },
+          "admin": {
+            "label": "Admin",
+            "description": "Internal team access for vendor review and platform management."
+          },
+          "superAdmin": {
+            "label": "Super Admin",
+            "description": "Full platform control. Assign carefully."
+          }
+        },
+        "currentRole": "Current role: {role}",
+        "roleUpdated": "Role updated to {role}.",
+        "deleteAccount": {
+          "button": "Delete account",
+          "warningPermanent": "This action is permanent and cannot be undone.",
+          "warningConfirm": "Type {email} below to confirm.",
+          "confirmButton": "Permanently delete",
+          "cancel": "Cancel"
+        }
+      },
+      "disputeActions": {
+        "buttons": {
+          "markResolved": "Mark as resolved",
+          "markUnderReview": "Mark under review",
+          "closeCase": "Close case (release deposit)"
+        },
+        "resolved": {
+          "vendorFavour": "Dispute closed — resolved in vendor's favour",
+          "clientFavour": "Dispute closed — resolved in client's favour"
+        },
+        "modal": {
+          "title": "Resolve dispute",
+          "description": "Choose the outcome and optionally add a resolution note visible to both parties.",
+          "vendorWins": "Vendor's claim upheld",
+          "vendorWinsDetail": "Returns deposit control to vendor",
+          "clientWins": "Client's claim upheld",
+          "clientWinsDetail": "Releases deposit to client now",
+          "resolutionLabel": "Resolution note (optional)",
+          "resolutionPlaceholder": "Summarise the decision for vendor and client records...",
+          "cancel": "Cancel",
+          "processing": "Processing...",
+          "returnToVendor": "Return control to vendor",
+          "releaseToClient": "Release deposit to client",
+          "defaultResolution": "Case closed — deposit released back to client."
+        },
+        "toast": {
+          "underReview": "Marked under review",
+          "underReviewDesc": "The vendor has been notified.",
+          "failed": "Failed",
+          "unableToUpdate": "Unable to update status.",
+          "networkError": "Network error",
+          "unexpectedError": "An unexpected error occurred.",
+          "vendorWinsTitle": "Vendor's claim upheld — deposit control returned",
+          "clientWinsTitle": "Client's claim upheld — deposit released",
+          "bothNotified": "Both parties have been notified by email."
+        },
+        "errors": {
+          "resolutionFailed": "Resolution failed.",
+          "unexpected": "An unexpected error occurred."
+        }
+      },
+      "overview": {
+        "vendorQueueTitle": "Vendor review queue",
+        "vendorQueueDesc": "Review business approval status, payout readiness, and recent vendor accounts.",
+        "allUsers": "All users",
+        "thBusiness": "Business",
+        "thEmail": "Email",
+        "thReview": "Review",
+        "thStripe": "Stripe",
+        "emptyQueue": "No vendor accounts are waiting for review.",
+        "adminScopeTitle": "Admin scope",
+        "adminScopeDesc": "Current operator details and the main access levels in use.",
+        "activeOperator": "Active operator"
+      }
+    }
+  },
+  "clientFlow": {
+    "steps": {
+      "profile": "Profile",
+      "documents": "Documents",
+      "kyc": "Identity",
+      "contract": "Contract",
+      "sign": "Signature",
+      "payment": "Payment",
+      "complete": "Complete"
+    },
+    "cancel": "Cancel",
+    "cancelled": {
+      "title": "This link is no longer available",
+      "message": "The secure request from {vendorName} has been cancelled and can no longer be used.",
+      "reason": "Reason",
+      "messageNoVendor": "This secure request has been cancelled and can no longer be used."
+    },
+    "complete": {
+      "title": "All done!",
+      "message": "Your transaction is complete."
+    },
+    "profile": {
+      "step": "Step 1 - Contact details",
+      "title": "Tell us who is completing this request",
+      "description": "We use these details to prepare the agreement, payment receipt, and secure transaction updates.",
+      "phoneInvalid": "Please enter a valid phone number",
+      "contactTitle": "Contact information",
+      "contactDescription": "Enter the details that should appear on this transaction.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "emailAddress": "Email Address",
+      "phone": "Phone Number",
+      "country": "Country",
+      "address": "Address",
+      "company": "Company",
+      "companyOptional": "(Optional)",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastNamePlaceholder": "Enter your last name",
+      "emailPlaceholder": "Enter your email address",
+      "addressPlaceholder": "Enter your address",
+      "companyPlaceholder": "Enter your company name",
+      "companyOptionalPlaceholder": "Enter your company name (optional)",
+      "companyRequired": "This transaction requires the company name for the agreement and records.",
+      "savedSecurely": "Saved securely",
+      "usedForReceipts": "Used for receipts",
+      "editableBeforeSigning": "Editable before signing",
+      "saving": "Saving...",
+      "continue": "Continue",
+      "unableToSave": "Unable to save details right now"
+    },
+    "documents": {
+      "title": "Required uploads",
+      "description": "Please upload the requested documents or photos below."
+    },
+    "contract": {
+      "eyebrow": "Review agreement",
+      "title": "Read the agreement carefully",
+      "description": "Review all terms before signing. Confirm at the bottom once you have read and understood the agreement."
+    },
+    "sign": {
+      "step": "Final step — Signature",
+      "title": "Sign this agreement",
+      "description": "Choose how you would like to sign. Your signature confirms your acceptance of all terms in this agreement.",
+      "agreementSummary": "Agreement summary",
+      "reference": "Reference:"
+    },
+    "kycPage": {
+      "title": "Identity verification",
+      "description": "For your security, we need to verify your identity before proceeding."
+    },
+    "payment": {
+      "title": "Payment",
+      "description": "Complete the payment to finalise this transaction."
+    },
+    "finish": {
+      "allSet": "You're All Set!",
+      "agreementCompleted": "Agreement Completed",
+      "allSetDescription": "Your transaction with {businessName} has been successfully completed.",
+      "agreementCompletedDescription": "Your agreement and required verification with {businessName} are complete. The vendor will request the service payment later if needed.",
+      "receiptInfo": "A receipt and a copy of your signed agreement will be emailed to you shortly.",
+      "keepLink": "Keep this secure link available. If the vendor triggers payment later, this same flow will reopen the payment step for you.",
+      "downloadSigned": "Download Signed Agreement",
+      "returnHome": "Return Home",
+      "processingTitle": "Final confirmation in progress",
+      "processingDescription": "We are confirming the last Stripe step before marking this transaction as complete."
+    },
+    "shell": {
+      "vendor": "Vendor",
+      "protectedSession": "Protected session",
+      "reference": "Reference",
+      "secureOnboarding": "Secure onboarding",
+      "transaction": "Transaction",
+      "completeRequest": "Complete your request with {vendorName}",
+      "progressSaved": "Follow each step in order. Your progress is saved as you move through the secure flow.",
+      "currentStep": "Current step",
+      "stepOf": "{current} of {total}"
+    },
+    "cancelLink": {
+      "trigger": "Cancel request",
+      "title": "Cancel this secure request?",
+      "description": "This will close the link immediately. You will not be able to continue the workflow after cancellation.",
+      "keepRequest": "Keep request",
+      "confirm": "Cancel link",
+      "error": "Unable to cancel this request right now."
+    },
+    "kycForm": {
+      "title": "Identity Verification",
+      "subtitle": "Upload a government-issued ID for review before proceeding.",
+      "rejectionNotice": "Your previous document was not accepted. Please upload a new one.",
+      "acceptedDocs": "Accepted documents",
+      "passport": "Passport",
+      "driversLicense": "Driver's license (front & back)",
+      "nationalId": "National identity card",
+      "acceptedFormats": "Accepted formats: JPG, PNG, PDF — max 10 MB",
+      "readyToSubmit": "Ready to submit",
+      "remove": "Remove",
+      "uploading": "Uploading…",
+      "clickToUpload": "Click to upload your ID",
+      "dragDrop": "or drag and drop a file here",
+      "formats": "JPG · PNG · PDF",
+      "secureNote": "Your document will be reviewed securely. You can continue with the next steps while review is in progress.",
+      "submitBtn": "Submit for Review",
+      "submitting": "Submitting…",
+      "uploadServiceError": "Upload service unavailable. Please try again.",
+      "uploadFailed": "Upload failed. Please try again.",
+      "uploadConnectionError": "Upload failed. Please check your connection and try again.",
+      "submissionFailed": "Submission failed. Please try again.",
+      "unexpectedError": "An unexpected error occurred. Please try again."
+    },
+    "signForm": {
+      "alreadyRecorded": "Signature already recorded",
+      "alreadyRecordedDesc": "Your signed agreement has been generated. Continue to the next step.",
+      "savedSig": "Saved signature",
+      "signerName": "Name",
+      "signerEmail": "Email",
+      "signerMethod": "Method",
+      "continueBtn": "Continue",
+      "savedSigFound": "Saved signature found",
+      "savedSigFoundDesc": "Your signature image was saved, but the final signed agreement still needs to be generated. Tap Sign and Continue again to finish this step.",
+      "drawTab": "Draw",
+      "typeTab": "Type",
+      "uploadTab": "Upload",
+      "typeFullName": "Type your full legal name",
+      "typePlaceholder": "e.g. Jane Smith",
+      "chooseStyle": "Choose a signature style",
+      "generatingPreview": "Generating preview…",
+      "typeNameFirst": "Type your name above to preview",
+      "clickToUploadSig": "Click to upload your signature",
+      "formatsSig": "PNG, JPG or WebP — max 5 MB",
+      "sigUploaded": "Signature uploaded",
+      "removeSig": "Remove",
+      "wrongFormat": "Please upload an image file (PNG, JPG, or WebP).",
+      "tooLarge": "Image must be under 5 MB.",
+      "processError": "Could not process that image. Please try another file.",
+      "sigReady": "Signature ready — tap Sign to continue",
+      "sigRequired": "Signature required to continue",
+      "ready": "Ready",
+      "legalNote": "By tapping Sign and Continue, you confirm your intent to sign electronically. Your signature, name, email, timestamp, and IP address will be recorded.",
+      "signAndContinue": "Sign and Continue",
+      "recording": "Recording signature…",
+      "errorRecording": "Unable to record your signature right now."
+    },
+    "uploads": {
+      "noUploadsRequired": "No uploads required.",
+      "continueBtn": "Continue",
+      "textResponse": "Text response",
+      "photoUpload": "Photo upload",
+      "documentUpload": "Document upload",
+      "clickToUpload": "Click to upload",
+      "imagesOnly": "Images only",
+      "pdfOrImage": "PDF or Image",
+      "uploadSigningError": "Upload signing is unavailable right now. Please try again.",
+      "uploadFailed": "Upload failed. Please try again.",
+      "uploadError": "Unable to save documents right now."
+    },
+    "contractReview": {
+      "reviewedLabel": "I have reviewed this agreement",
+      "reviewedDesc": "Continue to the next step when you are ready to sign.",
+      "continueToSign": "Continue to Signature",
+      "errorContinue": "Unable to continue right now."
+    },
+    "stripeIdentity": {
+      "title": "Identity Verification",
+      "subtitle": "Powered by Stripe Identity — secure and automated.",
+      "failedNotice": "Your previous verification was not completed. Please try again.",
+      "whatToExpect": "What to expect",
+      "step1": "You will be redirected to a secure Stripe page",
+      "step2": "Take a photo of your government-issued ID",
+      "step3": "A quick selfie for liveness check",
+      "step4": "Results are returned automatically",
+      "secureNote": "Your data is processed securely by Stripe and shared only with the requesting party.",
+      "startBtn": "Verify with Stripe",
+      "starting": "Starting…",
+      "startError": "Could not start verification. Please try again.",
+      "unexpectedError": "An unexpected error occurred. Please try again."
+    },
+    "processingCard": {
+      "refreshBtn": "Refresh status"
+    },
+    "paymentAction": {
+      "pendingConfirmation": "Confirming your previous step — this page will refresh automatically.",
+      "depositHold": "Deposit Hold",
+      "servicePaymentLabel": "Service Payment",
+      "securityDeposit": "Security Deposit",
+      "cardHoldNotCharged": "Card hold — not charged",
+      "chargedImmediately": "Charged immediately",
+      "holdNote": "Your card will be held for {amount} — this is not a charge. The hold will be released or converted into a charge by the vendor after the transaction is complete.",
+      "chargeNote": "{amount} will be charged to your card now and transferred to the vendor.",
+      "depositSummary": "Deposit hold (not charged)",
+      "serviceSummary": "Service payment (charged)",
+      "amountToAuthorize": "Amount to authorize now",
+      "amountToPay": "Amount to pay now",
+      "stripeNote": "Payments are processed securely via Stripe. Your card details are never stored.",
+      "authorizeDeposit": "Authorize Deposit Hold",
+      "payService": "Pay Service Amount",
+      "redirecting": "Redirecting to Stripe…",
+      "checkoutError": "Unable to start checkout right now."
+    },
+    "embeddedPayment": {
+      "preparingPayment": "Preparing secure payment…",
+      "confirmingPayment": "Confirming your payment…",
+      "takingMoment": "This will only take a moment.",
+      "depositAuthorized": "Deposit authorized",
+      "paymentConfirmed": "Payment confirmed",
+      "loadingServicePayment": "Loading service payment…",
+      "nextStep": "Taking you to the next step…",
+      "securityDepositHold": "Security Deposit Hold",
+      "cardHeldNotCharged": "Card held — not charged until vendor action",
+      "chargedNow": "Charged to your card now",
+      "cardDetails": "Card details",
+      "stripeNote": "Payments are processed securely by Stripe. Card details are never stored on our servers.",
+      "processing": "Processing…",
+      "depositHoldLabel": "Deposit Hold",
+      "servicePaymentLabel": "Service Payment",
+      "loadError": "Unable to load payment",
+      "tryAgain": "Try again",
+      "paymentCouldNotLoad": "Payment could not be loaded",
+      "initErrorRefresh": "Unable to initialize payment. Please refresh.",
+      "confirmFailed": "Payment confirmation failed. Please contact support.",
+      "confirmError": "Unable to confirm payment. Please contact support.",
+      "securedByStripe": "Payments secured by Stripe",
+      "authorizeHold": "Authorize {amount} Hold",
+      "payNow": "Pay {amount} Now",
+      "stepOf": "Step {step} of {total}"
+    }
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "Secure contract operations",
+      "titleBefore": "Run contracts, KYC, signatures, deposits, and payments in one",
+      "titleEmphasis": "guided workflow",
+      "description": "Contrazy helps vendors turn fragmented onboarding and payment steps into one secure client journey with clear visibility for operations teams.",
+      "cta": "Start free trial",
+      "stats": [
+        {
+          "value": "98%",
+          "label": "Identity checks"
+        },
+        {
+          "value": "23",
+          "label": "Active workflows"
+        },
+        {
+          "value": "14m",
+          "label": "Average completion"
+        },
+        {
+          "value": "€8.4k",
+          "label": "Deposit coverage"
+        }
+      ]
+    },
+    "trustBar": {
+      "signals": [
+        "Business setup, agreements, and payments in one place",
+        "Secure client links with clear step-by-step progress",
+        "Separate workspaces for vendors and internal review"
+      ]
+    },
+    "workflow": {
+      "eyebrow": "How it works",
+      "titleBefore": "One secure flow from",
+      "titleEmphasis": "setup",
+      "titleAfter": " to payout",
+      "description": "Contrazy keeps every step aligned so the client, vendor, and back office work from the same transaction record.",
+      "steps": [
+        {
+          "n": "01",
+          "emoji": "🏢",
+          "title": "Vendor setup",
+          "desc": "Business profile, approval, and Stripe connection are completed in one path."
+        },
+        {
+          "n": "02",
+          "emoji": "🧩",
+          "title": "Workflow design",
+          "desc": "Attach contract templates, documents, payment terms, and deposit rules."
+        },
+        {
+          "n": "03",
+          "emoji": "🔗",
+          "title": "Secure link",
+          "desc": "Generate one secure link or QR code for the full client journey."
+        },
+        {
+          "n": "04",
+          "emoji": "🪪",
+          "title": "Client onboarding",
+          "desc": "Collect profile details, optional KYC, requested files, and agreement review."
+        },
+        {
+          "n": "05",
+          "emoji": "✍️",
+          "title": "Signature & payment",
+          "desc": "Capture consent, service payment, and deposit authorization in sequence."
+        },
+        {
+          "n": "06",
+          "emoji": "📊",
+          "title": "Operational follow-up",
+          "desc": "Monitor status, disputes, and post-payment actions from one dashboard."
+        }
+      ]
+    },
+    "features": {
+      "eyebrow": "Core modules",
+      "titleBefore": "Built for teams that need",
+      "titleEmphasis": "control",
+      "titleAfter": " across the whole transaction",
+      "description": "Every module is connected to the same transaction state so operations teams do not lose context between tools.",
+      "items": [
+        {
+          "emoji": "🚀",
+          "iconBg": "bg-sky-50",
+          "title": "Vendor onboarding",
+          "desc": "Business profile, approval workflow, and payout readiness in one setup flow.",
+          "tag": "Setup",
+          "tagColor": "text-sky-700",
+          "tagBg": "bg-sky-50"
+        },
+        {
+          "emoji": "🪪",
+          "iconBg": "bg-emerald-50",
+          "title": "Identity and document collection",
+          "desc": "Optional identity checks, uploads, and evidence requests tied to a single transaction.",
+          "tag": "Verification",
+          "tagColor": "text-emerald-700",
+          "tagBg": "bg-emerald-50"
+        },
+        {
+          "emoji": "📝",
+          "iconBg": "bg-amber-50",
+          "title": "Contracts and signatures",
+          "desc": "Reusable templates, checklist items, and signature capture connected to the same workflow.",
+          "tag": "Contracts",
+          "tagColor": "text-amber-700",
+          "tagBg": "bg-amber-50"
+        },
+        {
+          "emoji": "💳",
+          "iconBg": "bg-rose-50",
+          "title": "Payments and deposits",
+          "desc": "Collect service payments, authorize deposits, and later capture or release them with audit visibility.",
+          "tag": "Finance",
+          "tagColor": "text-rose-700",
+          "tagBg": "bg-rose-50"
+        },
+        {
+          "emoji": "🧭",
+          "iconBg": "bg-violet-50",
+          "title": "Operational dashboards",
+          "desc": "Vendor and admin workspaces keep review, collection, and support activity organized.",
+          "tag": "Oversight",
+          "tagColor": "text-violet-700",
+          "tagBg": "bg-violet-50"
+        },
+        {
+          "emoji": "📡",
+          "iconBg": "bg-slate-100",
+          "title": "Alerts and activity",
+          "desc": "Important events, webhook outcomes, and transaction updates stay visible in one place.",
+          "tag": "Operations",
+          "tagColor": "text-slate-700",
+          "tagBg": "bg-slate-100"
+        }
+      ]
+    },
+    "useCases": {
+      "eyebrow": "Use cases",
+      "titleBefore": "Designed for businesses that manage",
+      "titleEmphasis": "high-trust workflows",
+      "description": "Contrazy fits sectors where agreements, identity, deposits, and payments need to stay synchronized.",
+      "items": [
+        {
+          "emoji": "🚗",
+          "title": "Car rental",
+          "desc": "Collect licences, signatures, payment, and deposit authorization before handover."
+        },
+        {
+          "emoji": "🏨",
+          "title": "Hospitality",
+          "desc": "Run pre-arrival identity checks, terms acceptance, and payment collection in one link."
+        },
+        {
+          "emoji": "🏠",
+          "title": "Property",
+          "desc": "Track documents, rental terms, and deposit flows without splitting the onboarding journey."
+        },
+        {
+          "emoji": "🛠️",
+          "title": "Service agreements",
+          "desc": "Capture client data, signatures, and staged billing through one structured process."
+        }
+      ]
+    },
+    "vendor": {
+      "eyebrow": "For vendors",
+      "titleBefore": "Give your team one",
+      "titleEmphasisOne": "shared workspace",
+      "titleMiddle": "for client launch, review, and",
+      "titleEmphasisTwo": "payment follow-up",
+      "description": "Instead of juggling forms, PDFs, email threads, and payment pages, Contrazy keeps operations anchored to one transaction record.",
+      "cards": [
+        {
+          "emoji": "🧾",
+          "iconBg": "bg-emerald-50",
+          "title": "Consistent transaction records",
+          "desc": "Every agreement, document, and payment action stays attached to the same reference."
+        },
+        {
+          "emoji": "🔐",
+          "iconBg": "bg-sky-50",
+          "title": "Client-safe collection flow",
+          "desc": "Use guided links and optional KYC to collect what you need without exposing internal tools."
+        },
+        {
+          "emoji": "📬",
+          "iconBg": "bg-amber-50",
+          "title": "Clear internal follow-up",
+          "desc": "Review statuses, disputes, and payout readiness remain visible for your team."
+        }
+      ]
+    },
+    "regulatory": {
+      "eyebrow": "Compliance-minded",
+      "titleBefore": "Keep sensitive steps",
+      "titleEmphasis": "structured and auditable",
+      "description": "Contrazy is built to support operational discipline around onboarding, consent capture, and payment handling.",
+      "cardTitle": "Important note",
+      "cardDescription": "Contrazy helps teams structure workflows and capture evidence, but legal and regulatory obligations still depend on your sector, jurisdiction, and business model.",
+      "items": [
+        {
+          "label": "Identity evidence",
+          "detail": "Collect required files and optional Stripe Identity checks inside the same flow."
+        },
+        {
+          "label": "Agreement proof",
+          "detail": "Tie signatures and timestamps to the locked transaction snapshot."
+        },
+        {
+          "label": "Payment traceability",
+          "detail": "Keep service payment and deposit events visible with the rest of the record."
+        },
+        {
+          "label": "Operational review",
+          "detail": "Separate vendor and admin workspaces to support oversight and approvals."
+        }
+      ]
+    },
+    "stack": {
+      "eyebrow": "Platform stack",
+      "titleBefore": "Production tooling behind the",
+      "titleEmphasis": "customer workflow",
+      "description": "Contrazy combines app, payments, storage, and verification infrastructure into one operational layer.",
+      "cards": [
+        {
+          "src": "/images/img-connect.jpg",
+          "alt": "Stripe Connect dashboard",
+          "title": "Stripe Connect",
+          "desc": "Vendor onboarding, payout setup, and operational payment tooling."
+        },
+        {
+          "src": "/images/img-identity.jpg",
+          "alt": "Identity verification interface",
+          "title": "Stripe Identity",
+          "desc": "Automated identity verification for workflows that require stronger checks."
+        },
+        {
+          "src": "/images/img-billing.jpg",
+          "alt": "Billing and subscription interface",
+          "title": "Billing controls",
+          "desc": "Subscription access, usage visibility, and account payment management."
+        },
+        {
+          "src": "/images/img-auth.jpg",
+          "alt": "Authentication and agreement interface",
+          "title": "Contracts and auth",
+          "desc": "Reusable agreement workflows with signatures and role-aware access."
+        },
+        {
+          "src": "/images/img-postgres.jpg",
+          "alt": "Database layer graphic",
+          "title": "Structured data layer",
+          "desc": "Transaction snapshots, workflow state, and audit-ready references in one schema."
+        },
+        {
+          "src": "/images/img-webhooks.jpg",
+          "alt": "Webhook operations view",
+          "title": "Webhook observability",
+          "desc": "Stripe event handling and operational event visibility for follow-up teams."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Start with one secure workflow, then scale it across your team.",
+      "description": "Launch the first client journey quickly without rebuilding contracts, KYC, and payments in separate tools.",
+      "cta": "Create account"
+    },
+    "pricingSection": {
+      "eyebrow": "Pricing",
+      "titleEmphasis": "Simple plans",
+      "titleAfter": " for operational growth",
+      "description": "Choose a plan based on how many client workflows your team runs each month.",
+      "feesTitle": "Transaction fees",
+      "fees": {
+        "releaseLabel": "Deposit release",
+        "releaseValue": "No Contrazy fee",
+        "releaseDetail": "when the hold is released back to the client.",
+        "captureLabel": "Deposit capture",
+        "captureValue": "Platform fee applies",
+        "captureDetail": "when part or all of the authorized deposit is converted into a charge.",
+        "paymentLabel": "Service payment",
+        "paymentDetail": "Processed securely through Stripe with the platform fee shown at checkout time.",
+        "kycLabel": "KYC checks",
+        "kycDetail": "Included or limited depending on the subscription tier."
+      },
+      "heading": "Simple launch pricing with room to scale",
+      "subDescription": "Choose a plan that fits your launch stage now, with room to expand as workflow volume grows.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "perMonth": "per month",
+      "perYear": "per year"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "titleBefore": "Questions teams ask before going",
+      "titleEmphasis": "live",
+      "description": "A practical overview of how Contrazy fits real contract and payment workflows.",
+      "items": [
+        {
+          "q": "Does Contrazy replace my existing contract text?",
+          "a": "No. Your legal content stays yours. Contrazy structures the workflow around review, signature, KYC, deposit, and payment steps."
+        },
+        {
+          "q": "Can I use it without KYC?",
+          "a": "Yes. KYC can remain optional and only be enabled for workflows that need stronger identity verification."
+        },
+        {
+          "q": "How are deposits handled?",
+          "a": "Deposits can be authorized as card holds, then later released or captured depending on the outcome of the transaction."
+        },
+        {
+          "q": "Do clients need an account?",
+          "a": "No. Clients follow the secure link or QR code you send them and complete the guided journey without needing a vendor dashboard login."
+        },
+        {
+          "q": "Can internal teams review disputes and onboarding states?",
+          "a": "Yes. Admin and vendor views separate operational oversight from the customer-facing flow."
+        }
+      ]
+    },
+    "contactPage": {
+      "metaTitle": "Contact | Contrazy",
+      "metaDescription": "Get in touch with Contrazy for product questions, operational guidance, or partnership requests.",
+      "eyebrow": "Contact",
+      "title": "Talk to the Contrazy team",
+      "description": "Reach out for product questions, onboarding support, partnership requests, or operational guidance.",
+      "channels": [
+        {
+          "title": "General enquiries",
+          "description": "Questions about product fit, roadmap, or implementation approach."
+        },
+        {
+          "title": "Sales and partnerships",
+          "description": "Discuss rollout needs, team usage, or commercial collaboration."
+        },
+        {
+          "title": "Support",
+          "description": "Get help with account access, billing, or an active workflow issue."
+        }
+      ],
+      "formFirstName": "First Name",
+      "formLastName": "Last Name",
+      "formEmail": "Email",
+      "formMessage": "Message",
+      "formFirstNamePlaceholder": "Enter your first name",
+      "formLastNamePlaceholder": "Enter your last name",
+      "formEmailPlaceholder": "Enter your email address",
+      "formMessagePlaceholder": "Describe your workflow, industry, or launch timeline.",
+      "formSubmit": "Send message",
+      "formSuccessTitle": "Message received",
+      "formSuccessDesc": "Thanks for reaching out. A member of the Contrazy team will review your message and follow up."
+    },
+    "statusPage": {
+      "metaTitle": "Status | Contrazy",
+      "metaDescription": "Operational status for Contrazy platform components and service availability.",
+      "eyebrow": "Status",
+      "title": "Platform status overview",
+      "description": "A lightweight view of the core services that support contract, verification, and payment workflows.",
+      "cards": [
+        {
+          "title": "Application",
+          "description": "Core app routing, dashboards, and client journey pages.",
+          "tag": "Operational"
+        },
+        {
+          "title": "Payments",
+          "description": "Checkout, payment collection, and deposit authorization flows.",
+          "tag": "Operational"
+        },
+        {
+          "title": "Verification",
+          "description": "Document review and Stripe Identity session startup.",
+          "tag": "Monitoring"
+        }
+      ]
+    },
+    "legal": {
+      "terms": {
+        "metaTitle": "Terms & Conditions | Contrazy",
+        "metaDescription": "Read the Contrazy terms and conditions for use of the platform.",
+        "eyebrow": "Legal",
+        "title": "Terms & Conditions",
+        "description": "These terms outline the framework for using Contrazy as a transaction workflow platform.",
+        "sections": [
+          {
+            "title": "Platform scope",
+            "paragraphs": [
+              "Contrazy provides workflow tooling for contracts, identity checks, signatures, deposits, and payments.",
+              "Use of the platform does not replace your own legal, accounting, or regulatory obligations."
+            ]
+          },
+          {
+            "title": "Account responsibilities",
+            "paragraphs": [
+              "You are responsible for the accuracy of business information, payment setup, and the workflows you send to customers.",
+              "You must protect access credentials and restrict workspace access to authorised team members."
+            ]
+          },
+          {
+            "title": "Customer-facing content",
+            "paragraphs": [
+              "You remain responsible for the agreements, instructions, and business terms you publish through Contrazy.",
+              "Contrazy does not automatically validate that your workflow content is legally sufficient for your market."
+            ],
+            "bullets": [
+              "Review your templates before launch.",
+              "Keep support and payout information current.",
+              "Resolve active disputes promptly."
+            ]
+          }
+        ]
+      },
+      "privacy": {
+        "metaTitle": "Privacy Policy | Contrazy",
+        "metaDescription": "Read how Contrazy handles personal data and operational records.",
+        "eyebrow": "Legal",
+        "title": "Privacy Policy",
+        "description": "This overview explains how Contrazy processes account, workflow, and transaction data.",
+        "sections": [
+          {
+            "title": "Data processed",
+            "paragraphs": [
+              "Contrazy processes account details, workflow configuration, transaction records, and customer-submitted information needed for the service.",
+              "Additional processors such as Stripe may handle payment or identity data within their own systems."
+            ]
+          },
+          {
+            "title": "Why data is used",
+            "paragraphs": [
+              "We use data to operate the platform, secure workflows, support payments, and provide operational visibility.",
+              "We also use limited operational logs to monitor incidents and improve service reliability."
+            ]
+          },
+          {
+            "title": "Retention and access",
+            "paragraphs": [
+              "Data is retained according to service needs, legal obligations, and operational requirements.",
+              "Access is restricted by role so vendors and administrators only see records relevant to their responsibilities."
+            ]
+          }
+        ]
+      },
+      "imprint": {
+        "metaTitle": "Legal Notice | Contrazy",
+        "metaDescription": "Legal notice and publishing information for Contrazy.",
+        "eyebrow": "Legal",
+        "title": "Legal Notice",
+        "description": "Publishing and company information for Contrazy.",
+        "sections": [
+          {
+            "title": "Publisher",
+            "paragraphs": [
+              "Contrazy is presented as a secure transaction workflow platform for vendors and operations teams."
+            ]
+          },
+          {
+            "title": "Contact",
+            "paragraphs": [
+              "For corporate, support, or legal questions, use the contact channels listed in the application contact page."
+            ]
+          },
+          {
+            "title": "Hosting and processors",
+            "paragraphs": [
+              "Infrastructure and processing services may rely on third-party providers for hosting, payments, storage, and verification workflows."
+            ]
+          }
+        ]
+      },
+      "gdpr": {
+        "metaTitle": "GDPR | Contrazy",
+        "metaDescription": "GDPR-related information for Contrazy platform usage and data handling.",
+        "eyebrow": "Legal",
+        "title": "GDPR",
+        "description": "A practical summary of how Contrazy supports GDPR-minded operations.",
+        "sections": [
+          {
+            "title": "Roles and responsibilities",
+            "paragraphs": [
+              "Depending on the workflow, customers, vendors, and service providers may each have different data protection roles.",
+              "Vendors are responsible for ensuring they have an appropriate legal basis for the data they collect through Contrazy."
+            ]
+          },
+          {
+            "title": "Security measures",
+            "paragraphs": [
+              "Contrazy uses role-based access, secure transport, and processor integrations designed for production use.",
+              "Sensitive payment and identity operations are delegated to specialised providers where appropriate."
+            ]
+          },
+          {
+            "title": "Requests and governance",
+            "paragraphs": [
+              "Data subject requests should be handled according to your organisation's own privacy process and applicable law.",
+              "Keep internal retention, access, and support procedures aligned with the workflows you operate."
+            ],
+            "bullets": [
+              "Review processor agreements.",
+              "Keep workspace access limited.",
+              "Document customer-facing disclosures."
+            ]
+          }
+        ]
+      }
+    },
+    "pricingPage": {
+      "metaTitle": "Pricing | Contrazy",
+      "metaDescription": "Compare Contrazy plans for contract workflows, client onboarding, deposits, and payments.",
+      "eyebrow": "Pricing",
+      "title": "Plans for secure client workflow operations",
+      "description": "Pick the plan that matches the number of workflows, controls, and verification steps your team needs.",
+      "primaryLabel": "Most teams start here",
+      "modelEyebrow": "Pricing model",
+      "modelTitle": "How Contrazy pricing works",
+      "modelDescription": "Subscription access unlocks the workflow platform while payment and deposit events continue to follow their operational logic.",
+      "modelSections": [
+        {
+          "title": "Subscription access",
+          "paragraphs": [
+            "Plans control how many workflows, QR codes, KYC checks, and operational features are available to your workspace."
+          ]
+        },
+        {
+          "title": "Payment operations",
+          "paragraphs": [
+            "Service payments and deposit authorizations run through Stripe-backed flows.",
+            "Deposit release and capture outcomes remain visible inside the related transaction."
+          ],
+          "bullets": [
+            "No app-local card storage.",
+            "Clear separation between service payment and deposit events."
+          ]
+        },
+        {
+          "title": "Scaling up",
+          "paragraphs": [
+            "As volume grows, teams typically need more transaction capacity, internal review support, and stronger operational oversight."
+          ]
+        }
+      ]
+    },
+    "guidePage": {
+      "metaTitle": "API Documentation | Contrazy",
+      "metaDescription": "High-level guide to how Contrazy structures workflow APIs and operational integrations.",
+      "eyebrow": "API docs",
+      "title": "Operational API guide",
+      "description": "A high-level reference for how Contrazy organizes workflow creation, verification, and payment-related endpoints.",
+      "sectionsEyebrow": "Reference",
+      "sectionsTitle": "What the integration surface covers",
+      "sectionsDescription": "This page focuses on the platform structure rather than endpoint-by-endpoint implementation details.",
+      "sections": [
+        {
+          "title": "Workspace and profile APIs",
+          "paragraphs": [
+            "Vendor setup, business profile updates, and operational settings are managed through authenticated workspace routes."
+          ]
+        },
+        {
+          "title": "Transaction workflow APIs",
+          "paragraphs": [
+            "Transaction creation, link management, document collection, KYC, signature, and payment actions are tied to transaction records."
+          ],
+          "bullets": [
+            "Keep API paths unlocalized.",
+            "Use locale only for frontend return destinations."
+          ]
+        },
+        {
+          "title": "Stripe and webhook integration",
+          "paragraphs": [
+            "Checkout sessions, identity sessions, connected account setup, and webhook handling remain separate from the localized app routes."
+          ]
+        }
+      ]
+    },
+    "blogPage": {
+      "metaTitle": "Blog | Contrazy",
+      "metaDescription": "Articles and operational notes on secure client onboarding, contracts, deposits, and payments.",
+      "eyebrow": "Insights",
+      "titleBefore": "Practical notes on",
+      "titleEmphasis": "workflow operations",
+      "description": "Short reads for teams building secure client onboarding, agreement, and payment flows.",
+      "featuredPost": {
+        "category": "Featured",
+        "emoji": "🧭",
+        "title": "Why unified transaction workflows reduce operational drift",
+        "excerpt": "When KYC, signature, payment, and deposit steps live in separate tools, teams lose the transaction context that matters most.",
+        "date": "May 2026",
+        "readTime": "5 min read"
+      },
+      "posts": [
+        {
+          "category": "Contracts",
+          "emoji": "📝",
+          "title": "What to lock into a signed transaction snapshot",
+          "excerpt": "A practical view of what should remain immutable once a client has signed and paid.",
+          "date": "May 2026",
+          "readTime": "4 min read"
+        },
+        {
+          "category": "Payments",
+          "emoji": "💳",
+          "title": "Deposits, captures, and releases without losing auditability",
+          "excerpt": "Why deposit handling should stay attached to the same operational record as the agreement.",
+          "date": "May 2026",
+          "readTime": "6 min read"
+        },
+        {
+          "category": "Operations",
+          "emoji": "📊",
+          "title": "The dashboard signals teams actually need",
+          "excerpt": "A look at the review, payout, and follow-up indicators that keep transaction teams aligned.",
+          "date": "May 2026",
+          "readTime": "4 min read"
+        }
+      ]
+    },
+    "helpPage": {
+      "metaTitle": "Help Centre | Contrazy",
+      "metaDescription": "Get started with Contrazy and understand the key workflow steps for vendors and clients.",
+      "eyebrow": "Help centre",
+      "titleBefore": "Get started with",
+      "titleEmphasis": "confidence",
+      "description": "A quick orientation for teams launching their first secure client workflow on Contrazy.",
+      "gettingStartedTitle": "Getting started",
+      "steps": [
+        "Complete your business profile and wait for review approval if required.",
+        "Connect Stripe before sending any workflow that collects payments or deposit holds.",
+        "Prepare at least one contract template and any checklist or document requirements.",
+        "Create a transaction, generate the secure client link, and monitor progress from the dashboard."
+      ],
+      "extraHelpTitle": "Need more help?",
+      "extraHelpBefore": "If you need product or operational support, use the",
+      "extraHelpAfter": "page to reach the Contrazy team."
+    }
+  },
+  "contracts": {
+    "preview": {
+      "signedAgreement": "Signed agreement",
+      "generatedFrom": "Electronically executed contract copy generated from the locked transaction snapshot.",
+      "serviceProvider": "Service provider",
+      "client": "Client",
+      "signed": "Signed",
+      "reference": "Reference",
+      "serviceAmount": "Service amount",
+      "deposit": "Deposit",
+      "electronicSignature": "Electronic signature",
+      "clientSignature": "Client signature",
+      "signerName": "Signer name",
+      "signerEmail": "Signer email",
+      "method": "Method",
+      "signedAt": "Signed at",
+      "ipAddress": "IP address",
+      "signatureUnavailable": "Signature unavailable",
+      "auditFooter": "This signed copy reflects the final transaction snapshot and the captured signer audit trail.",
+      "footer": "Signed agreement preview · Contrazy",
+      "agreementReview": "Agreement Review",
+      "reviewCopy": "Review copy - locked transaction snapshot",
+      "agreement": "Agreement",
+      "finalAgreement": "Final Agreement",
+      "electronicallyExecuted": "Electronically executed · locked transaction snapshot",
+      "name": "Name",
+      "email": "Email",
+      "ip": "IP",
+      "unavailable": "Unavailable"
+    }
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "close": "Close",
+    "search": "Search",
+    "noResults": "No results found",
+    "required": "Required",
+    "optional": "Optional",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "currency": {
+      "eur": "EUR",
+      "usd": "USD",
+      "gbp": "GBP"
+    },
+    "dismiss": "Dismiss",
+    "languageSwitcher": "Language switcher",
+    "openAccountMenu": "Open account menu",
+    "signHere": "Sign here",
+    "signHereHint": "Mouse, stylus or finger",
+    "selectCountry": "Select country",
+    "searchCountry": "Search country...",
+    "searchCountryOrDial": "Search country or dial code...",
+    "enterPhoneNumber": "Enter phone number",
+    "clear": "Clear",
+    "all": "All",
+    "apply": "Apply",
+    "reset": "Reset",
+    "prev": "Prev",
+    "showingResults": "Showing {start}–{end} of {total} results",
+    "noRecordsYet": "No records yet."
+  },
+  "subscriptions": {
+    "planCard": {
+      "current": "Current",
+      "currentPlan": "Current plan",
+      "onQuote": "On quote",
+      "annualBilling": "Annual billing",
+      "intervalYearWithEquiv": "/ yr · {equiv}/mo",
+      "intervalYear": "/ yr",
+      "intervalMonth": "/ mo",
+      "vatLabel": "excl. VAT"
+    },
+    "billing": {
+      "activateTitle": "Activate your vendor workspace",
+      "activateDesc": "Transactions, payments, KYC, contracts, and customer links are locked until an active subscription is in place.",
+      "resubscribeNote": "Your previous subscription has ended — choose a plan to resubscribe.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "discountLabel": "-15%",
+      "discountTeaser": "Up to -15%",
+      "noInvoices": "No invoices yet.",
+      "thDate": "Date",
+      "thNumber": "Number",
+      "thPeriod": "Period",
+      "thAmount": "Amount",
+      "thStatus": "Status",
+      "thActions": "Actions",
+      "viewInvoice": "View",
+      "downloadPdf": "PDF",
+      "annualLabel": "Annual",
+      "monthlyLabel": "Monthly",
+      "trialEnds": "Trial ends {date}",
+      "renews": "Renews {date}",
+      "paymentMethodsLabel": "Payment methods",
+      "addCard": "Add card",
+      "noCards": "No cards saved. Add one to continue.",
+      "defaultLabel": "Default",
+      "setDefault": "Set default",
+      "removeCard": "Remove card",
+      "cannotRemove": "Cannot remove the only card while subscription is active",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "switchInterval": "Switch interval",
+      "usageTitle": "Usage this period",
+      "usageResets": "Usage resets on {date}",
+      "plansTitle": "Plans",
+      "invoiceHistoryTitle": "Invoice history",
+      "dangerZoneTitle": "Danger zone",
+      "cancelSubTitle": "Cancel subscription",
+      "cancelSubDesc": "Your access continues until {date}. You can reactivate before that date.",
+      "cancelPlanBtn": "Cancel plan",
+      "planChangeTitle": "Confirm plan change",
+      "planChangeDesc": "Review the details before confirming.",
+      "newPlanLabel": "New plan",
+      "priceLabel": "Price",
+      "effectiveLabel": "Effective",
+      "effectiveValue": "Immediately",
+      "intervalChangeNote": "Billing cycle resets today. A prorated invoice will be issued immediately.",
+      "proratedNote": "A prorated credit or charge will be applied to your next invoice.",
+      "cancelConfirmBtn": "Cancel",
+      "confirmChangeBtn": "Confirm change",
+      "cancelSubDialogTitle": "Cancel subscription",
+      "cancelSubDialogDesc": "Your workspace stays active until {date}. You can reactivate before that date.",
+      "keepSubscription": "Keep subscription",
+      "cancelAtPeriodEnd": "Cancel at period end",
+      "updatePmTitle": "Update payment method",
+      "updatePmDesc": "Enter your card details. Your existing subscription will be retried with the new card.",
+      "updatePmDescNew": "Enter your new card. It will be used for all future charges.",
+      "auth3dsTitle": "Payment confirmation required",
+      "auth3dsDesc": "Your bank requires additional authentication to complete this change.",
+      "reactivateBtn": "Reactivate",
+      "cancelingBanner": "Your subscription ends on {date}. Reactivate to keep access.",
+      "recoveryTitle": "Payment issue — action required",
+      "pastDueDesc": "Your latest invoice could not be collected. Please update your payment method to restore full access.",
+      "unpaidDesc": "Your subscription is unpaid. Update your payment method and we will retry.",
+      "incompleteDesc": "Your payment is incomplete. Please update your payment method to activate your subscription.",
+      "updatePmBtn": "Update payment method",
+      "recentInvoices": "Recent invoices",
+      "toastCheckoutError": "Could not start checkout",
+      "toastNetworkError": "Network error",
+      "toastPlanChangeError": "Plan change failed",
+      "toastPlanUpdated": "Plan updated",
+      "toastPlanUpdatedDesc": "Your subscription has been changed.",
+      "toastCancelFailed": "Failed to cancel",
+      "toastCanceled": "Subscription scheduled for cancellation",
+      "toastCanceledDesc": "Your access continues until {date}.",
+      "toastReactivateFailed": "Failed to reactivate",
+      "toastReactivated": "Subscription reactivated",
+      "toastReactivatedDesc": "Your subscription will renew as normal.",
+      "toastPmUpdated": "Payment method updated",
+      "toastPmUpdatedDesc": "Your new card has been saved.",
+      "toastPmFailed": "Failed to save card",
+      "toastSetDefaultFailed": "Failed",
+      "toastDefaultUpdated": "Default card updated",
+      "toastDeleteFailed": "Cannot remove card",
+      "toastDeleted": "Card removed",
+      "notIncluded": "Not included in plan",
+      "unlimited": "Unlimited",
+      "locked": "Locked",
+      "usageTxLabel": "Transactions / month",
+      "usageTxShort": "Transactions",
+      "usageSigLabel": "E-Signatures / month",
+      "usageSigShort": "Signatures",
+      "usageQrLabel": "QR Codes / month",
+      "usageQrShort": "QR Codes",
+      "usageKycLabel": "KYC verifications / month",
+      "usageKycShort": "KYC",
+      "usageTemplatesLabel": "Contract templates",
+      "usageTemplatesShort": "Templates",
+      "saveCard": "Save card",
+      "cancelCard": "Cancel",
+      "tryAgain": "Try again.",
+      "unexpectedError": "An unexpected error occurred.",
+      "planLimitFallback": "Your current plan limit has been reached.",
+      "toggleAriaLabel": "Toggle billing interval",
+      "checkoutError": "Unable to start the checkout session.",
+      "statusActive": "Active",
+      "statusTrialing": "Trial",
+      "statusPastDue": "Past due",
+      "statusUnpaid": "Unpaid",
+      "statusIncomplete": "Incomplete",
+      "statusCanceled": "Canceled",
+      "statusExpired": "Expired",
+      "vatLabel": "excl. VAT"
+    }
+  }
+}

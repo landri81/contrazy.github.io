@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Loader2, Mail, Send } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import { forgotPasswordSchema } from "@/features/auth/schemas/auth.schema"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ForgotPasswordForm() {
+  const t = useTranslations("auth.forgotPassword")
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +27,7 @@ export function ForgotPasswordForm() {
     const parsed = forgotPasswordSchema.safeParse({ email })
 
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Invalid email")
+      setError(parsed.error.issues[0]?.message ?? t("invalidEmail"))
       return
     }
 
@@ -40,14 +42,14 @@ export function ForgotPasswordForm() {
       const payload = await response.json()
 
       if (!response.ok) {
-        setError(payload.message ?? "Unable to request reset link")
+        setError(payload.message ?? t("successMessage"))
         return
       }
 
-      setMessage("If the account exists, a reset link has been issued.")
+      setMessage(t("successMessage"))
     } catch (requestError) {
       console.error(requestError)
-      setError("Unable to request reset link right now")
+      setError(t("successMessage"))
     } finally {
       setIsPending(false)
     }
@@ -58,14 +60,14 @@ export function ForgotPasswordForm() {
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="reset-email">Email</Label>
+            <Label htmlFor="reset-email">{t("emailLabel")}</Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="reset-email"
                 type="email"
                 autoComplete="email"
-                placeholder="Enter your email address"
+                placeholder={t("emailPlaceholder")}
                 className="pl-9"
                 maxLength={INPUT_LIMITS.email}
                 value={email}
@@ -103,12 +105,12 @@ export function ForgotPasswordForm() {
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Sending link...
+                {t("submitting")}
               </>
             ) : (
               <>
                 <Send className="size-4" />
-                Send reset link
+                {t("submit")}
               </>
             )}
           </Button>

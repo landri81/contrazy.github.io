@@ -9,6 +9,7 @@ import {
   markTransactionLinkOpened,
 } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 
 const reviewedContractStatuses = new Set<TransactionStatus>([
   TransactionStatus.CONTRACT_GENERATED,
@@ -63,7 +64,8 @@ export function hasContractStep(transaction: Pick<ClientFlowTransaction, "contra
 }
 
 function getClientRoute(transaction: ClientFlowTransaction, step: ClientFlowStep) {
-  return `/t/${transaction.link?.token}/${step}`
+  const locale = normalizeLocale(transaction.locale)
+  return withLocalePath(locale, `/t/${transaction.link?.token}/${step}`)
 }
 
 export async function getTransactionByToken(token: string): Promise<ClientFlowTransaction | null> {
@@ -262,11 +264,11 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
   const nextStep = getNextClientStep(transaction)
 
   if (!transaction.link) {
-    redirect("/")
+    redirect(withLocalePath("en", "/"))
   }
 
   if (transaction.link.status === TransactionLinkStatus.CANCELLED) {
-    redirect(`/t/${transaction.link.token}/cancelled`)
+    redirect(withLocalePath(normalizeLocale(transaction.locale), `/t/${transaction.link.token}/cancelled`))
   }
 
   if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {

@@ -434,6 +434,7 @@ type VendorLinkSource = {
   currency: string
   notes: string | null
   updatedAt: Date
+  locale?: string
   clientProfile?: {
     fullName: string
     email: string
@@ -524,7 +525,8 @@ export function buildVendorLinkRecord(
   transaction: VendorLinkSource,
   options?: { qrRemaining?: number | null }
 ): VendorLinkRecord {
-  const shareLink = transaction.link?.token ? `${getAppBaseUrl()}/t/${transaction.link.token}` : ""
+  const txLocale = (transaction.locale ?? "en").toLowerCase()
+  const shareLink = transaction.link?.token ? `${getAppBaseUrl()}/${txLocale}/t/${transaction.link.token}` : ""
   const lastActivity = getLinkLastActivityDate(transaction)
   const status = transaction.link?.status ?? TransactionLinkStatus.ACTIVE
   const qrReady = Boolean(transaction.link?.qrCodeSvg)

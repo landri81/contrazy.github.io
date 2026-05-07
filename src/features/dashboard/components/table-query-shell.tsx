@@ -2,13 +2,14 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown, ChevronLeft, ChevronRight, LoaderCircle, RotateCcw, Search } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useMemo, useState, useTransition } from "react"
+import { useTranslations } from "next-intl"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { DashboardFilterOption } from "@/features/dashboard/filter-options"
+import { useRouter } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
 type TableQueryFilter = {
@@ -52,6 +53,8 @@ function buildPageWindow(current: number, total: number): (number | "...")[] {
 }
 
 function TablePendingOverlay() {
+  const t = useTranslations("dashboard.shared")
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -63,7 +66,7 @@ function TablePendingOverlay() {
       <div className="flex h-full flex-col gap-4 p-4">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           <LoaderCircle className="size-4 animate-spin text-[var(--contrazy-teal)]" />
-          Updating results
+          {t("updatingResults")}
         </div>
         <div className="space-y-3">
           <Skeleton className="h-10 w-full rounded-lg" />
@@ -88,6 +91,7 @@ export function TableQueryShell({
   searchParams,
   children,
 }: TableQueryShellProps) {
+  const t = useTranslations("dashboard.shared")
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [query, setQuery] = useState(searchValue)
@@ -155,7 +159,7 @@ export function TableQueryShell({
             htmlFor={searchId}
             className="mb-1.5 block text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase"
           >
-            Search
+            {t("searchLabel")}
           </label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -189,7 +193,7 @@ export function TableQueryShell({
                 }
                 className="h-9 w-full appearance-none rounded-lg border border-input bg-background px-3 pr-9 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-input/30"
               >
-                <option value="all">All</option>
+                <option value="all">{t("all")}</option>
                 {filter.options.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -206,10 +210,10 @@ export function TableQueryShell({
             {isPending ? (
               <>
                 <LoaderCircle className="size-3.5 animate-spin" />
-                Applying
+                {t("applying")}
               </>
             ) : (
-              "Apply"
+              t("apply")
             )}
           </Button>
           <button
@@ -222,7 +226,7 @@ export function TableQueryShell({
             )}
           >
             <RotateCcw className="size-3.5" />
-            Reset
+            {t("reset")}
           </button>
         </div>
       </form>
@@ -238,8 +242,7 @@ export function TableQueryShell({
           {totalCount > pageSize ? (
             <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="font-medium text-foreground">{start}–{end}</span> of{" "}
-                <span className="font-medium text-foreground">{totalCount}</span> results
+                {t("showingResults", { start, end, total: totalCount })}
               </p>
 
               <div className="flex items-center gap-1">
@@ -253,7 +256,7 @@ export function TableQueryShell({
                   )}
                 >
                   <ChevronLeft className="size-3.5" />
-                  Prev
+                  {t("prev")}
                 </button>
 
                 {pages.map((page, index) =>
@@ -288,7 +291,7 @@ export function TableQueryShell({
                     "cursor-pointer disabled:pointer-events-none disabled:opacity-40"
                   )}
                 >
-                  Next
+                  {t("next")}
                   <ChevronRight className="size-3.5" />
                 </button>
               </div>

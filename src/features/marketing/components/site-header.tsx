@@ -3,13 +3,15 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowRight, LayoutDashboard, LogOut, Menu, UserRound, X } from "lucide-react"
 import { signOut } from "next-auth/react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useCallback, useEffect } from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { siteNav } from "@/content/site"
+import { Link, usePathname } from "@/i18n/navigation"
+import { LocaleSwitcher } from "@/components/ui/locale-switcher"
+import { useLocale, useTranslations } from "next-intl"
+
+import { siteNavDefs } from "@/content/site"
 import { AccountMenu } from "@/features/auth/components/account-menu"
 import { getRoleHomePath, getRoleProfilePath } from "@/lib/auth/pathing"
 import type { PublicHeaderSession } from "@/features/marketing/components/public-shell"
@@ -17,6 +19,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { setMobileMenuOpen } from "@/store/slices/ui-slice"
 
 export function SiteHeader({ session }: { session: PublicHeaderSession }) {
+  const t = useTranslations("site")
+  const locale = useLocale()
   const dispatch = useAppDispatch()
   const pathname = usePathname()
   const mobileMenuOpen = useAppSelector((state) => state.ui.mobileMenuOpen)
@@ -62,18 +66,19 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm text-white/70 md:flex">
-            {siteNav.filter((item) => !item.mobileOnly).map((item) => (
+            {siteNavDefs.filter((item) => !item.mobileOnly).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`transition-colors hover:text-white ${pathname === item.href ? "text-white" : ""}`}
               >
-                {item.label}
+                {t(item.labelKey as Parameters<typeof t>[0])}
               </Link>
             ))}
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
+            <LocaleSwitcher />
             {session?.user && homePath ? (
               <AccountMenu user={session.user} workspaceHref={homePath} profileHref={profilePath} />
             ) : (
@@ -82,20 +87,20 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                   href="/login"
                   className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
                 >
-                  Se connecter
+                  {t("header.signIn")}
                 </Link>
                 <Link
                   href="/register"
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-(--contrazy-teal) px-3 text-sm font-medium text-white transition-colors hover:bg-[#0eb8a0]"
                 >
-                  Essai gratuit 7j
+                  {t("header.freeTrial")}
                 </Link>
               </>
             )}
           </div>
 
           <Button
-            aria-label="Toggle menu"
+            aria-label={t("header.toggleMenu")}
             size="icon-sm"
             variant="ghost"
             className="text-white hover:bg-white/10 hover:text-white md:hidden"
@@ -117,7 +122,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
           >
             <button
               type="button"
-              aria-label="Close menu"
+              aria-label={t("header.closeMenu")}
               className="absolute inset-0 bg-[color:rgb(7_17_30/62%)] backdrop-blur-[3px]"
               onClick={closeMobileMenu}
             />
@@ -132,19 +137,22 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
               aria-modal="true"
             >
               <div className="border-b border-white/10 px-4 py-3.5">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                    Navigation
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    Explore Contrazy
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                      {t("nav.navigation")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {t("nav.explore")}
+                    </p>
+                  </div>
+                  <LocaleSwitcher />
                 </div>
               </div>
 
               <div className="scrollbar-thin-subtle flex-1 overflow-y-auto px-3 py-3">
                 <nav className="flex flex-col gap-1.5 text-sm text-white/72">
-                  {siteNav.map((item, index) => (
+                  {siteNavDefs.map((item, index) => (
                     <motion.div
                       key={item.href}
                       initial={{ opacity: 0, x: -8 }}
@@ -161,7 +169,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                             : "hover:bg-white/7 hover:text-white"
                         }`}
                       >
-                        <span>{item.label}</span>
+                        <span>{t(item.labelKey as Parameters<typeof t>[0])}</span>
                         <ArrowRight className="size-3.5 opacity-45" />
                       </Link>
                     </motion.div>
@@ -180,7 +188,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                         </Avatar>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-white">{mobileLabel}</p>
-                          <p className="truncate text-xs text-white/55">{session.user.email ?? "Signed in"}</p>
+                          <p className="truncate text-xs text-white/55">{session.user.email ?? t("header.signedIn")}</p>
                         </div>
                       </div>
 
@@ -191,7 +199,7 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-(--contrazy-teal) px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0eb8a0]"
                         >
                           <LayoutDashboard className="size-4" />
-                          Mon espace
+                          {t("header.workspace")}
                         </Link>
                         {profilePath ? (
                           <Link
@@ -200,19 +208,19 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/14 bg-white/[0.02] px-4 text-sm font-semibold text-white transition-colors hover:bg-white/8"
                           >
                             <UserRound className="size-4" />
-                            Profile
+                            {t("header.profile")}
                           </Link>
                         ) : null}
                         <button
                           type="button"
                           onClick={() => {
                             closeMobileMenu()
-                            void signOut({ callbackUrl: "/login" })
+                            void signOut({ callbackUrl: `/${locale}/login` })
                           }}
                           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/14 bg-white/[0.02] px-4 text-sm font-semibold text-white transition-colors hover:bg-white/8"
                         >
                           <LogOut className="size-4" />
-                          Sign out
+                          {t("header.signOut")}
                         </button>
                       </div>
                     </div>
@@ -223,14 +231,14 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
                         onClick={closeMobileMenu}
                         className="inline-flex h-11 items-center justify-center rounded-xl bg-(--contrazy-teal) px-4 text-sm font-semibold text-white transition-colors hover:bg-[#0eb8a0]"
                       >
-                        Essai gratuit 7j
+                        {t("header.freeTrial")}
                       </Link>
                       <Link
                         href="/login"
                         onClick={closeMobileMenu}
                         className="inline-flex h-11 items-center justify-center rounded-xl border border-white/14 bg-white/[0.02] px-4 text-sm font-semibold text-white transition-colors hover:bg-white/8"
                       >
-                        Se connecter
+                        {t("header.signIn")}
                       </Link>
                     </div>
                   )}

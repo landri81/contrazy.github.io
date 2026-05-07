@@ -72,7 +72,7 @@ export async function POST(
       )
     }
 
-    const shareLink = `${getAppBaseUrl()}/t/${current.link.token}`
+    const shareLink = `${getAppBaseUrl()}/${current.locale.toLowerCase()}/t/${current.link.token}`
     const qrCodeSvg = await QRCode.toString(shareLink, { type: "svg", margin: 1 })
 
     const result = await prisma.$transaction(async (tx) => {

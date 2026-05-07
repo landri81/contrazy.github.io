@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/i18n/navigation"
 
 import type { PublicHeaderSession } from "@/features/marketing/components/public-shell"
 import { SiteFooter } from "@/features/marketing/components/site-footer"

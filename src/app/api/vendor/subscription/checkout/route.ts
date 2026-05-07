@@ -15,6 +15,7 @@ import {
 } from "@/features/subscriptions/server/subscription-service"
 import { requireVendorProfileAccess } from "@/lib/auth/guards"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
+import { resolveRequestLocale, toAbsoluteLocalizedAppUrl, withLocalePath } from "@/lib/i18n/locale-utils"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -22,6 +23,7 @@ export const maxDuration = 60
 export async function POST(request: Request) {
   try {
     const { session, dbUser, vendorProfile } = await requireVendorProfileAccess()
+    const locale = resolveRequestLocale(request, vendorProfile.preferredLocale)
     const accessState = await getVendorSubscriptionAccessState(vendorProfile.id)
     const eligibility = resolveCheckoutEligibility(accessState.subscription)
 
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
           {
             success: false,
             code: "RECOVERY_REQUIRED",
-            redirectTo: "/vendor/billing",
+            redirectTo: withLocalePath(locale, "/vendor/billing"),
             message: "Your subscription has a payment issue. Please resolve it from your billing page.",
           },
           { status: 409 }
@@ -90,13 +92,14 @@ export async function POST(request: Request) {
         },
       ],
       allow_promotion_codes: true,
-      locale: "fr",
+      locale: locale === "fr" ? "fr" : "en",
       metadata: {
         vendorId: vendorProfile.id,
         userId: dbUser.id,
         planKey: planSlug,
         billingInterval: intervalSlug,
         role: session.user.role ?? "VENDOR",
+        locale,
       },
       subscription_data: {
         metadata: {
@@ -104,11 +107,12 @@ export async function POST(request: Request) {
           userId: dbUser.id,
           planKey: planSlug,
           billingInterval: intervalSlug,
+          locale,
         },
         ...trialConfig,
       },
-      success_url: `${origin}/vendor/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/vendor/subscribe?canceled=1`,
+      success_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/subscribe/success?session_id={CHECKOUT_SESSION_ID}"),
+      cancel_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/subscribe?canceled=1"),
     })
 
     return NextResponse.json({

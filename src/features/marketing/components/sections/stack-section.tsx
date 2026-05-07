@@ -1,29 +1,24 @@
 "use client"
 
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
 
-const cards = [
-  { src: "/images/img-connect.jpg", alt: "Stripe Connect", title: "Stripe Connect", desc: "Flux vendeur/client. Comptes connectés." },
-  { src: "/images/img-identity.jpg", alt: "Stripe Identity", title: "Stripe Identity", desc: "Vérification documents + selfie. Disponible en option (plans Pro+)." },
-  { src: "/images/img-billing.jpg", alt: "Stripe Billing", title: "Stripe Billing", desc: "Abonnements vendeurs automatiques." },
-  { src: "/images/img-auth.jpg", alt: "Auth Capture", title: "Auth + Capture", desc: "Empreinte CB sans débit. Capture différée." },
-  { src: "/images/img-webhooks.jpg", alt: "Webhooks", title: "Webhooks", desc: "Notifications temps réel." },
-  { src: "/images/img-postgres.jpg", alt: "PostgreSQL", title: "Next.js + PostgreSQL", desc: "Front performant, API robuste." },
-]
-
 export function StackSection() {
+  const t = useTranslations("marketing.stack")
+  const cards = t.raw("cards") as Array<{ src: string; alt: string; title: string; desc: string }>
+
   return (
     <div className="bg-[var(--contrazy-navy)]">
       <div className="mx-auto max-w-7xl px-5 py-24 lg:px-10">
         <FadeIn className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">Stack technique</p>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">{t("eyebrow")}</p>
           <h2 className="font-heading mt-3.5 text-[34px] font-bold leading-[1.2] tracking-[-0.5px] text-white">
-            Construit sur <em className="italic text-[var(--contrazy-teal)]">Stripe</em>
+            {t("titleBefore")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasis")}</em>
           </h2>
           <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.7] text-white/50">
-            La plateforme exploite l&apos;écosystème Stripe pour se concentrer sur la couche métier.
+            {t("description")}
           </p>
         </FadeIn>
 

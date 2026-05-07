@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   ConnectAccountManagement,
   ConnectBalances,
@@ -17,13 +18,6 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 type Tab = "balances" | "account" | "payments" | "payouts"
-
-const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "balances", label: "Overview", icon: BarChart3 },
-  { id: "account", label: "Account", icon: CreditCard },
-  { id: "payments", label: "Payments", icon: ReceiptText },
-  { id: "payouts", label: "Payouts", icon: Wallet },
-]
 
 type AccountSessionSuccess = {
   clientSecret: string
@@ -51,7 +45,7 @@ async function fetchAccountSession(): Promise<
       error: {
         status: res.status,
         code: data?.code,
-        message: data?.message ?? "Failed to create account session.",
+        message: data?.message ?? "",
         redirectTo: data?.redirectTo,
       },
     }
@@ -83,16 +77,23 @@ function resolvePageBackground(): string {
 }
 
 export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: string }) {
+  const t = useTranslations("dashboard.vendor.stripeEmbedded")
   const router = useRouter()
+  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: "balances", label: t("tabs.balances"), icon: BarChart3 },
+    { id: "account", label: t("tabs.account"), icon: CreditCard },
+    { id: "payments", label: t("tabs.payments"), icon: ReceiptText },
+    { id: "payouts", label: t("tabs.payouts"), icon: Wallet },
+  ]
   const [stripeInstance, setStripeInstance] = useState<ReturnType<typeof loadConnectAndInitialize> | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>("balances")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sessionError, setSessionError] = useState<AccountSessionError | null>(null)
   const [loadStage, setLoadStage] = useState<LoadStage>("session")
-  const [loadDetail, setLoadDetail] = useState("Preparing a secure Stripe session.")
+  const [loadDetail, setLoadDetail] = useState(t("loading.preparingSession"))
   const [pageBg, setPageBg] = useState("#ffffff")
-  const activeTabMeta = TABS.find((tab) => tab.id === activeTab) ?? TABS[0]
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) ?? tabs[0]
 
   const initialize = useCallback(async () => {
     setIsLoading(true)
@@ -100,19 +101,22 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
     setSessionError(null)
     setStripeInstance(null)
     setLoadStage("session")
-    setLoadDetail("Preparing a secure Stripe session.")
+    setLoadDetail(t("loading.preparingSession"))
     try {
       const bg = resolvePageBackground()
       setPageBg(bg)
       const sessionResult = await fetchAccountSession()
 
       if (!sessionResult.ok) {
-        setSessionError(sessionResult.error)
+        setSessionError({
+          ...sessionResult.error,
+          message: sessionResult.error.message || t("errors.sessionFailed"),
+        })
         return
       }
 
       setLoadStage("dashboard")
-      setLoadDetail(sessionResult.data.message ?? "Loading balances, payouts, and account tools.")
+      setLoadDetail(sessionResult.data.message ?? t("loading.loadingTools"))
       const isCompactViewport = typeof window !== "undefined" && window.innerWidth < 640
 
       const instance = loadConnectAndInitialize({
@@ -131,11 +135,11 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
       })
       setStripeInstance(instance)
     } catch {
-      setError("Failed to initialize Stripe dashboard. Please refresh the page.")
+      setError(t("errors.initFailed"))
     } finally {
       setIsLoading(false)
     }
-  }, [publishableKey])
+  }, [publishableKey, t])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -156,10 +160,10 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
 
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                {loadStage === "session" ? "Preparing session" : "Loading tools"}
+                {loadStage === "session" ? t("loading.stageSession") : t("loading.stageDashboard")}
               </p>
               <p className="mt-1 text-sm font-semibold text-foreground">
-                Opening Stripe workspace
+                {t("loading.openingWorkspace")}
               </p>
             </div>
           </div>
@@ -175,10 +179,10 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: "Session", state: loadStage === "session" ? "Working" : "Ready" },
-            { label: "Tools", state: loadStage === "dashboard" ? "Opening" : "Queued" },
-            { label: "Balances", state: "Pending" },
-            { label: "Payouts", state: "Pending" },
+            { label: t("loading.session"), state: loadStage === "session" ? t("loading.working") : t("loading.ready") },
+            { label: t("loading.tools"), state: loadStage === "dashboard" ? t("loading.opening") : t("loading.queued") },
+            { label: t("loading.balances"), state: t("loading.pending") },
+            { label: t("loading.payouts"), state: t("loading.pending") },
           ].map((item) => (
             <div key={item.label} className="rounded-2xl border border-border/70 bg-background/85 px-3 py-2.5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -204,12 +208,12 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
       sessionError?.code === "SUBSCRIPTION_REQUIRED"
     const isMissingAccount = sessionError?.code === "NO_STRIPE_ACCOUNT"
     const title = isSubscriptionIssue
-      ? "Subscription required"
+      ? t("errors.subscriptionRequired")
       : isMissingAccount
-        ? "Stripe account not available"
-        : error ?? "Something went wrong"
+        ? t("errors.accountUnavailable")
+        : error ?? t("errors.generic")
     const description =
-      sessionError?.message ?? "The Stripe dashboard could not be loaded."
+      sessionError?.message || t("errors.loadFailed")
 
     return (
       <div className="rounded-[26px] border border-red-200 bg-red-50/50 p-4 text-left shadow-sm dark:border-red-900 dark:bg-red-950/20 sm:p-5">
@@ -223,7 +227,7 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
                 {title}
               </p>
               <span className="rounded-full border border-red-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-700 dark:border-red-800 dark:bg-transparent dark:text-red-300">
-                Stripe tools
+                {t("errors.toolsBadge")}
               </span>
             </div>
             <p className="mt-1 text-xs leading-5 text-red-700/85 dark:text-red-400 sm:text-sm">
@@ -239,7 +243,7 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
                     window.location.href = sessionError.redirectTo!
                   }}
                 >
-                  Open billing
+                  {t("errors.openBilling")}
                 </Button>
               ) : isMissingAccount ? (
                 <Button
@@ -250,7 +254,7 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
                     router.refresh()
                   }}
                 >
-                  Refresh status
+                  {t("errors.refreshStatus")}
                 </Button>
               ) : null}
               <Button
@@ -259,7 +263,7 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
                 className="border-red-300 bg-white text-red-700 hover:bg-red-50 dark:border-red-700 dark:bg-transparent dark:text-red-400"
                 onClick={initialize}
               >
-                Retry
+                {t("errors.retry")}
               </Button>
             </div>
           </div>
@@ -279,10 +283,10 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Live Stripe tools
+                {t("shell.liveTools")}
               </p>
               <p className="mt-1 text-sm font-semibold text-foreground">
-                Choose a module
+                {t("shell.chooseModule")}
               </p>
             </div>
             <span className="inline-flex w-fit shrink-0 rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
@@ -291,7 +295,7 @@ export function StripeEmbeddedDashboard({ publishableKey }: { publishableKey: st
           </div>
 
           <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:mt-3 sm:grid-cols-4 sm:gap-2">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"

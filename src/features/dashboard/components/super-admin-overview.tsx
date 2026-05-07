@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { getTranslations } from "next-intl/server"
 
 import {
   DashboardTable,
@@ -14,20 +15,22 @@ type SuperAdminOverviewProps = {
   workspace: AdminWorkspaceRecord
 }
 
-export function SuperAdminOverview({ email, workspace }: SuperAdminOverviewProps) {
+export async function SuperAdminOverview({ email, workspace }: SuperAdminOverviewProps) {
+  const t = await getTranslations("dashboard.admin.overview")
+
   return (
     <div className="space-y-6">
       <KpiGrid items={workspace.kpis} />
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <PagePanel
-          title="Vendor review queue"
-          description="Review business approval status, payout readiness, and recent vendor accounts."
+          title={t("vendorQueueTitle")}
+          description={t("vendorQueueDesc")}
           actionHref="/admin/users"
-          actionLabel="All users"
+          actionLabel={t("allUsers")}
         >
           <DashboardTable
-            columns={["Business", "Email", "Review", "Stripe"]}
+            columns={[t("thBusiness"), t("thEmail"), t("thReview"), t("thStripe")]}
             rows={workspace.vendors.map((vendor) => [
               <Link
                 key={`${vendor.id}-business`}
@@ -44,14 +47,14 @@ export function SuperAdminOverview({ email, workspace }: SuperAdminOverviewProps
                 {vendor.stripeConnectionStatus}
               </StatusBadge>,
             ])}
-            emptyMessage="No vendor accounts are waiting for review."
+            emptyMessage={t("emptyQueue")}
           />
         </PagePanel>
 
-        <PagePanel title="Admin scope" description="Current operator details and the main access levels in use.">
+        <PagePanel title={t("adminScopeTitle")} description={t("adminScopeDesc")}>
           <div className="space-y-4 text-sm">
             <div className="rounded-lg border border-border bg-background p-4">
-              <p className="font-medium text-foreground">Active operator</p>
+              <p className="font-medium text-foreground">{t("activeOperator")}</p>
               <p className="mt-2 text-muted-foreground">{email}</p>
             </div>
             {workspace.rolePolicies.slice(0, 3).map((policy) => (

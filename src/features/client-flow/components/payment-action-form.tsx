@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, CreditCard, Loader2, Lock, ShieldCheck } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -23,6 +24,7 @@ export function PaymentActionForm({
   nextStage: "service_payment" | "deposit_authorization"
   pendingConfirmation?: boolean
 }) {
+  const t = useTranslations("clientFlow.paymentAction")
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,10 +43,10 @@ export function PaymentActionForm({
       if (data.url) {
         window.location.href = data.url
       } else {
-        setError(data?.message ?? "Unable to start checkout right now.")
+        setError(data?.message ?? t("checkoutError"))
       }
     } catch {
-      setError("Unable to start checkout right now.")
+      setError(t("checkoutError"))
     } finally {
       setIsPending(false)
     }
@@ -53,7 +55,7 @@ export function PaymentActionForm({
   const isDepositStep = nextStage === "deposit_authorization"
   const isHybrid = amount > 0 && depositAmount > 0
 
-  const ctaLabel = isDepositStep ? "Authorize Deposit Hold" : "Pay Service Amount"
+  const ctaLabel = isDepositStep ? t("authorizeDeposit") : t("payService")
 
   return (
     <Card className="border-border/70 bg-card/95 shadow-sm">
@@ -62,7 +64,7 @@ export function PaymentActionForm({
         {pendingConfirmation && (
           <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
             <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />
-            <p>Confirming your previous step — this page will refresh automatically.</p>
+            <p>{t("pendingConfirmation")}</p>
           </div>
         )}
 
@@ -88,14 +90,14 @@ export function PaymentActionForm({
               1
             </div>
             <span className={`text-xs font-medium ${isDepositStep ? "text-foreground" : "text-muted-foreground line-through"}`}>
-              Deposit Hold
+              {t("depositHold")}
             </span>
             <span className="text-muted-foreground/40">→</span>
             <div className={`flex size-5 items-center justify-center rounded-full text-xs font-bold ${!isDepositStep ? "bg-(--contrazy-navy) text-white" : "bg-muted text-muted-foreground"}`}>
               2
             </div>
             <span className={`text-xs font-medium ${!isDepositStep ? "text-foreground" : "text-muted-foreground"}`}>
-              Service Payment
+              {t("servicePaymentLabel")}
             </span>
           </div>
         )}
@@ -110,15 +112,15 @@ export function PaymentActionForm({
                     <Lock className="size-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Security Deposit</p>
-                    <p className="text-xs text-muted-foreground">Card hold — not charged</p>
+                    <p className="text-sm font-semibold text-foreground">{t("securityDeposit")}</p>
+                    <p className="text-xs text-muted-foreground">{t("cardHoldNotCharged")}</p>
                   </div>
                 </div>
                 <span className="text-lg font-bold text-foreground">{fmt(depositAmount)}</span>
               </div>
               {isDepositStep && (
                 <p className="mt-3 text-xs text-muted-foreground border-t border-border/40 pt-3">
-                  Your card will be <strong>held</strong> for {fmt(depositAmount)} — this is not a charge. The hold will be released or converted into a charge by the vendor after the transaction is complete.
+                  {t("holdNote", { amount: fmt(depositAmount) })}
                 </p>
               )}
             </div>
@@ -133,15 +135,15 @@ export function PaymentActionForm({
                     <CreditCard className="size-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Service Payment</p>
-                    <p className="text-xs text-muted-foreground">Charged immediately</p>
+                    <p className="text-sm font-semibold text-foreground">{t("servicePaymentLabel")}</p>
+                    <p className="text-xs text-muted-foreground">{t("chargedImmediately")}</p>
                   </div>
                 </div>
                 <span className="text-lg font-bold text-foreground">{fmt(amount)}</span>
               </div>
               {!isDepositStep && (
                 <p className="mt-3 text-xs text-muted-foreground border-t border-border/40 pt-3">
-                  {fmt(amount)} will be <strong>charged</strong> to your card now and transferred to the vendor.
+                  {t("chargeNote", { amount: fmt(amount) })}
                 </p>
               )}
             </div>
@@ -152,19 +154,19 @@ export function PaymentActionForm({
         <div className="rounded-lg border border-border/60 bg-muted/20 divide-y divide-border/40">
           {depositAmount > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-muted-foreground">Deposit hold (not charged)</span>
+              <span className="text-muted-foreground">{t("depositSummary")}</span>
               <span className="font-medium text-foreground">{fmt(depositAmount)}</span>
             </div>
           )}
           {amount > 0 && (
             <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-              <span className="text-muted-foreground">Service payment (charged)</span>
+              <span className="text-muted-foreground">{t("serviceSummary")}</span>
               <span className="font-medium text-foreground">{fmt(amount)}</span>
             </div>
           )}
           <div className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold">
             <span className="text-foreground">
-              {isDepositStep ? "Amount to authorize now" : "Amount to pay now"}
+              {isDepositStep ? t("amountToAuthorize") : t("amountToPay")}
             </span>
             <span className="text-lg text-foreground">
               {isDepositStep ? fmt(depositAmount) : fmt(amount)}
@@ -175,7 +177,7 @@ export function PaymentActionForm({
         {/* Shield note */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="size-3.5 shrink-0" />
-          <span>Payments are processed securely via Stripe. Your card details are never stored.</span>
+          <span>{t("stripeNote")}</span>
         </div>
       </CardContent>
 
@@ -186,7 +188,7 @@ export function PaymentActionForm({
           disabled={isPending || pendingConfirmation}
         >
           {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-          {isPending ? "Redirecting to Stripe…" : ctaLabel}
+          {isPending ? t("redirecting") : ctaLabel}
         </Button>
       </CardFooter>
     </Card>

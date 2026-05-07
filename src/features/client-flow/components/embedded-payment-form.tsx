@@ -2,23 +2,25 @@
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import { useTranslations } from "next-intl"
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import type { StripePaymentElementOptions } from "@stripe/stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, ArrowRight, CheckCircle2, CreditCard, Loader2, Lock, ShieldCheck } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
+import { useRouter } from "@/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 // ── Error Boundary ────────────────────────────────────────────────────────────
 
 class PaymentErrorBoundary extends Component<
-  { children: ReactNode; onReset: () => void },
+  { children: ReactNode; onReset: () => void; errorTitle: string; tryAgainLabel: string },
   { hasError: boolean; message: string | null }
 > {
-  constructor(props: { children: ReactNode; onReset: () => void }) {
+  constructor(props: { children: ReactNode; onReset: () => void; errorTitle: string; tryAgainLabel: string }) {
     super(props)
     this.state = { hasError: false, message: null }
   }
@@ -35,7 +37,7 @@ class PaymentErrorBoundary extends Component<
           <div className="flex items-start gap-3">
             <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
             <div>
-              <p className="text-sm font-medium text-destructive">Payment could not be loaded</p>
+              <p className="text-sm font-medium text-destructive">{this.props.errorTitle}</p>
               <p className="mt-1 text-xs text-destructive/80">{this.state.message}</p>
               <button
                 type="button"
@@ -45,7 +47,7 @@ class PaymentErrorBoundary extends Component<
                   this.props.onReset()
                 }}
               >
-                Try again
+                {this.props.tryAgainLabel}
               </button>
             </div>
           </div>
@@ -90,6 +92,7 @@ function PaymentElementInner({
   token: string
   onSuccess: (nextStep: string) => void
 }) {
+  const t = useTranslations("clientFlow.embeddedPayment")
   const stripe = useStripe()
   const elements = useElements()
 
@@ -114,15 +117,15 @@ function PaymentElementInner({
       })
 
       if (confirmError) {
-        setError(confirmError.message ?? "Payment could not be completed. Please try again.")
+        setError(confirmError.message ?? t("confirmFailed"))
         setSubmitting(false)
         return
       }
 
       // No redirect = payment confirmed synchronously (no 3DS required)
-      await syncAndNavigate(config.paymentIntentId, token, onSuccess, setError, setSubmitting)
+      await syncAndNavigate(config.paymentIntentId, token, onSuccess, setError, setSubmitting, t("confirmFailed"), t("confirmError"))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.")
+      setError(err instanceof Error ? err.message : t("confirmError"))
       setSubmitting(false)
     }
   }
@@ -154,10 +157,10 @@ function PaymentElementInner({
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {isDeposit ? "Security Deposit Hold" : "Service Payment"}
+              {isDeposit ? t("securityDepositHold") : t("servicePaymentLabel")}
             </p>
             <p className="text-xs text-muted-foreground">
-              {isDeposit ? "Card held — not charged until vendor action" : "Charged to your card now"}
+              {isDeposit ? t("cardHeldNotCharged") : t("chargedNow")}
             </p>
           </div>
         </div>
@@ -168,7 +171,7 @@ function PaymentElementInner({
       <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <CreditCard className="size-4 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">Card details</p>
+          <p className="text-sm font-medium text-foreground">{t("cardDetails")}</p>
         </div>
         <div className={cn("transition-opacity", elementReady ? "opacity-100" : "opacity-0 h-[120px]")}>
           <PaymentElement
@@ -201,7 +204,7 @@ function PaymentElementInner({
       {/* Security note */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <ShieldCheck className="size-3.5 shrink-0" />
-        <span>Payments are processed securely by Stripe. Card details are never stored on our servers.</span>
+        <span>{t("stripeNote")}</span>
       </div>
 
       {/* Submit */}
@@ -213,12 +216,12 @@ function PaymentElementInner({
         {submitting ? (
           <>
             <Loader2 className="mr-2 size-5 animate-spin" />
-            Processing…
+            {t("processing")}
           </>
         ) : (
           <>
             <Lock className="mr-2 size-4" />
-            {isDeposit ? `Authorize ${amountLabel} Hold` : `Pay ${amountLabel} Now`}
+            {isDeposit ? t("authorizeHold", { amount: amountLabel }) : t("payNow", { amount: amountLabel })}
           </>
         )}
       </Button>
@@ -233,7 +236,9 @@ async function syncAndNavigate(
   token: string,
   onSuccess: (nextStep: string) => void,
   setError: (msg: string | null) => void,
-  setSubmitting: (v: boolean) => void
+  setSubmitting: (v: boolean) => void,
+  confirmFailedMsg: string,
+  confirmErrorMsg: string,
 ) {
   try {
     const res = await fetch(`/api/client/${token}/payment-confirm`, {
@@ -249,14 +254,14 @@ async function syncAndNavigate(
     }
 
     if (!res.ok || !data.success) {
-      setError(data?.message ?? "Payment confirmation failed. Please contact support.")
+      setError(data?.message ?? confirmFailedMsg)
       setSubmitting(false)
       return
     }
 
     onSuccess(data.nextStep ?? "complete")
   } catch {
-    setError("Unable to confirm payment. Please contact support.")
+    setError(confirmErrorMsg)
     setSubmitting(false)
   }
 }
@@ -273,6 +278,7 @@ export function EmbeddedPaymentForm({
   depositAmount: number
   currency: string
 }) {
+  const t = useTranslations("clientFlow.embeddedPayment")
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectPaymentIntentId = searchParams.get("payment_intent")
@@ -318,7 +324,7 @@ export function EmbeddedPaymentForm({
     if (isRedirectReturn && redirectPaymentIntentId && reloadKey === 0) {
       // Coming back from 3DS redirect — confirm with server
       const noop = () => {}
-      syncAndNavigate(redirectPaymentIntentId, token, handleSuccess, setInitError, noop).then(() => {
+      syncAndNavigate(redirectPaymentIntentId, token, handleSuccess, setInitError, noop, t("confirmFailed"), t("confirmError")).then(() => {
         if (loadState !== "success") setLoadState("ready")
       })
       return
@@ -333,7 +339,7 @@ export function EmbeddedPaymentForm({
           return
         }
         if (!data.success || !data.clientSecret) {
-          setInitError(data.message ?? "Unable to initialize payment.")
+          setInitError(data.message ?? t("loadError"))
           setLoadState("error")
           return
         }
@@ -341,7 +347,7 @@ export function EmbeddedPaymentForm({
         setLoadState("ready")
       })
       .catch(() => {
-        setInitError("Unable to initialize payment. Please refresh.")
+        setInitError(t("initErrorRefresh"))
         setLoadState("error")
       })
   }, [reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -387,9 +393,9 @@ export function EmbeddedPaymentForm({
           <Loader2 className="size-5 animate-spin text-(--contrazy-teal)" />
           <div>
             <p className="text-sm font-medium text-foreground">
-              {loadState === "confirming" ? "Confirming your payment…" : "Preparing secure payment…"}
+              {loadState === "confirming" ? t("confirmingPayment") : t("preparingPayment")}
             </p>
-            <p className="text-xs text-muted-foreground">This will only take a moment.</p>
+            <p className="text-xs text-muted-foreground">{t("takingMoment")}</p>
           </div>
         </div>
         <div className="space-y-3 animate-pulse">
@@ -415,10 +421,10 @@ export function EmbeddedPaymentForm({
         </div>
         <div>
           <p className="text-base font-semibold text-emerald-800 dark:text-emerald-300">
-            {successIsIntermediate ? "Deposit authorized" : "Payment confirmed"}
+            {successIsIntermediate ? t("depositAuthorized") : t("paymentConfirmed")}
           </p>
           <p className="text-sm text-emerald-700/70 dark:text-emerald-400">
-            {successIsIntermediate ? "Loading service payment…" : "Taking you to the next step…"}
+            {successIsIntermediate ? t("loadingServicePayment") : t("nextStep")}
           </p>
         </div>
       </motion.div>
@@ -433,14 +439,14 @@ export function EmbeddedPaymentForm({
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
           <div>
-            <p className="text-sm font-medium text-destructive">Unable to load payment</p>
-            <p className="mt-1 text-xs text-destructive/80">{initError ?? "An unexpected error occurred."}</p>
+            <p className="text-sm font-medium text-destructive">{t("loadError")}</p>
+            <p className="mt-1 text-xs text-destructive/80">{initError}</p>
             <button
               type="button"
               className="mt-3 text-xs font-medium text-destructive underline underline-offset-2"
               onClick={() => { hasFetched.current = false; setConfig(null); setInitError(null); setLoadState("loading"); setReloadKey((k) => k + 1) }}
             >
-              Try again
+              {t("tryAgain")}
             </button>
           </div>
         </div>
@@ -452,7 +458,7 @@ export function EmbeddedPaymentForm({
 
   // ── Step indicator for hybrid flow ───────────────────────────────────────
 
-  const currentStepLabel = config.isDeposit ? "Security Deposit" : "Service Payment"
+  const currentStepLabel = config.isDeposit ? t("securityDepositHold") : t("servicePaymentLabel")
   const stepNum = config.isDeposit ? 1 : (isHybrid ? 2 : 1)
   const totalSteps = isHybrid ? 2 : 1
 
@@ -475,7 +481,7 @@ export function EmbeddedPaymentForm({
               "text-xs font-medium",
               config.isDeposit ? "text-foreground" : "text-muted-foreground line-through"
             )}>
-              Deposit Hold
+              {t("depositHoldLabel")}
             </span>
           </div>
           <ArrowRight className="size-3 shrink-0 text-muted-foreground/40" />
@@ -493,11 +499,11 @@ export function EmbeddedPaymentForm({
               "text-xs font-medium",
               !config.isDeposit ? "text-foreground" : "text-muted-foreground"
             )}>
-              Service Payment
+              {t("servicePaymentLabel")}
             </span>
           </div>
           <span className="ml-auto text-xs text-muted-foreground">
-            Step {stepNum} of {totalSteps}
+            {t("stepOf", { step: stepNum, total: totalSteps })}
           </span>
         </div>
       )}
@@ -522,7 +528,7 @@ export function EmbeddedPaymentForm({
         </div>
 
         <div className="p-4 sm:p-5">
-          <PaymentErrorBoundary onReset={() => { hasFetched.current = false; setConfig(null); setInitError(null); setLoadState("loading"); setReloadKey((k) => k + 1) }}>
+          <PaymentErrorBoundary onReset={() => { hasFetched.current = false; setConfig(null); setInitError(null); setLoadState("loading"); setReloadKey((k) => k + 1) }} errorTitle={t("paymentCouldNotLoad")} tryAgainLabel={t("tryAgain")}>
             <Elements stripe={stripePromise} options={elementsOptions}>
               <PaymentElementInner
                 config={config}
@@ -539,7 +545,7 @@ export function EmbeddedPaymentForm({
         <svg viewBox="0 0 60 25" className="h-4 w-auto fill-current opacity-50" xmlns="http://www.w3.org/2000/svg">
           <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 0 1-4.56 1.1c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.26-.06 1.48zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-4.12.87V5.57h3.76l.08 1.02a4.7 4.7 0 0 1 3.23-1.29c2.9 0 5.62 2.6 5.62 7.4 0 5.23-2.7 7.6-5.65 7.6zM40 8.95c-.95 0-1.54.34-1.97.81l.02 6.12c.4.44.98.78 1.95.78 1.52 0 2.54-1.65 2.54-3.87 0-2.15-1.04-3.84-2.54-3.84zM28.24 5.57h4.13v14.44h-4.13V5.57zm0-4.7L32.37 0v3.36l-4.13.88V.88zm-4.32 9.35v9.79H19.8V5.57h3.7l.12 1.22c1-1.77 3.07-1.41 3.62-1.22v3.79c-.52-.17-2.29-.43-3.32.07zm-8.55 4.72c0 2.43 2.6 1.68 3.12 1.46v3.36c-.55.3-1.54.54-2.89.54a4.15 4.15 0 0 1-4.27-4.24l.01-13.17 4.02-.86v3.54h3.14V9.1h-3.13v5.85zm-4.91.7c0 2.97-2.31 4.66-5.73 4.66a11.2 11.2 0 0 1-4.46-.93v-3.93c1.38.75 3.1 1.31 4.46 1.31.92 0 1.53-.24 1.53-1C6.26 13.77 0 14.51 0 9.95 0 7.04 2.28 5.3 5.62 5.3c1.5 0 3.01.23 4.51.9v3.86C8.76 9.4 7.15 9 5.62 9c-.89 0-1.42.23-1.42.96 0 1.38 6.41.98 6.41 6.88z"/>
         </svg>
-        <span>Payments secured by Stripe</span>
+        <span>{t("securedByStripe")}</span>
       </div>
     </div>
   )

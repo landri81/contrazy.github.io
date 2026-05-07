@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Copy, Download, ExternalLink, Loader2, MoreHorizontal, PencilLine, QrCode, ShieldX, WandSparkles } from "lucide-react"
 
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -50,6 +51,7 @@ export function PaymentLinkManagementActions({
   onRecordChange,
   onUsageChange,
 }: PaymentLinkManagementActionsProps) {
+  const t = useTranslations("dashboard.vendor.linkActions")
   const router = useRouter()
   const qrContainerRef = useRef<HTMLDivElement | null>(null)
   const [copied, setCopied] = useState(false)
@@ -142,7 +144,7 @@ export function PaymentLinkManagementActions({
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(payload?.message ?? "Unable to generate this QR code.")
+        setError(payload?.message ?? t("errorGenerate"))
         return
       }
 
@@ -155,7 +157,7 @@ export function PaymentLinkManagementActions({
       openQrPreview(nextRecord)
     } catch (err) {
       console.error(err)
-      setError("Unable to generate this QR code.")
+      setError(t("errorGenerate"))
     } finally {
       setIsGeneratingQr(false)
     }
@@ -179,7 +181,7 @@ export function PaymentLinkManagementActions({
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(payload?.message ?? "Unable to update this payment link.")
+        setError(payload?.message ?? t("errorUpdate"))
         return
       }
 
@@ -187,7 +189,7 @@ export function PaymentLinkManagementActions({
       setEditOpen(false)
     } catch (err) {
       console.error(err)
-      setError("Unable to update this payment link.")
+      setError(t("errorUpdate"))
     } finally {
       setIsSaving(false)
     }
@@ -207,7 +209,7 @@ export function PaymentLinkManagementActions({
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(payload?.message ?? "Unable to cancel this payment link.")
+        setError(payload?.message ?? t("errorCancel"))
         return
       }
 
@@ -216,7 +218,7 @@ export function PaymentLinkManagementActions({
       setCancelReason("")
     } catch (err) {
       console.error(err)
-      setError("Unable to cancel this payment link.")
+      setError(t("errorCancel"))
     } finally {
       setIsCancelling(false)
     }
@@ -231,25 +233,25 @@ export function PaymentLinkManagementActions({
             buttonVariants({ variant: "outline", size: variant === "detail" ? "sm" : "icon-sm" }),
             "cursor-pointer"
           )}
-          title="Open transaction detail"
+          title={t("openTransaction")}
         >
           <ExternalLink className="size-3.5" />
-          {variant === "detail" ? "Transaction" : null}
+          {variant === "detail" ? t("transaction") : null}
         </Link>
         <Button
           type="button"
           variant="outline"
           size={variant === "detail" ? "sm" : "icon-sm"}
           onClick={copyShareLink}
-          title="Copy secure link"
+          title={t("copyLink")}
         >
           <Copy className="size-3.5" />
-          {variant === "detail" ? (copied ? "Copied" : "Copy link") : null}
+          {variant === "detail" ? (copied ? t("copied") : t("copyLink")) : null}
         </Button>
         {variant === "detail" && !record.qrReady && record.canGenerateQr ? (
           <Button type="button" variant="outline" size="sm" onClick={handleGenerateQr} disabled={isGeneratingQr}>
             {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
-            {isGeneratingQr ? "Generating..." : "Generate QR"}
+            {isGeneratingQr ? t("generating") : t("generateQr")}
           </Button>
         ) : null}
         <DropdownMenu>
@@ -263,7 +265,7 @@ export function PaymentLinkManagementActions({
             )}
           >
             {isGeneratingQr ? <Loader2 className="size-3.5 animate-spin" /> : <MoreHorizontal className="size-3.5" />}
-            {variant === "detail" ? (isGeneratingQr ? "Generating..." : "More") : null}
+            {variant === "detail" ? (isGeneratingQr ? t("generating") : t("more")) : null}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-56">
             <DropdownMenuItem
@@ -271,12 +273,12 @@ export function PaymentLinkManagementActions({
               onClick={() => window.open(record.shareLink, "_blank", "noopener,noreferrer")}
             >
               <ExternalLink className="size-4" />
-              Open customer link
+              {t("openCustomerLink")}
             </DropdownMenuItem>
             {record.qrReady ? (
               <DropdownMenuItem className="cursor-pointer" onClick={() => openQrPreview(record)}>
                 <QrCode className="size-4" />
-                Preview QR code
+                {t("previewQr")}
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -286,7 +288,7 @@ export function PaymentLinkManagementActions({
                 title={record.qrUnavailableReason ?? undefined}
               >
                 {isGeneratingQr ? <Loader2 className="size-4 animate-spin" /> : <WandSparkles className="size-4" />}
-                {isGeneratingQr ? "Generating QR..." : "Generate QR code"}
+                {isGeneratingQr ? t("generatingQr") : t("generateQrCode")}
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -296,7 +298,7 @@ export function PaymentLinkManagementActions({
               onClick={openEditDialog}
             >
               <PencilLine className="size-4" />
-              Edit link
+              {t("editLink")}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
@@ -305,7 +307,7 @@ export function PaymentLinkManagementActions({
               onClick={() => setCancelOpen(true)}
             >
               <ShieldX className="size-4" />
-              Cancel link
+              {t("cancelLink")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -314,8 +316,8 @@ export function PaymentLinkManagementActions({
       {variant === "detail" && !record.qrReady ? (
         <p className="text-right text-xs text-muted-foreground">
           {record.canGenerateQr
-            ? "Create the QR only when you need an in-person scan flow."
-            : record.qrUnavailableReason ?? "QR is not available for this link."}
+            ? t("qrOnDemand")
+            : record.qrUnavailableReason ?? t("qrUnavailable")}
         </p>
       ) : null}
       {error && !editOpen && !cancelOpen ? (
@@ -325,9 +327,9 @@ export function PaymentLinkManagementActions({
       <Dialog open={qrOpen} onOpenChange={handleQrOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>QR code</DialogTitle>
+            <DialogTitle>{t("qrTitle")}</DialogTitle>
             <DialogDescription>
-              Share this secure QR code for {qrDialogRecord.reference}. The code resolves to the current customer link.
+              {t("qrDescription", { reference: qrDialogRecord.reference })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -339,7 +341,7 @@ export function PaymentLinkManagementActions({
               />
             ) : (
               <div className="rounded-2xl border border-dashed bg-muted/25 p-5 text-sm text-muted-foreground">
-                No QR has been generated for this link yet.
+                {t("qrEmpty")}
               </div>
             )}
             <div className="rounded-xl border bg-muted/25 p-3 text-sm text-muted-foreground">
@@ -351,7 +353,7 @@ export function PaymentLinkManagementActions({
             {qrDialogRecord.qrCodeSvg ? (
               <Button type="button" variant="outline" onClick={downloadQr}>
                 <Download className="size-4" />
-                Download SVG
+                {t("downloadSvg")}
               </Button>
             ) : null}
           </DialogFooter>
@@ -367,24 +369,24 @@ export function PaymentLinkManagementActions({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit payment link</DialogTitle>
+            <DialogTitle>{t("editTitle")}</DialogTitle>
             <DialogDescription>
-              Update the customer-facing title, internal notes, and optional access deadline.
+              {t("editDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor={`link-title-${record.id}`}>Title</Label>
+              <Label htmlFor={`link-title-${record.id}`}>{t("labelTitle")}</Label>
               <Input
                 id={`link-title-${record.id}`}
                 value={title}
                 maxLength={INPUT_LIMITS.linkTitle}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Transaction title"
+                placeholder={t("titlePlaceholder")}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`link-expiry-${record.id}`}>Access deadline</Label>
+              <Label htmlFor={`link-expiry-${record.id}`}>{t("labelExpiry")}</Label>
               <Input
                 id={`link-expiry-${record.id}`}
                 type="datetime-local"
@@ -393,13 +395,13 @@ export function PaymentLinkManagementActions({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`link-notes-${record.id}`}>Internal notes</Label>
+              <Label htmlFor={`link-notes-${record.id}`}>{t("labelNotes")}</Label>
               <Textarea
                 id={`link-notes-${record.id}`}
                 value={notes}
                 maxLength={INPUT_LIMITS.linkNotes}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="Optional internal context"
+                placeholder={t("notesPlaceholder")}
                 rows={4}
               />
               <CharacterCount current={notes.length} limit={INPUT_LIMITS.linkNotes} className="text-right" />
@@ -408,11 +410,11 @@ export function PaymentLinkManagementActions({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={isSaving}>
-              Close
+              {t("closeBtn")}
             </Button>
             <Button type="button" onClick={handleSave} disabled={isSaving}>
               {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
-              Save changes
+              {t("saveChanges")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -421,20 +423,20 @@ export function PaymentLinkManagementActions({
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Cancel payment link</DialogTitle>
+            <DialogTitle>{t("cancelDialogTitle")}</DialogTitle>
             <DialogDescription>
-              This closes the secure link immediately and prevents the customer from continuing the workflow.
+              {t("cancelDialogDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor={`cancel-reason-${record.id}`}>Reason</Label>
+              <Label htmlFor={`cancel-reason-${record.id}`}>{t("labelReason")}</Label>
               <Textarea
                 id={`cancel-reason-${record.id}`}
                 value={cancelReason}
                 maxLength={INPUT_LIMITS.cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
-                placeholder="Optional reason for this cancellation"
+                placeholder={t("reasonPlaceholder")}
                 rows={3}
               />
               <CharacterCount current={cancelReason.length} limit={INPUT_LIMITS.cancelReason} className="text-right" />
@@ -443,11 +445,11 @@ export function PaymentLinkManagementActions({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setCancelOpen(false)} disabled={isCancelling}>
-              Keep active
+              {t("keepActive")}
             </Button>
             <Button type="button" variant="destructive" onClick={handleCancelLink} disabled={isCancelling}>
               {isCancelling ? <Loader2 className="size-4 animate-spin" /> : null}
-              Cancel link
+              {t("cancelConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

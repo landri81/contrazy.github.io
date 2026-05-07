@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown, Search } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
   getCountries,
   getCountryCallingCode,
@@ -43,6 +44,7 @@ type PhoneInputProps = {
 }
 
 export function PhoneInput({ value, onChange, onBlur, id, className, invalid, maxLength }: PhoneInputProps) {
+  const t = useTranslations("common")
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -164,7 +166,7 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid, ma
         id={id}
         type="tel"
         autoComplete="tel"
-        placeholder="Enter phone number"
+        placeholder={t("enterPhoneNumber")}
         value={displayValue}
         onChange={handleNumberChange}
         onBlur={onBlur}
@@ -189,14 +191,14 @@ export function PhoneInput({ value, onChange, onBlur, id, className, invalid, ma
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search country or dial code..."
+              placeholder={t("searchCountryOrDial")}
               className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
 
           <ul className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-muted-foreground">No results</li>
+              <li className="px-3 py-2 text-sm text-muted-foreground">{t("noResults")}</li>
             ) : (
               filtered.map((country) => (
                 <li

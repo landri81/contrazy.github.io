@@ -1,0 +1,2697 @@
+{
+  "site": {
+    "name": "Contrazy",
+    "tagline": "Contrat, KYC, signature, caution et paiement en un seul lien sécurisé.",
+    "nav": {
+      "pricing": "Tarifs",
+      "blog": "Blog",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "help": "Centre d'aide",
+      "navigation": "Navigation",
+      "explore": "Explorer Contrazy"
+    },
+    "footer": {
+      "tagline": "La plateforme qui centralise contrat, KYC, e-signature, caution et paiement en un seul lien ou QR code sécurisé.",
+      "copyright": "© 2026 Contrazy SAS · Plateforme de sécurisation transactionnelle · Propulsé par Stripe Connect & Identity",
+      "noFunds": "Aucune détention de fonds pour compte de tiers · Tous droits réservés",
+      "product": "Produit",
+      "resources": "Ressources",
+      "legal": "Légal",
+      "links": {
+        "features": "Fonctionnalités",
+        "pricing": "Tarifs",
+        "freeTrial": "Essai gratuit",
+        "blog": "Blog",
+        "faq": "FAQ",
+        "apiDocs": "Documentation API",
+        "helpCentre": "Centre d'aide",
+        "status": "Statut",
+        "terms": "CGV",
+        "privacy": "Politique de confidentialité",
+        "imprint": "Mentions légales",
+        "gdpr": "RGPD",
+        "contact": "Contact"
+      }
+    },
+    "header": {
+      "signIn": "Se connecter",
+      "freeTrial": "Essai gratuit 7j",
+      "workspace": "Mon espace",
+      "profile": "Profil",
+      "signOut": "Se déconnecter",
+      "toggleMenu": "Ouvrir le menu",
+      "closeMenu": "Fermer le menu",
+      "account": "Compte",
+      "signedIn": "Connecté",
+      "hidePassword": "Masquer le mot de passe",
+      "showPassword": "Afficher le mot de passe"
+    }
+  },
+  "auth": {
+    "sidebar": {
+      "tagline": "Sécurisez toute la transaction, pas seulement le paiement.",
+      "subTagline": "Contrat, KYC, e-signature, caution et paiement — en un seul lien ou QR code.",
+      "features": {
+        "kyc": "Vérification d'identité automatique",
+        "contracts": "Contrats auto-générés et signés",
+        "payments": "Cautions et paiements sécurisés",
+        "qr": "QR Codes dynamiques"
+      },
+      "secureLogin": "Connexion sécurisée pour vendeurs, administrateurs et propriétaires de compte"
+    },
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Accédez à votre espace vendeur",
+      "metaTitle": "Connexion | Contrazy",
+      "metaDescription": "Accédez à votre espace vendeur Contrazy.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "passwordLabel": "Mot de passe",
+      "forgotPassword": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "submitting": "Connexion en cours…",
+      "noAccount": "Pas encore de compte ?",
+      "register": "Créer un compte gratuit",
+      "orContinueWith": "Ou continuer avec",
+      "google": "Continuer avec Google",
+      "errors": {
+        "invalidCredentials": "Email ou mot de passe invalide.",
+        "generic": "Une erreur est survenue. Veuillez réessayer."
+      },
+      "hidePassword": "Masquer le mot de passe",
+      "showPassword": "Afficher le mot de passe"
+    },
+    "register": {
+      "title": "Créer votre compte",
+      "subtitle": "Commencez votre essai gratuit de 7 jours",
+      "metaTitle": "Inscription | Contrazy",
+      "metaDescription": "Créez votre compte Contrazy et démarrez votre essai gratuit.",
+      "google": "Continuer avec Google",
+      "orContinueWith": "Ou continuer avec",
+      "nameLabel": "Nom complet",
+      "namePlaceholder": "Votre nom",
+      "businessNameLabel": "Nom de l'entreprise",
+      "businessNamePlaceholder": "Nom de votre entreprise",
+      "emailLabel": "Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "passwordLabel": "Mot de passe",
+      "passwordHelp": "Au moins 8 caractères",
+      "confirmPasswordLabel": "Retaper le mot de passe",
+      "confirmPasswordPlaceholder": "Retapez votre mot de passe",
+      "submit": "Créer mon compte",
+      "submitting": "Création du compte…",
+      "haveAccount": "Déjà un compte ?",
+      "signIn": "Se connecter",
+      "terms": "En créant un compte, vous acceptez nos",
+      "termsLink": "CGV",
+      "and": "et notre",
+      "privacyLink": "Politique de confidentialité",
+      "errors": {
+        "generic": "Impossible de créer le compte pour le moment",
+        "invalidFormData": "Données de formulaire invalides"
+      },
+      "hidePassword": "Masquer le mot de passe",
+      "showPassword": "Afficher le mot de passe"
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser votre mot de passe",
+      "subtitle": "Entrez votre email pour recevoir un lien de réinitialisation",
+      "metaTitle": "Mot de passe oublié | Contrazy",
+      "emailLabel": "Email",
+      "emailPlaceholder": "vous@exemple.com",
+      "submit": "Envoyer le lien",
+      "submitting": "Envoi…",
+      "backToLogin": "Retour à la connexion",
+      "successTitle": "Email envoyé",
+      "successMessage": "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.",
+      "invalidEmail": "Adresse e-mail invalide"
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Entrez et confirmez votre nouveau mot de passe",
+      "metaTitle": "Réinitialiser le mot de passe | Contrazy",
+      "passwordLabel": "Nouveau mot de passe",
+      "confirmLabel": "Confirmer le mot de passe",
+      "submit": "Mettre à jour le mot de passe",
+      "submitting": "Mise à jour…",
+      "backToLogin": "Retour à la connexion",
+      "successTitle": "Mot de passe mis à jour",
+      "successMessage": "Votre mot de passe a été mis à jour avec succès.",
+      "missingToken": "Ce lien de réinitialisation est manquant ou a expiré.",
+      "passwordPlaceholder": "Minimum 12 caractères",
+      "confirmPlaceholder": "Ressaisissez votre mot de passe",
+      "hidePassword": "Masquer les caractères",
+      "showPassword": "Afficher les caractères",
+      "invalidRequest": "Demande de réinitialisation invalide",
+      "unableToReset": "Impossible de réinitialiser le mot de passe",
+      "unableToResetNow": "Impossible de réinitialiser le mot de passe pour l'instant"
+    },
+    "verifyEmail": {
+      "title": "Vérifiez votre email",
+      "subtitle": "Consultez votre boîte de réception pour le lien de vérification",
+      "metaTitle": "Vérifier l'email | Contrazy",
+      "resend": "Renvoyer l'email",
+      "resending": "Envoi…",
+      "backToLogin": "Retour à la connexion"
+    },
+    "signupSuccess": {
+      "title": "Compte créé !",
+      "subtitle": "Vérifiez votre email pour valider votre compte",
+      "metaTitle": "Compte créé | Contrazy",
+      "cta": "Aller à la connexion"
+    },
+    "common": {
+      "hidePassword": "Masquer le mot de passe",
+      "showPassword": "Afficher le mot de passe",
+      "invalidEmail": "Adresse e-mail invalide"
+    }
+  },
+  "dashboard": {
+    "shell": {
+      "navigation": "Navigation",
+      "workspace": "Espace de travail",
+      "expandSidebar": "Développer le menu",
+      "collapseSidebar": "Réduire le menu"
+    },
+    "shared": {
+      "searchLabel": "Rechercher",
+      "all": "Tous",
+      "apply": "Appliquer",
+      "applying": "Application",
+      "reset": "Réinitialiser",
+      "updatingResults": "Mise à jour des résultats",
+      "showingResults": "Affichage de {start}–{end} sur {total} résultats",
+      "prev": "Préc.",
+      "next": "Suiv.",
+      "timelineTitle": "Historique",
+      "timelineDescription": "Moments clés du parcours client.",
+      "openedOn": "Ouvert le",
+      "responseDeadline": "Date limite de réponse",
+      "attachments": "Pièces jointes",
+      "fileCount": "{count, plural, one {# fichier} other {# fichiers}}",
+      "adminResolutionNote": "Note de résolution admin",
+      "resolvedOn": "Résolu le {date}",
+      "supportingDocuments": "Documents justificatifs",
+      "textResponseSubmitted": "Réponse texte envoyée",
+      "noDocuments": "Aucun document n'a été envoyé pour cette transaction.",
+      "history": "Historique",
+      "transactionLabel": "Transaction"
+    },
+    "nav": {
+      "vendor": {
+        "sections": {
+          "cockpit": "Cockpit",
+          "contractFlow": "Flux de contrat",
+          "clientsVerification": "Clients & Vérification",
+          "finance": "Finance",
+          "platform": "Plateforme",
+          "setup": "Configuration"
+        },
+        "items": {
+          "dashboard": "Tableau de bord",
+          "businessProfile": "Profil entreprise",
+          "actions": "Actions",
+          "linksAndQr": "Liens et QR",
+          "transactions": "Transactions",
+          "contractTemplates": "Modèles de contrat",
+          "checklists": "Checklists",
+          "clients": "Clients",
+          "kyc": "KYC",
+          "signatures": "Signatures",
+          "deposits": "Cautions",
+          "payments": "Paiements",
+          "disputes": "Litiges",
+          "stripe": "Stripe",
+          "billing": "Facturation",
+          "events": "Événements"
+        }
+      },
+      "admin": {
+        "sections": {
+          "overview": "Vue d'ensemble",
+          "userManagement": "Gestion des utilisateurs",
+          "caseManagement": "Gestion des dossiers",
+          "platform": "Plateforme"
+        },
+        "items": {
+          "dashboard": "Tableau de bord",
+          "allUsers": "Tous les utilisateurs",
+          "vendors": "Vendeurs",
+          "invitations": "Invitations",
+          "disputes": "Litiges",
+          "accessLevels": "Niveaux d'accès",
+          "activityLogs": "Journaux d'activité",
+          "sessions": "Sessions"
+        }
+      }
+    },
+    "vendor": {
+      "workspace": {
+        "title": "Espace vendeur",
+        "defaultSubtitle": "Opérations vendeur",
+        "actorLabel": "Compte vendeur"
+      },
+      "nav": {
+        "overview": "Vue d'ensemble",
+        "transactions": "Transactions",
+        "contracts": "Contrats",
+        "clients": "Clients",
+        "payments": "Paiements",
+        "deposits": "Cautions",
+        "signatures": "Signatures",
+        "documents": "Documents",
+        "checklists": "Checklists",
+        "links": "Liens",
+        "kyc": "KYC",
+        "stripe": "Stripe",
+        "billing": "Facturation",
+        "actions": "Actions",
+        "profile": "Profil",
+        "disputes": "Litiges",
+        "webhooks": "Webhooks"
+      },
+      "overview": {
+        "transactions": {
+          "label": "Transactions",
+          "detail": "Total créé"
+        },
+        "activeDeposits": {
+          "label": "Cautions actives",
+          "detail": "Provisions autorisées"
+        },
+        "clients": {
+          "label": "Clients",
+          "detail": "Profils suivis"
+        },
+        "signedContracts": {
+          "label": "Contrats signés",
+          "detail": "Signatures"
+        },
+        "planUsage": {
+          "title": "Offre & utilisation",
+          "description": "Votre utilisation de l'abonnement pour cette période de facturation.",
+          "billing": "Facturation",
+          "manage": "Gérer",
+          "renews": "Renouvellement le {date}"
+        },
+        "noActivePlan": {
+          "title": "Aucune offre active",
+          "description": "Activez un abonnement pour commencer à utiliser les fonctionnalités de Contrazy.",
+          "viewPlans": "Voir les offres"
+        },
+        "businessReadiness": {
+          "title": "Prêt pour le lancement",
+          "description": "Checklist avant d'accepter votre premier client."
+        },
+        "readyToGoLive": "Prêt pour le lancement",
+        "stepsComplete": "{n}/3 étapes complètes",
+        "profileCompletion": "Profil complété",
+        "reviewStatus": "Statut de révision",
+        "payoutSetup": "Configuration des paiements",
+        "business": "Entreprise",
+        "completeProfile": "Compléter le profil entreprise",
+        "setUpPayouts": "Configurer les paiements",
+        "openActionQueue": "Ouvrir la file d'actions",
+        "recentTransactions": {
+          "title": "Transactions récentes",
+          "description": "Derniers flux clients pour {businessName}.",
+          "allTransactions": "Toutes les transactions"
+        },
+        "noWorkflows": "Aucun flux client n'a encore été créé.",
+        "usage": {
+          "transactions": "Transactions / mois",
+          "eSignatures": "E-Signatures / mois",
+          "qrCodes": "QR Codes / mois",
+          "contractTemplates": "Modèles de contrat",
+          "kyc": "Vérifications KYC / mois",
+          "unlimited": "Illimité — {used} utilisé(s)",
+          "notIncluded": "Non inclus",
+          "trial": "Essai"
+        },
+        "table": {
+          "client": "Client",
+          "reference": "Référence",
+          "type": "Type",
+          "amount": "Montant",
+          "kyc": "KYC",
+          "contract": "Contrat",
+          "status": "Statut",
+          "date": "Date"
+        }
+      },
+      "actions": {
+        "title": "File d'actions",
+        "description": "Tâches prioritaires pour maintenir le compte et le flux client en mouvement.",
+        "columns": {
+          "priority": "Priorité",
+          "action": "Action",
+          "client": "Client",
+          "reference": "Référence",
+          "due": "Échéance"
+        },
+        "empty": "Aucune action requise pour le moment."
+      },
+      "transactions": {
+        "title": "Transactions",
+        "description": "Suivez chaque flux client de la configuration au paiement et à la gestion des cautions.",
+        "searchPlaceholder": "Rechercher par référence, titre, nom du client ou email",
+        "columns": {
+          "client": "Client",
+          "reference": "Référence",
+          "type": "Type",
+          "amount": "Montant",
+          "kyc": "KYC",
+          "contract": "Contrat",
+          "status": "Statut",
+          "date": "Date"
+        },
+        "empty": "Aucun flux client n'a encore été créé."
+      },
+      "contracts": {
+        "title": "Modèles de contrat",
+        "description": "Enregistrez les accords que vous souhaitez réutiliser dans les futurs flux.",
+        "emptyTitle": "Aucun modèle de contrat",
+        "emptyDescription": "Ajoutez votre premier modèle d'accord avant d'envoyer des liens clients."
+      },
+      "kyc": {
+        "title": "Vérifications d'identité",
+        "description": "Suivez la progression de la vérification des clients lorsqu'une confirmation d'identité est requise.",
+        "searchPlaceholder": "Rechercher par client, référence, prestataire ou note",
+        "columns": {
+          "client": "Client",
+          "reference": "Référence",
+          "status": "Statut",
+          "provider": "Prestataire",
+          "note": "Note"
+        },
+        "empty": "Aucune vérification d'identité en attente."
+      },
+      "signatures": {
+        "title": "Signatures",
+        "description": "Voyez quels clients ont examiné et accepté leurs accords.",
+        "searchPlaceholder": "Rechercher par signataire, référence ou modèle",
+        "columns": {
+          "signer": "Signataire",
+          "reference": "Référence",
+          "status": "Statut",
+          "template": "Modèle",
+          "date": "Date"
+        },
+        "empty": "Aucune signature n'a encore été demandée."
+      },
+      "deposits": {
+        "title": "Cautions",
+        "description": "Surveillez les provisions actives, les fenêtres d'expiration et les décisions de déblocage ou de capture.",
+        "searchPlaceholder": "Rechercher par nom du client, email ou référence",
+        "columns": {
+          "client": "Client",
+          "reference": "Référence",
+          "amount": "Montant",
+          "status": "Statut",
+          "window": "Fenêtre",
+          "actions": "Actions"
+        },
+        "empty": "Aucune activité de caution pour le moment."
+      },
+      "payments": {
+        "title": "Paiements",
+        "description": "Examinez la collecte des paiements sur l'ensemble de vos flux clients.",
+        "searchPlaceholder": "Rechercher par nom du client, email ou référence",
+        "columns": {
+          "client": "Client",
+          "reference": "Référence",
+          "amount": "Montant",
+          "status": "Statut",
+          "date": "Date"
+        },
+        "empty": "Aucun paiement n'a encore été enregistré."
+      },
+      "disputes": {
+        "title": "Litiges",
+        "description": "Suivez les problèmes clients liés aux paiements ou aux cautions.",
+        "searchPlaceholder": "Rechercher par client, référence ou résumé",
+        "columns": {
+          "client": "Client",
+          "reference": "Référence",
+          "status": "Statut",
+          "summary": "Résumé"
+        },
+        "empty": "Aucun litige n'a été ouvert."
+      },
+      "clients": {
+        "title": "Clients",
+        "description": "Consultez les clients récents et les flux qui leur sont associés.",
+        "searchPlaceholder": "Rechercher par nom du client, email ou entreprise",
+        "columns": {
+          "client": "Client",
+          "email": "Email",
+          "status": "Statut",
+          "recentTransaction": "Transaction récente"
+        },
+        "empty": "Aucun profil client n'a encore été enregistré."
+      },
+      "links": {
+        "title": "Liens clients",
+        "description": "Partagez des liens sécurisés et des QR codes pour chaque flux client.",
+        "searchPlaceholder": "Rechercher par référence, titre, client ou code court",
+        "columns": {
+          "reference": "Référence",
+          "client": "Client",
+          "title": "Titre",
+          "type": "Type",
+          "amounts": "Montants",
+          "shortCode": "Code court",
+          "lastActivity": "Dernière activité",
+          "status": "Statut",
+          "actions": "Actions"
+        },
+        "serviceAmount": "Service : {amount}",
+        "depositAmount": "Caution : {amount}",
+        "empty": "Aucun lien client n'a encore été émis."
+      },
+      "transactionDetailPage": {
+        "reference": "Référence",
+        "client": "Client",
+        "paymentStatus": "Statut du paiement",
+        "depositStatus": "Statut de la caution",
+        "docsUploaded": "Documents envoyés",
+        "pending": "En attente",
+        "na": "N/D",
+        "none": "Aucun",
+        "clientAccessTitle": "Accès client",
+        "clientAccessDescription": "Réutilisez le lien sécurisé, le QR code ou les contrôles d'annulation pour cette transaction.",
+        "customerLink": "Lien client",
+        "openSecureClientFlow": "Ouvrir le flux client sécurisé",
+        "cancelled": "Annulé",
+        "noQrGenerated": "Aucun QR généré pour le moment",
+        "generateQrHint": "Générez un QR code lorsque vous souhaitez partager cette transaction en personne.",
+        "qrUnavailable": "Le QR n'est pas disponible pour cet état de lien.",
+        "agreementArtifactTitle": "Artefact du contrat",
+        "agreementArtifactDescription": "Consultez le snapshot du contrat et le PDF signé immuable de cette transaction.",
+        "snapshot": "Snapshot",
+        "attached": "Joint",
+        "created": "Créé le {date}",
+        "noSnapshot": "Aucun snapshot de transaction n'a encore été enregistré.",
+        "review": "Revue",
+        "reviewed": "Revu",
+        "reviewPending": "En attente",
+        "reviewIncomplete": "Le client n'a pas encore validé l'étape de revue.",
+        "signedPdf": "PDF signé",
+        "generated": "Généré",
+        "signedPdfPending": "En attente",
+        "finalPdfPending": "Le PDF final est créé immédiatement après la signature du client.",
+        "agreementSnapshot": "Snapshot du contrat",
+        "signedAgreement": "Contrat signé",
+        "downloadSignedPdf": "Télécharger le PDF signé",
+        "requirementsTitle": "Exigences collectées",
+        "requirementsDescription": "Consultez les fichiers envoyés et les réponses texte rattachés à cette transaction.",
+        "required": "obligatoire",
+        "optional": "facultatif",
+        "submitted": "Envoyé",
+        "downloadUploadedFile": "Télécharger le fichier envoyé",
+        "timelineDescription": "Historique d'activité de cette transaction",
+        "transactionCreated": "Transaction créée"
+      },
+      "webhooks": {
+        "title": "Historique des événements",
+        "description": "Consultez les événements de livraison et les mises à jour de paiement liés à votre compte.",
+        "searchPlaceholder": "Rechercher par fournisseur, nom d'événement, ID Stripe ou référence",
+        "columns": {
+          "provider": "Fournisseur",
+          "event": "Événement",
+          "reference": "Référence",
+          "status": "Statut",
+          "date": "Date"
+        },
+        "empty": "Aucun historique d'événements disponible."
+      },
+      "stripe": {
+        "payoutSetup": {
+          "title": "Configuration des paiements",
+          "description": "Consultez les coordonnées liées aux paiements et cautions clients."
+        },
+        "nextSteps": {
+          "title": "Prochaines étapes recommandées",
+          "description": "Utilisez ces vérifications avant d'accepter des paiements clients en direct.",
+          "finishPayout": {
+            "title": "Finaliser les coordonnées de paiement",
+            "description": "Confirmez le compte de paiement pour que les fonds clients et les provisions puissent circuler sans délai."
+          },
+          "keepDetails": {
+            "title": "Maintenir les coordonnées à jour",
+            "description": "Assurez-vous que l'email professionnel, l'email de support, le numéro de téléphone et l'adresse sont à jour."
+          },
+          "monitorCollections": {
+            "title": "Surveiller les encaissements clients",
+            "description": "Vérifiez l'activité des paiements et cautions ici avant de passer à un volume de transactions plus élevé."
+          }
+        },
+        "details": {
+          "business": "Entreprise",
+          "reviewStatus": "Statut de révision",
+          "payoutStatus": "Statut des paiements",
+          "primaryEmail": "Email principal",
+          "recentPaymentState": "État du dernier paiement",
+          "recentDepositState": "État de la dernière caution",
+          "noData": "Aucune donnée"
+        }
+      },
+      "billing": {
+        "title": "Facturation",
+        "description": "Gérez votre abonnement, votre mode de paiement et vos factures."
+      },
+      "profile": {
+        "title": "Profil entreprise",
+        "description": "Vérifiez vos informations professionnelles, le statut de votre espace et mettez à jour uniquement les champs qui nécessitent des modifications."
+      },
+      "checklists": {
+        "title": "Listes de contrôle",
+        "description": "Créez des modèles pour les documents ou photos que les clients doivent télécharger lors d'une transaction.",
+        "emptyTitle": "Aucune liste de contrôle",
+        "emptyDescription": "Créez une liste de contrôle lorsque vous êtes prêt à demander des documents clients."
+      },
+      "profileForm": {
+        "editTitle": "Modifier les informations",
+        "editDescription": "Mettez à jour vos informations professionnelles ici. Votre email de connexion est verrouillé et utilisé comme email professionnel principal.",
+        "contactTitle": "Contact et identité",
+        "contactDescription": "Les coordonnées principales liées à votre espace vendeur.",
+        "businessTitle": "Informations commerciales",
+        "businessDescription": "Ces informations sont utilisées pour les vérifications et les contrôles de préparation aux paiements.",
+        "fields": {
+          "firstName": "Prénom",
+          "lastName": "Nom",
+          "businessName": "Nom de l'entreprise",
+          "registrationNumber": "Numéro d'immatriculation",
+          "loginEmail": "Email de connexion",
+          "supportEmail": "Email de support",
+          "businessPhone": "Téléphone professionnel",
+          "vatNumber": "Numéro de TVA",
+          "preferredLocale": "Langue client par défaut",
+          "country": "Pays",
+          "businessAddress": "Adresse professionnelle"
+        },
+        "placeholders": {
+          "firstName": "Entrez votre prénom",
+          "lastName": "Entrez votre nom",
+          "businessName": "Entrez le nom de votre entreprise",
+          "registrationNumber": "Entrez votre numéro d'immatriculation",
+          "supportEmail": "Entrez votre email de support",
+          "vatNumber": "Entrez votre numéro de TVA",
+          "country": "Sélectionnez votre pays",
+          "businessAddress": "Entrez votre adresse professionnelle complète",
+          "phoneHint": "Inclure le code pays, ex. +33 1 23 45 67 89"
+        },
+        "localeHint": "Les nouveaux liens clients, emails et libellés PDF utiliseront cette langue par défaut.",
+        "localeOptions": {
+          "en": "Anglais",
+          "fr": "Français"
+        },
+        "lockedHint": "Cela correspond à l'email que vous utilisez pour vous connecter et ne peut pas être modifié ici.",
+        "lockedBadge": "Verrouillé",
+        "display": {
+          "accountOwner": "Titulaire du compte",
+          "loginEmailHint": "Verrouillé à votre compte connecté",
+          "emptyOwner": "Ajouter les informations du titulaire",
+          "emptySupportEmail": "Ajouter un email de support",
+          "emptyPhone": "Ajouter un numéro de téléphone",
+          "emptyBusinessName": "Ajouter le nom de votre entreprise",
+          "emptyRegistration": "Ajouter votre numéro d'immatriculation",
+          "emptyVat": "Ajouter votre numéro de TVA",
+          "emptyCountry": "Sélectionner votre pays",
+          "emptyAddress": "Ajouter votre adresse professionnelle",
+          "notAdded": "Non renseigné"
+        },
+        "stats": {
+          "profile": "Profil",
+          "review": "Révision",
+          "payout": "Virement"
+        },
+        "overview": {
+          "tag": "Espace vendeur",
+          "defaultName": "Profil entreprise",
+          "workspaceHint": "maintenez les informations de votre espace à jour pour la révision et les virements.",
+          "editButton": "Modifier le profil",
+          "closeEditButton": "Fermer l'édition"
+        },
+        "actions": {
+          "cancel": "Annuler",
+          "save": "Enregistrer les modifications",
+          "saving": "Enregistrement..."
+        },
+        "messages": {
+          "success": "Profil professionnel mis à jour.",
+          "fixErrors": "Veuillez corriger les champs en surbrillance et réessayer.",
+          "saveError": "Impossible d'enregistrer votre profil.",
+          "networkError": "Impossible d'enregistrer votre profil pour le moment."
+        }
+      },
+      "depositControl": {
+        "statuses": {
+          "disputeTitle": "Litige en cours",
+          "disputeDesc": "Le blocage de la caution est gelé pendant l'examen du litige par la plateforme. La capture et la libération sont désactivées jusqu'à ce qu'une décision soit prise.",
+          "releasedTitle": "Caution libérée",
+          "releasedDesc": "{amount} restitué au client.",
+          "capturedTitle": "Caution capturée",
+          "capturedDesc": "Le blocage a été converti en débit sur la carte.",
+          "cancelledTitle": "Caution annulée",
+          "cancelledDesc": "La transaction a été annulée et le blocage a été libéré."
+        },
+        "card": {
+          "title": "Caution active",
+          "description": "Le montant est bloqué sur la carte du client. Choisissez l'action suivante pour cette transaction."
+        },
+        "actions": {
+          "capture": "Capturer la caution",
+          "captureDetail": "Débiter tout ou partie du montant",
+          "release": "Libérer la caution",
+          "releaseDetail": "Restituer le blocage au client",
+          "dispute": "Ouvrir un litige",
+          "disputeDetail": "Signaler un problème sur cette transaction",
+          "cancel": "Annuler la transaction",
+          "cancelDetail": "Libère automatiquement la caution"
+        },
+        "captureModal": {
+          "title": "Capturer la caution",
+          "description": "Montant autorisé : {amount}. Choisissez le montant à débiter.",
+          "fullAmount": "Montant total",
+          "partialAmount": "Montant partiel",
+          "setAmount": "Définir le montant",
+          "amountLabel": "Montant à capturer ({currency})",
+          "maximum": "Maximum : {amount}",
+          "warningTitle": "Le montant restant sera libéré",
+          "warningDesc": "La capture de {captureAmount} libérera le restant de {releaseAmount} sur la carte du client. Ce montant libéré ne pourra plus être capturé depuis ce blocage.",
+          "cancel": "Annuler",
+          "capturing": "Capture en cours..."
+        },
+        "disputeModal": {
+          "title": "Ouvrir un litige",
+          "description": "Décrivez le motif du litige. La transaction sera marquée comme disputée et la caution restera bloquée pendant la résolution.",
+          "reasonLabel": "Motif du litige",
+          "placeholder": "Exemple : l'article retourné présente des dommages non signalés...",
+          "minChars": "{min} caractères minimum",
+          "cancel": "Annuler",
+          "opening": "Ouverture en cours...",
+          "submit": "Ouvrir le litige"
+        },
+        "toast": {
+          "captured": "Caution capturée",
+          "capturedDesc": "{amount} a été débité avec succès.",
+          "released": "Caution libérée",
+          "releasedDesc": "Le blocage a été libéré sur la carte du client.",
+          "cancelled": "Transaction annulée",
+          "cancelledDesc": "Le blocage de caution a été libéré automatiquement.",
+          "disputeOpened": "Litige ouvert",
+          "disputeOpenedDesc": "La transaction est maintenant marquée comme disputée.",
+          "failed": "Échec",
+          "networkError": "Erreur réseau",
+          "unexpectedError": "Une erreur inattendue s'est produite."
+        },
+        "errors": {
+          "invalidAmount": "Entrez un montant valide supérieur à 0.",
+          "exceedsMax": "Le montant ne peut pas dépasser {max}."
+        }
+      },
+      "kycReview": {
+        "statusLabels": {
+          "verified": "Vérifié",
+          "pending": "En attente de révision",
+          "failed": "Échoué / Rejeté"
+        },
+        "card": {
+          "title": "Vérification d'identité",
+          "manualDesc": "Révision manuelle de document",
+          "stripeDesc": "Stripe Identity (automatisé)"
+        },
+        "meta": {
+          "provider": "Fournisseur",
+          "submitted": "Soumis",
+          "verifiedAt": "Vérifié le",
+          "sessionId": "ID de session"
+        },
+        "document": {
+          "submittedDoc": "Document soumis",
+          "download": "Télécharger",
+          "open": "Ouvrir",
+          "pdfDoc": "Document PDF",
+          "clickDownload": "cliquer pour télécharger",
+          "viewDoc": "Voir le document",
+          "altText": "Document d'identité"
+        },
+        "banners": {
+          "autoVerifiedTitle": "Vérifié automatiquement",
+          "autoVerifiedDesc": "Stripe Identity a confirmé le dossier du client.",
+          "autoFailedTitle": "Vérification échouée",
+          "autoFailedDesc": "Stripe Identity n'a pas pu confirmer le client. Le client peut réessayer.",
+          "manualRejected": "Document rejeté. Le client peut resoumettre un nouveau document via le flux client."
+        },
+        "actions": {
+          "approve": "Approuver",
+          "requestAgain": "Redemander",
+          "reject": "Rejeter",
+          "cancel": "Annuler"
+        },
+        "confirmModals": {
+          "approve": {
+            "title": "Approuver le document d'identité",
+            "description": "La vérification KYC du client sera marquée comme vérifiée et la transaction pourra continuer.",
+            "confirm": "Approuver"
+          },
+          "reject": {
+            "title": "Rejeter le document d'identité",
+            "description": "Le document sera marqué comme échoué. Le client peut le re-télécharger, mais la transaction ne continuera pas tant que vous n'aurez pas approuvé un document.",
+            "confirm": "Rejeter"
+          },
+          "requestAgain": {
+            "title": "Demander un nouveau document",
+            "description": "La soumission actuelle sera effacée. Le client sera invité à télécharger un nouveau document d'identité.",
+            "confirm": "Redemander"
+          }
+        },
+        "toast": {
+          "actionFailed": "Action échouée",
+          "done": "Terminé",
+          "networkError": "Erreur réseau",
+          "unexpectedError": "Une erreur inattendue s'est produite.",
+          "tryAgain": "Réessayer.",
+          "approved": "Document d'identité approuvé. Transaction en cours.",
+          "rejected": "Document rejeté.",
+          "requestedAgain": "Le client sera invité à resoumettre son document."
+        }
+      },
+      "stripeConnect": {
+        "title": "Compte Stripe",
+        "description": "Connectez votre compte Stripe pour traiter les paiements et gérer les blocages de caution en toute sécurité.",
+        "error": "Erreur",
+        "connected": {
+          "title": "Connecté",
+          "description": "Votre compte Stripe est connecté avec succès et prêt à traiter les transactions."
+        },
+        "pending": {
+          "title": "Informations manquantes",
+          "description": "Vous avez commencé à connecter votre compte Stripe, mais certaines informations sont encore manquantes. Veuillez reprendre l'intégration.",
+          "button": "Reprendre l'intégration Stripe"
+        },
+        "notConnected": {
+          "approvalTitle": "Approbation requise",
+          "approvalDesc": "Finalisez la révision de votre profil professionnel avant de connecter Stripe pour les flux clients en direct.",
+          "hint": "Vous devez connecter un compte Stripe avant de pouvoir créer des transactions avec des exigences de paiement ou de caution.",
+          "button": "Connecter avec Stripe"
+        }
+      },
+      "stripeDisconnect": {
+        "button": "Déconnecter Stripe",
+        "confirmTitle": "Déconnecter le compte Stripe ?",
+        "confirmDesc": "Cela supprimera le lien Stripe de votre profil et réinitialisera votre statut de virement à Non connecté.",
+        "warning1": "Vous ne pourrez pas collecter de paiements ou de cautions tant que vous ne vous reconnectez pas.",
+        "warning2": "Les nouvelles transactions nécessitant un paiement seront bloquées.",
+        "warning3": "Votre compte Stripe lui-même n'est pas supprimé — seul le lien est supprimé.",
+        "warning4": "Les transactions actives avec des paiements en attente doivent être résolues en premier.",
+        "checkbox": "Je comprends que la déconnexion suspendra toutes les capacités de paiement jusqu'à ce que je me reconnecte.",
+        "confirm": "Confirmer la déconnexion",
+        "confirming": "Déconnexion en cours…",
+        "cancel": "Annuler",
+        "disconnectError": "Échec de la déconnexion. Veuillez réessayer.",
+        "networkError": "Une erreur inattendue s'est produite. Veuillez réessayer."
+      },
+      "linkWorkspace": {
+        "header": {
+          "planSuffix": "plan",
+          "activePlan": "Plan actif",
+          "trialStatus": "Essai",
+          "title": "Transactions et partage en direct",
+          "description": "Lancez d'abord un lien sécurisé, puis ajoutez un QR uniquement lorsque le flux nécessite un partage en personne.",
+          "renewsLabel": "Renouvellement",
+          "planUsageLink": "Plan & utilisation",
+          "newTransaction": "Nouvelle transaction",
+          "activitySummary": "{active} actives · {processing} en cours"
+        },
+        "warnings": {
+          "reviewRequired": "Révision vendeur requise",
+          "stripeRequired": "Configuration Stripe requise",
+          "stripeRequiredDetail": "Connectez Stripe avant de créer des flux de paiement et de caution sécurisés.",
+          "quotaReached": "Quota de transactions atteint",
+          "quotaReachedDetail": "Mettez à niveau votre plan ou attendez la prochaine période de facturation pour lancer de nouvelles transactions."
+        },
+        "blockedMessages": {
+          "noStripe": "Connectez Stripe avant de créer des transactions clients en direct.",
+          "quotaFull": "Votre quota mensuel de transactions est entièrement utilisé pour cette période de facturation."
+        },
+        "usage": {
+          "transactions": "Transactions",
+          "qrCodes": "Codes QR",
+          "kyc": "KYC",
+          "unlimited": "Illimité",
+          "unavailable": "Non disponible",
+          "launchedPeriod": "{used} lancée(s) cette période",
+          "usedOf": "{used} / {total} utilisée(s)",
+          "generatedPeriod": "{used} générée(s) cette période",
+          "generatedOf": "{used} / {total} générée(s)",
+          "verificationRequests": "{used} demande(s) de vérification",
+          "kycUnavailableHint": "Disponible à partir du plan Pro."
+        },
+        "table": {
+          "title": "Liens de paiement récents",
+          "description": "Les liens clients actifs et en cours restent ici pour que vous puissiez les copier, modifier, annuler ou ajouter un QR ultérieurement.",
+          "actionLabel": "Ouvrir le gestionnaire complet",
+          "columns": {
+            "reference": "Référence",
+            "client": "Client",
+            "title": "Titre",
+            "amount": "Montant",
+            "lastActivity": "Dernière activité",
+            "status": "Statut",
+            "actions": "Actions"
+          },
+          "qrReady": "QR prêt",
+          "linkOnly": "Lien uniquement",
+          "holdPrefix": "Caution :",
+          "empty": "Aucun lien actif ou en cours d'attente pour le moment."
+        },
+        "createModal": {
+          "title": "Nouvelle transaction",
+          "description": "Créez le lien sécurisé, configurez le parcours client et décidez si ce flux nécessite un QR.",
+          "closeLabel": "Fermer la fenêtre de transaction"
+        },
+        "discardModal": {
+          "title": "Ignorer la configuration de la transaction ?",
+          "description": "Votre progression actuelle dans la fenêtre de transaction sera perdue.",
+          "keepEditing": "Continuer la modification",
+          "discard": "Ignorer"
+        }
+      },
+      "stripePage": {
+        "statusBanners": {
+          "connected": {
+            "title": "Compte Stripe connecté",
+            "description": "Votre compte est entièrement vérifié et prêt à traiter les paiements et les blocages de caution."
+          },
+          "incomplete": {
+            "title": "Intégration incomplète",
+            "description": "Certaines informations requises sont encore manquantes. Reprenez l'intégration ci-dessous pour terminer la connexion."
+          },
+          "error": {
+            "title": "Vérification échouée",
+            "description": "Nous n'avons pas pu vérifier votre compte Stripe. Veuillez réessayer ou contacter le support."
+          },
+          "no_account": {
+            "title": "Aucun compte Stripe lié",
+            "description": "Il semble que votre compte n'ait pas été enregistré. Démarrez le processus de connexion ci-dessous."
+          },
+          "disconnected": {
+            "title": "Compte Stripe déconnecté",
+            "description": "Votre compte Stripe a été dissocié. Connectez un nouveau compte ci-dessous pour reprendre le traitement des paiements."
+          }
+        },
+        "actionRequired": {
+          "title": "Action requise dans Stripe",
+          "description": "Stripe a besoin de plus d'informations. Ouvrez les alertes en direct ci-dessous pour restaurer les paiements et les virements."
+        },
+        "afterConnection": {
+          "tag": "Après connexion",
+          "title": "Votre stack de paiement s'active",
+          "item1": "Collectez les paiements clients dans les liens contractuels.",
+          "item2": "Placez des blocages de caution et libérez les montants inutilisés proprement.",
+          "item3": "Acheminez les virements directement vers votre compte Stripe."
+        },
+        "statusLabels": {
+          "connected": "Connecté",
+          "restricted": "Restreint",
+          "notConnected": "Non connecté"
+        },
+        "disconnect": {
+          "title": "Déconnecter Stripe",
+          "description": "Dissociez Stripe de cet espace. Les flux de paiement ou de caution actifs doivent être résolus en premier."
+        }
+      },
+      "stripeEmbedded": {
+        "tabs": {
+          "balances": "Vue d'ensemble",
+          "account": "Compte",
+          "payments": "Paiements",
+          "payouts": "Virements"
+        },
+        "loading": {
+          "preparingSession": "Préparation d'une session Stripe sécurisée.",
+          "loadingTools": "Chargement des soldes, virements et outils de compte.",
+          "stageSession": "Préparation de la session",
+          "stageDashboard": "Chargement des outils",
+          "openingWorkspace": "Ouverture de l'espace Stripe",
+          "session": "Session",
+          "tools": "Outils",
+          "balances": "Soldes",
+          "payouts": "Virements",
+          "working": "En cours",
+          "ready": "Prêt",
+          "opening": "Ouverture",
+          "queued": "En file",
+          "pending": "En attente"
+        },
+        "errors": {
+          "sessionFailed": "Impossible de créer la session de compte.",
+          "initFailed": "Impossible d'initialiser le tableau Stripe. Veuillez actualiser la page.",
+          "subscriptionRequired": "Abonnement requis",
+          "accountUnavailable": "Compte Stripe indisponible",
+          "generic": "Un problème est survenu",
+          "toolsBadge": "Outils Stripe",
+          "loadFailed": "Le tableau Stripe n'a pas pu être chargé.",
+          "openBilling": "Ouvrir la facturation",
+          "refreshStatus": "Actualiser le statut",
+          "retry": "Réessayer"
+        },
+        "shell": {
+          "liveTools": "Outils Stripe en direct",
+          "chooseModule": "Choisissez un module"
+        }
+      },
+      "linkActions": {
+        "openTransaction": "Voir le détail de la transaction",
+        "transaction": "Transaction",
+        "copyLink": "Copier le lien",
+        "copied": "Copié",
+        "generating": "Génération...",
+        "generatingQr": "Génération du QR...",
+        "generateQr": "Générer un QR",
+        "generateQrCode": "Générer le code QR",
+        "more": "Plus",
+        "openCustomerLink": "Ouvrir le lien client",
+        "previewQr": "Aperçu du QR code",
+        "editLink": "Modifier le lien",
+        "cancelLink": "Annuler le lien",
+        "qrOnDemand": "Créez le QR uniquement lorsque vous avez besoin d'un flux de scan en personne.",
+        "qrUnavailable": "Le QR n'est pas disponible pour ce lien.",
+        "qrTitle": "Code QR",
+        "qrDescription": "Partagez ce code QR sécurisé pour {reference}. Le code renvoie vers le lien client actuel.",
+        "qrEmpty": "Aucun QR n'a été généré pour ce lien.",
+        "downloadSvg": "Télécharger SVG",
+        "editTitle": "Modifier le lien de paiement",
+        "editDescription": "Mettez à jour le titre visible par le client, les notes internes et la date limite d'accès optionnelle.",
+        "labelTitle": "Titre",
+        "labelExpiry": "Date limite d'accès",
+        "labelNotes": "Notes internes",
+        "titlePlaceholder": "Titre de la transaction",
+        "notesPlaceholder": "Contexte interne optionnel",
+        "closeBtn": "Fermer",
+        "saveChanges": "Enregistrer les modifications",
+        "cancelDialogTitle": "Annuler le lien de paiement",
+        "cancelDialogDesc": "Cela ferme immédiatement le lien sécurisé et empêche le client de continuer le flux.",
+        "labelReason": "Raison",
+        "reasonPlaceholder": "Raison optionnelle pour cette annulation",
+        "keepActive": "Garder actif",
+        "cancelConfirm": "Annuler le lien",
+        "errorGenerate": "Impossible de générer ce code QR.",
+        "errorUpdate": "Impossible de mettre à jour ce lien de paiement.",
+        "errorCancel": "Impossible d'annuler ce lien de paiement."
+      },
+      "checklistEditor": {
+        "editingUnavailable": "Modification indisponible",
+        "newChecklist": "Nouvelle liste",
+        "createTitle": "Créer une liste de contrôle",
+        "createDescription": "Définissez les documents et photos que les clients doivent fournir.",
+        "labelName": "Nom de la liste",
+        "namePlaceholder": "ex. Exigences location de voiture",
+        "labelDescription": "Description (optionnel)",
+        "descriptionPlaceholder": "Quand utiliser cette liste",
+        "requirementsLabel": "Exigences",
+        "labelLabel": "Étiquette",
+        "labelType": "Type",
+        "labelCategory": "Catégorie",
+        "labelOther": "Autre étiquette",
+        "otherPlaceholder": "Étiquette d'affichage personnalisée",
+        "labelInstructions": "Description / Instructions",
+        "instructionsPlaceholder": "ex. Veuillez télécharger les deux faces",
+        "typeDocument": "Document (PDF/Image)",
+        "typePhoto": "Photo",
+        "typeText": "Saisie de texte",
+        "required": "Champ obligatoire",
+        "addRequirement": "Ajouter une exigence",
+        "cancelBtn": "Annuler",
+        "saving": "Enregistrement...",
+        "saveChecklist": "Enregistrer la liste",
+        "empty": "Aucune liste pour l'instant",
+        "emptyDescription": "Créez une liste pour standardiser les documents et photos collectés auprès des clients.",
+        "items": "éléments",
+        "moreItems": "+ {count} de plus",
+        "itemLabelPlaceholder": "ex. Permis de conduire",
+        "defaultItemLabel": "Carte d'identité",
+        "defaultItemDesc": "Recto et verso",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce modèle de liste de contrôle ?",
+        "updatedAt": "Mis à jour le {date}"
+      },
+      "contractTemplates": {
+        "title": "Modèles de contrat",
+        "description": "Gérez des accords réutilisables en un seul endroit, puis attachez-les aux transactions.",
+        "total": "{count} au total",
+        "unlimited": "Illimité sur le plan actuel",
+        "remaining": "{count} restants",
+        "newTemplate": "Nouveau modèle",
+        "pendingLabel": "Ouverture de l'éditeur",
+        "editingUnavailable": "Modification indisponible",
+        "templateLimitReached": "Limite de modèles atteinte",
+        "searchLabel": "Rechercher",
+        "searchPlaceholder": "Rechercher par nom ou note",
+        "filterLabel": "Filtrer",
+        "sortLabel": "Trier",
+        "applyBtn": "Appliquer",
+        "applying": "Application",
+        "resetBtn": "Réinitialiser",
+        "clearFilters": "Effacer les filtres",
+        "createFirst": "Créer le premier modèle",
+        "libraryTitle": "Bibliothèque de modèles",
+        "showingRange": "Affichage {start}-{end} sur {total}",
+        "noMatchFilter": "Aucun modèle ne correspond à la recherche ou au filtre actuel.",
+        "noTemplatesYet": "Aucun modèle créé.",
+        "updatingTemplates": "Mise à jour des modèles",
+        "noMatchTitle": "Aucun modèle correspondant",
+        "noMatchDescription": "Essayez un autre terme de recherche ou réinitialisez les filtres.",
+        "emptyTitle": "Aucun modèle",
+        "emptyDescription": "Créez votre premier accord réutilisable et gardez-le prêt pour les transactions futures.",
+        "thTemplate": "Modèle",
+        "thSummary": "Résumé",
+        "thUpdated": "Mis à jour",
+        "thActions": "Actions",
+        "defaultBadge": "Par défaut",
+        "noNote": "Aucune note interne.",
+        "createdOn": "Créé le {date}",
+        "editBtn": "Modifier",
+        "deleteBtn": "Supprimer",
+        "prevPage": "Préc.",
+        "nextPage": "Suiv.",
+        "showingPage": "Affichage {start}-{end} sur {total} modèles",
+        "deleteDialogTitle": "Supprimer le modèle",
+        "deleteDialogDesc": "Supprimer \"{name}\" ? Les instantanés de transaction existants restent inchangés.",
+        "deleteDialogDefault": "Supprimer ce modèle ?",
+        "cancelDelete": "Annuler",
+        "confirmDelete": "Supprimer",
+        "errorLoad": "Échec du chargement des modèles",
+        "errorLoadDesc": "Impossible de charger les modèles pour l'instant.",
+        "errorDelete": "Échec de la suppression",
+        "errorDeleteDesc": "Impossible de supprimer ce modèle pour l'instant.",
+        "successDelete": "Modèle supprimé",
+        "successDeleteDesc": "{name} a été supprimé.",
+        "networkError": "Erreur réseau",
+        "networkErrorDesc": "Impossible de supprimer ce modèle pour l'instant."
+      },
+      "depositQuickActions": {
+        "capture": "Capturer",
+        "release": "Libérer",
+        "captureTitle": "Capturer la caution",
+        "captureDesc": "Montant autorisé : {amount}. Capturez le montant complet ou saisissez un montant partiel.",
+        "fullAmount": "Montant total",
+        "partialAmount": "Montant partiel",
+        "setAmount": "Définir un montant",
+        "amountLabel": "Montant à capturer ({currency})",
+        "maximum": "Maximum : {amount}",
+        "remainingAlert": "Le montant restant sera libéré",
+        "remainingDesc": "La capture de {capture} libérera les {release} restants sur la carte du client. Ce montant libéré ne pourra plus être capturé ultérieurement.",
+        "closeBtn": "Fermer",
+        "releaseTitle": "Libérer la caution",
+        "releaseDesc": "Cela libère le blocage de {amount} sur la carte du client.",
+        "keepHold": "Maintenir le blocage",
+        "releaseConfirm": "Libérer la caution",
+        "amountRangeError": "Saisissez un montant entre {min} et {max}.",
+        "toastCaptured": "Caution capturée",
+        "toastCapturedDesc": "Le blocage a été converti en débit.",
+        "toastReleased": "Caution libérée",
+        "toastReleasedDesc": "Le blocage a été libéré sur la carte du client.",
+        "errorDeposit": "Impossible de traiter cette caution.",
+        "noAction": "Aucune action"
+      },
+      "transactionCreation": {
+        "stepOf": "Étape {current} sur {total}",
+        "percentComplete": "{percent}% complété",
+        "currentStep": "Étape actuelle",
+        "completed": "Terminé",
+        "stepN": "Étape {n}",
+        "steps": {
+          "info": {
+            "label": "Infos",
+            "title": "Bases",
+            "description": "Définir le titre interne et le contexte.",
+            "eyebrow": "Étape un",
+            "stepTitle": "Nommer clairement la transaction",
+            "stepDescription": "Utilisez un titre opérationnel court pour retrouver rapidement ce flux de travail."
+          },
+          "payment": {
+            "label": "Paiement",
+            "title": "Montants",
+            "description": "Choisir le paiement de service, la caution, ou les deux.",
+            "eyebrow": "Étape deux",
+            "stepTitle": "Choisir le flux financier",
+            "stepDescription": "Définissez un paiement de service, une caution, ou les deux. Au moins un montant est requis pour lancer."
+          },
+          "documents": {
+            "label": "Documents",
+            "title": "Exigences",
+            "description": "Ajouter des téléchargements, un contrat et une vérification KYC facultative.",
+            "eyebrow": "Étape trois",
+            "stepTitle": "Joindre les bonnes exigences",
+            "stepDescription": "Choisissez ce que le client doit télécharger, examiner ou vérifier avant que le flux de travail soit terminé."
+          },
+          "review": {
+            "label": "Vérification",
+            "title": "Lancement",
+            "description": "Vérifier le flux et décider de la génération de QR.",
+            "eyebrow": "Étape finale",
+            "stepTitle": "Vérifier et lancer",
+            "stepDescription": "Confirmez le parcours client, décidez si cette transaction nécessite un QR, puis créez le lien sécurisé."
+          }
+        },
+        "titleLabel": "Titre",
+        "titlePlaceholder": "ex. Location #104 — BMW X5, 3 jours",
+        "notesLabel": "Notes internes",
+        "notesPrivate": "(privé, non visible par le client)",
+        "notesPlaceholder": "Toute référence interne ou rappel…",
+        "depositTitle": "Caution de sécurité",
+        "depositBadge": "Prioritaire",
+        "depositDesc": "La carte est uniquement bloquée. Capturez ou libérez après la fin du travail.",
+        "depositHoldLabel": "Montant de blocage (EUR)",
+        "holdAmount": "Montant bloqué",
+        "stripeFeeEstimate": "Estimation des frais Stripe",
+        "platformMargin": "Marge Conntrazy",
+        "ifCaptured": "Si capturé vous recevez {amount}.",
+        "servicePaymentTitle": "Paiement de service",
+        "servicePaymentOptional": "Facultatif",
+        "servicePaymentDesc": "Débité immédiatement. Les frais Stripe sont déduits du montant collecté.",
+        "amountLabel": "Montant (EUR)",
+        "clientPays": "Le client paie {amount}. Paiement estimé après frais : {payout}.",
+        "stripeRequired": "Les fonctionnalités de paiement nécessitent un compte Stripe connecté.",
+        "connectStripe": "Connecter Stripe",
+        "timingTitle": "Calendrier de paiement du service",
+        "timingDesc": "Choisissez si le client paie le montant du service pendant ce flux ou seulement après votre demande ultérieure.",
+        "kindPayment": "Paiement de service uniquement",
+        "kindDeposit": "Caution uniquement",
+        "kindHybrid": "Paiement + Caution",
+        "requiredUploads": "Téléchargements requis",
+        "contractTemplate": "Modèle de contrat",
+        "noUploadsNeeded": "Aucun téléchargement requis",
+        "noContractNeeded": "Aucun contrat requis",
+        "untitledChecklist": "Liste sans titre",
+        "untitledContract": "Contrat sans titre",
+        "noContract": "Aucun contrat",
+        "noUploads": "Aucun téléchargement",
+        "selectedContract": "Contrat sélectionné",
+        "selectedChecklist": "Liste sélectionnée",
+        "perTransactionTitle": "Exigences par transaction",
+        "perTransactionDesc": "Commencez par un modèle de liste, puis ajustez les téléchargements requis ou les champs de texte avant de lancer le lien.",
+        "addRequirement": "Ajouter une exigence",
+        "noRequirements": "Aucune exigence supplémentaire pour l'instant. Ajoutez des téléchargements ou des invites de texte uniquement si cette transaction en a besoin.",
+        "reqLabel": "Libellé",
+        "reqType": "Type",
+        "reqCategory": "Catégorie",
+        "reqOtherLabel": "Autre libellé",
+        "reqCustomPlaceholder": "Libellé de catégorie personnalisée",
+        "reqInstructions": "Instructions",
+        "reqTextPlaceholder": "Expliquez ce que le client doit saisir.",
+        "reqUploadPlaceholder": "Ajoutez des consignes de téléchargement facultatives.",
+        "reqRequired": "Requis",
+        "requireCompanyTitle": "Exiger le nom de l'entreprise",
+        "requireCompanyDesc": "Rendre le champ entreprise du client obligatoire sur cette transaction lorsque l'accord ou la facturation le nécessite.",
+        "requireIdTitle": "Exiger un document d'identité",
+        "requireIdDesc": "Le client complète Stripe Identity avec une pièce d'identité officielle avec photo et le résultat est automatiquement joint à la transaction.",
+        "kycPlanRequired": "Activez un plan payant pour activer la vérification Stripe Identity.",
+        "kycQuotaUsed": "Votre quota KYC inclus est entièrement utilisé pour cette période de facturation.",
+        "kycRemainingOne": "1 vérification restante cette période.",
+        "kycRemainingMany": "{count} vérifications restantes cette période.",
+        "kycNote": "Stripe Identity s'ouvre dans le flux client avant l'étape requise suivante.",
+        "summaryTitle": "Résumé de la transaction",
+        "summaryTitleRow": "Titre",
+        "summaryType": "Type",
+        "summaryDeposit": "Blocage de caution",
+        "summaryService": "Paiement de service",
+        "summaryTiming": "Calendrier de paiement",
+        "summaryContract": "Contrat",
+        "summaryRequirements": "Exigences",
+        "summaryRequirementsOne": "1 élément",
+        "summaryRequirementsMany": "{count} éléments",
+        "summaryIdVerification": "Vérification d'identité",
+        "summaryCompanyName": "Nom de l'entreprise",
+        "required": "Requis",
+        "notRequired": "Non requis",
+        "optional": "Facultatif",
+        "clientJourney": "Parcours client",
+        "clientStepProfile": "Profil",
+        "clientStepDocuments": "Documents",
+        "clientStepKyc": "Vérification d'identité",
+        "clientStepContract": "Révision et signature",
+        "clientStepPayment": "Blocage de caution",
+        "clientStepServicePayment": "Paiement de service",
+        "clientStepServicePaymentOnly": "Paiement",
+        "clientStepComplete": "Terminé",
+        "deferredPaymentNote": "Le montant du service n'est pas collecté lors du flux client initial. Vous le demanderez plus tard depuis le tableau de bord vendeur après la livraison du service.",
+        "generateQrTitle": "Générer un QR maintenant",
+        "generateQrDesc": "Facultatif. Le lien sécurisé fonctionne toujours sans QR.",
+        "qrRemainingOne": "1 code QR restant cette période de facturation.",
+        "qrRemainingMany": "{count} codes QR restants cette période de facturation.",
+        "qrUnlimited": "Génération de QR illimitée sur votre plan actuel.",
+        "qrDisabledQuota": "La génération de QR est indisponible jusqu'à ce que vous ayez un quota restant.",
+        "qrDisabledReadiness": "Complétez d'abord la préparation de l'espace de travail, puis générez un QR si nécessaire.",
+        "successTitle": "Transaction créée",
+        "successDescWithQr": "Partagez ce lien sécurisé ou le code QR stocké avec votre client.",
+        "successDescNoQr": "Partagez ce lien sécurisé maintenant. Vous pouvez générer un QR plus tard depuis le gestionnaire de liens récents si nécessaire.",
+        "copy": "Copier",
+        "copied": "Copié !",
+        "qrReadyLabel": "QR stocké prêt à scanner",
+        "qrNotGenerated": "QR non généré",
+        "qrNotGeneratedDesc": "Cette transaction est active avec le lien sécurisé uniquement. Générez un QR plus tard depuis le gestionnaire de liens récents lorsque le quota est disponible.",
+        "createAnother": "Créer une autre transaction",
+        "back": "Retour",
+        "next": "Suivant",
+        "creating": "Création…",
+        "createTransaction": "Créer la transaction",
+        "errorTitle": "Veuillez saisir un titre de transaction pour continuer.",
+        "errorAmount": "Définissez au moins un montant — un blocage de caution, un paiement de service, ou les deux.",
+        "errorMinService": "Le paiement de service minimum est de €0,50",
+        "errorMinDeposit": "Le blocage de caution minimum est de €0,50",
+        "errorRequirements": "Complétez chaque libellé d'exigence et ajoutez un libellé de catégorie personnalisée lorsque vous utilisez Autre.",
+        "errorNoStripe": "Connectez Stripe avant de créer des transactions clients en direct.",
+        "errorAmountRequired": "Saisissez un montant de paiement de service, un montant de blocage de caution, ou les deux avant de générer un lien.",
+        "errorCreate": "Échec de la création de la transaction",
+        "errorUnexpected": "Une erreur inattendue s'est produite.",
+        "reqLabelPlaceholder": "ex. Permis de conduire"
+      },
+      "servicePaymentRequest": {
+        "title": "Paiement de service différé",
+        "description": "Utilisez le même lien sécurisé plus tard lorsque le paiement doit être collecté après la livraison.",
+        "amountLabel": "Montant",
+        "clientOnboardingLabel": "Onboarding client",
+        "completedOn": "Complété le {date}.",
+        "onboardingPending": "Le client doit d'abord terminer le profil, les documents, l'accord et toute étape de dépôt.",
+        "requestStatusLabel": "Statut de la demande",
+        "alreadyCollected": "Paiement de service déjà collecté.",
+        "requestedOn": "Demandé le {date}.",
+        "notRequestedYet": "Pas encore demandé.",
+        "requestBtn": "Demander le paiement de service",
+        "requestError": "Impossible de demander le paiement de service pour l'instant."
+      },
+      "contractTemplateEditor": {
+        "backToTemplates": "Retour aux modèles",
+        "back": "Retour",
+        "editTitle": "Modifier le modèle",
+        "createTitle": "Nouveau modèle",
+        "subtitle": "Rédigez l'accord que votre client examinera et signera.",
+        "previewToggleBack": "Retour à l'éditeur",
+        "previewToggle": "Aperçu",
+        "deleteBtn": "Supprimer",
+        "savingBtn": "Enregistrement...",
+        "saveBtn": "Enregistrer",
+        "createBtn": "Créer",
+        "nameLabel": "Nom",
+        "namePlaceholder": "Contrat de prestation standard",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Note interne optionnelle",
+        "updatedAt": "Mis à jour le {date}",
+        "unsavedDraft": "Brouillon non enregistré",
+        "editorPlaceholder": "Rédigez l'accord que votre client examinera et signera.",
+        "localDraftTitle": "Brouillon local trouvé",
+        "localDraftDesc": "Un brouillon plus récent de ce navigateur est disponible pour ce modèle.",
+        "discard": "Ignorer",
+        "resumeDraft": "Reprendre le brouillon",
+        "draftRestoredTitle": "Brouillon local restauré",
+        "draftRestoredDesc": "Le brouillon plus récent enregistré dans ce navigateur a été récupéré.",
+        "editingUnavailableTitle": "Modification impossible",
+        "templateLimitTitle": "Limite de modèles atteinte",
+        "planLimitReached": "La limite de votre plan actuel a été atteinte.",
+        "saveFailedTitle": "Échec de l'enregistrement",
+        "untitled": "Modèle sans titre",
+        "previewSubtitle": "Consultez la mise en page A4 avec des valeurs exemples appliquées.",
+        "contractCardTitle": "Contrat",
+        "insertFieldsTitle": "Insérer des champs",
+        "insertFieldsDesc": "Ajoutez des valeurs client et transaction à la position du curseur.",
+        "changesLocal": "Les modifications sont sauvegardées localement dans ce navigateur.",
+        "changesSynced": "Toutes les modifications sont synchronisées avec la dernière sauvegarde manuelle.",
+        "contentTooLong": "Le contrat ne peut pas dépasser {limit} caractères.",
+        "saveErrorUpdate": "Impossible de mettre à jour le modèle pour l'instant.",
+        "saveErrorCreate": "Impossible de créer le modèle pour l'instant.",
+        "savedTitle": "Modèle enregistré",
+        "savedDesc": "Vos modifications ont été enregistrées.",
+        "createdTitle": "Modèle créé",
+        "createdDesc": "{name} est prêt à être modifié et utilisé dans des transactions.",
+        "defaultTemplateName": "Votre modèle",
+        "deleteConfirm": "Supprimer ce modèle ? Les transactions signées existantes resteront inchangées.",
+        "deleteError": "Impossible de supprimer le modèle pour l'instant."
+      },
+      "subscribePage": {
+        "badge": "Facturation vendeur",
+        "heading": "Activez votre espace de travail avant de lancer vos opérations",
+        "description": "Votre profil professionnel reste modifiable, mais les transactions, paiements, KYC, contrats et liens clients sont verrouillés jusqu'à l'activation d'un abonnement.",
+        "canceledNote": "Le paiement Stripe a été annulé. Sélectionnez un plan ci-dessous quand vous êtes prêt.",
+        "billingAccessTitle": "Accès à la facturation",
+        "billingAccessDesc": "Les plans sont facturés via le compte plateforme par Stripe Checkout.",
+        "profileStaysOpenTitle": "Profil toujours accessible",
+        "profileStaysOpenDesc": "Vous pouvez toujours gérer votre profil professionnel pendant la configuration de l'abonnement.",
+        "pricingSectionLabel": "Tarifs",
+        "pricingSectionHeading": "Choisissez le plan adapté à votre volume",
+        "pricingSectionDesc": "Les plans Starter, Pro et Business utilisent le paiement sécurisé Stripe. Enterprise est sur devis uniquement."
+      }
+    },
+    "admin": {
+      "workspace": {
+        "title": "Espace administrateur",
+        "subtitle": "Supervision de la plateforme",
+        "actorLabel": "Compte administrateur"
+      },
+      "nav": {
+        "overview": "Vue d'ensemble",
+        "users": "Utilisateurs",
+        "vendors": "Vendeurs",
+        "roles": "Rôles",
+        "sessions": "Sessions",
+        "logs": "Journaux",
+        "invites": "Invitations",
+        "disputes": "Litiges"
+      },
+      "vendors": {
+        "title": "Comptes vendeurs",
+        "description": "Gérez le statut d'approbation de tous les comptes vendeurs. Utilisez les actions intégrées pour approuver, mettre en attente, rejeter ou suspendre.",
+        "allUsers": "Tous les utilisateurs",
+        "searchPlaceholder": "Rechercher par entreprise, propriétaire, email, téléphone ou pays",
+        "filters": {
+          "payouts": "Virements"
+        },
+        "columns": {
+          "business": "Entreprise",
+          "owner": "Propriétaire",
+          "country": "Pays",
+          "profile": "Profil",
+          "transactions": "Transactions",
+          "reviewStatus": "Statut de révision",
+          "joined": "Inscription",
+          "actions": "Actions"
+        },
+        "txSummary": "{txCount} tx · {clientCount} clients",
+        "empty": "Aucun compte vendeur n'a encore été enregistré."
+      },
+      "users": {
+        "title": "Tous les utilisateurs",
+        "description": "{count} compte{plural} enregistré{plural}. Les comptes vendeurs peuvent être approuvés directement depuis ce tableau.",
+        "searchPlaceholder": "Rechercher par nom, email ou entreprise",
+        "columns": {
+          "nameEmail": "Nom / Email",
+          "role": "Rôle",
+          "business": "Entreprise",
+          "reviewStatus": "Statut de révision",
+          "joined": "Inscription",
+          "quickActions": "Actions rapides"
+        },
+        "view": "Voir →",
+        "empty": "Aucun compte utilisateur n'a encore été créé."
+      },
+      "userDetail": {
+        "joinedLabel": "Inscrit le {date}",
+        "emailVerifiedLabel": "✓ Email vérifié le {date}",
+        "emailNotVerified": "⚠ Email non vérifié",
+        "kpiTransactions": "Transactions",
+        "kpiClients": "Clients",
+        "kpiProfile": "Profil",
+        "accountDetails": {
+          "title": "Détails du compte",
+          "description": "Identifiants de connexion et statut de vérification.",
+          "fullName": "Nom complet",
+          "email": "Email",
+          "company": "Entreprise",
+          "accountStatus": "Statut du compte",
+          "emailVerified": "Email vérifié",
+          "notVerified": "Non vérifié",
+          "joined": "Inscription"
+        },
+        "roleManagement": {
+          "title": "Gestion des rôles",
+          "description": "Modifiez le niveau d'accès. Le rôle Super Admin ne peut être accordé que par un Super Admin."
+        },
+        "businessProfile": {
+          "title": "Profil entreprise",
+          "description": "Coordonnées de l'entreprise et contrôles de révision vendeur.",
+          "businessName": "Nom de l'entreprise",
+          "businessEmail": "Email professionnel",
+          "supportEmail": "Email de support",
+          "phone": "Téléphone",
+          "address": "Adresse",
+          "country": "Pays",
+          "payout": "Paiements (Stripe)",
+          "profileComplete": "Profil complété",
+          "reviewStatus": "Statut de révision"
+        },
+        "dangerZone": {
+          "title": "Zone de danger",
+          "description": "Supprime définitivement ce compte et toutes les données associées, y compris les profils vendeurs, les transactions et les clients. Les transactions actives doivent être résolues au préalable."
+        }
+      },
+      "invites": {
+        "title": "Invitations",
+        "description": "Suivez les invitations en attente pour les vendeurs et les membres de l'équipe interne.",
+        "searchPlaceholder": "Rechercher par email d'invitation",
+        "columns": {
+          "email": "Email",
+          "role": "Rôle",
+          "status": "Statut",
+          "expires": "Expiration"
+        },
+        "empty": "Aucune invitation n'a encore été envoyée."
+      },
+      "roles": {
+        "title": "Niveaux d'accès",
+        "description": "La plateforme utilise un ensemble fixe de niveaux d'accès pour séparer les révisions et les opérations.",
+        "emptyTitle": "Aucun niveau d'accès configuré",
+        "emptyDescription": "Les niveaux d'accès apparaîtront ici une fois que les règles de la plateforme seront disponibles."
+      },
+      "logs": {
+        "title": "Journaux d'activité",
+        "description": "Activité récente de la plateforme et des opérateurs.",
+        "searchPlaceholder": "Rechercher par acteur, action, entité, fournisseur ou événement",
+        "filters": {
+          "source": "Source"
+        },
+        "columns": {
+          "actor": "Acteur",
+          "action": "Action",
+          "entity": "Entité",
+          "date": "Date"
+        },
+        "empty": "Aucune activité n'a encore été enregistrée."
+      },
+      "sessions": {
+        "title": "Sessions",
+        "description": "Examinez l'activité de connexion actuelle de l'équipe plateforme.",
+        "searchPlaceholder": "Rechercher par nom d'utilisateur ou email",
+        "columns": {
+          "user": "Utilisateur",
+          "role": "Rôle",
+          "state": "État",
+          "lastSeen": "Dernière connexion"
+        },
+        "empty": "L'activité des sessions apparaîtra ici au fur et à mesure des connexions."
+      },
+      "disputes": {
+        "listTitle": "Dossiers de litige",
+        "listDescription": "Examinez les litiges vendeurs. Ouvrez chaque dossier pour capturer ou libérer la provision.",
+        "searchPlaceholder": "Rechercher par vendeur, client ou référence de transaction",
+        "columns": {
+          "case": "Dossier",
+          "vendor": "Vendeur",
+          "client": "Client",
+          "deposit": "Caution",
+          "deadline": "Échéance",
+          "status": "Statut",
+          "opened": "Ouvert le"
+        },
+        "empty": "Aucun litige n'a encore été ouvert.",
+        "backToDisputes": "← Retour aux litiges",
+        "caseTitle": "Litige",
+        "detailVendor": "VENDEUR",
+        "detailDeposit": "MONTANT DE LA CAUTION",
+        "detailStatus": "STATUT",
+        "openedOn": "OUVERT LE",
+        "responseDeadline": "DATE LIMITE DE RÉPONSE",
+        "attachments": "PIÈCES JOINTES"
+      },
+      "userActions": {
+        "reviewActions": {
+          "approve": "Approuver",
+          "approved": "Approuvé",
+          "markPending": "Marquer en attente",
+          "pendingLabel": "En attente",
+          "reject": "Rejeter",
+          "rejected": "Rejeté",
+          "suspend": "Suspendre",
+          "suspended": "Suspendu",
+          "current": "actuel"
+        },
+        "errors": {
+          "updateReview": "Impossible de mettre à jour le statut de révision.",
+          "updateReviewNetwork": "Impossible de mettre à jour le statut de révision pour le moment.",
+          "updateRole": "Impossible de mettre à jour le rôle.",
+          "updateRoleNetwork": "Impossible de mettre à jour le rôle pour le moment.",
+          "deleteUser": "Impossible de supprimer l'utilisateur.",
+          "deleteUserNetwork": "Impossible de supprimer le compte pour le moment.",
+          "updateFailed": "Échec de la mise à jour.",
+          "requestFailed": "Échec de la requête."
+        },
+        "roleOptions": {
+          "vendor": {
+            "label": "Vendeur",
+            "description": "Accès à l'espace de travail pour gérer les flux clients."
+          },
+          "admin": {
+            "label": "Administrateur",
+            "description": "Accès équipe interne pour la révision des vendeurs et la gestion de la plateforme."
+          },
+          "superAdmin": {
+            "label": "Super Administrateur",
+            "description": "Contrôle complet de la plateforme. À attribuer avec précaution."
+          }
+        },
+        "currentRole": "Rôle actuel : {role}",
+        "roleUpdated": "Rôle mis à jour : {role}.",
+        "deleteAccount": {
+          "button": "Supprimer le compte",
+          "warningPermanent": "Cette action est permanente et irréversible.",
+          "warningConfirm": "Tapez {email} ci-dessous pour confirmer.",
+          "confirmButton": "Supprimer définitivement",
+          "cancel": "Annuler"
+        }
+      },
+      "disputeActions": {
+        "buttons": {
+          "markResolved": "Marquer comme résolu",
+          "markUnderReview": "Marquer en cours d'examen",
+          "closeCase": "Clore le dossier (libérer la caution)"
+        },
+        "resolved": {
+          "vendorFavour": "Litige clos — résolu en faveur du vendeur",
+          "clientFavour": "Litige clos — résolu en faveur du client"
+        },
+        "modal": {
+          "title": "Résoudre le litige",
+          "description": "Choisissez le résultat et ajoutez éventuellement une note de résolution visible par les deux parties.",
+          "vendorWins": "Réclamation du vendeur retenue",
+          "vendorWinsDetail": "Rend le contrôle de la caution au vendeur",
+          "clientWins": "Réclamation du client retenue",
+          "clientWinsDetail": "Libère la caution au client maintenant",
+          "resolutionLabel": "Note de résolution (optionnel)",
+          "resolutionPlaceholder": "Résumez la décision pour les dossiers du vendeur et du client...",
+          "cancel": "Annuler",
+          "processing": "Traitement en cours...",
+          "returnToVendor": "Rendre le contrôle au vendeur",
+          "releaseToClient": "Libérer la caution au client",
+          "defaultResolution": "Dossier clos — caution libérée au client."
+        },
+        "toast": {
+          "underReview": "Marqué en cours d'examen",
+          "underReviewDesc": "Le vendeur a été notifié.",
+          "failed": "Échec",
+          "unableToUpdate": "Impossible de mettre à jour le statut.",
+          "networkError": "Erreur réseau",
+          "unexpectedError": "Une erreur inattendue s'est produite.",
+          "vendorWinsTitle": "Réclamation du vendeur retenue — contrôle de caution restitué",
+          "clientWinsTitle": "Réclamation du client retenue — caution libérée",
+          "bothNotified": "Les deux parties ont été notifiées par email."
+        },
+        "errors": {
+          "resolutionFailed": "Échec de la résolution.",
+          "unexpected": "Une erreur inattendue s'est produite."
+        }
+      },
+      "overview": {
+        "vendorQueueTitle": "File de révision vendeur",
+        "vendorQueueDesc": "Vérifiez le statut d'approbation des entreprises, la disponibilité des paiements et les comptes vendeurs récents.",
+        "allUsers": "Tous les utilisateurs",
+        "thBusiness": "Entreprise",
+        "thEmail": "E-mail",
+        "thReview": "Révision",
+        "thStripe": "Stripe",
+        "emptyQueue": "Aucun compte vendeur en attente de révision.",
+        "adminScopeTitle": "Périmètre admin",
+        "adminScopeDesc": "Détails de l'opérateur actuel et niveaux d'accès principaux en cours d'utilisation.",
+        "activeOperator": "Opérateur actif"
+      }
+    }
+  },
+  "clientFlow": {
+    "steps": {
+      "profile": "Profil",
+      "documents": "Documents",
+      "kyc": "Identité",
+      "contract": "Contrat",
+      "sign": "Signature",
+      "payment": "Paiement",
+      "complete": "Terminé"
+    },
+    "cancel": "Annuler",
+    "cancelled": {
+      "title": "Ce lien n'est plus disponible",
+      "message": "La demande sécurisée de {vendorName} a été annulée et ne peut plus être utilisée.",
+      "reason": "Motif",
+      "messageNoVendor": "Cette demande sécurisée a été annulée et ne peut plus être utilisée."
+    },
+    "complete": {
+      "title": "Tout est prêt !",
+      "message": "Votre transaction est terminée."
+    },
+    "profile": {
+      "step": "Étape 1 - Coordonnées",
+      "title": "Dites-nous qui complète cette demande",
+      "description": "Nous utilisons ces informations pour préparer l'accord, le reçu de paiement et les mises à jour de transaction sécurisées.",
+      "phoneInvalid": "Veuillez saisir un numéro de téléphone valide",
+      "contactTitle": "Informations de contact",
+      "contactDescription": "Saisissez les informations qui apparaîtront sur cette transaction.",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "emailAddress": "Adresse e-mail",
+      "phone": "Numéro de téléphone",
+      "country": "Pays",
+      "address": "Adresse",
+      "company": "Entreprise",
+      "companyOptional": "(Facultatif)",
+      "firstNamePlaceholder": "Entrez votre prénom",
+      "lastNamePlaceholder": "Entrez votre nom",
+      "emailPlaceholder": "Entrez votre adresse e-mail",
+      "addressPlaceholder": "Entrez votre adresse",
+      "companyPlaceholder": "Entrez le nom de votre entreprise",
+      "companyOptionalPlaceholder": "Entrez le nom de votre entreprise (facultatif)",
+      "companyRequired": "Cette transaction requiert le nom de l'entreprise pour l'accord et les dossiers.",
+      "savedSecurely": "Enregistré en toute sécurité",
+      "usedForReceipts": "Utilisé pour les reçus",
+      "editableBeforeSigning": "Modifiable avant signature",
+      "saving": "Enregistrement...",
+      "continue": "Continuer",
+      "unableToSave": "Impossible d'enregistrer les informations pour l'instant"
+    },
+    "documents": {
+      "title": "Téléversements requis",
+      "description": "Veuillez téléverser les documents ou photos demandés ci-dessous."
+    },
+    "contract": {
+      "eyebrow": "Vérifier l'accord",
+      "title": "Lisez attentivement l'accord",
+      "description": "Relisez toutes les conditions avant de signer. Confirmez en bas de page une fois l'accord lu et compris."
+    },
+    "sign": {
+      "step": "Étape finale — Signature",
+      "title": "Signer cet accord",
+      "description": "Choisissez comment vous souhaitez signer. Votre signature confirme votre acceptation de tous les termes de cet accord.",
+      "agreementSummary": "Résumé de l'accord",
+      "reference": "Référence :"
+    },
+    "kycPage": {
+      "title": "Vérification d'identité",
+      "description": "Pour votre sécurité, nous devons vérifier votre identité avant de continuer."
+    },
+    "payment": {
+      "title": "Paiement",
+      "description": "Finalisez le paiement pour terminer cette transaction."
+    },
+    "finish": {
+      "allSet": "Tout est prêt !",
+      "agreementCompleted": "Accord finalisé",
+      "allSetDescription": "Votre transaction avec {businessName} a été complétée avec succès.",
+      "agreementCompletedDescription": "Votre accord et la vérification requise avec {businessName} sont terminés. Le vendeur demandera le paiement du service plus tard si nécessaire.",
+      "receiptInfo": "Un reçu et une copie de votre accord signé vous seront envoyés par email sous peu.",
+      "keepLink": "Conservez ce lien sécurisé. Si le vendeur déclenche le paiement plus tard, ce même flux rouvrira l'étape de paiement pour vous.",
+      "downloadSigned": "Télécharger l'accord signé",
+      "returnHome": "Retour à l'accueil",
+      "processingTitle": "Confirmation finale en cours",
+      "processingDescription": "Nous confirmons la dernière étape Stripe avant de marquer cette transaction comme terminée."
+    },
+    "shell": {
+      "vendor": "Vendeur",
+      "protectedSession": "Session sécurisée",
+      "reference": "Référence",
+      "secureOnboarding": "Intégration sécurisée",
+      "transaction": "Transaction",
+      "completeRequest": "Complétez votre demande avec {vendorName}",
+      "progressSaved": "Suivez chaque étape dans l'ordre. Votre progression est sauvegardée au fil du flux sécurisé.",
+      "currentStep": "Étape actuelle",
+      "stepOf": "{current} sur {total}"
+    },
+    "cancelLink": {
+      "trigger": "Annuler la demande",
+      "title": "Annuler cette demande sécurisée ?",
+      "description": "Cela fermera immédiatement le lien. Vous ne pourrez pas continuer le flux après l'annulation.",
+      "keepRequest": "Conserver la demande",
+      "confirm": "Annuler le lien",
+      "error": "Impossible d'annuler cette demande pour l'instant."
+    },
+    "kycForm": {
+      "title": "Vérification d'identité",
+      "subtitle": "Téléchargez une pièce d'identité officielle pour examen avant de continuer.",
+      "rejectionNotice": "Votre document précédent n'a pas été accepté. Veuillez en télécharger un nouveau.",
+      "acceptedDocs": "Documents acceptés",
+      "passport": "Passeport",
+      "driversLicense": "Permis de conduire (recto-verso)",
+      "nationalId": "Carte nationale d'identité",
+      "acceptedFormats": "Formats acceptés : JPG, PNG, PDF — max 10 Mo",
+      "readyToSubmit": "Prêt à soumettre",
+      "remove": "Supprimer",
+      "uploading": "Téléchargement…",
+      "clickToUpload": "Cliquez pour télécharger votre pièce d'identité",
+      "dragDrop": "ou glissez-déposez un fichier ici",
+      "formats": "JPG · PNG · PDF",
+      "secureNote": "Votre document sera examiné de manière sécurisée. Vous pouvez continuer les étapes suivantes pendant l'examen.",
+      "submitBtn": "Soumettre pour examen",
+      "submitting": "Envoi en cours…",
+      "uploadServiceError": "Service de téléchargement indisponible. Veuillez réessayer.",
+      "uploadFailed": "Téléchargement échoué. Veuillez réessayer.",
+      "uploadConnectionError": "Téléchargement échoué. Vérifiez votre connexion et réessayez.",
+      "submissionFailed": "Envoi échoué. Veuillez réessayer.",
+      "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    },
+    "signForm": {
+      "alreadyRecorded": "Signature déjà enregistrée",
+      "alreadyRecordedDesc": "Votre accord signé a été généré. Continuez à l'étape suivante.",
+      "savedSig": "Signature sauvegardée",
+      "signerName": "Nom",
+      "signerEmail": "E-mail",
+      "signerMethod": "Méthode",
+      "continueBtn": "Continuer",
+      "savedSigFound": "Signature sauvegardée trouvée",
+      "savedSigFoundDesc": "Votre image de signature a été sauvegardée, mais l'accord final signé doit encore être généré. Appuyez à nouveau sur Signer et continuer pour terminer cette étape.",
+      "drawTab": "Dessiner",
+      "typeTab": "Saisir",
+      "uploadTab": "Télécharger",
+      "typeFullName": "Saisissez votre nom légal complet",
+      "typePlaceholder": "ex. Marie Dupont",
+      "chooseStyle": "Choisissez un style de signature",
+      "generatingPreview": "Génération de l'aperçu…",
+      "typeNameFirst": "Saisissez votre nom ci-dessus pour prévisualiser",
+      "clickToUploadSig": "Cliquez pour télécharger votre signature",
+      "formatsSig": "PNG, JPG ou WebP — max 5 Mo",
+      "sigUploaded": "Signature téléchargée",
+      "removeSig": "Supprimer",
+      "wrongFormat": "Veuillez télécharger une image (PNG, JPG ou WebP).",
+      "tooLarge": "L'image doit faire moins de 5 Mo.",
+      "processError": "Impossible de traiter cette image. Essayez un autre fichier.",
+      "sigReady": "Signature prête — appuyez sur Signer pour continuer",
+      "sigRequired": "Signature requise pour continuer",
+      "ready": "Prêt",
+      "legalNote": "En appuyant sur Signer et continuer, vous confirmez votre intention de signer électroniquement. Votre signature, nom, e-mail, horodatage et adresse IP seront enregistrés.",
+      "signAndContinue": "Signer et continuer",
+      "recording": "Enregistrement de la signature…",
+      "errorRecording": "Impossible d'enregistrer votre signature pour l'instant."
+    },
+    "uploads": {
+      "noUploadsRequired": "Aucun téléchargement requis.",
+      "continueBtn": "Continuer",
+      "textResponse": "Réponse textuelle",
+      "photoUpload": "Téléchargement de photo",
+      "documentUpload": "Téléchargement de document",
+      "clickToUpload": "Cliquez pour télécharger",
+      "imagesOnly": "Images uniquement",
+      "pdfOrImage": "PDF ou Image",
+      "uploadSigningError": "Signature de téléchargement indisponible. Veuillez réessayer.",
+      "uploadFailed": "Téléchargement échoué. Veuillez réessayer.",
+      "uploadError": "Impossible d'enregistrer les documents pour l'instant."
+    },
+    "contractReview": {
+      "reviewedLabel": "J'ai pris connaissance de cet accord",
+      "reviewedDesc": "Continuez à l'étape suivante quand vous êtes prêt à signer.",
+      "continueToSign": "Continuer vers la signature",
+      "errorContinue": "Impossible de continuer pour l'instant."
+    },
+    "stripeIdentity": {
+      "title": "Vérification d'identité",
+      "subtitle": "Propulsé par Stripe Identity — sécurisé et automatisé.",
+      "failedNotice": "Votre vérification précédente n'a pas été complétée. Veuillez réessayer.",
+      "whatToExpect": "À quoi s'attendre",
+      "step1": "Vous serez redirigé vers une page Stripe sécurisée",
+      "step2": "Prenez une photo de votre pièce d'identité officielle",
+      "step3": "Un selfie rapide pour la vérification de présence",
+      "step4": "Les résultats sont retournés automatiquement",
+      "secureNote": "Vos données sont traitées de manière sécurisée par Stripe et partagées uniquement avec la partie demanderesse.",
+      "startBtn": "Vérifier avec Stripe",
+      "starting": "Démarrage…",
+      "startError": "Impossible de démarrer la vérification. Veuillez réessayer.",
+      "unexpectedError": "Une erreur inattendue s'est produite. Veuillez réessayer."
+    },
+    "processingCard": {
+      "refreshBtn": "Actualiser le statut"
+    },
+    "paymentAction": {
+      "pendingConfirmation": "Confirmation de votre étape précédente — cette page s'actualisera automatiquement.",
+      "depositHold": "Blocage de caution",
+      "servicePaymentLabel": "Paiement du service",
+      "securityDeposit": "Caution",
+      "cardHoldNotCharged": "Blocage carte — non débité",
+      "chargedImmediately": "Débité immédiatement",
+      "holdNote": "Votre carte sera bloquée pour {amount} — ce n'est pas un débit. Le blocage sera libéré ou converti en débit par le vendeur après la transaction.",
+      "chargeNote": "{amount} sera débité de votre carte maintenant et transféré au vendeur.",
+      "depositSummary": "Blocage de caution (non débité)",
+      "serviceSummary": "Paiement du service (débité)",
+      "amountToAuthorize": "Montant à autoriser maintenant",
+      "amountToPay": "Montant à payer maintenant",
+      "stripeNote": "Les paiements sont traités de manière sécurisée via Stripe. Vos coordonnées de carte ne sont jamais stockées.",
+      "authorizeDeposit": "Autoriser le blocage de caution",
+      "payService": "Payer le montant du service",
+      "redirecting": "Redirection vers Stripe…",
+      "checkoutError": "Impossible de démarrer le paiement pour l'instant."
+    },
+    "embeddedPayment": {
+      "preparingPayment": "Préparation du paiement sécurisé…",
+      "confirmingPayment": "Confirmation de votre paiement…",
+      "takingMoment": "Cela ne prendra qu'un instant.",
+      "depositAuthorized": "Caution autorisée",
+      "paymentConfirmed": "Paiement confirmé",
+      "loadingServicePayment": "Chargement du paiement du service…",
+      "nextStep": "Redirection vers l'étape suivante…",
+      "securityDepositHold": "Blocage de caution",
+      "cardHeldNotCharged": "Carte bloquée — non débitée jusqu'à l'action du vendeur",
+      "chargedNow": "Débité sur votre carte maintenant",
+      "cardDetails": "Coordonnées de carte",
+      "stripeNote": "Les paiements sont traités de manière sécurisée par Stripe. Les coordonnées de carte ne sont jamais stockées sur nos serveurs.",
+      "processing": "Traitement…",
+      "depositHoldLabel": "Blocage de caution",
+      "servicePaymentLabel": "Paiement du service",
+      "loadError": "Impossible de charger le paiement",
+      "tryAgain": "Réessayer",
+      "paymentCouldNotLoad": "Le paiement n'a pas pu être chargé",
+      "initErrorRefresh": "Impossible d'initialiser le paiement. Veuillez actualiser.",
+      "confirmFailed": "Échec de la confirmation du paiement. Contactez le support.",
+      "confirmError": "Impossible de confirmer le paiement. Contactez le support.",
+      "securedByStripe": "Paiements sécurisés par Stripe",
+      "authorizeHold": "Autoriser le hold de {amount}",
+      "payNow": "Payer {amount} maintenant",
+      "stepOf": "Étape {step} sur {total}"
+    }
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "Opérations contractuelles sécurisées",
+      "titleBefore": "Gérez contrats, KYC, signatures, cautions et paiements dans un",
+      "titleEmphasis": "parcours guidé",
+      "description": "Contrazy aide les vendeurs à transformer des étapes fragmentées d'onboarding et de paiement en un parcours client sécurisé avec une visibilité claire pour les équipes opérationnelles.",
+      "cta": "Démarrer l'essai gratuit",
+      "stats": [
+        {
+          "value": "98%",
+          "label": "Contrôles d'identité"
+        },
+        {
+          "value": "23",
+          "label": "Flux actifs"
+        },
+        {
+          "value": "14 min",
+          "label": "Temps moyen"
+        },
+        {
+          "value": "8,4 k€",
+          "label": "Couverture des cautions"
+        }
+      ]
+    },
+    "trustBar": {
+      "signals": [
+        "Configuration entreprise, accords et paiements au même endroit",
+        "Liens clients sécurisés avec progression étape par étape",
+        "Espaces séparés pour vendeurs et équipes de révision"
+      ]
+    },
+    "workflow": {
+      "eyebrow": "Fonctionnement",
+      "titleBefore": "Un flux sécurisé de la",
+      "titleEmphasis": "configuration",
+      "titleAfter": " au virement",
+      "description": "Contrazy garde chaque étape alignée afin que le client, le vendeur et le back-office travaillent à partir du même dossier de transaction.",
+      "steps": [
+        {
+          "n": "01",
+          "emoji": "🏢",
+          "title": "Configuration vendeur",
+          "desc": "Profil entreprise, approbation et connexion Stripe sont réunis dans un seul parcours."
+        },
+        {
+          "n": "02",
+          "emoji": "🧩",
+          "title": "Conception du flux",
+          "desc": "Ajoutez modèles de contrat, documents, conditions de paiement et règles de caution."
+        },
+        {
+          "n": "03",
+          "emoji": "🔗",
+          "title": "Lien sécurisé",
+          "desc": "Générez un lien sécurisé ou un QR code pour l'ensemble du parcours client."
+        },
+        {
+          "n": "04",
+          "emoji": "🪪",
+          "title": "Onboarding client",
+          "desc": "Collectez les coordonnées, le KYC optionnel, les fichiers demandés et la revue du contrat."
+        },
+        {
+          "n": "05",
+          "emoji": "✍️",
+          "title": "Signature et paiement",
+          "desc": "Capturez le consentement, le paiement du service et l'autorisation de caution dans l'ordre."
+        },
+        {
+          "n": "06",
+          "emoji": "📊",
+          "title": "Suivi opérationnel",
+          "desc": "Suivez statut, litiges et actions post-paiement depuis un même tableau de bord."
+        }
+      ]
+    },
+    "features": {
+      "eyebrow": "Modules clés",
+      "titleBefore": "Conçu pour les équipes qui ont besoin de",
+      "titleEmphasis": "contrôle",
+      "titleAfter": " sur toute la transaction",
+      "description": "Chaque module est relié au même état de transaction pour que les équipes opérationnelles ne perdent pas le contexte entre les outils.",
+      "items": [
+        {
+          "emoji": "🚀",
+          "iconBg": "bg-sky-50",
+          "title": "Onboarding vendeur",
+          "desc": "Profil entreprise, workflow d'approbation et préparation aux virements dans un seul flux.",
+          "tag": "Configuration",
+          "tagColor": "text-sky-700",
+          "tagBg": "bg-sky-50"
+        },
+        {
+          "emoji": "🪪",
+          "iconBg": "bg-emerald-50",
+          "title": "Identité et documents",
+          "desc": "Contrôles d'identité optionnels, uploads et preuves rattachés à une seule transaction.",
+          "tag": "Vérification",
+          "tagColor": "text-emerald-700",
+          "tagBg": "bg-emerald-50"
+        },
+        {
+          "emoji": "📝",
+          "iconBg": "bg-amber-50",
+          "title": "Contrats et signatures",
+          "desc": "Modèles réutilisables, checklists et capture de signature reliés au même flux.",
+          "tag": "Contrats",
+          "tagColor": "text-amber-700",
+          "tagBg": "bg-amber-50"
+        },
+        {
+          "emoji": "💳",
+          "iconBg": "bg-rose-50",
+          "title": "Paiements et cautions",
+          "desc": "Encaissez les paiements, autorisez les cautions puis capturez ou libérez-les avec une trace d'audit.",
+          "tag": "Finance",
+          "tagColor": "text-rose-700",
+          "tagBg": "bg-rose-50"
+        },
+        {
+          "emoji": "🧭",
+          "iconBg": "bg-violet-50",
+          "title": "Tableaux de bord opérationnels",
+          "desc": "Les espaces vendeur et admin gardent révision, encaissement et support bien organisés.",
+          "tag": "Supervision",
+          "tagColor": "text-violet-700",
+          "tagBg": "bg-violet-50"
+        },
+        {
+          "emoji": "📡",
+          "iconBg": "bg-slate-100",
+          "title": "Alertes et activité",
+          "desc": "Les événements importants, résultats de webhooks et mises à jour restent visibles au même endroit.",
+          "tag": "Opérations",
+          "tagColor": "text-slate-700",
+          "tagBg": "bg-slate-100"
+        }
+      ]
+    },
+    "useCases": {
+      "eyebrow": "Cas d'usage",
+      "titleBefore": "Pensé pour les entreprises qui gèrent des",
+      "titleEmphasis": "parcours à forte confiance",
+      "description": "Contrazy convient aux secteurs où accords, identité, cautions et paiements doivent rester synchronisés.",
+      "items": [
+        {
+          "emoji": "🚗",
+          "title": "Location automobile",
+          "desc": "Collectez permis, signatures, paiement et autorisation de caution avant la remise."
+        },
+        {
+          "emoji": "🏨",
+          "title": "Hôtellerie",
+          "desc": "Gérez contrôles pré-arrivée, acceptation des conditions et paiement dans un seul lien."
+        },
+        {
+          "emoji": "🏠",
+          "title": "Immobilier",
+          "desc": "Suivez documents, conditions locatives et flux de caution sans fragmenter l'onboarding."
+        },
+        {
+          "emoji": "🛠️",
+          "title": "Prestations de service",
+          "desc": "Capturez données client, signatures et facturation échelonnée dans un flux structuré."
+        }
+      ]
+    },
+    "vendor": {
+      "eyebrow": "Pour les vendeurs",
+      "titleBefore": "Donnez à votre équipe un",
+      "titleEmphasisOne": "espace partagé",
+      "titleMiddle": "pour le lancement client, la révision et le",
+      "titleEmphasisTwo": "suivi des paiements",
+      "description": "Au lieu de jongler entre formulaires, PDF, emails et pages de paiement, Contrazy ancre les opérations dans un seul dossier de transaction.",
+      "cards": [
+        {
+          "emoji": "🧾",
+          "iconBg": "bg-emerald-50",
+          "title": "Dossiers de transaction cohérents",
+          "desc": "Chaque accord, document et action de paiement reste rattaché à la même référence."
+        },
+        {
+          "emoji": "🔐",
+          "iconBg": "bg-sky-50",
+          "title": "Collecte client sécurisée",
+          "desc": "Utilisez des liens guidés et un KYC optionnel sans exposer vos outils internes."
+        },
+        {
+          "emoji": "📬",
+          "iconBg": "bg-amber-50",
+          "title": "Suivi interne clair",
+          "desc": "Les statuts de révision, litiges et préparation aux virements restent visibles pour votre équipe."
+        }
+      ]
+    },
+    "regulatory": {
+      "eyebrow": "Orienté conformité",
+      "titleBefore": "Gardez les étapes sensibles",
+      "titleEmphasis": "structurées et auditables",
+      "description": "Contrazy est conçu pour soutenir une discipline opérationnelle autour de l'onboarding, du consentement et du traitement des paiements.",
+      "cardTitle": "Note importante",
+      "cardDescription": "Contrazy aide à structurer les flux et à conserver les preuves, mais les obligations légales et réglementaires dépendent toujours de votre secteur, de votre juridiction et de votre modèle d'activité.",
+      "items": [
+        {
+          "label": "Preuves d'identité",
+          "detail": "Collectez les fichiers requis et, si besoin, les contrôles Stripe Identity dans le même flux."
+        },
+        {
+          "label": "Preuve d'accord",
+          "detail": "Associez signatures et horodatages au snapshot verrouillé de la transaction."
+        },
+        {
+          "label": "Traçabilité des paiements",
+          "detail": "Gardez les événements de paiement et de caution visibles avec le reste du dossier."
+        },
+        {
+          "label": "Révision opérationnelle",
+          "detail": "Séparez les espaces vendeur et admin pour faciliter supervision et approbations."
+        }
+      ]
+    },
+    "stack": {
+      "eyebrow": "Stack plateforme",
+      "titleBefore": "L'infrastructure de production derrière le",
+      "titleEmphasis": "parcours client",
+      "description": "Contrazy combine application, paiements, stockage et vérification dans une seule couche opérationnelle.",
+      "cards": [
+        {
+          "src": "/images/img-connect.jpg",
+          "alt": "Tableau Stripe Connect",
+          "title": "Stripe Connect",
+          "desc": "Onboarding vendeur, configuration des virements et outils de paiement opérationnels."
+        },
+        {
+          "src": "/images/img-identity.jpg",
+          "alt": "Interface de vérification d'identité",
+          "title": "Stripe Identity",
+          "desc": "Vérification d'identité automatisée pour les flux qui nécessitent un contrôle renforcé."
+        },
+        {
+          "src": "/images/img-billing.jpg",
+          "alt": "Interface de facturation et d'abonnement",
+          "title": "Pilotage de l'abonnement",
+          "desc": "Accès, usage et gestion du moyen de paiement du compte."
+        },
+        {
+          "src": "/images/img-auth.jpg",
+          "alt": "Interface d'authentification et d'accord",
+          "title": "Contrats et accès",
+          "desc": "Flux d'accord réutilisables avec signatures et accès selon les rôles."
+        },
+        {
+          "src": "/images/img-postgres.jpg",
+          "alt": "Illustration de la couche de données",
+          "title": "Couche de données structurée",
+          "desc": "Snapshots de transaction, état du flux et références prêtes pour l'audit dans un seul schéma."
+        },
+        {
+          "src": "/images/img-webhooks.jpg",
+          "alt": "Vue des opérations webhook",
+          "title": "Observabilité des webhooks",
+          "desc": "Gestion des événements Stripe et visibilité opérationnelle pour les équipes de suivi."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Commencez avec un flux sécurisé, puis déployez-le à toute votre équipe.",
+      "description": "Lancez rapidement votre premier parcours client sans reconstruire contrats, KYC et paiements dans des outils séparés.",
+      "cta": "Créer un compte"
+    },
+    "pricingSection": {
+      "eyebrow": "Tarification",
+      "titleEmphasis": "Des plans simples",
+      "titleAfter": " pour grandir sereinement",
+      "description": "Choisissez un plan selon le nombre de flux clients que votre équipe gère chaque mois.",
+      "feesTitle": "Frais transactionnels",
+      "fees": {
+        "releaseLabel": "Libération de caution",
+        "releaseValue": "Aucun frais Contrazy",
+        "releaseDetail": "lorsque le blocage est restitué au client.",
+        "captureLabel": "Capture de caution",
+        "captureValue": "Frais plateforme appliqués",
+        "captureDetail": "lorsqu'une partie ou la totalité de la caution autorisée est convertie en débit.",
+        "paymentLabel": "Paiement du service",
+        "paymentDetail": "Traité de façon sécurisée via Stripe avec les frais plateforme affichés au moment du checkout.",
+        "kycLabel": "Contrôles KYC",
+        "kycDetail": "Inclus ou limités selon le niveau d'abonnement."
+      },
+      "heading": "Des tarifs simples pour démarrer et évoluer",
+      "subDescription": "Choisissez un plan adapté à votre phase de lancement, avec la possibilité d'évoluer à mesure que vos workflows se développent.",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "perMonth": "par mois",
+      "perYear": "par an"
+    },
+    "faq": {
+      "eyebrow": "FAQ",
+      "titleBefore": "Les questions que les équipes posent avant de passer en",
+      "titleEmphasis": "production",
+      "description": "Une vue pratique de la manière dont Contrazy s'intègre aux flux réels de contrat et de paiement.",
+      "items": [
+        {
+          "q": "Contrazy remplace-t-il mon texte contractuel existant ?",
+          "a": "Non. Votre contenu juridique reste le vôtre. Contrazy structure le flux autour de la revue, de la signature, du KYC, de la caution et du paiement."
+        },
+        {
+          "q": "Puis-je l'utiliser sans KYC ?",
+          "a": "Oui. Le KYC peut rester optionnel et n'être activé que pour les flux qui nécessitent une vérification renforcée."
+        },
+        {
+          "q": "Comment les cautions sont-elles gérées ?",
+          "a": "Les cautions peuvent être autorisées sous forme de blocage carte, puis libérées ou capturées selon l'issue de la transaction."
+        },
+        {
+          "q": "Les clients ont-ils besoin d'un compte ?",
+          "a": "Non. Les clients suivent le lien sécurisé ou le QR code que vous leur envoyez et complètent le parcours guidé sans connexion à l'espace vendeur."
+        },
+        {
+          "q": "Les équipes internes peuvent-elles suivre les litiges et les statuts d'onboarding ?",
+          "a": "Oui. Les vues admin et vendeur séparent la supervision opérationnelle du flux côté client."
+        }
+      ]
+    },
+    "contactPage": {
+      "metaTitle": "Contact | Contrazy",
+      "metaDescription": "Contactez Contrazy pour des questions produit, d'exploitation ou de partenariat.",
+      "eyebrow": "Contact",
+      "title": "Parlez à l'équipe Contrazy",
+      "description": "Contactez-nous pour des questions produit, l'accompagnement au déploiement, les partenariats ou le support opérationnel.",
+      "channels": [
+        {
+          "title": "Demandes générales",
+          "description": "Questions sur l'adéquation produit, la roadmap ou l'approche d'implémentation."
+        },
+        {
+          "title": "Ventes et partenariats",
+          "description": "Échangez sur vos besoins de déploiement, l'usage en équipe ou une collaboration commerciale."
+        },
+        {
+          "title": "Support",
+          "description": "Obtenez de l'aide sur l'accès au compte, la facturation ou un flux actif."
+        }
+      ],
+      "formFirstName": "Prénom",
+      "formLastName": "Nom",
+      "formEmail": "E-mail",
+      "formMessage": "Message",
+      "formFirstNamePlaceholder": "Entrez votre prénom",
+      "formLastNamePlaceholder": "Entrez votre nom",
+      "formEmailPlaceholder": "Entrez votre adresse e-mail",
+      "formMessagePlaceholder": "Décrivez votre flux de travail, votre secteur ou votre calendrier de lancement.",
+      "formSubmit": "Envoyer le message",
+      "formSuccessTitle": "Message reçu",
+      "formSuccessDesc": "Merci de nous avoir contactés. Un membre de l'équipe Contrazy examinera votre message et vous répondra."
+    },
+    "statusPage": {
+      "metaTitle": "Statut | Contrazy",
+      "metaDescription": "Statut opérationnel des composants de la plateforme Contrazy.",
+      "eyebrow": "Statut",
+      "title": "Vue d'ensemble du statut plateforme",
+      "description": "Une vue légère des services clés qui soutiennent contrats, vérification et paiements.",
+      "cards": [
+        {
+          "title": "Application",
+          "description": "Routage principal, tableaux de bord et pages du parcours client.",
+          "tag": "Opérationnel"
+        },
+        {
+          "title": "Paiements",
+          "description": "Checkout, encaissement et flux d'autorisation de caution.",
+          "tag": "Opérationnel"
+        },
+        {
+          "title": "Vérification",
+          "description": "Revue documentaire et démarrage des sessions Stripe Identity.",
+          "tag": "Surveillance"
+        }
+      ]
+    },
+    "legal": {
+      "terms": {
+        "metaTitle": "CGV | Contrazy",
+        "metaDescription": "Consultez les conditions générales d'utilisation de Contrazy.",
+        "eyebrow": "Légal",
+        "title": "Conditions générales",
+        "description": "Ces conditions définissent le cadre d'utilisation de Contrazy comme plateforme de flux transactionnels.",
+        "sections": [
+          {
+            "title": "Périmètre de la plateforme",
+            "paragraphs": [
+              "Contrazy fournit des outils de flux pour les contrats, contrôles d'identité, signatures, cautions et paiements.",
+              "L'utilisation de la plateforme ne remplace pas vos propres obligations légales, comptables ou réglementaires."
+            ]
+          },
+          {
+            "title": "Responsabilités du compte",
+            "paragraphs": [
+              "Vous êtes responsable de l'exactitude des informations de votre entreprise, du paramétrage des paiements et des flux envoyés aux clients.",
+              "Vous devez protéger les accès et limiter l'espace aux membres autorisés de votre équipe."
+            ]
+          },
+          {
+            "title": "Contenu destiné aux clients",
+            "paragraphs": [
+              "Vous restez responsable des accords, instructions et conditions métier publiés via Contrazy.",
+              "Contrazy ne valide pas automatiquement si votre contenu est juridiquement suffisant pour votre marché."
+            ],
+            "bullets": [
+              "Relisez vos modèles avant lancement.",
+              "Gardez les informations support et virement à jour.",
+              "Résolvez rapidement les litiges actifs."
+            ]
+          }
+        ]
+      },
+      "privacy": {
+        "metaTitle": "Politique de confidentialité | Contrazy",
+        "metaDescription": "Découvrez comment Contrazy traite les données personnelles et opérationnelles.",
+        "eyebrow": "Légal",
+        "title": "Politique de confidentialité",
+        "description": "Cet aperçu explique comment Contrazy traite les données de compte, de flux et de transaction.",
+        "sections": [
+          {
+            "title": "Données traitées",
+            "paragraphs": [
+              "Contrazy traite les informations de compte, la configuration des flux, les dossiers de transaction et les données soumises par les clients nécessaires au service.",
+              "Des sous-traitants comme Stripe peuvent traiter les données de paiement ou d'identité dans leurs propres systèmes."
+            ]
+          },
+          {
+            "title": "Finalités d'utilisation",
+            "paragraphs": [
+              "Nous utilisons les données pour faire fonctionner la plateforme, sécuriser les flux, prendre en charge les paiements et fournir une visibilité opérationnelle.",
+              "Nous utilisons aussi des journaux limités pour surveiller les incidents et améliorer la fiabilité du service."
+            ]
+          },
+          {
+            "title": "Conservation et accès",
+            "paragraphs": [
+              "Les données sont conservées selon les besoins du service, les obligations légales et les exigences opérationnelles.",
+              "L'accès est restreint selon les rôles afin que vendeurs et administrateurs ne voient que les dossiers pertinents."
+            ]
+          }
+        ]
+      },
+      "imprint": {
+        "metaTitle": "Mentions légales | Contrazy",
+        "metaDescription": "Informations légales et de publication pour Contrazy.",
+        "eyebrow": "Légal",
+        "title": "Mentions légales",
+        "description": "Informations de publication et d'entreprise pour Contrazy.",
+        "sections": [
+          {
+            "title": "Éditeur",
+            "paragraphs": [
+              "Contrazy est présenté comme une plateforme sécurisée de flux transactionnels pour vendeurs et équipes opérationnelles."
+            ]
+          },
+          {
+            "title": "Contact",
+            "paragraphs": [
+              "Pour les questions corporate, support ou juridiques, utilisez les canaux listés sur la page contact de l'application."
+            ]
+          },
+          {
+            "title": "Hébergement et sous-traitants",
+            "paragraphs": [
+              "L'infrastructure et le traitement peuvent s'appuyer sur des prestataires tiers pour l'hébergement, les paiements, le stockage et la vérification."
+            ]
+          }
+        ]
+      },
+      "gdpr": {
+        "metaTitle": "RGPD | Contrazy",
+        "metaDescription": "Informations RGPD liées à l'usage et au traitement des données sur Contrazy.",
+        "eyebrow": "Légal",
+        "title": "RGPD",
+        "description": "Un résumé pratique de la manière dont Contrazy soutient des opérations attentives au RGPD.",
+        "sections": [
+          {
+            "title": "Rôles et responsabilités",
+            "paragraphs": [
+              "Selon le flux, clients, vendeurs et prestataires peuvent avoir des rôles différents en matière de protection des données.",
+              "Les vendeurs restent responsables de la base légale des données collectées via Contrazy."
+            ]
+          },
+          {
+            "title": "Mesures de sécurité",
+            "paragraphs": [
+              "Contrazy s'appuie sur des accès par rôles, un transport sécurisé et des intégrations pensées pour un usage production.",
+              "Les opérations sensibles de paiement et d'identité sont déléguées à des prestataires spécialisés lorsque cela est pertinent."
+            ]
+          },
+          {
+            "title": "Demandes et gouvernance",
+            "paragraphs": [
+              "Les demandes des personnes concernées doivent être traitées selon le processus interne de votre organisation et le droit applicable.",
+              "Gardez vos procédures de conservation, d'accès et de support alignées avec les flux que vous exploitez."
+            ],
+            "bullets": [
+              "Vérifiez les accords sous-traitants.",
+              "Limitez l'accès à l'espace.",
+              "Documentez les informations côté client."
+            ]
+          }
+        ]
+      }
+    },
+    "pricingPage": {
+      "metaTitle": "Tarifs | Contrazy",
+      "metaDescription": "Comparez les plans Contrazy pour les flux contractuels, l'onboarding client, les cautions et les paiements.",
+      "eyebrow": "Tarification",
+      "title": "Des plans pour des opérations client sécurisées",
+      "description": "Choisissez le plan adapté au nombre de flux, de contrôles et d'étapes de vérification dont votre équipe a besoin.",
+      "primaryLabel": "La plupart des équipes commencent ici",
+      "modelEyebrow": "Modèle tarifaire",
+      "modelTitle": "Comment fonctionne la tarification Contrazy",
+      "modelDescription": "L'abonnement débloque la plateforme tandis que les événements de paiement et de caution suivent leur logique opérationnelle propre.",
+      "modelSections": [
+        {
+          "title": "Accès par abonnement",
+          "paragraphs": [
+            "Les plans déterminent le nombre de flux, de QR codes, de contrôles KYC et de fonctions opérationnelles disponibles dans votre espace."
+          ]
+        },
+        {
+          "title": "Opérations de paiement",
+          "paragraphs": [
+            "Les paiements de service et autorisations de caution passent par des flux adossés à Stripe.",
+            "La libération et la capture de caution restent visibles dans la transaction concernée."
+          ],
+          "bullets": [
+            "Aucun stockage local de carte.",
+            "Séparation claire entre paiement de service et événements de caution."
+          ]
+        },
+        {
+          "title": "Montée en charge",
+          "paragraphs": [
+            "Quand le volume augmente, les équipes ont généralement besoin de plus de capacité, de support de révision interne et d'une supervision renforcée."
+          ]
+        }
+      ]
+    },
+    "guidePage": {
+      "metaTitle": "Documentation API | Contrazy",
+      "metaDescription": "Guide de haut niveau sur la structure des APIs et intégrations opérationnelles de Contrazy.",
+      "eyebrow": "Docs API",
+      "title": "Guide API opérationnel",
+      "description": "Une référence de haut niveau sur la façon dont Contrazy organise création de flux, vérification et actions liées au paiement.",
+      "sectionsEyebrow": "Référence",
+      "sectionsTitle": "Ce que couvre la surface d'intégration",
+      "sectionsDescription": "Cette page se concentre sur la structure de la plateforme plutôt que sur le détail endpoint par endpoint.",
+      "sections": [
+        {
+          "title": "APIs espace et profil",
+          "paragraphs": [
+            "La configuration vendeur, la mise à jour du profil entreprise et les réglages opérationnels passent par des routes authentifiées de l'espace."
+          ]
+        },
+        {
+          "title": "APIs du flux de transaction",
+          "paragraphs": [
+            "Création de transaction, gestion de lien, collecte documentaire, KYC, signature et actions de paiement sont rattachées aux dossiers de transaction."
+          ],
+          "bullets": [
+            "Gardez les chemins API non localisés.",
+            "Utilisez la locale seulement pour les destinations frontend de retour."
+          ]
+        },
+        {
+          "title": "Intégration Stripe et webhooks",
+          "paragraphs": [
+            "Les sessions Checkout, Identity, l'onboarding des comptes connectés et les webhooks restent séparés des routes localisées de l'application."
+          ]
+        }
+      ]
+    },
+    "blogPage": {
+      "metaTitle": "Blog | Contrazy",
+      "metaDescription": "Articles et notes opérationnelles sur l'onboarding client sécurisé, les contrats, cautions et paiements.",
+      "eyebrow": "Insights",
+      "titleBefore": "Des notes pratiques sur les",
+      "titleEmphasis": "opérations de workflow",
+      "description": "Des lectures courtes pour les équipes qui construisent des flux sécurisés d'onboarding, d'accord et de paiement.",
+      "featuredPost": {
+        "category": "À la une",
+        "emoji": "🧭",
+        "title": "Pourquoi un flux transactionnel unifié réduit la dérive opérationnelle",
+        "excerpt": "Quand KYC, signature, paiement et caution vivent dans des outils séparés, les équipes perdent le contexte transactionnel qui compte le plus.",
+        "date": "Mai 2026",
+        "readTime": "5 min de lecture"
+      },
+      "posts": [
+        {
+          "category": "Contrats",
+          "emoji": "📝",
+          "title": "Que verrouiller dans un snapshot de transaction signée",
+          "excerpt": "Une vue pratique de ce qui doit rester immuable après signature et paiement du client.",
+          "date": "Mai 2026",
+          "readTime": "4 min de lecture"
+        },
+        {
+          "category": "Paiements",
+          "emoji": "💳",
+          "title": "Cautions, captures et libérations sans perdre l'auditabilité",
+          "excerpt": "Pourquoi la gestion des cautions doit rester attachée au même dossier opérationnel que l'accord.",
+          "date": "Mai 2026",
+          "readTime": "6 min de lecture"
+        },
+        {
+          "category": "Opérations",
+          "emoji": "📊",
+          "title": "Les signaux de dashboard dont les équipes ont réellement besoin",
+          "excerpt": "Un aperçu des indicateurs de révision, virement et suivi qui gardent les équipes alignées.",
+          "date": "Mai 2026",
+          "readTime": "4 min de lecture"
+        }
+      ]
+    },
+    "helpPage": {
+      "metaTitle": "Centre d'aide | Contrazy",
+      "metaDescription": "Démarrez avec Contrazy et comprenez les étapes clés pour vendeurs et clients.",
+      "eyebrow": "Centre d'aide",
+      "titleBefore": "Démarrez avec",
+      "titleEmphasis": "confiance",
+      "description": "Une orientation rapide pour les équipes qui lancent leur premier flux client sécurisé sur Contrazy.",
+      "gettingStartedTitle": "Premiers pas",
+      "steps": [
+        "Complétez votre profil entreprise et attendez l'approbation si elle est requise.",
+        "Connectez Stripe avant d'envoyer un flux qui collecte des paiements ou des cautions.",
+        "Préparez au moins un modèle de contrat et toute checklist ou exigence documentaire.",
+        "Créez une transaction, générez le lien client sécurisé et suivez la progression depuis le tableau de bord."
+      ],
+      "extraHelpTitle": "Besoin d'aide supplémentaire ?",
+      "extraHelpBefore": "Si vous avez besoin d'un support produit ou opérationnel, utilisez la page",
+      "extraHelpAfter": "pour contacter l'équipe Contrazy."
+    }
+  },
+  "contracts": {
+    "preview": {
+      "signedAgreement": "Accord signé",
+      "generatedFrom": "Copie de contrat signée électroniquement générée à partir du snapshot de transaction verrouillé.",
+      "serviceProvider": "Prestataire de service",
+      "client": "Client",
+      "signed": "Signé",
+      "reference": "Référence",
+      "serviceAmount": "Montant du service",
+      "deposit": "Caution",
+      "electronicSignature": "Signature électronique",
+      "clientSignature": "Signature du client",
+      "signerName": "Nom du signataire",
+      "signerEmail": "Email du signataire",
+      "method": "Méthode",
+      "signedAt": "Signé le",
+      "ipAddress": "Adresse IP",
+      "signatureUnavailable": "Signature non disponible",
+      "auditFooter": "Cette copie signée reflète le snapshot final de la transaction et la piste d'audit du signataire capturée.",
+      "footer": "Aperçu de l'accord signé · Contrazy",
+      "agreementReview": "Revue de l'accord",
+      "reviewCopy": "Copie de révision - snapshot de transaction verrouillé",
+      "agreement": "Accord",
+      "finalAgreement": "Accord final",
+      "electronicallyExecuted": "Exécuté électroniquement · snapshot de transaction verrouillé",
+      "name": "Nom",
+      "email": "Email",
+      "ip": "IP",
+      "unavailable": "Indisponible"
+    }
+  },
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat trouvé",
+    "required": "Requis",
+    "optional": "Facultatif",
+    "yes": "Oui",
+    "no": "Non",
+    "or": "ou",
+    "and": "et",
+    "currency": {
+      "eur": "EUR",
+      "usd": "USD",
+      "gbp": "GBP"
+    },
+    "dismiss": "Ignorer",
+    "languageSwitcher": "Sélecteur de langue",
+    "openAccountMenu": "Ouvrir le menu du compte",
+    "signHere": "Signez ici",
+    "signHereHint": "Souris, stylet ou doigt",
+    "selectCountry": "Sélectionner un pays",
+    "searchCountry": "Rechercher un pays...",
+    "searchCountryOrDial": "Rechercher un pays ou un indicatif...",
+    "enterPhoneNumber": "Entrez votre numéro de téléphone",
+    "clear": "Effacer",
+    "all": "Tous",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "prev": "Préc.",
+    "showingResults": "Affichage {start}–{end} sur {total} résultats",
+    "noRecordsYet": "Aucun enregistrement pour l'instant."
+  },
+  "subscriptions": {
+    "planCard": {
+      "current": "Actuel",
+      "currentPlan": "Plan actuel",
+      "onQuote": "Sur devis",
+      "annualBilling": "Facturation annuelle",
+      "intervalYearWithEquiv": "/ an · {equiv}/mois",
+      "intervalYear": "/ an",
+      "intervalMonth": "/ mois",
+      "vatLabel": "HT"
+    },
+    "billing": {
+      "activateTitle": "Activez votre espace vendeur",
+      "activateDesc": "Les transactions, paiements, KYC, contrats et liens clients sont bloqués jusqu'à ce qu'un abonnement actif soit en place.",
+      "resubscribeNote": "Votre abonnement précédent a expiré — choisissez un plan pour vous réabonner.",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "discountLabel": "-15%",
+      "discountTeaser": "Jusqu'à -15%",
+      "noInvoices": "Aucune facture pour le moment.",
+      "thDate": "Date",
+      "thNumber": "Numéro",
+      "thPeriod": "Période",
+      "thAmount": "Montant",
+      "thStatus": "Statut",
+      "thActions": "Actions",
+      "viewInvoice": "Voir",
+      "downloadPdf": "PDF",
+      "annualLabel": "Annuel",
+      "monthlyLabel": "Mensuel",
+      "trialEnds": "Essai se termine le {date}",
+      "renews": "Renouvellement le {date}",
+      "paymentMethodsLabel": "Moyens de paiement",
+      "addCard": "Ajouter une carte",
+      "noCards": "Aucune carte enregistrée. Ajoutez-en une pour continuer.",
+      "defaultLabel": "Par défaut",
+      "setDefault": "Définir par défaut",
+      "removeCard": "Supprimer la carte",
+      "cannotRemove": "Impossible de supprimer la seule carte tant que l'abonnement est actif",
+      "upgrade": "Mettre à niveau",
+      "downgrade": "Rétrograder",
+      "switchInterval": "Changer l'intervalle",
+      "usageTitle": "Utilisation cette période",
+      "usageResets": "L'utilisation se réinitialise le {date}",
+      "plansTitle": "Plans",
+      "invoiceHistoryTitle": "Historique des factures",
+      "dangerZoneTitle": "Zone de danger",
+      "cancelSubTitle": "Annuler l'abonnement",
+      "cancelSubDesc": "Votre accès continue jusqu'au {date}. Vous pouvez réactiver avant cette date.",
+      "cancelPlanBtn": "Annuler le plan",
+      "planChangeTitle": "Confirmer le changement de plan",
+      "planChangeDesc": "Vérifiez les détails avant de confirmer.",
+      "newPlanLabel": "Nouveau plan",
+      "priceLabel": "Prix",
+      "effectiveLabel": "Effectif",
+      "effectiveValue": "Immédiatement",
+      "intervalChangeNote": "Le cycle de facturation se réinitialise aujourd'hui. Une facture au prorata sera émise immédiatement.",
+      "proratedNote": "Un crédit ou une charge au prorata sera appliqué à votre prochaine facture.",
+      "cancelConfirmBtn": "Annuler",
+      "confirmChangeBtn": "Confirmer le changement",
+      "cancelSubDialogTitle": "Annuler l'abonnement",
+      "cancelSubDialogDesc": "Votre espace reste actif jusqu'au {date}. Vous pouvez réactiver avant cette date.",
+      "keepSubscription": "Conserver l'abonnement",
+      "cancelAtPeriodEnd": "Annuler en fin de période",
+      "updatePmTitle": "Mettre à jour le moyen de paiement",
+      "updatePmDesc": "Entrez vos coordonnées de carte. Votre abonnement existant sera réessayé avec la nouvelle carte.",
+      "updatePmDescNew": "Entrez votre nouvelle carte. Elle sera utilisée pour tous les frais futurs.",
+      "auth3dsTitle": "Confirmation de paiement requise",
+      "auth3dsDesc": "Votre banque exige une authentification supplémentaire pour effectuer ce changement.",
+      "reactivateBtn": "Réactiver",
+      "cancelingBanner": "Votre abonnement se termine le {date}. Réactivez pour conserver l'accès.",
+      "recoveryTitle": "Problème de paiement — action requise",
+      "pastDueDesc": "Votre dernière facture n'a pas pu être collectée. Veuillez mettre à jour votre moyen de paiement pour restaurer l'accès complet.",
+      "unpaidDesc": "Votre abonnement n'est pas payé. Mettez à jour votre moyen de paiement et nous réessaierons.",
+      "incompleteDesc": "Votre paiement est incomplet. Veuillez mettre à jour votre moyen de paiement pour activer votre abonnement.",
+      "updatePmBtn": "Mettre à jour le moyen de paiement",
+      "recentInvoices": "Factures récentes",
+      "toastCheckoutError": "Impossible de démarrer le paiement",
+      "toastNetworkError": "Erreur réseau",
+      "toastPlanChangeError": "Échec du changement de plan",
+      "toastPlanUpdated": "Plan mis à jour",
+      "toastPlanUpdatedDesc": "Votre abonnement a été modifié.",
+      "toastCancelFailed": "Échec de l'annulation",
+      "toastCanceled": "Abonnement programmé pour l'annulation",
+      "toastCanceledDesc": "Votre accès continue jusqu'au {date}.",
+      "toastReactivateFailed": "Échec de la réactivation",
+      "toastReactivated": "Abonnement réactivé",
+      "toastReactivatedDesc": "Votre abonnement sera renouvelé normalement.",
+      "toastPmUpdated": "Moyen de paiement mis à jour",
+      "toastPmUpdatedDesc": "Votre nouvelle carte a été enregistrée.",
+      "toastPmFailed": "Échec de l'enregistrement de la carte",
+      "toastSetDefaultFailed": "Échec",
+      "toastDefaultUpdated": "Carte par défaut mise à jour",
+      "toastDeleteFailed": "Impossible de supprimer la carte",
+      "toastDeleted": "Carte supprimée",
+      "notIncluded": "Non inclus dans le plan",
+      "unlimited": "Illimité",
+      "locked": "Verrouillé",
+      "usageTxLabel": "Transactions / mois",
+      "usageTxShort": "Transactions",
+      "usageSigLabel": "E-Signatures / mois",
+      "usageSigShort": "Signatures",
+      "usageQrLabel": "Codes QR / mois",
+      "usageQrShort": "Codes QR",
+      "usageKycLabel": "Vérifications KYC / mois",
+      "usageKycShort": "KYC",
+      "usageTemplatesLabel": "Modèles de contrat",
+      "usageTemplatesShort": "Modèles",
+      "saveCard": "Enregistrer la carte",
+      "cancelCard": "Annuler",
+      "tryAgain": "Réessayer.",
+      "unexpectedError": "Une erreur inattendue s'est produite.",
+      "planLimitFallback": "La limite du plan actuel a été atteinte.",
+      "toggleAriaLabel": "Changer l'intervalle de facturation",
+      "checkoutError": "Impossible de démarrer la session de paiement.",
+      "statusActive": "Actif",
+      "statusTrialing": "Essai",
+      "statusPastDue": "En retard",
+      "statusUnpaid": "Impayé",
+      "statusIncomplete": "Incomplet",
+      "statusCanceled": "Annulé",
+      "statusExpired": "Expiré",
+      "vatLabel": "HT"
+    }
+  }
+}

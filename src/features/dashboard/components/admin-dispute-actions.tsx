@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { CheckCircle2, Clock, Loader2, ShieldAlert, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export function AdminDisputeActions({
   status: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.admin.disputeActions")
   const [pending, setPending] = useState<PendingAction>(null)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [resolveOutcome, setResolveOutcome] = useState<"vendor_wins" | "client_wins">("vendor_wins")
@@ -51,13 +53,13 @@ export function AdminDisputeActions({
     try {
       const { ok, data } = await callApi("mark_under_review")
       if (ok) {
-        toast({ variant: "info", title: "Marked under review", description: "The vendor has been notified." })
+        toast({ variant: "info", title: t("toast.underReview"), description: t("toast.underReviewDesc") })
         router.refresh()
       } else {
-        toast({ variant: "error", title: "Failed", description: data.message ?? "Unable to update status." })
+        toast({ variant: "error", title: t("toast.failed"), description: data.message ?? t("toast.unableToUpdate") })
       }
     } catch {
-      toast({ variant: "error", title: "Network error", description: "An unexpected error occurred." })
+      toast({ variant: "error", title: t("toast.networkError"), description: t("toast.unexpectedError") })
     } finally {
       setPending(null)
     }
@@ -76,16 +78,16 @@ export function AdminDisputeActions({
         toast({
           variant: "success",
           title: resolveOutcome === "vendor_wins"
-            ? "Vendor's claim upheld — deposit control returned"
-            : "Client's claim upheld — deposit released",
-          description: "Both parties have been notified by email.",
+            ? t("toast.vendorWinsTitle")
+            : t("toast.clientWinsTitle"),
+          description: t("toast.bothNotified"),
         })
         router.refresh()
       } else {
-        setResolveError(data.message ?? "Resolution failed.")
+        setResolveError(data.message ?? t("errors.resolutionFailed"))
       }
     } catch {
-      setResolveError("An unexpected error occurred.")
+      setResolveError(t("errors.unexpected"))
     } finally {
       setPending(null)
     }
@@ -96,7 +98,7 @@ export function AdminDisputeActions({
       <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-900/10">
         <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
         <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
-          Dispute closed — {status === "RESOLVED" ? "resolved in vendor's favour" : "resolved in client's favour"}
+          {status === "RESOLVED" ? t("resolved.vendorFavour") : t("resolved.clientFavour")}
         </p>
       </div>
     )
@@ -107,7 +109,12 @@ export function AdminDisputeActions({
       <div className="flex flex-wrap gap-3">
         {/* Mark as resolved — opens outcome picker */}
         <Button
-          onClick={() => { setResolution(""); setResolveError(null); setResolveOutcome("vendor_wins"); setResolveOpen(true) }}
+          onClick={() => {
+            setResolution("")
+            setResolveError(null)
+            setResolveOutcome("vendor_wins")
+            setResolveOpen(true)
+          }}
           disabled={!!pending}
           className="bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]"
         >
@@ -116,7 +123,7 @@ export function AdminDisputeActions({
           ) : (
             <CheckCircle2 className="mr-2 size-4" />
           )}
-          Mark as resolved
+          {t("buttons.markResolved")}
         </Button>
 
         {/* Mark under review */}
@@ -131,19 +138,24 @@ export function AdminDisputeActions({
             ) : (
               <Clock className="mr-2 size-4" />
             )}
-            Mark under review
+            {t("buttons.markUnderReview")}
           </Button>
         )}
 
         {/* Close case */}
         <Button
           variant="outline"
-          onClick={() => { setResolveOutcome("client_wins"); setResolution("Case closed — deposit released back to client."); setResolveError(null); setResolveOpen(true) }}
+          onClick={() => {
+            setResolveOutcome("client_wins")
+            setResolution(t("modal.defaultResolution"))
+            setResolveError(null)
+            setResolveOpen(true)
+          }}
           disabled={!!pending}
           className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
         >
           <XCircle className="mr-2 size-4" />
-          Close case (release deposit)
+          {t("buttons.closeCase")}
         </Button>
       </div>
 
@@ -153,11 +165,9 @@ export function AdminDisputeActions({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert className="size-5 text-amber-500" />
-              Resolve dispute
+              {t("modal.title")}
             </DialogTitle>
-            <DialogDescription>
-              Choose the outcome and optionally add a resolution note visible to both parties.
-            </DialogDescription>
+            <DialogDescription>{t("modal.description")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -176,11 +186,9 @@ export function AdminDisputeActions({
                       : "border-border text-muted-foreground hover:border-border/80"
                   }`}
                 >
-                  {outcome === "vendor_wins" ? "Vendor's claim upheld" : "Client's claim upheld"}
+                  {outcome === "vendor_wins" ? t("modal.vendorWins") : t("modal.clientWins")}
                   <p className="mt-0.5 text-[11px] font-normal opacity-70">
-                    {outcome === "vendor_wins"
-                      ? "Returns deposit control to vendor"
-                      : "Releases deposit to client now"}
+                    {outcome === "vendor_wins" ? t("modal.vendorWinsDetail") : t("modal.clientWinsDetail")}
                   </p>
                 </button>
               ))}
@@ -188,11 +196,11 @@ export function AdminDisputeActions({
 
             {/* Resolution note */}
             <div className="space-y-1.5">
-              <Label htmlFor="resolution">Resolution note (optional)</Label>
+              <Label htmlFor="resolution">{t("modal.resolutionLabel")}</Label>
               <Textarea
                 id="resolution"
                 rows={3}
-                placeholder="Summarise the decision for vendor and client records..."
+                placeholder={t("modal.resolutionPlaceholder")}
                 maxLength={INPUT_LIMITS.adminDisputeResolution}
                 value={resolution}
                 onChange={(e) => { setResolution(e.target.value); setResolveError(null) }}
@@ -205,7 +213,7 @@ export function AdminDisputeActions({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setResolveOpen(false)} disabled={!!pending}>
-              Cancel
+              {t("modal.cancel")}
             </Button>
             <Button
               onClick={handleResolve}
@@ -216,9 +224,9 @@ export function AdminDisputeActions({
               }
             >
               {(pending === "vendor_wins" || pending === "client_wins") ? (
-                <><Loader2 className="mr-2 size-4 animate-spin" />Processing...</>
+                <><Loader2 className="mr-2 size-4 animate-spin" />{t("modal.processing")}</>
               ) : (
-                resolveOutcome === "vendor_wins" ? "Return control to vendor" : "Release deposit to client"
+                resolveOutcome === "vendor_wins" ? t("modal.returnToVendor") : t("modal.releaseToClient")
               )}
             </Button>
           </DialogFooter>

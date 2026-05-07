@@ -27,11 +27,12 @@ import {
   Users,
   Wallet,
 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
+import { Link, usePathname } from "@/i18n/navigation"
+import { LocaleSwitcher } from "@/components/ui/locale-switcher"
 import {
   Sheet,
   SheetContent,
@@ -93,6 +94,7 @@ export function DashboardShell({
   account,
   children,
 }: DashboardShellProps) {
+  const t = useTranslations("dashboard.shell")
   const pathname = usePathname()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     if (typeof window === "undefined") {
@@ -137,7 +139,7 @@ export function DashboardShell({
                   className="gap-0 overflow-hidden border-r border-border bg-background p-0"
                 >
                   <SheetHeader className="border-b border-border">
-                    <SheetTitle>Navigation</SheetTitle>
+                    <SheetTitle>{t("navigation")}</SheetTitle>
                   </SheetHeader>
                   <DashboardSidebar
                     navigation={navigation}
@@ -161,6 +163,7 @@ export function DashboardShell({
             <div className="hidden rounded-full border border-white/10 bg-white/6 px-3 py-1 text-sm text-white/70 sm:block">
               {actorLabel}
             </div>
+            <LocaleSwitcher />
             <AccountMenu user={account} profileHref={getRoleProfilePath(account.role)} />
           </div>
         </div>
@@ -221,6 +224,7 @@ function DashboardSidebar({
   onNavClick?: (href: string) => void
   onToggle?: () => void
 }) {
+  const t = useTranslations("dashboard.shell")
   return (
     <nav className="flex h-full min-h-0 flex-1 flex-col">
       <div className="border-b border-border/70 p-4">
@@ -234,7 +238,7 @@ function DashboardSidebar({
                   exit={{ opacity: 0, x: -8 }}
                   className="px-3 text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
                 >
-                  Workspace
+                  {t("workspace")}
                 </motion.p>
               ) : null}
             </AnimatePresence>
@@ -244,7 +248,7 @@ function DashboardSidebar({
               size="icon-sm"
               className="text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={onToggle}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={collapsed ? t("expandSidebar") : t("collapseSidebar")}
             >
               {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
             </Button>

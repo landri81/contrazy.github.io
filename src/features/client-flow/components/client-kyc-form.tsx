@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 import {
   AlertCircle,
   CheckCircle2,
@@ -24,6 +25,7 @@ type UploadedDoc = {
 }
 
 export function ClientKycForm({ token, failed }: { token: string; failed?: boolean }) {
+  const t = useTranslations("clientFlow.kycForm")
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,7 +41,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
     try {
       const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", { method: "POST" })
       if (!sigRes.ok) {
-        setError("Upload service unavailable. Please try again.")
+        setError(t("uploadServiceError"))
         return
       }
       const { timestamp, signature, apiKey, cloudName, folder } = await sigRes.json()
@@ -59,7 +61,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       const uploadData = await uploadRes.json()
 
       if (!uploadRes.ok) {
-        setError(uploadData?.error?.message ?? "Upload failed. Please try again.")
+        setError(uploadData?.error?.message ?? t("uploadFailed"))
         return
       }
 
@@ -69,7 +71,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
         originalFilename: file.name,
       })
     } catch {
-      setError("Upload failed. Please check your connection and try again.")
+      setError(t("uploadConnectionError"))
     } finally {
       setIsUploading(false)
     }
@@ -99,7 +101,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.message ?? "Submission failed. Please try again.")
+        setError(data.message ?? t("submissionFailed"))
         return
       }
 
@@ -107,7 +109,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       router.push(`/t/${token}/kyc`)
       router.refresh()
     } catch {
-      setError("An unexpected error occurred. Please try again.")
+      setError(t("unexpectedError"))
     } finally {
       setIsSubmitting(false)
     }
@@ -121,9 +123,9 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
             <ShieldCheck className="size-5 text-(--contrazy-navy)" />
           </div>
           <div>
-            <p className="font-semibold text-foreground">Identity Verification</p>
+            <p className="font-semibold text-foreground">{t("title")}</p>
             <p className="text-sm text-muted-foreground">
-              Upload a government-issued ID for review before proceeding.
+              {t("subtitle")}
             </p>
           </div>
         </div>
@@ -134,15 +136,15 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
         {failed && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
-            <p>Your previous document was not accepted. Please upload a new one.</p>
+            <p>{t("rejectionNotice")}</p>
           </div>
         )}
 
         {/* Accepted documents info */}
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
-          <p className="text-xs font-medium text-foreground mb-1.5">Accepted documents</p>
+          <p className="text-xs font-medium text-foreground mb-1.5">{t("acceptedDocs")}</p>
           <ul className="space-y-1">
-            {["Passport", "Driver's license (front & back)", "National identity card"].map((doc) => (
+            {[t("passport"), t("driversLicense"), t("nationalId")].map((doc) => (
               <li key={doc} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="size-1 rounded-full bg-muted-foreground/60 shrink-0" />
                 {doc}
@@ -150,7 +152,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
             ))}
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            Accepted formats: JPG, PNG, PDF &mdash; max 10 MB
+            {t("acceptedFormats")}
           </p>
         </div>
 
@@ -177,7 +179,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
               <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 truncate">
                 {uploaded.originalFilename}
               </p>
-              <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70">Ready to submit</p>
+              <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70">{t("readyToSubmit")}</p>
             </div>
             <button
               type="button"
@@ -204,7 +206,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
               {isUploading ? (
                 <>
                   <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Uploading…</p>
+                  <p className="text-sm text-muted-foreground">{t("uploading")}</p>
                 </>
               ) : (
                 <>
@@ -213,15 +215,15 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Click to upload your ID
+                      {t("clickToUpload")}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      or drag and drop a file here
+                      {t("dragDrop")}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1">
                     <FileImage className="size-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">JPG · PNG · PDF</span>
+                    <span className="text-xs text-muted-foreground">{t("formats")}</span>
                   </div>
                 </>
               )}
@@ -230,7 +232,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
         )}
 
         <p className="text-xs text-muted-foreground">
-          Your document will be reviewed securely. You can continue with the next steps while review is in progress.
+          {t("secureNote")}
         </p>
       </CardContent>
 
@@ -246,7 +248,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
           ) : (
             <ShieldCheck className="mr-2 size-4" />
           )}
-          {isSubmitting ? "Submitting…" : "Submit for Review"}
+          {isSubmitting ? t("submitting") : t("submitBtn")}
         </Button>
       </CardFooter>
     </Card>

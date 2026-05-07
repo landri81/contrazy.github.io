@@ -13,9 +13,11 @@ import {
   ShieldCheck,
   UserCircle,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { usePathname } from "@/i18n/navigation"
 
 import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
+import { LocaleSwitcher } from "@/components/ui/locale-switcher"
 import { cn } from "@/lib/utils"
 
 type StepKey = "profile" | "documents" | "kyc" | "contract" | "sign" | "payment" | "complete"
@@ -30,16 +32,6 @@ const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = 
   sign: PenLine,
   payment: CreditCard,
   complete: CheckCircle2,
-}
-
-const stepLabels: Record<StepKey, string> = {
-  profile: "Profile",
-  documents: "Documents",
-  kyc: "Identity",
-  contract: "Agreement",
-  sign: "Signature",
-  payment: "Payment",
-  complete: "Complete",
 }
 
 type ClientFlowShellProps = {
@@ -61,6 +53,19 @@ export function ClientFlowShell({
   completedSteps,
   children,
 }: ClientFlowShellProps) {
+  const tShell = useTranslations("clientFlow.shell")
+  const tSteps = useTranslations("clientFlow.steps")
+
+  const stepLabelMap: Record<StepKey, string> = {
+    profile: tSteps("profile"),
+    documents: tSteps("documents"),
+    kyc: tSteps("kyc"),
+    contract: tSteps("contract"),
+    sign: tSteps("sign"),
+    payment: tSteps("payment"),
+    complete: tSteps("complete"),
+  }
+
   const pathname = usePathname() ?? ""
   const visibleSteps = stepOrder.filter((step) => enabledSteps.includes(step))
   const currentStep = visibleSteps.find((step) => pathname.endsWith(`/${step}`)) ?? visibleSteps[0]
@@ -78,28 +83,31 @@ export function ClientFlowShell({
               </span>
             </div>
             <div className="leading-tight">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Vendor</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{tShell("vendor")}</p>
               <p className="text-sm font-semibold text-foreground">{vendorName}</p>
             </div>
           </div>
           <div className="hidden items-center gap-3 md:flex">
+            <LocaleSwitcher variant="light" />
+            <div className="h-5 w-px bg-slate-200" />
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
               <LockKeyhole className="size-3.5" />
-              Protected session
+              {tShell("protectedSession")}
             </div>
             {canCancel ? <ClientCancelLinkAction token={token} /> : null}
             {reference ? (
               <div className="text-right leading-tight">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{tShell("reference")}</p>
                 <p className="text-sm font-medium text-foreground">{reference}</p>
               </div>
             ) : null}
           </div>
           <div className="flex items-center gap-2 md:hidden">
+            <LocaleSwitcher variant="light" />
             {canCancel ? <ClientCancelLinkAction token={token} /> : null}
             {reference ? (
               <div className="text-right leading-tight">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Reference</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{tShell("reference")}</p>
                 <p className="text-sm font-medium text-foreground">{reference}</p>
               </div>
             ) : null}
@@ -118,23 +126,23 @@ export function ClientFlowShell({
           <div className="client-flow-sidebar-inner scrollbar-thin-subtle relative flex h-full flex-col overflow-y-auto pr-1">
             <div className="client-flow-sidebar-badge inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">
               <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
-              Secure onboarding
+              {tShell("secureOnboarding")}
             </div>
 
             <div className="client-flow-sidebar-intro mt-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">Transaction</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">{tShell("transaction")}</p>
               <h1 className="client-flow-sidebar-title mt-3 font-heading text-3xl font-semibold leading-tight text-white">
-                Complete your request with {vendorName}
+                {tShell("completeRequest", { vendorName })}
               </h1>
               <p className="client-flow-sidebar-copy mt-4 text-sm leading-6 text-white/65">
-                Follow each step in order. Your progress is saved as you move through the secure flow.
+                {tShell("progressSaved")}
               </p>
             </div>
 
             <div className="client-flow-sidebar-summary mt-8 flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.07] p-4">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-xs uppercase tracking-[0.18em] text-white/45">Current step</span>
-                <span className="text-sm font-semibold text-[var(--contrazy-teal)]">{currentIndex + 1} of {visibleSteps.length}</span>
+                <span className="text-xs uppercase tracking-[0.18em] text-white/45">{tShell("currentStep")}</span>
+                <span className="text-sm font-semibold text-[var(--contrazy-teal)]">{tShell("stepOf", { current: currentIndex + 1, total: visibleSteps.length })}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-lg bg-white/10">
@@ -144,8 +152,8 @@ export function ClientFlowShell({
                   })()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{stepLabels[currentStep]}</p>
-                  {reference ? <p className="client-flow-sidebar-reference text-xs text-white/50">Reference {reference}</p> : null}
+                  <p className="text-sm font-semibold text-white">{stepLabelMap[currentStep]}</p>
+                  {reference ? <p className="client-flow-sidebar-reference text-xs text-white/50">{tShell("reference")} {reference}</p> : null}
                 </div>
               </div>
             </div>
@@ -170,7 +178,7 @@ export function ClientFlowShell({
                       {isDone ? <Check className="size-3" /> : index + 1}
                     </span>
                     <span className={cn(isCurrent ? "text-white" : isDone ? "text-white/75" : "text-white/45")}>
-                      {stepLabels[step]}
+                      {stepLabelMap[step]}
                     </span>
                   </div>
                 )
@@ -181,7 +189,7 @@ export function ClientFlowShell({
 
         <section className="min-w-0">
           <div className="sticky top-24 z-50">
-            <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} />
+            <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} labelMap={stepLabelMap} />
           </div>
 
           <div className="relative mt-6">
@@ -207,10 +215,12 @@ function ProgressStepper({
   steps,
   currentIndex,
   completed,
+  labelMap,
 }: {
   steps: StepKey[]
   currentIndex: number
   completed: StepKey[]
+  labelMap: Record<StepKey, string>
 }) {
   if (steps.length === 0) return null
 
@@ -267,7 +277,7 @@ function ProgressStepper({
                         : "text-muted-foreground/50"
                   )}
                 >
-                  {stepLabels[step]}
+                  {labelMap[step]}
                 </span>
               </div>
             )
@@ -277,7 +287,7 @@ function ProgressStepper({
 
       <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 sm:hidden">
         <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-          {stepLabels[currentStep]}
+          {labelMap[currentStep]}
         </span>
         <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
           {currentIndex + 1} / {steps.length}

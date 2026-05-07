@@ -50,6 +50,7 @@ export async function PATCH(request: Request) {
       businessCountry,
       registrationNumber,
       vatNumber,
+      preferredLocale,
     } =
       parsedBody.data
     const accountEmail = session.user.email.toLowerCase()
@@ -75,6 +76,7 @@ export async function PATCH(request: Request) {
               businessCountry,
               registrationNumber,
               vatNumber: vatNumber ? vatNumber : null,
+              preferredLocale,
               businessSlug: nextSlug,
             },
             update: {
@@ -88,6 +90,7 @@ export async function PATCH(request: Request) {
               businessCountry,
               registrationNumber,
               vatNumber: vatNumber ? vatNumber : null,
+              preferredLocale,
               businessSlug: nextSlug,
             },
           },

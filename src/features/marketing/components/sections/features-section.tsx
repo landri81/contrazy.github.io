@@ -1,75 +1,30 @@
 "use client"
 
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
-
-const features = [
-  {
-    emoji: "🪪",
-    iconBg: "bg-[#E8FAF7]",
-    title: "Vérification documentaire",
-    desc: "Upload de pièces d'identité, permis, justificatifs. Le vendeur paramètre les documents exigés. KYC automatique disponible en option.",
-    tag: "CONFIGURABLE",
-    tagColor: "text-[var(--contrazy-teal)]",
-    tagBg: "bg-[#E8FAF7]",
-  },
-  {
-    emoji: "📝",
-    iconBg: "bg-blue-500/[0.06]",
-    title: "Contrats auto-générés",
-    desc: "Le vendeur configure son modèle. Le moteur injecte les données du profil. PDF signable en 1 clic.",
-    tag: "MOTEUR INTERNE",
-    tagColor: "text-blue-500",
-    tagBg: "bg-blue-500/[0.06]",
-  },
-  {
-    emoji: "✍️",
-    iconBg: "bg-green-500/[0.08]",
-    title: "E-Signature électronique",
-    desc: "Signature simple au sens eIDAS. Code OTP par SMS, horodatage, dossier de preuve archivé et téléchargeable.",
-    tag: "SIGNATURE SIMPLE",
-    tagColor: "text-green-600",
-    tagBg: "bg-green-500/[0.08]",
-  },
-  {
-    emoji: "💳",
-    iconBg: "bg-amber-500/[0.06]",
-    title: "Paiements & cautions",
-    desc: "Paiement immédiat, acompte ou empreinte bancaire sans débit. Capture partielle ou totale.",
-    tag: "STRIPE CONNECT",
-    tagColor: "text-[var(--contrazy-teal)]",
-    tagBg: "bg-[#E8FAF7]",
-  },
-  {
-    emoji: "⚖️",
-    iconBg: "bg-red-500/[0.06]",
-    title: "Gestion des litiges",
-    desc: "Retenue avec motif et preuves. Client notifié. Historique horodaté complet.",
-    tag: "MOTEUR INTERNE",
-    tagColor: "text-blue-500",
-    tagBg: "bg-blue-500/[0.06]",
-  },
-  {
-    emoji: "🔗",
-    iconBg: "bg-[#E8FAF7]",
-    title: "QR Codes dynamiques",
-    desc: "Générez des QR codes modifiables pointant vers vos liens de transaction. Imprimables, traçables.",
-    tag: "DIFFÉRENCIATEUR",
-    tagColor: "text-[var(--contrazy-teal)]",
-    tagBg: "bg-[#E8FAF7]",
-  },
-]
+import { useTranslations } from "next-intl"
 
 export function FeaturesSection() {
+  const t = useTranslations("marketing.features")
+  const features = t.raw("items") as Array<{
+    emoji: string
+    iconBg: string
+    title: string
+    desc: string
+    tag: string
+    tagColor: string
+    tagBg: string
+  }>
+
   return (
     <section className="bg-background px-5 py-24 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <FadeIn className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">Plateforme</p>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">{t("eyebrow")}</p>
           <h2 className="font-heading mt-3.5 text-[34px] font-bold leading-[1.2] tracking-[-0.5px] text-foreground">
-            La couche <em className="italic text-[var(--contrazy-teal)]">confiance</em> qui manquait
+            {t("titleBefore")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasis")}</em>{t("titleAfter")}
           </h2>
           <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.7] text-muted-foreground">
-            Chaque brique s&apos;appuie sur des partenaires certifiés.
+            {t("description")}
           </p>
         </FadeIn>
 

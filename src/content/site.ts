@@ -43,44 +43,64 @@ export type ContentSection = {
   bullets?: readonly string[]
 }
 
-export const siteNav: NavItem[] = [
-  { href: "/pricing", label: "Tarifs" },
-  { href: "/blog", label: "Blog" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
-  { href: "/help", label: "Centre d'aide", mobileOnly: true },
+// Nav and footer use translation keys — labels are resolved via useTranslations("site") in components.
+
+export type NavItemDef = {
+  href: string
+  labelKey: string
+  mobileOnly?: boolean
+}
+
+export type FooterGroupDef = {
+  titleKey: string
+  links: Array<{ href: string; labelKey: string }>
+}
+
+export const siteNavDefs: NavItemDef[] = [
+  { href: "/pricing", labelKey: "nav.pricing" },
+  { href: "/blog", labelKey: "nav.blog" },
+  { href: "/faq", labelKey: "nav.faq" },
+  { href: "/contact", labelKey: "nav.contact" },
+  { href: "/help", labelKey: "nav.help", mobileOnly: true },
 ]
 
-export const footerGroups = [
+export const footerGroupDefs: FooterGroupDef[] = [
   {
-    title: "Produit",
+    titleKey: "footer.product",
     links: [
-      { href: "/", label: "Fonctionnalités" },
-      { href: "/pricing", label: "Tarifs" },
-      { href: "/register", label: "Essai gratuit" },
+      { href: "/", labelKey: "footer.links.features" },
+      { href: "/pricing", labelKey: "footer.links.pricing" },
+      { href: "/register", labelKey: "footer.links.freeTrial" },
     ],
   },
   {
-    title: "Ressources",
+    titleKey: "footer.resources",
     links: [
-      { href: "/blog", label: "Blog" },
-      { href: "/faq", label: "FAQ" },
-      { href: "/api-docs", label: "Documentation API" },
-      { href: "/help", label: "Centre d'aide" },
-      { href: "/status", label: "Statut" },
+      { href: "/blog", labelKey: "footer.links.blog" },
+      { href: "/faq", labelKey: "footer.links.faq" },
+      { href: "/api-docs", labelKey: "footer.links.apiDocs" },
+      { href: "/help", labelKey: "footer.links.helpCentre" },
+      { href: "/status", labelKey: "footer.links.status" },
     ],
   },
   {
-    title: "Légal",
+    titleKey: "footer.legal",
     links: [
-      { href: "/legal/terms", label: "CGV" },
-      { href: "/legal/privacy", label: "Politique de confidentialité" },
-      { href: "/legal/imprint", label: "Mentions légales" },
-      { href: "/legal/gdpr", label: "RGPD" },
-      { href: "/contact", label: "Contact" },
+      { href: "/legal/terms", labelKey: "footer.links.terms" },
+      { href: "/legal/privacy", labelKey: "footer.links.privacy" },
+      { href: "/legal/imprint", labelKey: "footer.links.imprint" },
+      { href: "/legal/gdpr", labelKey: "footer.links.gdpr" },
+      { href: "/contact", labelKey: "footer.links.contact" },
     ],
   },
-] as const
+]
+
+// Legacy aliases kept for backwards compat during migration
+export const siteNav = siteNavDefs.map((item) => ({ ...item, label: item.labelKey }))
+export const footerGroups = footerGroupDefs.map((g) => ({
+  title: g.titleKey,
+  links: g.links.map((l) => ({ ...l, label: l.labelKey })),
+}))
 
 export const heroStats: Stat[] = [
   {

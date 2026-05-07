@@ -2,6 +2,7 @@
 
 import { Send } from "lucide-react"
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,15 +10,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
 export function ContactFormCard() {
+  const t = useTranslations("marketing.contactPage")
   const [submitted, setSubmitted] = useState(false)
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 sm:p-8">
       {submitted ? (
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">Message received</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("formSuccessTitle")}</h2>
           <p className="text-sm leading-7 text-muted-foreground">
-            Thanks for reaching out. A member of the Conntrazy team will review your message and follow up.
+            {t("formSuccessDesc")}
           </p>
         </div>
       ) : (
@@ -30,29 +32,29 @@ export function ContactFormCard() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="first-name">First Name</Label>
-              <Input id="first-name" placeholder="Enter your first name" />
+              <Label htmlFor="first-name">{t("formFirstName")}</Label>
+              <Input id="first-name" placeholder={t("formFirstNamePlaceholder")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last-name">Last Name</Label>
-              <Input id="last-name" placeholder="Enter your last name" />
+              <Label htmlFor="last-name">{t("formLastName")}</Label>
+              <Input id="last-name" placeholder={t("formLastNamePlaceholder")} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="Enter your email address" />
+            <Label htmlFor="email">{t("formEmail")}</Label>
+            <Input id="email" type="email" placeholder={t("formEmailPlaceholder")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">{t("formMessage")}</Label>
             <Textarea
               id="message"
               className="min-h-32"
-              placeholder="Describe your workflow, industry, or launch timeline."
+              placeholder={t("formMessagePlaceholder")}
             />
           </div>
           <Button type="submit" className="h-10 bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]">
             <Send className="size-4" />
-            Send message
+            {t("formSubmit")}
           </Button>
         </form>
       )}

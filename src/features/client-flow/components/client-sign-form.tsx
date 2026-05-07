@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { useRouter } from "@/i18n/navigation"
 import {
   AlertCircle,
   CheckCircle2,
@@ -231,19 +232,20 @@ function TypeMethod({
   setSelectedFont: (f: SigFont) => void
   previewDataUrl: string | null
 }) {
+  const t = useTranslations("clientFlow.signForm")
   const previewText = typedName || "Your Signature"
 
   return (
     <div className="space-y-3">
       <div>
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-          Type your full legal name
+          {t("typeFullName")}
         </label>
         <input
           type="text"
           value={typedName}
           onChange={(e) => setTypedName(e.target.value)}
-          placeholder="e.g. Jane Smith"
+          placeholder={t("typePlaceholder")}
           maxLength={100}
           className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-(--contrazy-teal) focus:ring-1 focus:ring-(--contrazy-teal)/20 md:text-sm"
         />
@@ -251,7 +253,7 @@ function TypeMethod({
 
       <div>
         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-          Choose a signature style
+          {t("chooseStyle")}
         </label>
         <div className="grid grid-cols-2 gap-2">
           {SIGNATURE_FONTS.map((font) => (
@@ -284,7 +286,7 @@ function TypeMethod({
       ) : (
         <div className="flex h-19.5 items-center justify-center rounded-xl border-2 border-dashed border-border/50 bg-muted/10">
           <p className="text-sm text-muted-foreground/60">
-            {typedName.trim() ? "Generating preview…" : "Type your name above to preview"}
+            {typedName.trim() ? t("generatingPreview") : t("typeNameFirst")}
           </p>
         </div>
       )}
@@ -303,6 +305,7 @@ function UploadMethod({
   uploadError: string | null
   onClear: () => void
 }) {
+  const t = useTranslations("clientFlow.signForm")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -322,14 +325,14 @@ function UploadMethod({
             className="mx-auto block h-19.5 w-auto"
           />
           <div className="flex items-center justify-between border-t border-border/40 bg-muted/30 px-3 py-1.5">
-            <p className="text-xs text-muted-foreground">Signature uploaded</p>
+            <p className="text-xs text-muted-foreground">{t("sigUploaded")}</p>
             <button
               type="button"
               onClick={onClear}
               className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
             >
               <X className="size-3" />
-              Remove
+              {t("removeSig")}
             </button>
           </div>
         </div>
@@ -342,9 +345,9 @@ function UploadMethod({
           <ImageUp className="size-8 text-muted-foreground/40" />
           <div className="text-center">
             <p className="text-sm font-medium text-muted-foreground">
-              Click to upload your signature
+              {t("clickToUploadSig")}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground/60">PNG, JPG or WebP — max 5 MB</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/60">{t("formatsSig")}</p>
           </div>
         </button>
       )}
@@ -368,6 +371,7 @@ export function ClientSignForm({
   nextStepAfterSignature = "payment",
 }: ClientSignFormProps) {
   const router = useRouter()
+  const t = useTranslations("clientFlow.signForm")
   useSignatureFonts()
 
   const initialMethod = methodFromSignatureLabel(existingSignature?.method)
@@ -408,8 +412,10 @@ export function ClientSignForm({
   useEffect(() => {
     if (typeDebounce.current) clearTimeout(typeDebounce.current)
     if (!typedName.trim()) {
-      setTypeDataUrl(null)
-      return
+      const resetTimer = setTimeout(() => {
+        setTypeDataUrl(null)
+      }, 0)
+      return () => clearTimeout(resetTimer)
     }
     typeDebounce.current = setTimeout(async () => {
       const url = await renderTypedSignature(typedName, selectedFont)
@@ -431,18 +437,18 @@ export function ClientSignForm({
     if (!file) return
     setUploadError(null)
     if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file (PNG, JPG, or WebP).")
+      setUploadError(t("wrongFormat"))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Image must be under 5 MB.")
+      setUploadError(t("tooLarge"))
       return
     }
     try {
       const url = await normalizeImageToDataUrl(file)
       setUploadDataUrl(url)
     } catch {
-      setUploadError("Could not process that image. Please try another file.")
+      setUploadError(t("processError"))
     }
     // Reset input so the same file can be re-selected after clearing
     e.target.value = ""
@@ -489,10 +495,10 @@ export function ClientSignForm({
       }
 
       const payload = await response.json().catch(() => null)
-      setError(payload?.message ?? "Unable to record your signature right now.")
+      setError(payload?.message ?? t("errorRecording"))
     } catch (err) {
       console.error(err)
-      setError("Unable to record your signature right now.")
+      setError(t("errorRecording"))
     } finally {
       setIsPending(false)
     }
@@ -511,9 +517,9 @@ export function ClientSignForm({
   }
 
   const tabs = [
-    { key: "draw"   as SignatureMethod, label: "Draw",   Icon: PenLine  },
-    { key: "type"   as SignatureMethod, label: "Type",   Icon: Type     },
-    { key: "upload" as SignatureMethod, label: "Upload", Icon: ImageUp  },
+    { key: "draw"   as SignatureMethod, label: t("drawTab"),   Icon: PenLine  },
+    { key: "type"   as SignatureMethod, label: t("typeTab"),   Icon: Type     },
+    { key: "upload" as SignatureMethod, label: t("uploadTab"), Icon: ImageUp  },
   ]
 
   if (hasFinalizedSignature) {
@@ -523,9 +529,9 @@ export function ClientSignForm({
           <div className="flex items-start gap-3 border-b border-emerald-100 px-4 py-4">
             <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
             <div>
-              <h3 className="text-sm font-semibold text-emerald-950">Signature already recorded</h3>
+              <h3 className="text-sm font-semibold text-emerald-950">{t("alreadyRecorded")}</h3>
               <p className="mt-1 text-xs leading-relaxed text-emerald-800/80">
-                Your signed agreement has been generated. Continue to the next step.
+                {t("alreadyRecordedDesc")}
               </p>
             </div>
           </div>
@@ -540,19 +546,19 @@ export function ClientSignForm({
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
               {existingSignature?.signerName && (
                 <>
-                  <dt className="font-medium text-muted-foreground">Name</dt>
+                  <dt className="font-medium text-muted-foreground">{t("signerName")}</dt>
                   <dd className="text-foreground">{existingSignature.signerName}</dd>
                 </>
               )}
               {existingSignature?.signerEmail && (
                 <>
-                  <dt className="font-medium text-muted-foreground">Email</dt>
+                  <dt className="font-medium text-muted-foreground">{t("signerEmail")}</dt>
                   <dd className="text-foreground">{existingSignature.signerEmail}</dd>
                 </>
               )}
               {existingSignature?.method && (
                 <>
-                  <dt className="font-medium text-muted-foreground">Method</dt>
+                  <dt className="font-medium text-muted-foreground">{t("signerMethod")}</dt>
                   <dd className="text-foreground">{existingSignature.method}</dd>
                 </>
               )}
@@ -565,7 +571,7 @@ export function ClientSignForm({
           className="h-12 w-full bg-(--contrazy-navy) text-base font-semibold text-white hover:bg-(--contrazy-navy-soft) active:scale-[0.98]"
           onClick={() => router.push(`/t/${token}/${continueStep}`)}
         >
-          Continue
+          {t("continueBtn")}
         </Button>
       </div>
     )
@@ -578,10 +584,9 @@ export function ClientSignForm({
           <div className="flex gap-2.5">
             <RefreshCcw className="mt-0.5 size-4 shrink-0 text-amber-600" />
             <div>
-              <p className="font-semibold">Saved signature found</p>
+              <p className="font-semibold">{t("savedSigFound")}</p>
               <p className="mt-1 text-xs leading-relaxed text-amber-900/80">
-                Your signature image was saved, but the final signed agreement still needs to be
-                generated. Tap Sign and Continue again to finish this step.
+                {t("savedSigFoundDesc")}
               </p>
             </div>
           </div>
@@ -659,8 +664,8 @@ export function ClientSignForm({
           <div className="mt-2.5 flex items-center justify-between">
             <p className="text-xs text-muted-foreground/60">
               {signatureDataUrl
-                ? "Signature ready — tap Sign to continue"
-                : "Signature required to continue"}
+                ? t("sigReady")
+                : t("sigRequired")}
             </p>
             {signatureDataUrl && (
               <motion.span
@@ -669,7 +674,7 @@ export function ClientSignForm({
                 className="flex items-center gap-1 text-xs font-medium text-emerald-600"
               >
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                Ready
+                {t("ready")}
               </motion.span>
             )}
           </div>
@@ -679,10 +684,7 @@ export function ClientSignForm({
       <div className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          By tapping{" "}
-          <strong className="font-medium text-foreground">Sign and Continue</strong>, you confirm
-          your intent to sign electronically. Your signature, name, email, timestamp, and IP
-          address will be recorded.
+          {t("legalNote")}
         </p>
       </div>
 
@@ -694,12 +696,12 @@ export function ClientSignForm({
         {isPending ? (
           <>
             <Loader2 className="mr-2 size-5 animate-spin" />
-            Recording signature…
+            {t("recording")}
           </>
         ) : (
           <>
             <PenLine className="mr-2 size-5" />
-            Sign and Continue
+            {t("signAndContinue")}
           </>
         )}
       </Button>

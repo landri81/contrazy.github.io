@@ -2,60 +2,12 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronDown } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
-const faqItems = [
-  {
-    q: "Contrazy, c'est quoi ?",
-    a: "Contrazy est une plateforme de sécurisation transactionnelle qui centralise contrat, KYC (vérification d'identité), e-signature électronique, caution et paiement en un seul lien ou QR code. Vos clients n'ont pas besoin de créer de compte.",
-  },
-  {
-    q: "Contrazy s'adresse à qui ?",
-    a: "Aux loueurs (courte durée, véhicules, matériel), prestataires de services, artisans, collectivités, organisateurs d'événements, et toute entreprise ayant besoin de sécuriser une transaction avec contrat, identité et/ou garantie financière.",
-  },
-  {
-    q: "Contrazy collecte-t-il mes fonds ?",
-    a: "Non. Contrazy ne détient jamais de fonds pour le compte de tiers. Les flux financiers transitent directement entre votre client et votre compte Stripe Connect. Contrazy orchestre la pré-autorisation et la capture, mais ne touche pas à l'argent.",
-  },
-  {
-    q: "Comment fonctionne la caution ?",
-    a: "La caution est une empreinte bancaire via pré-autorisation Stripe. Le montant est bloqué sur la carte de votre client sans être débité, généralement jusqu'à 7 jours selon la banque émettrice. En cas de dégradation, vous pouvez capturer tout ou partie du montant depuis votre tableau de bord. Sans action de votre part, l'autorisation est automatiquement libérée.",
-  },
-  {
-    q: "Qu'est-ce que la e-signature Contrazy ?",
-    a: "Contrazy propose une signature électronique simple au sens du règlement eIDAS. Votre client signe le contrat généré automatiquement via un code OTP envoyé par SMS. Un dossier de preuve horodaté (hash du document, IP, user-agent, code OTP) est archivé pour chaque signature. Ce niveau convient aux contrats de location, devis, bons de commande et CGV.",
-  },
-  {
-    q: "Mon client doit-il créer un compte ?",
-    a: "Non. Votre client reçoit un lien (par SMS, email, WhatsApp) ou scanne un QR code. Il remplit son profil, uploade ses pièces, signe le contrat et paie — tout ça sans créer de compte Contrazy.",
-  },
-  {
-    q: "Comment fonctionne la vérification d'identité (KYC) ?",
-    a: "Contrazy utilise Stripe Identity pour vérifier automatiquement les pièces d'identité de vos clients. Le vendeur paramètre les pièces exigées (CNI, passeport, permis, selfie). L'IA vérifie l'authenticité du document et la correspondance faciale en quelques secondes. Plus de 120 pays sont couverts.",
-  },
-  {
-    q: "Puis-je utiliser des QR codes ?",
-    a: "Oui. Vous pouvez générer des QR codes dynamiques pointant vers vos liens de transaction. Imprimez-les sur vos supports (flyers, comptoir, email de confirmation) et modifiez leur contenu à tout moment sans réimprimer le code.",
-  },
-  {
-    q: "Quels sont les modes de paiement acceptés ?",
-    a: "Toutes les cartes bancaires (Visa, Mastercard, AMEX) via Stripe. Les paiements sont protégés par l'authentification forte 3D Secure conforme à la directive DSP2.",
-  },
-  {
-    q: "Suis-je protégé contre les fraudes ?",
-    a: "Oui. Chaque transaction exige le code 3D Secure envoyé par la banque du client. En cas d'opposition à la carte après versement d'une caution, le client devra fournir les justificatifs à sa banque. Vous êtes protégé contre les contestations pour fraude.",
-  },
-  {
-    q: "Comment fonctionne la facturation Contrazy ?",
-    a: "Contrazy fonctionne par abonnement mensuel ou annuel (-15%). L'abonnement donne accès à la plateforme avec un quota inclus de transactions, vérifications KYC et e-signatures. Les extras (SMS, vérifications supplémentaires) sont facturés à l'usage.",
-  },
-  {
-    q: "Quelles sont les obligations RGPD ?",
-    a: "Contrazy est conforme au RGPD. Les pièces d'identité sont stockées de manière chiffrée avec une durée de conservation limitée. Le consentement explicite du client est requis avant tout traitement de données personnelles. Vous pouvez consulter notre politique de confidentialité pour plus de détails.",
-  },
-]
-
 export function FaqSectionFr() {
+  const t = useTranslations("marketing.faq")
+  const faqItems = t.raw("items") as Array<{ q: string; a: string }>
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   const toggleItem = (index: number) => {
@@ -67,12 +19,12 @@ export function FaqSectionFr() {
       <div className="mx-auto max-w-7xl px-5 py-24 lg:px-10">
         {/* Page header */}
         <div className="mb-12 max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">FAQ</p>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">{t("eyebrow")}</p>
           <h1 className="font-heading mt-3.5 text-[34px] font-bold leading-[1.2] tracking-[-0.5px] text-foreground">
-            Foire aux <em className="italic text-[var(--contrazy-teal)]">questions</em>
+            {t("titleBefore")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasis")}</em>
           </h1>
           <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.7] text-muted-foreground">
-            Tout ce que vous devez savoir avant de commencer.
+            {t("description")}
           </p>
         </div>
 

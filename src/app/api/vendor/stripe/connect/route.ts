@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
+import { resolveRequestLocale, toAbsoluteLocalizedAppUrl } from "@/lib/i18n/locale-utils"
 
 export async function DELETE() {
   try {
@@ -54,7 +55,7 @@ export async function DELETE() {
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const { dbUser, vendorProfile } = await requireVendorProfileAccess()
     const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
@@ -93,10 +94,11 @@ export async function POST() {
 
     // Generate account link for onboarding
     const origin = getAppBaseUrl()
+    const locale = resolveRequestLocale(request, vendorProfile.preferredLocale)
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
-      refresh_url: `${origin}/vendor/stripe/refresh`,
-      return_url: `${origin}/vendor/stripe/return`,
+      refresh_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/stripe/refresh"),
+      return_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/stripe/return"),
       type: "account_onboarding",
     })
 

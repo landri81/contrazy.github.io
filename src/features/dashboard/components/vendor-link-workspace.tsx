@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
+import { useTranslations } from "next-intl"
 import type { ChecklistItem, ChecklistTemplate, ContractTemplate } from "@prisma/client"
 import {
   AlertCircle,
@@ -30,6 +30,7 @@ import { PaymentLinkManagementActions } from "@/features/dashboard/components/pa
 import { TransactionCreationForm } from "@/features/dashboard/components/transaction-creation-form"
 import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-route-link"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
+import { Link } from "@/i18n/navigation"
 import type {
   VendorActionsUsageRecord,
   VendorLinkRecord,
@@ -50,19 +51,8 @@ function isLiveStatus(status: string) {
   return status === "ACTIVE" || status === "PROCESSING"
 }
 
-function formatRemaining(limit: number | null, remaining: number | null) {
-  if (limit === null) {
-    return "Unlimited"
-  }
-
-  return `${remaining ?? 0} left`
-}
-
 function formatPeriodEnd(value: string | null) {
-  if (!value) {
-    return "Current period"
-  }
-
+  if (!value) return null
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -120,6 +110,7 @@ export function VendorLinkWorkspace({
   blockedMessage,
   initialLinks,
 }: VendorLinkWorkspaceProps) {
+  const t = useTranslations("dashboard.vendor.linkWorkspace")
   const [recentLinks, setRecentLinks] = useState(initialLinks)
   const [usageState, setUsageState] = useState(usage)
   const [createOpen, setCreateOpen] = useState(false)
@@ -136,9 +127,9 @@ export function VendorLinkWorkspace({
   const createBlockedMessage = !canLaunch
     ? blockedMessage
     : !hasStripe
-      ? "Connect Stripe before creating live customer transactions."
+      ? t("blockedMessages.noStripe")
       : transactionLimitReached
-        ? "Your monthly transaction quota is fully used for this billing period."
+        ? t("blockedMessages.quotaFull")
         : null
 
   const headerWarnings = useMemo(() => {
@@ -146,27 +137,27 @@ export function VendorLinkWorkspace({
 
     if (!canLaunch) {
       warnings.push({
-        title: "Vendor review required",
+        title: t("warnings.reviewRequired"),
         detail: blockedMessage,
       })
     }
 
     if (!hasStripe) {
       warnings.push({
-        title: "Stripe setup required",
-        detail: "Connect Stripe before creating secure payment and deposit flows.",
+        title: t("warnings.stripeRequired"),
+        detail: t("warnings.stripeRequiredDetail"),
       })
     }
 
     if (transactionLimitReached) {
       warnings.push({
-        title: "Transaction quota reached",
-        detail: "Upgrade your plan or wait for the next billing period to launch new transactions.",
+        title: t("warnings.quotaReached"),
+        detail: t("warnings.quotaReachedDetail"),
       })
     }
 
     return warnings
-  }, [blockedMessage, canLaunch, hasStripe, transactionLimitReached])
+  }, [blockedMessage, canLaunch, hasStripe, transactionLimitReached, t])
 
   function handleCreatedLink(nextRecord: VendorLinkRecord, nextUsage: VendorActionsUsageRecord | null) {
     setRecentLinks((current) => {
@@ -210,10 +201,28 @@ export function VendorLinkWorkspace({
   }
 
   const statusLabel = usageState?.isTrial
-    ? "Trial"
+    ? t("header.trialStatus")
     : usageState?.status
       ? usageState.status.charAt(0) + usageState.status.slice(1).toLowerCase()
-      : "Active"
+      : t("header.activePlan")
+
+  const periodEndLabel = formatPeriodEnd(usageState?.periodEnd ?? null)
+
+  const txLimit = usageState?.transactions.limit ?? null
+  const txUsed = usageState?.transactions.used ?? 0
+  const txTotal = usageState?.transactions.limit ?? 0
+  const txRemaining = usageState?.transactions.remaining ?? null
+
+  const qrLimit = usageState?.qrCodes.limit ?? null
+  const qrUsed = usageState?.qrCodes.used ?? 0
+  const qrTotal = usageState?.qrCodes.limit ?? 0
+  const qrRemaining = usageState?.qrCodes.remaining ?? null
+
+  const kycAllowed = usageState?.kyc.allowed
+  const kycLimit = usageState?.kyc.limit ?? null
+  const kycUsed = usageState?.kyc.used ?? 0
+  const kycTotal = usageState?.kyc.limit ?? 0
+  const kycRemaining = usageState?.kyc.remaining ?? null
 
   return (
     <div className="space-y-6">
@@ -228,23 +237,21 @@ export function VendorLinkWorkspace({
             <div className="max-w-2xl space-y-2.5">
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--contrazy-teal)]/18 bg-[var(--contrazy-teal)]/7 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-slate-700 uppercase">
                 <BadgeCheck className="size-3.5 text-[var(--contrazy-teal)]" />
-                {usageState ? `${usageState.planName} plan` : "Active plan"}
+                {usageState ? `${usageState.planName} ${t("header.planSuffix")}` : t("header.activePlan")}
               </div>
               <div>
-                <h2 className="text-xl font-semibold tracking-tight text-slate-900">Transactions and live sharing</h2>
-                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
-                  Launch a secure link first, then add QR only when the workflow needs in-person sharing.
-                </p>
+                <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("header.title")}</h2>
+                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">{t("header.description")}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
                   {statusLabel}
                 </span>
                 <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
-                  Renews {formatPeriodEnd(usageState?.periodEnd ?? null)}
+                  {t("header.renewsLabel")} {periodEndLabel ?? "—"}
                 </span>
                 <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
-                  {activeCount} active · {processingCount} processing
+                  {t("header.activitySummary", { active: activeCount, processing: processingCount })}
                 </span>
               </div>
             </div>
@@ -252,10 +259,10 @@ export function VendorLinkWorkspace({
             <div className="flex w-full flex-col gap-2.5 sm:flex-row xl:w-auto xl:justify-end">
               <DashboardRouteLink
                 href="/vendor/billing"
-                pendingLabel="Billing"
+                pendingLabel={t("header.planUsageLink")}
                 className="inline-flex items-center justify-center rounded-2xl border border-border/80 bg-background/90 px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-background"
               >
-                Plan & usage
+                {t("header.planUsageLink")}
                 <ArrowUpRight className="size-4" />
               </DashboardRouteLink>
               <Button
@@ -265,7 +272,7 @@ export function VendorLinkWorkspace({
                 disabled={Boolean(createBlockedMessage)}
               >
                 <Plus className="size-4" />
-                New Transaction
+                {t("header.newTransaction")}
               </Button>
             </div>
           </div>
@@ -291,46 +298,44 @@ export function VendorLinkWorkspace({
 
           <div className="grid gap-3 lg:grid-cols-3">
             <UsageCard
-              label="Transactions"
-              value={formatRemaining(usageState?.transactions.limit ?? null, usageState?.transactions.remaining ?? null)}
+              label={t("usage.transactions")}
+              value={txLimit === null ? t("usage.unlimited") : `${txRemaining ?? 0}`}
               detail={
-                usageState?.transactions.limit === null
-                  ? `${usageState?.transactions.used ?? 0} launched this period`
-                  : `${usageState?.transactions.used ?? 0} / ${usageState?.transactions.limit ?? 0} used`
+                txLimit === null
+                  ? t("usage.launchedPeriod", { used: txUsed })
+                  : t("usage.usedOf", { used: txUsed, total: txTotal })
               }
               tone={transactionLimitReached ? "danger" : "accent"}
               icon={CreditCard}
             />
             <UsageCard
-              label="QR Codes"
-              value={formatRemaining(usageState?.qrCodes.limit ?? null, usageState?.qrCodes.remaining ?? null)}
+              label={t("usage.qrCodes")}
+              value={qrLimit === null ? t("usage.unlimited") : `${qrRemaining ?? 0}`}
               detail={
-                usageState?.qrCodes.limit === null
-                  ? `${usageState?.qrCodes.used ?? 0} generated this period`
-                  : `${usageState?.qrCodes.used ?? 0} / ${usageState?.qrCodes.limit ?? 0} generated`
+                qrLimit === null
+                  ? t("usage.generatedPeriod", { used: qrUsed })
+                  : t("usage.generatedOf", { used: qrUsed, total: qrTotal })
               }
               tone={
-                usageState?.qrCodes.remaining !== null && (usageState?.qrCodes.remaining ?? 0) <= 0
-                  ? "warning"
-                  : "default"
+                qrRemaining !== null && (qrRemaining ?? 0) <= 0 ? "warning" : "default"
               }
               icon={QrCode}
             />
             <UsageCard
-              label="KYC"
+              label={t("usage.kyc")}
               value={
-                usageState?.kyc.allowed
-                  ? formatRemaining(usageState?.kyc.limit ?? null, usageState?.kyc.remaining ?? null)
-                  : "Unavailable"
+                kycAllowed
+                  ? kycLimit === null ? t("usage.unlimited") : `${kycRemaining ?? 0}`
+                  : t("usage.unavailable")
               }
               detail={
-                !usageState?.kyc.allowed
-                  ? "Available from Pro plan."
-                  : usageState?.kyc.limit === null
-                    ? `${usageState?.kyc.used ?? 0} verification requests`
-                    : `${usageState?.kyc.used ?? 0} / ${usageState?.kyc.limit ?? 0} used`
+                !kycAllowed
+                  ? t("usage.kycUnavailableHint")
+                  : kycLimit === null
+                    ? t("usage.verificationRequests", { used: kycUsed })
+                    : t("usage.usedOf", { used: kycUsed, total: kycTotal })
               }
-              tone={usageState?.kyc.allowed ? "default" : "warning"}
+              tone={kycAllowed ? "default" : "warning"}
               icon={ShieldCheck}
             />
           </div>
@@ -338,19 +343,27 @@ export function VendorLinkWorkspace({
       </motion.section>
 
       <PagePanel
-        title="Recent payment links"
-        description="Active and in-progress customer links stay here so you can copy, edit, cancel, or add QR later."
+        title={t("table.title")}
+        description={t("table.description")}
         actionHref="/vendor/links"
-        actionLabel="Open full manager"
+        actionLabel={t("table.actionLabel")}
       >
         <div className="overflow-hidden rounded-xl border">
           <DashboardTable
-            columns={["Reference", "Client", "Title", "Amount", "Last activity", "Status", "Actions"]}
+            columns={[
+              t("table.columns.reference"),
+              t("table.columns.client"),
+              t("table.columns.title"),
+              t("table.columns.amount"),
+              t("table.columns.lastActivity"),
+              t("table.columns.status"),
+              t("table.columns.actions"),
+            ]}
             rows={recentLinks.map((record) => [
               <Link
                 key={`${record.id}-reference`}
                 href={`/vendor/transactions/${record.transactionId}`}
-                className="inline-block min-w-[130px] font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+                className="inline-block min-w-[130px] font-medium text-foreground hover:text-(--contrazy-teal)"
               >
                 {record.reference}
               </Link>,
@@ -376,11 +389,11 @@ export function VendorLinkWorkspace({
                   {record.qrReady ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
                       <CheckCircle2 className="size-3" />
-                      QR ready
+                      {t("table.qrReady")}
                     </span>
                   ) : (
                     <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5">
-                      Link only
+                      {t("table.linkOnly")}
                     </span>
                   )}
                 </div>
@@ -391,7 +404,7 @@ export function VendorLinkWorkspace({
                   <p className="text-sm font-medium text-foreground">{record.serviceAmount}</p>
                 )}
                 {record.kind !== "PAYMENT" && (
-                  <p className="text-xs text-muted-foreground">Hold: {record.depositAmount}</p>
+                  <p className="text-xs text-muted-foreground">{t("table.holdPrefix")} {record.depositAmount}</p>
                 )}
               </div>,
 
@@ -413,7 +426,7 @@ export function VendorLinkWorkspace({
                 onUsageChange={handleUsageChange}
               />,
             ])}
-            emptyMessage="No active or processing links are waiting right now."
+            emptyMessage={t("table.empty")}
           />
         </div>
       </PagePanel>
@@ -427,9 +440,9 @@ export function VendorLinkWorkspace({
             <DialogHeader className="shrink-0 border-b border-border/70 px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <DialogTitle className="text-[1.05rem] font-semibold tracking-tight">New transaction</DialogTitle>
+                  <DialogTitle className="text-[1.05rem] font-semibold tracking-tight">{t("createModal.title")}</DialogTitle>
                   <DialogDescription className="mt-1 max-w-3xl text-[13px] leading-5">
-                    Create the secure link, configure the client journey, and decide whether this workflow needs a QR.
+                    {t("createModal.description")}
                   </DialogDescription>
                 </div>
                 <Button
@@ -440,7 +453,7 @@ export function VendorLinkWorkspace({
                   onClick={() => handleCreateOpenChange(false)}
                 >
                   <X className="size-4" />
-                  <span className="sr-only">Close transaction modal</span>
+                  <span className="sr-only">{t("createModal.closeLabel")}</span>
                 </Button>
               </div>
             </DialogHeader>
@@ -468,17 +481,15 @@ export function VendorLinkWorkspace({
       <Dialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Discard transaction setup?</DialogTitle>
-            <DialogDescription>
-              Your current progress inside the transaction modal will be lost.
-            </DialogDescription>
+            <DialogTitle>{t("discardModal.title")}</DialogTitle>
+            <DialogDescription>{t("discardModal.description")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDiscardOpen(false)}>
-              Keep editing
+              {t("discardModal.keepEditing")}
             </Button>
             <Button type="button" variant="destructive" onClick={forceCloseCreate}>
-              Discard
+              {t("discardModal.discard")}
             </Button>
           </DialogFooter>
         </DialogContent>

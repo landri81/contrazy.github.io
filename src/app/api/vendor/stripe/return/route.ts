@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -21,9 +22,10 @@ export async function GET() {
       return blockedResponse
     }
     const origin = getAppBaseUrl()
+    const locale = normalizeLocale(vendorProfile.preferredLocale)
 
     if (!vendorProfile.stripeAccountId) {
-      return NextResponse.redirect(new URL("/vendor/stripe", origin))
+      return NextResponse.redirect(new URL(withLocalePath(locale, "/vendor/stripe"), origin))
     }
 
     const account = await stripe.accounts.retrieve(vendorProfile.stripeAccountId)
@@ -41,9 +43,9 @@ export async function GET() {
       })
     }
 
-    return NextResponse.redirect(new URL("/vendor/stripe", origin))
+    return NextResponse.redirect(new URL(withLocalePath(locale, "/vendor/stripe"), origin))
   } catch (error) {
     console.error("Stripe Return Error:", error)
-    return NextResponse.redirect(new URL("/vendor/stripe?error=verification_failed", getAppBaseUrl()))
+    return NextResponse.redirect(new URL(withLocalePath("en", "/vendor/stripe?error=verification_failed"), getAppBaseUrl()))
   }
 }

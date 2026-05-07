@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { useRouter } from "@/i18n/navigation"
 import { AlertCircle, CheckCircle2, Loader2, UploadCloud } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ export function ClientUploadsForm({
   requirements: import("@prisma/client").TransactionRequirement[]
   skipStep: string
 }) {
+  const t = useTranslations("clientFlow.uploads")
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export function ClientUploadsForm({
     return (
       <Card className="border-border/70 bg-card/95 shadow-sm">
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">No uploads required.</p>
+          <p className="text-center text-muted-foreground">{t("noUploadsRequired")}</p>
         </CardContent>
         <CardFooter>
           <Button
@@ -45,7 +47,7 @@ export function ClientUploadsForm({
               router.push(`/t/${token}/${skipStep}`)
             }}
           >
-            Continue
+            {t("continueBtn")}
           </Button>
         </CardFooter>
       </Card>
@@ -59,7 +61,7 @@ export function ClientUploadsForm({
       // 1. Get signature from our backend
       const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", { method: "POST" })
       if (!sigRes.ok) {
-        setError("Upload signing is unavailable right now. Please try again.")
+        setError(t("uploadSigningError"))
         return
       }
       const { timestamp, signature, apiKey, cloudName, folder } = await sigRes.json()
@@ -90,11 +92,11 @@ export function ClientUploadsForm({
           }
         }))
       } else {
-        setError(uploadData?.error?.message ?? "Upload failed. Please try again.")
+        setError(uploadData?.error?.message ?? t("uploadFailed"))
       }
     } catch (e) {
       console.error(e)
-      setError("Upload failed. Please try again.")
+      setError(t("uploadFailed"))
     } finally {
       setUploadingState(prev => ({ ...prev, [reqId]: false }))
     }
@@ -156,11 +158,11 @@ export function ClientUploadsForm({
         }
 
         const payload = await res.json().catch(() => null)
-        setError(payload?.message ?? "Unable to save documents right now.")
+        setError(payload?.message ?? t("uploadError"))
       }
     } catch (err) {
       console.error(err)
-      setError("Unable to save documents right now.")
+      setError(t("uploadError"))
     } finally {
       setIsPending(false)
     }
@@ -205,7 +207,7 @@ export function ClientUploadsForm({
                     </span>
                   </div>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {req.type === "TEXT" ? "Text response" : req.type === "PHOTO" ? "Photo upload" : "Document upload"}
+                    {req.type === "TEXT" ? t("textResponse") : req.type === "PHOTO" ? t("photoUpload") : t("documentUpload")}
                   </p>
                   {req.instructions && (
                     <p className="text-xs text-muted-foreground mt-1">{req.instructions}</p>
@@ -259,9 +261,9 @@ export function ClientUploadsForm({
                     ) : (
                       <>
                         <UploadCloud className="h-6 w-6 text-muted-foreground mb-2" />
-                        <span className="text-sm font-medium text-primary">Click to upload</span>
+                        <span className="text-sm font-medium text-primary">{t("clickToUpload")}</span>
                         <span className="text-xs text-muted-foreground mt-1">
-                          {req.type === 'PHOTO' ? 'Images only' : 'PDF or Image'}
+                          {req.type === 'PHOTO' ? t("imagesOnly") : t("pdfOrImage")}
                         </span>
                       </>
                     )}
@@ -278,7 +280,7 @@ export function ClientUploadsForm({
             disabled={isPending || !allRequiredMet}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Continue
+            {t("continueBtn")}
           </Button>
         </CardFooter>
       </form>

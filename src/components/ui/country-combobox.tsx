@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 import { getCountries } from "react-phone-number-input"
 import en from "react-phone-number-input/locale/en.json"
+import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 
@@ -39,9 +40,11 @@ export function CountryCombobox({
   value,
   onChange,
   id,
-  placeholder = "Select country",
+  placeholder,
   className,
 }: CountryComboboxProps) {
+  const t = useTranslations("common")
+  const resolvedPlaceholder = placeholder ?? t("selectCountry")
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -102,7 +105,7 @@ export function CountryCombobox({
             <span className="flex-1 truncate text-left">{selected.name}</span>
           </>
         ) : (
-          <span className="flex-1 truncate text-left">{placeholder}</span>
+          <span className="flex-1 truncate text-left">{resolvedPlaceholder}</span>
         )}
         <ChevronDown
           className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
@@ -121,14 +124,14 @@ export function CountryCombobox({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search country..."
+              placeholder={t("searchCountry")}
               className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
 
           <ul className="max-h-60 overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-muted-foreground">No results</li>
+              <li className="px-3 py-2 text-sm text-muted-foreground">{t("noResults")}</li>
             ) : (
               filtered.map((country) => (
                 <li

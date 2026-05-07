@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server"
+
 import { normalizeContractTemplateMarkup } from "@/features/contracts/contract-content"
 
 type SignedAgreementPreviewProps = {
@@ -61,7 +63,7 @@ function ContrazyWordmark({
   )
 }
 
-export function SignedAgreementPreview({
+export async function SignedAgreementPreview({
   title,
   vendorName,
   clientName,
@@ -78,6 +80,7 @@ export function SignedAgreementPreview({
   presentation = "framed",
   renderedHtml,
 }: SignedAgreementPreviewProps) {
+  const t = await getTranslations("contracts.preview")
   const normalizedHtml = normalizeContractTemplateMarkup(renderedHtml)
 
   const serviceAmountLabel = formatMoney(amount, currency)
@@ -92,32 +95,32 @@ export function SignedAgreementPreview({
                 <div className="flex items-end justify-between border-b border-slate-200 pb-3">
                   <ContrazyWordmark brandIconSrc={brandIconSrc} />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Signed Agreement
+                    {t("signedAgreement")}
                   </p>
                 </div>
 
                 {/* Document title + table side by side */}
                 <div className="mt-3 flex flex-col gap-0.5 mb-3">
                   <h1 className="text-xl font-semibold tracking-tight text-slate-900 leading-snug">
-                    {title?.trim() || "Final Agreement"}
+                    {title?.trim() || t("finalAgreement")}
                   </h1>
                   <p className="text-xs text-slate-400">
-                    Electronically executed · locked transaction snapshot
+                    {t("electronicallyExecuted")}
                   </p>
                 </div>
 
                 {/* ── Formal details table ── */}
                 <table className="w-full border-collapse">
                   <tbody>
-                    <TableRow label="Service Provider" value={vendorName} />
-                    <TableRow label="Client" value={clientName} />
-                    <TableRow label="Signed" value={signedAtLabel} />
-                    <TableRow label="Reference" value={transactionReference} mono />
+                    <TableRow label={t("serviceProvider")} value={vendorName} />
+                    <TableRow label={t("client")} value={clientName} />
+                    <TableRow label={t("signed")} value={signedAtLabel} />
+                    <TableRow label={t("reference")} value={transactionReference} mono />
                     {serviceAmountLabel && (
-                      <TableRow label="Service Amount" value={serviceAmountLabel} />
+                      <TableRow label={t("serviceAmount")} value={serviceAmountLabel} />
                     )}
                     {depositAmountLabel && (
-                      <TableRow label="Deposit" value={depositAmountLabel} />
+                      <TableRow label={t("deposit")} value={depositAmountLabel} />
                     )}
                   </tbody>
                 </table>
@@ -132,7 +135,7 @@ export function SignedAgreementPreview({
               {/* ── SIGNATURE SECTION ──────────────────────────────────────── */}
               <section className="mt-6 pt-5 border-t border-slate-200">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 mb-3">
-                  Electronic Signature
+                  {t("electronicSignature")}
                 </p>
 
                 <div className="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)]">
@@ -146,7 +149,7 @@ export function SignedAgreementPreview({
                           className="max-h-28 max-w-full object-contain"
                         />
                       ) : (
-                        <span className="text-xs text-slate-400 italic">Unavailable</span>
+                        <span className="text-xs text-slate-400 italic">{t("unavailable")}</span>
                       )}
                     </div>
                     <p className="mt-1.5 text-xs font-semibold text-slate-700">{clientName}</p>
@@ -155,17 +158,17 @@ export function SignedAgreementPreview({
                   {/* Audit details */}
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                     <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-1">
-                      <AuditRow label="Name"      value={clientName} />
-                      <AuditRow label="Email"     value={clientEmail} />
-                      <AuditRow label="Method"    value={signatureMethod} />
-                      <AuditRow label="Signed at" value={signedAtLabel} />
-                      {ipAddress && <AuditRow label="IP" value={ipAddress} mono />}
+                      <AuditRow label={t("name")}      value={clientName} />
+                      <AuditRow label={t("email")}     value={clientEmail} />
+                      <AuditRow label={t("method")}    value={signatureMethod} />
+                      <AuditRow label={t("signedAt")} value={signedAtLabel} />
+                      {ipAddress && <AuditRow label={t("ip")} value={ipAddress} mono />}
                     </dl>
                   </div>
                 </div>
 
                 <p className="mt-3 text-[11px] leading-5 text-slate-400">
-                  This signed copy reflects the final transaction snapshot and the captured signer audit trail.
+                  {t("auditFooter")}
                 </p>
               </section>
 

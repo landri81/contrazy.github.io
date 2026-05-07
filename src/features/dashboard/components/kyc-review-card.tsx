@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   AlertCircle,
   CheckCircle2,
@@ -56,21 +57,13 @@ function statusStyle(status: string) {
   }
 }
 
-function statusLabel(status: string) {
-  switch (status) {
-    case "VERIFIED": return "Verified"
-    case "PENDING": return "Pending review"
-    case "FAILED": return "Failed / Rejected"
-    default: return status
-  }
-}
-
 function isImageUrl(url: string) {
   return /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)
 }
 
 export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
   const router = useRouter()
+  const t = useTranslations("dashboard.vendor.kycReview")
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "request_again" | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -79,6 +72,15 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
   const documentUrl = kyc.provider === "Manual" ? kyc.summary : null
   const isPdf = documentUrl ? documentUrl.includes(".pdf") || documentUrl.includes("/raw/") : false
   const documentHref = resolveDocumentAssetUrl(documentUrl)
+
+  function statusLabel(status: string) {
+    switch (status) {
+      case "VERIFIED": return t("statusLabels.verified")
+      case "PENDING": return t("statusLabels.pending")
+      case "FAILED": return t("statusLabels.failed")
+      default: return status
+    }
+  }
 
   async function runAction(action: "approve" | "reject" | "request_again") {
     setLoading(true)
@@ -91,18 +93,18 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
       const data = await res.json()
       setConfirmAction(null)
       if (!res.ok) {
-        toast({ variant: "error", title: "Action failed", description: data.message ?? "Try again." })
+        toast({ variant: "error", title: t("toast.actionFailed"), description: data.message ?? t("toast.tryAgain") })
         return
       }
       const messages = {
-        approve: "Identity document approved. Transaction proceeding.",
-        reject: "Document rejected.",
-        request_again: "Client will be asked to resubmit their document.",
+        approve: t("toast.approved"),
+        reject: t("toast.rejected"),
+        request_again: t("toast.requestedAgain"),
       }
-      toast({ variant: "success", title: "Done", description: messages[action] })
+      toast({ variant: "success", title: t("toast.done"), description: messages[action] })
       router.refresh()
     } catch {
-      toast({ variant: "error", title: "Network error", description: "An unexpected error occurred." })
+      toast({ variant: "error", title: t("toast.networkError"), description: t("toast.unexpectedError") })
     } finally {
       setLoading(false)
     }
@@ -110,21 +112,21 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
 
   const confirmMeta = {
     approve: {
-      title: "Approve identity document",
-      description: "The client's KYC verification will be marked as verified and the transaction will proceed.",
-      confirmLabel: "Approve",
+      title: t("confirmModals.approve.title"),
+      description: t("confirmModals.approve.description"),
+      confirmLabel: t("confirmModals.approve.confirm"),
       confirmClass: "bg-emerald-600 text-white hover:bg-emerald-700",
     },
     reject: {
-      title: "Reject identity document",
-      description: "The document will be marked as failed. The client can re-upload, but the transaction will not proceed until you approve a document.",
-      confirmLabel: "Reject",
+      title: t("confirmModals.reject.title"),
+      description: t("confirmModals.reject.description"),
+      confirmLabel: t("confirmModals.reject.confirm"),
       confirmClass: "bg-destructive text-white hover:bg-destructive/90",
     },
     request_again: {
-      title: "Request new document",
-      description: "The current submission will be cleared. The client will be prompted to upload a new identity document.",
-      confirmLabel: "Request again",
+      title: t("confirmModals.requestAgain.title"),
+      description: t("confirmModals.requestAgain.description"),
+      confirmLabel: t("confirmModals.requestAgain.confirm"),
       confirmClass: "bg-amber-600 text-white hover:bg-amber-700",
     },
   }
@@ -137,10 +139,10 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="size-4" />
-                Identity Verification
+                {t("card.title")}
               </CardTitle>
               <CardDescription>
-                {kyc.provider === "Manual" ? "Manual document review" : "Stripe Identity (automated)"}
+                {kyc.provider === "Manual" ? t("card.manualDesc") : t("card.stripeDesc")}
               </CardDescription>
             </div>
             <span
@@ -158,11 +160,11 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
           {/* Meta info */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground">Provider</p>
+              <p className="text-xs text-muted-foreground">{t("meta.provider")}</p>
               <p className="font-medium">{kyc.provider}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Submitted</p>
+              <p className="text-xs text-muted-foreground">{t("meta.submitted")}</p>
               <p className="font-medium">
                 {kyc.createdAt.toLocaleDateString("en-GB", {
                   day: "numeric",
@@ -173,7 +175,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
             </div>
             {kyc.verifiedAt && (
               <div>
-                <p className="text-xs text-muted-foreground">Verified at</p>
+                <p className="text-xs text-muted-foreground">{t("meta.verifiedAt")}</p>
                 <p className="font-medium">
                   {kyc.verifiedAt.toLocaleDateString("en-GB", {
                     day: "numeric",
@@ -185,7 +187,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
             )}
             {kyc.providerReference && kyc.provider !== "Manual" && (
               <div>
-                <p className="text-xs text-muted-foreground">Session ID</p>
+                <p className="text-xs text-muted-foreground">{t("meta.sessionId")}</p>
                 <p className="font-mono text-xs text-muted-foreground truncate">{kyc.providerReference}</p>
               </div>
             )}
@@ -197,7 +199,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
               <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-2">
                 <div className="flex items-center gap-2">
                   <FileText className="size-4 text-muted-foreground" />
-                  <span className="text-[13px] font-medium text-foreground">Submitted document</span>
+                  <span className="text-[13px] font-medium text-foreground">{t("document.submittedDoc")}</span>
                 </div>
                 <a
                   href={documentHref ?? documentUrl}
@@ -206,21 +208,21 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                   className="inline-flex items-center gap-1 text-[11px] text-[var(--contrazy-teal)] hover:underline"
                 >
                   <ExternalLink className="size-3" />
-                  {isPdf ? "Download" : "Open"}
+                  {isPdf ? t("document.download") : t("document.open")}
                 </a>
               </div>
 
               {isPdf ? (
                 <div className="flex items-center justify-center gap-2 py-6 bg-muted/10 text-sm text-muted-foreground">
                   <FileText className="size-5" />
-                  PDF document —{" "}
+                  {t("document.pdfDoc")} —{" "}
                   <a
                     href={documentHref ?? documentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[var(--contrazy-teal)] hover:underline"
                   >
-                    click to download
+                    {t("document.clickDownload")}
                   </a>
                 </div>
               ) : isImageUrl(documentUrl) ? (
@@ -228,7 +230,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={documentUrl}
-                    alt="Identity document"
+                    alt={t("document.altText")}
                     className="max-h-64 w-full rounded-lg object-contain"
                   />
                 </div>
@@ -241,7 +243,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                     rel="noopener noreferrer"
                     className="text-[var(--contrazy-teal)] hover:underline"
                   >
-                    View document
+                    {t("document.viewDoc")}
                   </a>
                 </div>
               )}
@@ -253,8 +255,8 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
             <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
               <div>
-                <p className="text-sm font-semibold text-emerald-800">Automatically verified</p>
-                <p className="text-xs text-emerald-700/80">Stripe Identity confirmed the customer record.</p>
+                <p className="text-sm font-semibold text-emerald-800">{t("banners.autoVerifiedTitle")}</p>
+                <p className="text-xs text-emerald-700/80">{t("banners.autoVerifiedDesc")}</p>
               </div>
             </div>
           )}
@@ -263,8 +265,8 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
             <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
               <AlertCircle className="size-5 shrink-0 text-red-600" />
               <div>
-                <p className="text-sm font-semibold text-red-800">Verification failed</p>
-                <p className="text-xs text-red-700/80">Stripe Identity could not confirm the customer. The client can retry.</p>
+                <p className="text-sm font-semibold text-red-800">{t("banners.autoFailedTitle")}</p>
+                <p className="text-xs text-red-700/80">{t("banners.autoFailedDesc")}</p>
               </div>
             </div>
           )}
@@ -278,7 +280,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                 onClick={() => setConfirmAction("approve")}
               >
                 <CheckCircle2 className="mr-1.5 size-4" />
-                Approve
+                {t("actions.approve")}
               </Button>
               <Button
                 size="sm"
@@ -287,7 +289,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                 onClick={() => setConfirmAction("request_again")}
               >
                 <RefreshCw className="mr-1.5 size-4" />
-                Request again
+                {t("actions.requestAgain")}
               </Button>
               <Button
                 size="sm"
@@ -296,7 +298,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
                 onClick={() => setConfirmAction("reject")}
               >
                 <XCircle className="mr-1.5 size-4" />
-                Reject
+                {t("actions.reject")}
               </Button>
             </div>
           )}
@@ -304,9 +306,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
           {isManualFailed && (
             <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
               <ShieldX className="size-5 shrink-0 text-red-600" />
-              <p className="text-sm text-red-800">
-                Document rejected. The client can resubmit a new document via the client flow.
-              </p>
+              <p className="text-sm text-red-800">{t("banners.manualRejected")}</p>
             </div>
           )}
         </CardContent>
@@ -326,7 +326,7 @@ export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
               </DialogHeader>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setConfirmAction(null)} disabled={loading}>
-                  Cancel
+                  {t("actions.cancel")}
                 </Button>
                 <Button
                   className={confirmMeta[confirmAction].confirmClass}

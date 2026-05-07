@@ -31,6 +31,99 @@ export type DashboardNavSection = {
   items: DashboardNavItem[]
 }
 
+type T = (key: string) => string
+
+export function buildVendorNavigation(t: T): DashboardNavSection[] {
+  return [
+    {
+      label: t("nav.vendor.sections.cockpit"),
+      items: [
+        { href: "/vendor", label: t("nav.vendor.items.dashboard"), icon: "layoutDashboard" },
+        { href: "/vendor/profile", label: t("nav.vendor.items.businessProfile"), icon: "mapPinned" },
+        { href: "/vendor/actions", label: t("nav.vendor.items.actions"), icon: "activity" },
+      ],
+    },
+    {
+      label: t("nav.vendor.sections.contractFlow"),
+      items: [
+        { href: "/vendor/links", label: t("nav.vendor.items.linksAndQr"), icon: "link2" },
+        { href: "/vendor/transactions", label: t("nav.vendor.items.transactions"), icon: "creditCard" },
+        { href: "/vendor/contracts", label: t("nav.vendor.items.contractTemplates"), icon: "scrollText" },
+        { href: "/vendor/checklists", label: t("nav.vendor.items.checklists"), icon: "badgeCheck" },
+      ],
+    },
+    {
+      label: t("nav.vendor.sections.clientsVerification"),
+      items: [
+        { href: "/vendor/clients", label: t("nav.vendor.items.clients"), icon: "users" },
+        { href: "/vendor/kyc", label: t("nav.vendor.items.kyc"), icon: "shield" },
+        { href: "/vendor/signatures", label: t("nav.vendor.items.signatures"), icon: "signature" },
+      ],
+    },
+    {
+      label: t("nav.vendor.sections.finance"),
+      items: [
+        { href: "/vendor/deposits", label: t("nav.vendor.items.deposits"), icon: "wallet" },
+        { href: "/vendor/payments", label: t("nav.vendor.items.payments"), icon: "receiptText" },
+        { href: "/vendor/disputes", label: t("nav.vendor.items.disputes"), icon: "fileClock" },
+      ],
+    },
+    {
+      label: t("nav.vendor.sections.platform"),
+      items: [
+        { href: "/vendor/stripe", label: t("nav.vendor.items.stripe"), icon: "briefcaseBusiness" },
+        { href: "/vendor/billing", label: t("nav.vendor.items.billing"), icon: "creditCard" },
+        { href: "/vendor/webhooks", label: t("nav.vendor.items.events"), icon: "logs" },
+      ],
+    },
+  ]
+}
+
+export function buildVendorSubscriptionNavigation(t: T): DashboardNavSection[] {
+  return [
+    {
+      label: t("nav.vendor.sections.setup"),
+      items: [
+        { href: "/vendor/profile", label: t("nav.vendor.items.businessProfile"), icon: "mapPinned" },
+        { href: "/vendor/billing", label: t("nav.vendor.items.billing"), icon: "creditCard" },
+      ],
+    },
+  ]
+}
+
+export function buildAdminNavigation(t: T): DashboardNavSection[] {
+  return [
+    {
+      label: t("nav.admin.sections.overview"),
+      items: [
+        { href: "/admin", label: t("nav.admin.items.dashboard"), icon: "folderKanban" },
+      ],
+    },
+    {
+      label: t("nav.admin.sections.userManagement"),
+      items: [
+        { href: "/admin/users", label: t("nav.admin.items.allUsers"), icon: "users" },
+        { href: "/admin/vendors", label: t("nav.admin.items.vendors"), icon: "building2" },
+        { href: "/admin/invites", label: t("nav.admin.items.invitations"), icon: "mail" },
+      ],
+    },
+    {
+      label: t("nav.admin.sections.caseManagement"),
+      items: [
+        { href: "/admin/disputes", label: t("nav.admin.items.disputes"), icon: "fileClock" },
+      ],
+    },
+    {
+      label: t("nav.admin.sections.platform"),
+      items: [
+        { href: "/admin/roles", label: t("nav.admin.items.accessLevels"), icon: "shield" },
+        { href: "/admin/logs", label: t("nav.admin.items.activityLogs"), icon: "bookText" },
+        { href: "/admin/sessions", label: t("nav.admin.items.sessions"), icon: "fileText" },
+      ],
+    },
+  ]
+}
+
 export const vendorNavigation: DashboardNavSection[] = [
   {
     label: "Cockpit",

@@ -49,6 +49,18 @@
 }
 
 :root {
+  --font-plus-jakarta:
+    "Aptos",
+    "Segoe UI",
+    "Helvetica Neue",
+    "Arial",
+    sans-serif;
+  --font-fraunces:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    "Times New Roman",
+    serif;
   --background: #ffffff;
   --foreground: #0c1e2f;
   --card: #ffffff;

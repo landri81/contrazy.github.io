@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 
 import { normalizeContractTemplateMarkup } from "@/features/contracts/contract-content"
 import { cn } from "@/lib/utils"
@@ -45,6 +46,7 @@ function ContrazyWordmark() {
 }
 
 function DocumentHeader({ meta }: { meta: ContractDocumentMeta }) {
+  const t = useTranslations("contracts.preview")
   const formattedAmount = formatMoney(meta.amount, meta.currency)
   const formattedDeposit = formatMoney(meta.depositAmount, meta.currency)
 
@@ -53,29 +55,29 @@ function DocumentHeader({ meta }: { meta: ContractDocumentMeta }) {
       <div className="flex items-end justify-between border-b border-slate-200 pb-3">
         <ContrazyWordmark />
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-          Agreement Review
+          {t("agreementReview")}
         </p>
       </div>
 
       <div className="mb-3 mt-3 flex flex-col gap-0.5">
         <h1 className="text-xl font-semibold leading-snug tracking-tight text-slate-900">
-          {meta.title?.trim() || "Agreement"}
+          {meta.title?.trim() || t("agreement")}
         </h1>
         <p className="text-xs text-slate-400">
-          Review copy - locked transaction snapshot
+          {t("reviewCopy")}
         </p>
       </div>
 
       <table className="w-full border-collapse">
         <tbody>
-          {meta.vendorName && <DocumentHeaderRow label="Service Provider" value={meta.vendorName} />}
-          {meta.clientName && <DocumentHeaderRow label="Client" value={meta.clientName} />}
-          {meta.reference && <DocumentHeaderRow label="Reference" value={meta.reference} mono />}
+          {meta.vendorName && <DocumentHeaderRow label={t("serviceProvider")} value={meta.vendorName} />}
+          {meta.clientName && <DocumentHeaderRow label={t("client")} value={meta.clientName} />}
+          {meta.reference && <DocumentHeaderRow label={t("reference")} value={meta.reference} mono />}
           {formattedAmount && (
-            <DocumentHeaderRow label="Service Amount" value={formattedAmount} />
+            <DocumentHeaderRow label={t("serviceAmount")} value={formattedAmount} />
           )}
           {formattedDeposit && (
-            <DocumentHeaderRow label="Deposit" value={formattedDeposit} />
+            <DocumentHeaderRow label={t("deposit")} value={formattedDeposit} />
           )}
         </tbody>
       </table>

@@ -1,27 +1,22 @@
 "use client"
 
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
-
-const steps = [
-  { n: "01", emoji: "📨", title: "Lien / QR code", desc: "SMS · Email · WhatsApp" },
-  { n: "02", emoji: "👤", title: "Profil client", desc: "Pré-rempli si récurrent" },
-  { n: "03", emoji: "🪪", title: "KYC automatique", desc: "ID + selfie · Stripe Identity" },
-  { n: "04", emoji: "📝", title: "Contrat auto-généré", desc: "Données injectées" },
-  { n: "05", emoji: "✍️", title: "E-Signature", desc: "OTP SMS · Horodatée" },
-  { n: "06", emoji: "💳", title: "Paiement / caution", desc: "Stripe · Empreinte CB" },
-]
+import { useTranslations } from "next-intl"
 
 export function WorkflowSection() {
+  const t = useTranslations("marketing.workflow")
+  const steps = t.raw("steps") as Array<{ n: string; emoji: string; title: string; desc: string }>
+
   return (
     <div className="bg-[var(--contrazy-bg-muted)]">
       <div className="mx-auto max-w-7xl px-5 py-24 lg:px-10">
         <FadeIn className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">Parcours</p>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">{t("eyebrow")}</p>
           <h2 className="font-heading mt-3.5 text-[34px] font-bold leading-[1.2] tracking-[-0.5px] text-foreground">
-            Un lien ou QR code, <em className="italic text-[var(--contrazy-teal)]">six étapes</em>, trois minutes
+            {t("titleBefore")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasis")}</em>{t("titleAfter")}
           </h2>
           <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.7] text-muted-foreground">
-            Votre client reçoit un lien unique ou scanne un QR code. Il complète son dossier sans créer de compte.
+            {t("description")}
           </p>
         </FadeIn>
 

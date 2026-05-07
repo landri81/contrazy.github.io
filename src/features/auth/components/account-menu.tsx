@@ -2,9 +2,10 @@
 
 import { LayoutDashboard, LogOut, UserCircle2 } from "lucide-react"
 import { signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRouter } from "@/i18n/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,16 +42,18 @@ function getInitials(name?: string | null, email?: string | null) {
 }
 
 export function AccountMenu({ user, profileHref, workspaceHref, className }: AccountMenuProps) {
+  const t = useTranslations("site.header")
+  const locale = useLocale()
   const router = useRouter()
-  const displayName = user.name?.trim() || user.email?.split("@")[0] || "Account"
-  const displayEmail = user.email?.trim() || "Signed in"
+  const displayName = user.name?.trim() || user.email?.split("@")[0] || t("account")
+  const displayEmail = user.email?.trim() || t("signedIn")
   const initials = getInitials(user.name, user.email)
   const shouldShowWorkspace = Boolean(workspaceHref && workspaceHref !== profileHref)
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Open account menu"
+        aria-label={t("account")}
         className={cn(
           "group flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/12 bg-white/6 p-1 transition-all hover:bg-white/10 focus-visible:border-white/25 focus-visible:ring-2 focus-visible:ring-white/15 focus-visible:outline-none",
           className
@@ -80,19 +83,19 @@ export function AccountMenu({ user, profileHref, workspaceHref, className }: Acc
         {shouldShowWorkspace ? (
           <DropdownMenuItem onClick={() => router.push(workspaceHref!)}>
             <LayoutDashboard className="size-4" />
-            Workspace
+            {t("workspace")}
           </DropdownMenuItem>
         ) : null}
         {profileHref ? (
           <DropdownMenuItem onClick={() => router.push(profileHref)}>
             <UserCircle2 className="size-4" />
-            Profile
+            {t("profile")}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: "/login" })}>
+        <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: `/${locale}/login` })}>
           <LogOut className="size-4" />
-          Sign out
+          {t("signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

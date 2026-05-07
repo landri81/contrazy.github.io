@@ -13,6 +13,7 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
+import { resolveRequestLocale } from "@/lib/i18n/locale-utils"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
 export async function GET(request: Request) {
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
         signatureStatus: transaction.signatureRecord?.status ?? null,
         status: transaction.status,
         shortCode: transaction.link?.shortCode ?? null,
-        shareLink: transaction.link?.token ? `${getAppBaseUrl()}/t/${transaction.link.token}` : null,
+        shareLink: transaction.link?.token ? `${getAppBaseUrl()}/${transaction.locale.toLowerCase()}/t/${transaction.link.token}` : null,
         qrReady: Boolean(transaction.link?.qrCodeSvg),
         createdAt: transaction.createdAt,
       })),
@@ -217,7 +218,8 @@ export async function POST(request: Request) {
     const reference = `TX-${randomBytes(4).toString("hex").toUpperCase()}`
     const token = randomBytes(16).toString("hex")
     const baseUrl = getAppBaseUrl()
-    const secureLink = `${baseUrl}/t/${token}`
+    const txLocale = resolveRequestLocale(request, vendorProfile.preferredLocale)
+    const secureLink = `${baseUrl}/${txLocale}/t/${token}`
     const qrCodeSvg =
       generateQr === true
         ? await QRCode.toString(secureLink, { type: "svg", margin: 1 })
@@ -260,6 +262,7 @@ export async function POST(request: Request) {
           requireClientCompany,
           contractTemplateId: contractTemplate?.id ?? null,
           checklistTemplateId: checklistTemplate?.id ?? null,
+          locale: txLocale,
           status: "LINK_SENT",
         },
       })

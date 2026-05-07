@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { AlertTriangle, Banknote, Loader2, Unlock } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ export function DepositQuickActions({
   amountCents,
   currency,
 }: DepositQuickActionsProps) {
+  const t = useTranslations("dashboard.vendor.depositQuickActions")
   const router = useRouter()
   const [captureOpen, setCaptureOpen] = useState(false)
   const [releaseOpen, setReleaseOpen] = useState(false)
@@ -57,7 +59,7 @@ export function DepositQuickActions({
       : null
 
   if (status !== "AUTHORIZED") {
-    return <span className="text-xs text-muted-foreground">No action</span>
+    return <span className="text-xs text-muted-foreground">{t("noAction")}</span>
   }
 
   async function submitDepositAction(action: "capture" | "release", captureAmount?: number) {
@@ -74,17 +76,17 @@ export function DepositQuickActions({
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(payload?.message ?? `Unable to ${action} this deposit.`)
+        setError(payload?.message ?? t("errorDeposit"))
         return
       }
 
       toast({
         variant: "success",
-        title: action === "capture" ? "Deposit captured" : "Deposit released",
+        title: action === "capture" ? t("toastCaptured") : t("toastReleased"),
         description:
           action === "capture"
-            ? "The hold was converted into a card charge."
-            : "The hold was released on the customer's card.",
+            ? t("toastCapturedDesc")
+            : t("toastReleasedDesc"),
       })
       setCaptureOpen(false)
       setReleaseOpen(false)
@@ -92,7 +94,7 @@ export function DepositQuickActions({
       setCaptureMode("full")
       router.refresh()
     } catch {
-      setError(`Unable to ${action} this deposit.`)
+      setError(t("errorDeposit"))
     } finally {
       setPendingAction(null)
     }
@@ -100,7 +102,7 @@ export function DepositQuickActions({
 
   function handleCapture() {
     if (captureMode === "partial" && !partialValid) {
-      setError(`Enter an amount between ${formatMoney(1, currency)} and ${formatMoney(amountCents, currency)}.`)
+      setError(t("amountRangeError", { min: formatMoney(1, currency), max: formatMoney(amountCents, currency) }))
       return
     }
 
@@ -125,7 +127,7 @@ export function DepositQuickActions({
         }}
       >
         <Banknote className="size-3.5" />
-        Capture
+        {t("capture")}
       </Button>
       <Button
         type="button"
@@ -138,7 +140,7 @@ export function DepositQuickActions({
         }}
       >
         <Unlock className="size-3.5" />
-        Release
+        {t("release")}
       </Button>
 
       <Dialog open={captureOpen} onOpenChange={(open) => !pendingAction && setCaptureOpen(open)}>
@@ -146,10 +148,10 @@ export function DepositQuickActions({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Banknote className="size-5 text-[var(--contrazy-teal)]" />
-              Capture deposit
+              {t("captureTitle")}
             </DialogTitle>
             <DialogDescription>
-              Authorized amount: <strong>{formatMoney(amountCents, currency)}</strong>. Capture the full hold or enter a partial amount.
+              {t("captureDesc", { amount: formatMoney(amountCents, currency) })}
             </DialogDescription>
           </DialogHeader>
 
@@ -169,9 +171,9 @@ export function DepositQuickActions({
                       : "border-border text-muted-foreground hover:border-[var(--contrazy-teal)]/40"
                   }`}
                 >
-                  {mode === "full" ? "Full amount" : "Partial amount"}
+                  {mode === "full" ? t("fullAmount") : t("partialAmount")}
                   <p className="mt-0.5 text-[12px] font-normal opacity-70">
-                    {mode === "full" ? formatMoney(amountCents, currency) : "Set amount"}
+                    {mode === "full" ? formatMoney(amountCents, currency) : t("setAmount")}
                   </p>
                 </button>
               ))}
@@ -187,7 +189,7 @@ export function DepositQuickActions({
                   className="overflow-hidden"
                 >
                   <div className="space-y-1.5 pt-1">
-                    <Label htmlFor={`deposit-capture-${transactionId}`}>Amount to capture ({currency})</Label>
+                    <Label htmlFor={`deposit-capture-${transactionId}`}>{t("amountLabel", { currency })}</Label>
                     <Input
                       id={`deposit-capture-${transactionId}`}
                       type="number"
@@ -202,16 +204,14 @@ export function DepositQuickActions({
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Maximum: {formatMoney(amountCents, currency)}
+                      {t("maximum", { amount: formatMoney(amountCents, currency) })}
                     </p>
                     {partialCaptureWarning ? (
                       <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
                         <AlertTriangle className="size-4" />
-                        <AlertTitle>Remaining amount will be released</AlertTitle>
+                        <AlertTitle>{t("remainingAlert")}</AlertTitle>
                         <AlertDescription className="text-amber-800 dark:text-amber-200">
-                          Capturing {formatMoney(partialCaptureWarning.captureAmountCents, currency)} will release the remaining{" "}
-                          {formatMoney(partialCaptureWarning.releaseAmountCents, currency)} back to the client&apos;s card.
-                          That released amount cannot be captured later from this hold.
+                          {t("remainingDesc", { capture: formatMoney(partialCaptureWarning.captureAmountCents, currency), release: formatMoney(partialCaptureWarning.releaseAmountCents, currency) })}
                         </AlertDescription>
                       </Alert>
                     ) : null}
@@ -230,7 +230,7 @@ export function DepositQuickActions({
               onClick={() => setCaptureOpen(false)}
               disabled={pendingAction === "capture"}
             >
-              Close
+              {t("closeBtn")}
             </Button>
             <Button
               type="button"
@@ -252,10 +252,10 @@ export function DepositQuickActions({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Unlock className="size-5 text-emerald-600" />
-              Release deposit
+              {t("releaseTitle")}
             </DialogTitle>
             <DialogDescription>
-              This releases the {formatMoney(amountCents, currency)} hold back to the customer&apos;s card.
+              {t("releaseDesc", { amount: formatMoney(amountCents, currency) })}
             </DialogDescription>
           </DialogHeader>
 
@@ -268,7 +268,7 @@ export function DepositQuickActions({
               onClick={() => setReleaseOpen(false)}
               disabled={pendingAction === "release"}
             >
-              Keep hold
+              {t("keepHold")}
             </Button>
             <Button
               type="button"
@@ -277,7 +277,7 @@ export function DepositQuickActions({
               className="bg-emerald-600 text-white hover:bg-emerald-700"
             >
               {pendingAction === "release" ? <Loader2 className="size-4 animate-spin" /> : null}
-              Release deposit
+              {t("releaseConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

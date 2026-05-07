@@ -25,8 +25,11 @@ import {
 } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 
+import { useTranslations } from "next-intl"
+
 import { Button } from "@/components/ui/button"
 import { CharacterCount } from "@/components/ui/character-count"
+import { Link } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -112,36 +115,7 @@ function depositFee(amountEur: number) {
 
 // ── Step config ────────────────────────────────────────────────────────────
 
-const STEPS = [
-  {
-    id: 1,
-    label: "Info",
-    title: "Basics",
-    description: "Set the internal title and context.",
-    icon: FileText,
-  },
-  {
-    id: 2,
-    label: "Payment",
-    title: "Amounts",
-    description: "Choose the service payment, deposit, or both.",
-    icon: CreditCard,
-  },
-  {
-    id: 3,
-    label: "Documents",
-    title: "Requirements",
-    description: "Add uploads, contract, and optional KYC.",
-    icon: ShieldCheck,
-  },
-  {
-    id: 4,
-    label: "Review",
-    title: "Launch",
-    description: "Check the flow and decide on QR generation.",
-    icon: LinkIcon,
-  },
-]
+const STEP_ICONS = [FileText, CreditCard, ShieldCheck, LinkIcon] as const
 
 // ── Framer-motion variants ────────────────────────────────────────────────
 
@@ -166,9 +140,11 @@ const slideVariants: Variants = {
 
 // ── Progress indicator ─────────────────────────────────────────────────────
 
-function StepProgress({ current }: { current: number }) {
-  const currentStep = STEPS[current - 1]
-  const progressPercent = Math.round((current / STEPS.length) * 100)
+type StepDef = { id: number; label: string; title: string; description: string; icon: React.ComponentType<{ className?: string }> }
+
+function StepProgress({ current, steps, t }: { current: number; steps: StepDef[]; t: ReturnType<typeof useTranslations<"dashboard.vendor.transactionCreation">> }) {
+  const currentStep = steps[current - 1]
+  const progressPercent = Math.round((current / steps.length) * 100)
 
   return (
     <div className="border-b border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,0.98))] px-4 py-3 sm:px-5">
@@ -177,7 +153,7 @@ function StepProgress({ current }: { current: number }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/85 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Step {current} of {STEPS.length}
+                {t("stepOf", { current, total: steps.length })}
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-[var(--contrazy-teal)]/10 px-3 py-1 text-xs font-semibold text-[var(--contrazy-teal)] ring-1 ring-[var(--contrazy-teal)]/12">
                 <currentStep.icon className="size-3.5" />
@@ -188,20 +164,20 @@ function StepProgress({ current }: { current: number }) {
           </div>
 
           <div className="hidden shrink-0 sm:flex items-center rounded-full border border-border/70 bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            {progressPercent}% complete
+            {t("percentComplete", { percent: progressPercent })}
           </div>
         </div>
 
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/80">
           <motion.div
             className="h-full rounded-full bg-[var(--contrazy-teal)]"
-            animate={{ width: `${(current / STEPS.length) * 100}%` }}
+            animate={{ width: `${(current / steps.length) * 100}%` }}
             transition={{ duration: 0.28, ease: motionEase }}
           />
         </div>
 
         <div className="scrollbar-thin-subtle -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0">
-          {STEPS.map((s) => {
+          {steps.map((s) => {
             const Icon = s.icon
             const done = current > s.id
             const active = current === s.id
@@ -234,7 +210,7 @@ function StepProgress({ current }: { current: number }) {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{s.label}</p>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {active ? "Current step" : done ? "Completed" : `Step ${s.id}`}
+                      {active ? t("currentStep") : done ? t("completed") : t("stepN", { n: s.id })}
                     </p>
                   </div>
                 </div>
@@ -288,6 +264,15 @@ export function TransactionCreationForm({
   onDirtyChange,
   onSuccessStateChange,
 }: TransactionCreationFormProps) {
+  const t = useTranslations("dashboard.vendor.transactionCreation")
+
+  const STEPS: StepDef[] = [
+    { id: 1, label: t("steps.info.label"),      title: t("steps.info.title"),      description: t("steps.info.description"),      icon: STEP_ICONS[0] },
+    { id: 2, label: t("steps.payment.label"),   title: t("steps.payment.title"),   description: t("steps.payment.description"),   icon: STEP_ICONS[1] },
+    { id: 3, label: t("steps.documents.label"), title: t("steps.documents.title"), description: t("steps.documents.description"), icon: STEP_ICONS[2] },
+    { id: 4, label: t("steps.review.label"),    title: t("steps.review.title"),    description: t("steps.review.description"),    icon: STEP_ICONS[3] },
+  ]
+
   // Step navigation
   const [step, setStep] = useState(1)
   const [dir, setDir] = useState(1)
@@ -327,8 +312,8 @@ export function TransactionCreationForm({
 
   const selectedContract = contracts.find((c) => c.id === contractId)
   const selectedChecklist = checklists.find((c) => c.id === checklistId)
-  const contractLabel = contractId === "none" ? "No contract" : getTemplateLabel(selectedContract, "Selected contract")
-  const checklistLabel = checklistId === "none" ? "No uploads" : getTemplateLabel(selectedChecklist, "Selected checklist")
+  const contractLabel = contractId === "none" ? t("noContract") : getTemplateLabel(selectedContract, t("selectedContract"))
+  const checklistLabel = checklistId === "none" ? t("noUploads") : getTemplateLabel(selectedChecklist, t("selectedChecklist"))
 
   const txKind =
     amountNum > 0 && depositNum > 0 ? "HYBRID"
@@ -337,22 +322,22 @@ export function TransactionCreationForm({
     : null
 
   const KIND_LABELS: Record<string, string> = {
-    PAYMENT: "Service Payment only",
-    DEPOSIT: "Deposit Hold only",
-    HYBRID: "Payment + Deposit",
+    PAYMENT: t("kindPayment"),
+    DEPOSIT: t("kindDeposit"),
+    HYBRID: t("kindHybrid"),
   }
 
   const clientSteps = [
-    { key: "profile", label: "Profile" },
-    requirements.length > 0 && { key: "documents", label: "Documents" },
-    requiresKyc && { key: "kyc", label: "ID Verification" },
-    contractId !== "none" && { key: "contract", label: "Review & Sign" },
-    depositNum > 0 && { key: "payment", label: "Deposit hold" },
+    { key: "profile", label: t("clientStepProfile") },
+    requirements.length > 0 && { key: "documents", label: t("clientStepDocuments") },
+    requiresKyc && { key: "kyc", label: t("clientStepKyc") },
+    contractId !== "none" && { key: "contract", label: t("clientStepContract") },
+    depositNum > 0 && { key: "payment", label: t("clientStepPayment") },
     amountNum > 0 && paymentCollectionTiming === "AFTER_SIGNING" && {
       key: "service-payment",
-      label: depositNum > 0 ? "Service payment" : "Payment",
+      label: depositNum > 0 ? t("clientStepServicePayment") : t("clientStepServicePaymentOnly"),
     },
-    { key: "complete", label: "Complete" },
+    { key: "complete", label: t("clientStepComplete") },
   ].filter(Boolean) as { key: string; label: string }[]
 
   const isDirty = Boolean(
@@ -373,16 +358,24 @@ export function TransactionCreationForm({
 
   useEffect(() => {
     if (checklistId === "none") {
-      setRequirements([])
-      return
+      const resetTimer = setTimeout(() => {
+        setRequirements([])
+      }, 0)
+      return () => clearTimeout(resetTimer)
     }
 
-    setRequirements((selectedChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
+    const syncTimer = setTimeout(() => {
+      setRequirements((selectedChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
+    }, 0)
+    return () => clearTimeout(syncTimer)
   }, [checklistId, selectedChecklist])
 
   useEffect(() => {
     if (amountNum <= 0 && paymentCollectionTiming === "AFTER_SERVICE") {
-      setPaymentCollectionTiming("AFTER_SIGNING")
+      const timingTimer = setTimeout(() => {
+        setPaymentCollectionTiming("AFTER_SIGNING")
+      }, 0)
+      return () => clearTimeout(timingTimer)
     }
   }, [amountNum, paymentCollectionTiming])
 
@@ -430,22 +423,22 @@ export function TransactionCreationForm({
 
     if (step === 1) {
       if (!title.trim()) {
-        setStepError("Please enter a transaction title to continue.")
+        setStepError(t("errorTitle"))
         return
       }
     }
 
     if (step === 2) {
       if (hasStripe && canLaunch && amountNum <= 0 && depositNum <= 0) {
-        setStepError("Set at least one amount — a deposit hold, a service payment, or both.")
+        setStepError(t("errorAmount"))
         return
       }
       if (amount && (isNaN(parseFloat(amount)) || parseFloat(amount) < 0.5)) {
-        setStepError("Minimum service payment is €0.50")
+        setStepError(t("errorMinService"))
         return
       }
       if (depositAmount && (isNaN(parseFloat(depositAmount)) || parseFloat(depositAmount) < 0.5)) {
-        setStepError("Minimum deposit hold is €0.50")
+        setStepError(t("errorMinDeposit"))
         return
       }
     }
@@ -456,7 +449,7 @@ export function TransactionCreationForm({
       )
 
       if (invalidRequirement) {
-        setStepError("Complete every requirement label and add a custom category label when using Other.")
+        setStepError(t("errorRequirements"))
         return
       }
     }
@@ -468,10 +461,10 @@ export function TransactionCreationForm({
     setError(null)
 
     if (!canLaunch) { setError(blockedMessage); return }
-    if (!hasStripe) { setError("Connect Stripe before creating live customer transactions."); return }
+    if (!hasStripe) { setError(t("errorNoStripe")); return }
 
     if (amountNum <= 0 && depositNum <= 0) {
-      setError("Enter a service payment amount, a deposit hold amount, or both before generating a link.")
+      setError(t("errorAmountRequired"))
       navigate(2)
       return
     }
@@ -504,7 +497,7 @@ export function TransactionCreationForm({
       })
 
       const data = await res.json()
-      if (!res.ok) { setError(data.message || "Failed to create transaction"); return }
+      if (!res.ok) { setError(data.message || t("errorCreate")); return }
 
       const link = `${window.location.origin}/t/${data.link.token}`
       setSuccessLink(link)
@@ -512,7 +505,7 @@ export function TransactionCreationForm({
         onLinkCreated(data.linkRecord, data.actionUsage ?? null)
       }
     } catch {
-      setError("An unexpected error occurred.")
+      setError(t("errorUnexpected"))
     } finally {
       setIsPending(false)
     }
@@ -554,11 +547,9 @@ export function TransactionCreationForm({
               <CheckCircle2 className="size-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-base font-semibold text-emerald-950">Transaction created</p>
+              <p className="text-base font-semibold text-emerald-950">{t("successTitle")}</p>
               <p className="mt-1 text-sm text-emerald-900/75">
-                {generateQr
-                  ? "Share this secure link or stored QR code with your client."
-                  : "Share this secure link now. You can generate a QR later from Recent links if you need one."}
+                {generateQr ? t("successDescWithQr") : t("successDescNoQr")}
               </p>
             </div>
           </div>
@@ -568,7 +559,7 @@ export function TransactionCreationForm({
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input readOnly value={successLink} className="bg-white text-xs" />
             <Button type="button" variant="outline" className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={handleCopy}>
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t("copied") : t("copy")}
             </Button>
           </div>
 
@@ -577,7 +568,7 @@ export function TransactionCreationForm({
               <QRCodeSVG value={successLink} size={140} level="M" includeMargin />
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <QrCode className="size-3.5" />
-                Stored QR ready to scan
+                {t("qrReadyLabel")}
               </p>
             </div>
           ) : (
@@ -587,9 +578,9 @@ export function TransactionCreationForm({
                   <LockKeyhole className="size-4 text-emerald-700" />
                 </div>
                 <div>
-                  <p className="font-medium">QR not generated</p>
+                  <p className="font-medium">{t("qrNotGenerated")}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    This transaction is live with the secure link only. Generate a QR later from the Recent links manager when quota is available.
+                    {t("qrNotGeneratedDesc")}
                   </p>
                 </div>
               </div>
@@ -599,7 +590,7 @@ export function TransactionCreationForm({
 
         <div className="shrink-0 border-t border-emerald-100/80 bg-white/90 px-4 py-4 sm:px-6">
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={handleReset}>
-            Create another transaction
+            {t("createAnother")}
           </Button>
         </div>
       </div>
@@ -610,7 +601,7 @@ export function TransactionCreationForm({
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="shrink-0">
-        <StepProgress current={step} />
+        <StepProgress current={step} steps={STEPS} t={t} />
       </div>
 
       <div className="scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -629,18 +620,18 @@ export function TransactionCreationForm({
               <div className="mx-auto w-full  space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={FileText}
-                  eyebrow="Step one"
-                  title="Name the transaction clearly"
-                  description="Use a short operational title so you can find the workflow quickly later."
+                  eyebrow={t("steps.info.eyebrow")}
+                  title={t("steps.info.stepTitle")}
+                  description={t("steps.info.stepDescription")}
                 />
 
                 <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="title">
-                    Title <span className="text-destructive">*</span>
+                    {t("titleLabel")} <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="title"
-                    placeholder="e.g. Rental #104 — BMW X5, 3 days"
+                    placeholder={t("titlePlaceholder")}
                     maxLength={INPUT_LIMITS.transactionTitle}
                     value={title}
                     onChange={(e) => { setTitle(e.target.value); setStepError(null) }}
@@ -650,12 +641,12 @@ export function TransactionCreationForm({
 
                 <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="notes">
-                    Internal notes{" "}
-                    <span className="text-xs font-normal text-muted-foreground">(private, not shown to client)</span>
+                    {t("notesLabel")}{" "}
+                    <span className="text-xs font-normal text-muted-foreground">{t("notesPrivate")}</span>
                   </Label>
                   <Textarea
                     id="notes"
-                    placeholder="Any internal reference or reminders…"
+                    placeholder={t("notesPlaceholder")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     maxLength={INPUT_LIMITS.transactionNotes}
@@ -671,9 +662,9 @@ export function TransactionCreationForm({
               <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={CreditCard}
-                  eyebrow="Step two"
-                  title="Choose the money flow"
-                  description="Set a service payment, a deposit hold, or both. At least one amount is required to launch."
+                  eyebrow={t("steps.payment.eyebrow")}
+                  title={t("steps.payment.stepTitle")}
+                  description={t("steps.payment.stepDescription")}
                 />
 
                 {/* Stripe / approval warnings */}
@@ -689,8 +680,8 @@ export function TransactionCreationForm({
                       <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs dark:border-blue-900 dark:bg-blue-950/20">
                         <Info className="mt-0.5 size-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                         <p className="text-blue-800 dark:text-blue-300">
-                          Payment features require a connected Stripe account.{" "}
-                          <a href="/vendor/stripe" className="font-semibold underline">Connect Stripe →</a>
+                          {t("stripeRequired")}{" "}
+                          <Link href="/vendor/stripe" className="font-semibold underline">{t("connectStripe")} →</Link>
                         </p>
                       </div>
                     )}
@@ -705,16 +696,16 @@ export function TransactionCreationForm({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                          Security Deposit
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Primary</span>
+                          {t("depositTitle")}
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">{t("depositBadge")}</span>
                         </p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          The card is held only. Capture or release it after the work is complete.
+                          {t("depositDesc")}
                         </p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="depositAmount" className="text-xs">Hold amount (EUR)</Label>
+                      <Label htmlFor="depositAmount" className="text-xs">{t("depositHoldLabel")}</Label>
                       <Input
                         id="depositAmount"
                         type="number"
@@ -728,19 +719,19 @@ export function TransactionCreationForm({
                       {depositNum > 0 ? (
                         <div className="rounded-2xl border border-amber-100 bg-white/85 p-3 text-xs">
                           <div className="flex justify-between text-muted-foreground">
-                            <span>Hold amount</span>
+                            <span>{t("holdAmount")}</span>
                             <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
                           </div>
                           <div className="mt-1 flex justify-between text-muted-foreground">
-                            <span>Stripe fee estimate</span>
+                            <span>{t("stripeFeeEstimate")}</span>
                             <span>€{depositPricing?.stripeFee.toFixed(2)}</span>
                           </div>
                           <div className="mt-1 flex justify-between text-muted-foreground">
-                            <span>Conntrazy margin</span>
+                            <span>{t("platformMargin")}</span>
                             <span>€{depositPricing?.platformFee.toFixed(2)}</span>
                           </div>
                           <div className="mt-2 border-t border-amber-100 pt-2 text-muted-foreground">
-                            If captured you receive <strong>€{depositPricing?.vendorNet.toFixed(2)}</strong>.
+                            {t("ifCaptured", { amount: `€${depositPricing?.vendorNet.toFixed(2)}` })}
                           </div>
                         </div>
                       ) : null}
@@ -754,16 +745,16 @@ export function TransactionCreationForm({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                          Service Payment
-                          <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-border">Optional</span>
+                          {t("servicePaymentTitle")}
+                          <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground ring-1 ring-border">{t("servicePaymentOptional")}</span>
                         </p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          Charged immediately. Stripe fees are deducted from the collected amount.
+                          {t("servicePaymentDesc")}
                         </p>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="amount" className="text-xs">Amount (EUR)</Label>
+                      <Label htmlFor="amount" className="text-xs">{t("amountLabel")}</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -776,8 +767,7 @@ export function TransactionCreationForm({
                       />
                       {amountNum > 0 ? (
                         <div className="rounded-2xl border border-emerald-100 bg-white/85 p-3 text-xs text-muted-foreground">
-                          Client pays <strong>€{amountNum.toFixed(2)}</strong>. Estimated payout after fees:{" "}
-                          <strong>€{(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}</strong>.
+                          {t("clientPays", { amount: `€${amountNum.toFixed(2)}`, payout: `€${(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}` })}
                         </div>
                       ) : null}
                     </div>
@@ -800,9 +790,9 @@ export function TransactionCreationForm({
                         <Clock3 className="size-4 text-foreground" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">Service payment timing</p>
+                        <p className="text-sm font-medium text-foreground">{t("timingTitle")}</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          Choose whether the client pays the service amount during this flow or only after you request it later.
+                          {t("timingDesc")}
                         </p>
                       </div>
                     </div>
@@ -837,26 +827,26 @@ export function TransactionCreationForm({
               <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={ShieldCheck}
-                  eyebrow="Step three"
-                  title="Attach the right requirements"
-                  description="Choose what the client must upload, review, or verify before the workflow is complete."
+                  eyebrow={t("steps.documents.eyebrow")}
+                  title={t("steps.documents.stepTitle")}
+                  description={t("steps.documents.stepDescription")}
                 />
 
                 <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="checklist" className="flex items-center gap-1.5">
                     <FileText className="size-3.5 text-muted-foreground" />
-                    Required Uploads
+                    {t("requiredUploads")}
                   </Label>
                   <Select value={checklistId} onValueChange={(value) => setChecklistId(value ?? "none")}>
                     <SelectTrigger id="checklist">
                       <span className={cn("flex-1 truncate text-sm", checklistId === "none" && "text-muted-foreground")}>{checklistLabel}</span>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No uploads needed</SelectItem>
+                      <SelectItem value="none">{t("noUploadsNeeded")}</SelectItem>
                       {checklists.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          <span className="block max-w-60 truncate">{getTemplateLabel(c, "Untitled checklist")}</span>
+                          <span className="block max-w-60 truncate">{getTemplateLabel(c, t("untitledChecklist"))}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -866,17 +856,17 @@ export function TransactionCreationForm({
                 <div className="space-y-2.5 rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
                   <Label htmlFor="contract" className="flex items-center gap-1.5">
                     <FileText className="size-3.5 text-muted-foreground" />
-                    Contract Template
+                    {t("contractTemplate")}
                   </Label>
                   <Select value={contractId} onValueChange={(value) => setContractId(value ?? "none")}>
                     <SelectTrigger id="contract">
                       <span className={cn("flex-1 truncate text-sm", contractId === "none" && "text-muted-foreground")}>{contractLabel}</span>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No contract needed</SelectItem>
+                      <SelectItem value="none">{t("noContractNeeded")}</SelectItem>
                       {contracts.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          <span className="block max-w-60 truncate">{getTemplateLabel(c, "Untitled contract")}</span>
+                          <span className="block max-w-60 truncate">{getTemplateLabel(c, t("untitledContract"))}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -887,20 +877,20 @@ export function TransactionCreationForm({
                 <div className="space-y-4 rounded-3xl border border-border/70 bg-background p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-medium text-foreground">Per-transaction requirements</p>
+                      <p className="text-sm font-medium text-foreground">{t("perTransactionTitle")}</p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Start from a checklist template, then adjust the required uploads or text fields before you launch the link.
+                        {t("perTransactionDesc")}
                       </p>
                     </div>
                     <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={addRequirement}>
                       <Plus className="mr-1.5 size-3.5" />
-                      Add requirement
+                      {t("addRequirement")}
                     </Button>
                   </div>
 
                   {requirements.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
-                      No extra requirements yet. Add uploads or text prompts only when this transaction needs them.
+                      {t("noRequirements")}
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -908,16 +898,16 @@ export function TransactionCreationForm({
                         <div key={`${item.label}-${index}`} className="rounded-2xl border border-border/70 bg-muted/10 p-3">
                           <div className="grid gap-3 lg:grid-cols-2">
                             <div className="space-y-2">
-                              <Label className="text-xs">Label</Label>
+                              <Label className="text-xs">{t("reqLabel")}</Label>
                               <Input
                                 value={item.label}
                                 onChange={(event) => updateRequirement(index, { label: event.target.value })}
-                                placeholder="e.g. Driver's license"
+                                placeholder={t("reqLabelPlaceholder")}
                                 maxLength={INPUT_LIMITS.checklistItemLabel}
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs">Type</Label>
+                              <Label className="text-xs">{t("reqType")}</Label>
                               <Select
                                 value={item.type}
                                 onValueChange={(value) => updateRequirement(index, { type: value as RequirementTypeValue })}
@@ -937,7 +927,7 @@ export function TransactionCreationForm({
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs">Category</Label>
+                              <Label className="text-xs">{t("reqCategory")}</Label>
                               <Select
                                 value={item.category}
                                 onValueChange={(value) => updateRequirement(index, { category: value as RequirementCategoryValue })}
@@ -955,11 +945,11 @@ export function TransactionCreationForm({
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs">Other label</Label>
+                              <Label className="text-xs">{t("reqOtherLabel")}</Label>
                               <Input
                                 value={item.customCategoryLabel}
                                 onChange={(event) => updateRequirement(index, { customCategoryLabel: event.target.value })}
-                                placeholder="Custom category label"
+                                placeholder={t("reqCustomPlaceholder")}
                                 maxLength={INPUT_LIMITS.checklistItemLabel}
                                 disabled={item.category !== "OTHER"}
                               />
@@ -968,12 +958,12 @@ export function TransactionCreationForm({
 
                           <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
                             <div className="space-y-2">
-                              <Label className="text-xs">Instructions</Label>
+                              <Label className="text-xs">{t("reqInstructions")}</Label>
                               <div>
                                 <Textarea
                                   value={item.description}
                                   onChange={(event) => updateRequirement(index, { description: event.target.value })}
-                                  placeholder={item.type === "TEXT" ? "Explain what the client should type." : "Add optional upload guidance."}
+                                  placeholder={item.type === "TEXT" ? t("reqTextPlaceholder") : t("reqUploadPlaceholder")}
                                   maxLength={INPUT_LIMITS.checklistItemInstructions}
                                   className="min-h-[72px] resize-none"
                                 />
@@ -989,7 +979,7 @@ export function TransactionCreationForm({
                                 checked={item.required}
                                 onCheckedChange={(checked) => updateRequirement(index, { required: Boolean(checked) })}
                               />
-                              Required
+                              {t("reqRequired")}
                             </label>
                             <Button
                               type="button"
@@ -1013,9 +1003,9 @@ export function TransactionCreationForm({
                       <Building2 className="size-4 text-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">Require company name</p>
+                      <p className="text-sm font-medium text-foreground">{t("requireCompanyTitle")}</p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Make the client company field mandatory on this transaction when the agreement or invoicing needs it.
+                        {t("requireCompanyDesc")}
                       </p>
                     </div>
                   </div>
@@ -1032,26 +1022,26 @@ export function TransactionCreationForm({
                       <ShieldCheck className="size-4 text-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">Require ID document</p>
+                      <p className="text-sm font-medium text-foreground">{t("requireIdTitle")}</p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Client completes Stripe Identity with a government-issued photo ID and the result is attached to the transaction automatically.
+                        {t("requireIdDesc")}
                       </p>
                       {!canUseKycInPlan ? (
                         <p className="mt-1.5 text-xs text-muted-foreground">
-                          Activate a paid plan to enable Stripe Identity verification.
+                          {t("kycPlanRequired")}
                         </p>
                       ) : remainingKyc !== null && remainingKyc <= 0 ? (
                         <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                          Your included KYC quota is fully used for this billing period.
+                          {t("kycQuotaUsed")}
                         </p>
                       ) : remainingKyc !== null ? (
                         <p className="mt-1.5 text-xs text-muted-foreground">
-                          {remainingKyc} verification{remainingKyc === 1 ? "" : "s"} remaining this period.
+                          {remainingKyc === 1 ? t("kycRemainingOne") : t("kycRemainingMany", { count: remainingKyc })}
                         </p>
                       ) : null}
                       {requiresKyc && (
                         <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                          Stripe Identity opens inside the client flow before the next required step.
+                          {t("kycNote")}
                         </p>
                       )}
                     </div>
@@ -1071,76 +1061,76 @@ export function TransactionCreationForm({
               <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4 sm:px-6 sm:py-5">
                 <StepIntro
                   icon={LinkIcon}
-                  eyebrow="Final step"
-                  title="Review and launch"
-                  description="Confirm the client journey, decide whether this transaction needs a QR, then create the secure link."
+                  eyebrow={t("steps.review.eyebrow")}
+                  title={t("steps.review.stepTitle")}
+                  description={t("steps.review.stepDescription")}
                 />
 
                 {/* Summary */}
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
                   <div className="rounded-3xl border border-border/70 bg-background shadow-sm">
                     <div className="border-b border-border/70 px-4 py-3">
-                      <p className="text-sm font-medium text-foreground">Transaction summary</p>
+                      <p className="text-sm font-medium text-foreground">{t("summaryTitle")}</p>
                     </div>
                     <div className="divide-y divide-border/50 text-sm">
                       <div className="flex items-start justify-between px-4 py-3">
-                        <span className="text-muted-foreground">Title</span>
+                        <span className="text-muted-foreground">{t("summaryTitleRow")}</span>
                         <span className="ml-4 max-w-[220px] truncate text-right font-medium text-foreground">{title || "—"}</span>
                       </div>
 
                       <div className="flex items-center justify-between px-4 py-3">
-                        <span className="text-muted-foreground">Type</span>
+                        <span className="text-muted-foreground">{t("summaryType")}</span>
                         <span className="font-medium text-foreground">{txKind ? KIND_LABELS[txKind] : "—"}</span>
                       </div>
 
                       {depositNum > 0 && (
                         <div className="flex items-center justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Deposit hold</span>
+                          <span className="text-muted-foreground">{t("summaryDeposit")}</span>
                           <span className="font-medium text-foreground">€{depositNum.toFixed(2)}</span>
                         </div>
                       )}
 
                       {amountNum > 0 && (
                         <div className="flex items-center justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Service payment</span>
+                          <span className="text-muted-foreground">{t("summaryService")}</span>
                           <span className="font-medium text-foreground">€{amountNum.toFixed(2)}</span>
                         </div>
                       )}
 
                       {amountNum > 0 && (
                         <div className="flex items-center justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Payment timing</span>
+                          <span className="text-muted-foreground">{t("summaryTiming")}</span>
                           <span className="font-medium text-foreground">{getPaymentCollectionTimingLabel(paymentCollectionTiming)}</span>
                         </div>
                       )}
 
                       {contractId !== "none" && (
                         <div className="flex items-start justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Contract</span>
+                          <span className="text-muted-foreground">{t("summaryContract")}</span>
                           <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">{contractLabel}</span>
                         </div>
                       )}
 
                       {requirements.length > 0 && (
                         <div className="flex items-start justify-between px-4 py-3">
-                          <span className="text-muted-foreground">Requirements</span>
+                          <span className="text-muted-foreground">{t("summaryRequirements")}</span>
                           <span className="ml-4 max-w-[180px] truncate text-right font-medium text-foreground">
-                            {requirements.length} item{requirements.length === 1 ? "" : "s"}
+                            {requirements.length === 1 ? t("summaryRequirementsOne") : t("summaryRequirementsMany", { count: requirements.length })}
                           </span>
                         </div>
                       )}
 
                       <div className="flex items-center justify-between px-4 py-3">
-                        <span className="text-muted-foreground">ID verification</span>
+                        <span className="text-muted-foreground">{t("summaryIdVerification")}</span>
                         <span className={cn("font-medium", requiresKyc ? "text-foreground" : "text-muted-foreground")}>
-                          {requiresKyc ? "Required" : "Not required"}
+                          {requiresKyc ? t("required") : t("notRequired")}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between px-4 py-3">
-                        <span className="text-muted-foreground">Company name</span>
+                        <span className="text-muted-foreground">{t("summaryCompanyName")}</span>
                         <span className={cn("font-medium", requireClientCompany ? "text-foreground" : "text-muted-foreground")}>
-                          {requireClientCompany ? "Required" : "Optional"}
+                          {requireClientCompany ? t("required") : t("optional")}
                         </span>
                       </div>
                     </div>
@@ -1148,7 +1138,7 @@ export function TransactionCreationForm({
 
                   <div className="space-y-4">
                     <div className="rounded-3xl border border-border/70 bg-muted/20 p-4">
-                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Client journey</p>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("clientJourney")}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {clientSteps.map((s, i) => (
                           <div key={s.key} className="flex items-center gap-1.5">
@@ -1163,7 +1153,7 @@ export function TransactionCreationForm({
                       </div>
                       {amountNum > 0 && paymentCollectionTiming === "AFTER_SERVICE" ? (
                         <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                          The service amount is not collected during the initial client flow. You will request it later from the vendor dashboard after the service is delivered.
+                          {t("deferredPaymentNote")}
                         </p>
                       ) : null}
                     </div>
@@ -1175,22 +1165,22 @@ export function TransactionCreationForm({
                         <QrCode className="size-4 text-foreground" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">Generate QR now</p>
+                        <p className="text-sm font-medium text-foreground">{t("generateQrTitle")}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Optional. The secure link always works without a QR.
+                          {t("generateQrDesc")}
                         </p>
                         {qrRemaining !== null ? (
                           <p className="mt-1.5 text-xs text-muted-foreground">
-                            {qrRemaining} QR code{qrRemaining === 1 ? "" : "s"} remaining this billing period.
+                            {qrRemaining === 1 ? t("qrRemainingOne") : t("qrRemainingMany", { count: qrRemaining })}
                           </p>
                         ) : (
-                          <p className="mt-1.5 text-xs text-muted-foreground">Unlimited QR generation on your current plan.</p>
+                          <p className="mt-1.5 text-xs text-muted-foreground">{t("qrUnlimited")}</p>
                         )}
                         {qrToggleDisabled ? (
                           <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
                             {hasStripe && canLaunch
-                              ? "QR generation is unavailable until you have remaining quota."
-                              : "Complete workspace readiness first, then generate QR when needed."}
+                              ? t("qrDisabledQuota")
+                              : t("qrDisabledReadiness")}
                           </p>
                         ) : null}
                       </div>
@@ -1255,7 +1245,7 @@ export function TransactionCreationForm({
             disabled={isPending}
           >
             <ArrowLeft className="mr-1.5 size-4" />
-            Back
+            {t("back")}
           </Button>
         ) : (
           <div className="flex-1" />
@@ -1267,7 +1257,7 @@ export function TransactionCreationForm({
             className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft) sm:flex-1"
             onClick={handleNext}
           >
-            Next
+            {t("next")}
             <ArrowRight className="ml-1.5 size-4" />
           </Button>
         ) : (
@@ -1282,7 +1272,7 @@ export function TransactionCreationForm({
             ) : (
               <LinkIcon className="mr-2 size-4" />
             )}
-            {isPending ? "Creating…" : "Create Transaction"}
+            {isPending ? t("creating") : t("createTransaction")}
           </Button>
         )}
         </div>

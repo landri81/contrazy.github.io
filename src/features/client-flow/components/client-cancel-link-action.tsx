@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/navigation"
 import { Loader2, XCircle } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 
 export function ClientCancelLinkAction({ token }: { token: string }) {
+  const t = useTranslations("clientFlow.cancelLink")
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
@@ -32,7 +34,7 @@ export function ClientCancelLinkAction({ token }: { token: string }) {
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        setError(payload?.message ?? "Unable to cancel this request right now.")
+        setError(payload?.message ?? t("error"))
         return
       }
 
@@ -40,7 +42,7 @@ export function ClientCancelLinkAction({ token }: { token: string }) {
       router.refresh()
     } catch (err) {
       console.error(err)
-      setError("Unable to cancel this request right now.")
+      setError(t("error"))
     } finally {
       setIsPending(false)
     }
@@ -56,15 +58,15 @@ export function ClientCancelLinkAction({ token }: { token: string }) {
         onClick={() => setOpen(true)}
       >
         <XCircle className="size-3.5" />
-        Cancel request
+        {t("trigger")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Cancel this secure request?</DialogTitle>
+            <DialogTitle>{t("title")}</DialogTitle>
             <DialogDescription>
-              This will close the link immediately. You will not be able to continue the workflow after cancellation.
+              {t("description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -72,11 +74,11 @@ export function ClientCancelLinkAction({ token }: { token: string }) {
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-              Keep request
+              {t("keepRequest")}
             </Button>
             <Button type="button" variant="destructive" onClick={handleCancel} disabled={isPending}>
               {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Cancel link
+              {t("confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

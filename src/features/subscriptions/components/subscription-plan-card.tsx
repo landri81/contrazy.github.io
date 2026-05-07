@@ -2,6 +2,7 @@
 
 import { ArrowRight, Check, CheckCircle2, Loader2, Sparkles } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ export function SubscriptionPlanCard({
   onAction,
   actionDisabled = false,
 }: SubscriptionPlanCardProps) {
+  const t = useTranslations("subscriptions.planCard")
   const amount =
     billingInterval === "yearly"
       ? plan.yearlyAmountCents
@@ -40,10 +42,10 @@ export function SubscriptionPlanCard({
 
   const intervalMeta =
     billingInterval === "yearly" && plan.yearlyMonthlyEquivalentCents
-      ? `/ an · ${formatEuroAmount(plan.yearlyMonthlyEquivalentCents)}/mois`
+      ? t("intervalYearWithEquiv", { equiv: formatEuroAmount(plan.yearlyMonthlyEquivalentCents) })
       : billingInterval === "yearly"
-        ? "/ an"
-        : "/ mois"
+        ? t("intervalYear")
+        : t("intervalMonth")
 
   const buttonLabel = actionLabel ?? plan.ctaLabel
   const actionTone = plan.contactOnly
@@ -98,7 +100,7 @@ export function SubscriptionPlanCard({
           {isCurrent ? (
             <Badge className="gap-1 border-transparent bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100">
               <CheckCircle2 className="size-3" />
-              Actuel
+              {t("current")}
             </Badge>
           ) : null}
         </div>
@@ -119,7 +121,7 @@ export function SubscriptionPlanCard({
               </span>
 
               <span className="pb-1 text-[13px] text-muted-foreground">
-                HT
+                {t("vatLabel")}
               </span>
             </div>
 
@@ -130,11 +132,11 @@ export function SubscriptionPlanCard({
         ) : (
           <>
             <p className="text-[38px] font-extrabold leading-none tracking-tight text-foreground">
-              Sur devis
+              {t("onQuote")}
             </p>
 
             <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-              Facturation annuelle
+              {t("annualBilling")}
             </p>
           </>
         )}
@@ -156,7 +158,7 @@ export function SubscriptionPlanCard({
         {isCurrent ? (
           <div className="flex h-11 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-[13px] font-semibold text-emerald-700">
             <CheckCircle2 className="mr-2 size-4" />
-            Plan actuel
+            {t("currentPlan")}
           </div>
         ) : actionHref ? (
           <Link href={actionHref} className={cn("inline-flex items-center justify-center gap-2", buttonClassName)}>

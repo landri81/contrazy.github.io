@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react"
 import { useEffect, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
+import { useTranslations } from "next-intl"
 
 export type ToastVariant = "success" | "error" | "warning" | "info"
 
@@ -59,6 +60,7 @@ const variantConfig: Record<
 }
 
 export function Toaster() {
+  const t = useTranslations("common")
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false)
 
@@ -82,11 +84,11 @@ export function Toaster() {
   return createPortal(
     <div className="fixed bottom-5 right-5 z-[9999] flex w-full max-w-sm flex-col gap-2.5">
       <AnimatePresence initial={false}>
-        {toasts.map((t) => {
-          const cfg = variantConfig[t.variant]
+        {toasts.map((toastItem) => {
+          const cfg = variantConfig[toastItem.variant]
           return (
             <motion.div
-              key={t.id}
+              key={toastItem.id}
               layout
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -96,16 +98,16 @@ export function Toaster() {
             >
               {cfg.icon}
               <div className={`min-w-0 flex-1 ${cfg.text}`}>
-                <p className="text-[13px] font-semibold leading-snug">{t.title}</p>
-                {t.description && (
-                  <p className="mt-0.5 text-[12px] opacity-75">{t.description}</p>
+                <p className="text-[13px] font-semibold leading-snug">{toastItem.title}</p>
+                {toastItem.description && (
+                  <p className="mt-0.5 text-[12px] opacity-75">{toastItem.description}</p>
                 )}
               </div>
               <button
                 type="button"
-                onClick={() => dismiss(t.id)}
+                onClick={() => dismiss(toastItem.id)}
                 className={`shrink-0 opacity-40 transition-opacity hover:opacity-100 ${cfg.text}`}
-                aria-label="Dismiss"
+                aria-label={t("dismiss")}
               >
                 <X className="size-3.5" />
               </button>

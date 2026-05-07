@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ export function DepositControlCard({
   currency: string
 }) {
   const router = useRouter()
+  const t = useTranslations("dashboard.vendor.depositControl")
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
 
   const [captureOpen, setCaptureOpen] = useState(false)
@@ -82,11 +84,11 @@ export function DepositControlCard({
     if (captureMode === "partial") {
       const val = parseFloat(partialInput.replace(",", "."))
       if (isNaN(val) || val <= 0) {
-        setCaptureError("Enter a valid amount greater than 0.")
+        setCaptureError(t("errors.invalidAmount"))
         return
       }
       if (val > maxEuros) {
-        setCaptureError(`The amount cannot exceed ${fmt(amount, currency)}.`)
+        setCaptureError(t("errors.exceedsMax", { max: fmt(amount, currency) }))
         return
       }
       captureAmountCents = Math.round(val * 100)
@@ -102,15 +104,17 @@ export function DepositControlCard({
         setCaptureOpen(false)
         toast({
           variant: "success",
-          title: "Deposit captured",
-          description: `${captureAmountCents ? fmt(captureAmountCents, currency) : fmt(amount, currency)} was charged successfully.`,
+          title: t("toast.captured"),
+          description: t("toast.capturedDesc", {
+            amount: captureAmountCents ? fmt(captureAmountCents, currency) : fmt(amount, currency),
+          }),
         })
         router.refresh()
       } else {
-        setCaptureError(data.message ?? "Capture failed.")
+        setCaptureError(data.message ?? t("toast.unexpectedError"))
       }
     } catch {
-      setCaptureError("An unexpected error occurred.")
+      setCaptureError(t("toast.unexpectedError"))
     } finally {
       setPendingAction(null)
     }
@@ -121,13 +125,13 @@ export function DepositControlCard({
     try {
       const { ok, data } = await callApi("deposit", { action: "release" })
       if (ok) {
-        toast({ variant: "success", title: "Deposit released", description: "The hold was released on the customer's card." })
+        toast({ variant: "success", title: t("toast.released"), description: t("toast.releasedDesc") })
         router.refresh()
       } else {
-        toast({ variant: "error", title: "Failed", description: data.message ?? "Unable to release the deposit." })
+        toast({ variant: "error", title: t("toast.failed"), description: data.message ?? t("toast.unexpectedError") })
       }
     } catch {
-      toast({ variant: "error", title: "Network error", description: "An unexpected error occurred." })
+      toast({ variant: "error", title: t("toast.networkError"), description: t("toast.unexpectedError") })
     } finally {
       setPendingAction(null)
     }
@@ -136,7 +140,7 @@ export function DepositControlCard({
   async function handleDispute() {
     setDisputeError(null)
     if (disputeSummary.trim().length < MIN_DISPUTE_SUMMARY_LENGTH) {
-      setDisputeError(`Describe the dispute reason using at least ${MIN_DISPUTE_SUMMARY_LENGTH} characters.`)
+      setDisputeError(t("disputeModal.minChars", { min: MIN_DISPUTE_SUMMARY_LENGTH }))
       return
     }
     setPendingAction("dispute")
@@ -144,13 +148,13 @@ export function DepositControlCard({
       const { ok, data } = await callApi("dispute", { summary: disputeSummary.trim() })
       if (ok) {
         setDisputeOpen(false)
-        toast({ variant: "warning", title: "Dispute opened", description: "The transaction is now marked as disputed." })
+        toast({ variant: "warning", title: t("toast.disputeOpened"), description: t("toast.disputeOpenedDesc") })
         router.refresh()
       } else {
-        setDisputeError(data.message ?? "Unable to open the dispute.")
+        setDisputeError(data.message ?? t("toast.unexpectedError"))
       }
     } catch {
-      setDisputeError("An unexpected error occurred.")
+      setDisputeError(t("toast.unexpectedError"))
     } finally {
       setPendingAction(null)
     }
@@ -161,13 +165,13 @@ export function DepositControlCard({
     try {
       const { ok, data } = await callApi("cancel", {})
       if (ok) {
-        toast({ variant: "info", title: "Transaction cancelled", description: "The deposit hold was released automatically." })
+        toast({ variant: "info", title: t("toast.cancelled"), description: t("toast.cancelledDesc") })
         router.refresh()
       } else {
-        toast({ variant: "error", title: "Failed", description: data.message ?? "Unable to cancel." })
+        toast({ variant: "error", title: t("toast.failed"), description: data.message ?? t("toast.unexpectedError") })
       }
     } catch {
-      toast({ variant: "error", title: "Network error", description: "An unexpected error occurred." })
+      toast({ variant: "error", title: t("toast.networkError"), description: t("toast.unexpectedError") })
     } finally {
       setPendingAction(null)
     }
@@ -181,10 +185,8 @@ export function DepositControlCard({
         <CardContent className="flex items-center gap-3 pt-6">
           <Flag className="size-5 shrink-0 text-amber-600" />
           <div>
-            <p className="font-semibold text-amber-900 dark:text-amber-300">Dispute in progress</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              The deposit hold is frozen while the platform reviews the dispute. Capture and release are disabled until a decision is made.
-            </p>
+            <p className="font-semibold text-amber-900 dark:text-amber-300">{t("statuses.disputeTitle")}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("statuses.disputeDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -197,8 +199,8 @@ export function DepositControlCard({
         <CardContent className="flex items-center gap-3 pt-6">
           <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
           <div>
-            <p className="font-semibold text-emerald-900 dark:text-emerald-300">Deposit released</p>
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">{fmt(amount, currency)} returned to the customer.</p>
+            <p className="font-semibold text-emerald-900 dark:text-emerald-300">{t("statuses.releasedTitle")}</p>
+            <p className="text-sm text-emerald-700 dark:text-emerald-400">{t("statuses.releasedDesc", { amount: fmt(amount, currency) })}</p>
           </div>
         </CardContent>
       </Card>
@@ -211,8 +213,8 @@ export function DepositControlCard({
         <CardContent className="flex items-center gap-3 pt-6">
           <ShieldAlert className="size-5 shrink-0 text-amber-600" />
           <div>
-            <p className="font-semibold text-amber-900 dark:text-amber-300">Deposit captured</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400">The hold was converted into a card charge.</p>
+            <p className="font-semibold text-amber-900 dark:text-amber-300">{t("statuses.capturedTitle")}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("statuses.capturedDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -225,8 +227,8 @@ export function DepositControlCard({
         <CardContent className="flex items-center gap-3 pt-6">
           <XCircle className="size-5 shrink-0 text-muted-foreground" />
           <div>
-            <p className="font-semibold text-foreground">Deposit cancelled</p>
-            <p className="text-sm text-muted-foreground">The transaction was cancelled and the hold was released.</p>
+            <p className="font-semibold text-foreground">{t("statuses.cancelledTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("statuses.cancelledDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -249,8 +251,8 @@ export function DepositControlCard({
       : null
   const captureLabel =
     captureMode === "partial" && partialAmountCents !== null
-      ? `Capture ${fmt(partialAmountCents, currency)}`
-      : `Capture ${fmt(amount, currency)}`
+      ? `${t("captureModal.title")} ${fmt(partialAmountCents, currency)}`
+      : `${t("captureModal.title")} ${fmt(amount, currency)}`
 
   return (
     <>
@@ -258,11 +260,9 @@ export function DepositControlCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="size-5 text-(--contrazy-teal)" />
-            Active deposit - {fmt(amount, currency)}
+            {t("card.title")} - {fmt(amount, currency)}
           </CardTitle>
-          <CardDescription>
-            The amount is held on the customer&apos;s card. Choose the next action for this transaction.
-          </CardDescription>
+          <CardDescription>{t("card.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -273,8 +273,8 @@ export function DepositControlCard({
               iconBg="bg-(--contrazy-teal)/10 text-(--contrazy-teal)"
               iconHoverBg="group-hover:bg-(--contrazy-teal)/20"
               borderHover="hover:border-(--contrazy-teal)/40"
-              label="Capture deposit"
-              sublabel="Charge all or part of the amount"
+              label={t("actions.capture")}
+              sublabel={t("actions.captureDetail")}
               loading={pendingAction === "capture"}
               disabled={!!pendingAction}
               onClick={() => {
@@ -291,8 +291,8 @@ export function DepositControlCard({
               iconBg="bg-emerald-500/10 text-emerald-600"
               iconHoverBg="group-hover:bg-emerald-500/20"
               borderHover="hover:border-emerald-300"
-              label="Release deposit"
-              sublabel="Return the hold to the customer"
+              label={t("actions.release")}
+              sublabel={t("actions.releaseDetail")}
               loading={pendingAction === "release"}
               disabled={!!pendingAction}
               onClick={handleRelease}
@@ -304,8 +304,8 @@ export function DepositControlCard({
               iconBg="bg-amber-500/10 text-amber-600"
               iconHoverBg="group-hover:bg-amber-500/20"
               borderHover="hover:border-amber-300"
-              label="Open dispute"
-              sublabel="Report an issue on this transaction"
+              label={t("actions.dispute")}
+              sublabel={t("actions.disputeDetail")}
               loading={pendingAction === "dispute"}
               disabled={!!pendingAction}
               onClick={() => {
@@ -321,8 +321,8 @@ export function DepositControlCard({
               iconBg="bg-red-500/10 text-red-600"
               iconHoverBg="group-hover:bg-red-500/20"
               borderHover="hover:border-red-300"
-              label="Cancel transaction"
-              sublabel="Automatically releases the deposit"
+              label={t("actions.cancel")}
+              sublabel={t("actions.cancelDetail")}
               loading={pendingAction === "cancel"}
               disabled={!!pendingAction}
               onClick={handleCancel}
@@ -341,10 +341,10 @@ export function DepositControlCard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Banknote className="size-5 text-(--contrazy-teal)" />
-              Capture deposit
+              {t("captureModal.title")}
             </DialogTitle>
             <DialogDescription>
-              Authorized amount: <strong>{fmt(amount, currency)}</strong>. Choose the amount to charge.
+              {t("captureModal.description", { amount: fmt(amount, currency) })}
             </DialogDescription>
           </DialogHeader>
 
@@ -361,9 +361,9 @@ export function DepositControlCard({
                       : "border-border text-muted-foreground hover:border-(--contrazy-teal)/40"
                   }`}
                 >
-                  {mode === "full" ? "Full amount" : "Partial amount"}
+                  {mode === "full" ? t("captureModal.fullAmount") : t("captureModal.partialAmount")}
                   <p className="mt-0.5 text-[12px] font-normal opacity-70">
-                    {mode === "full" ? fmt(amount, currency) : "Set amount"}
+                    {mode === "full" ? fmt(amount, currency) : t("captureModal.setAmount")}
                   </p>
                 </button>
               ))}
@@ -379,7 +379,7 @@ export function DepositControlCard({
                   className="overflow-hidden"
                 >
                   <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="capture-amount">Amount to capture ({currency})</Label>
+                    <Label htmlFor="capture-amount">{t("captureModal.amountLabel", { currency })}</Label>
                     <div className="relative">
                       <Input
                         id="capture-amount"
@@ -397,16 +397,17 @@ export function DepositControlCard({
                       </span>
                     </div>
                     <p className="text-[12px] text-muted-foreground">
-                      Maximum: {fmt(amount, currency)}
+                      {t("captureModal.maximum", { amount: fmt(amount, currency) })}
                     </p>
                     {partialCaptureWarning ? (
                       <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
                         <AlertTriangle className="size-4" />
-                        <AlertTitle>Remaining amount will be released</AlertTitle>
+                        <AlertTitle>{t("captureModal.warningTitle")}</AlertTitle>
                         <AlertDescription className="text-amber-800 dark:text-amber-200">
-                          Capturing {fmt(partialCaptureWarning.captureAmountCents, currency)} will release the remaining{" "}
-                          {fmt(partialCaptureWarning.releaseAmountCents, currency)} back to the client&apos;s card.
-                          That released amount cannot be captured later from this hold.
+                          {t("captureModal.warningDesc", {
+                            captureAmount: fmt(partialCaptureWarning.captureAmountCents, currency),
+                            releaseAmount: fmt(partialCaptureWarning.releaseAmountCents, currency),
+                          })}
                         </AlertDescription>
                       </Alert>
                     ) : null}
@@ -426,7 +427,7 @@ export function DepositControlCard({
               onClick={() => setCaptureOpen(false)}
               disabled={pendingAction === "capture"}
             >
-              Cancel
+              {t("captureModal.cancel")}
             </Button>
             <Button
               onClick={handleCapture}
@@ -434,7 +435,7 @@ export function DepositControlCard({
               className="bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]"
             >
               {pendingAction === "capture" ? (
-                <><Loader2 className="mr-2 size-4 animate-spin" />Capturing...</>
+                <><Loader2 className="mr-2 size-4 animate-spin" />{t("captureModal.capturing")}</>
               ) : captureLabel}
             </Button>
           </DialogFooter>
@@ -450,26 +451,23 @@ export function DepositControlCard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" />
-              Open dispute
+              {t("disputeModal.title")}
             </DialogTitle>
-            <DialogDescription>
-              Describe the dispute reason. The transaction will be marked as disputed and the deposit
-              will remain held during resolution.
-            </DialogDescription>
+            <DialogDescription>{t("disputeModal.description")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label htmlFor="dispute-summary">Dispute reason</Label>
+            <Label htmlFor="dispute-summary">{t("disputeModal.reasonLabel")}</Label>
             <Textarea
               id="dispute-summary"
               rows={4}
-              placeholder="Example: returned item has unreported damage..."
+              placeholder={t("disputeModal.placeholder")}
               maxLength={INPUT_LIMITS.disputeSummary}
               value={disputeSummary}
               onChange={(e) => { setDisputeSummary(e.target.value); setDisputeError(null) }}
             />
             <div className="flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
-              <span>{MIN_DISPUTE_SUMMARY_LENGTH} characters minimum</span>
+              <span>{t("disputeModal.minChars", { min: MIN_DISPUTE_SUMMARY_LENGTH })}</span>
               <CharacterCount current={disputeSummary.length} limit={INPUT_LIMITS.disputeSummary} />
             </div>
             {disputeError && (
@@ -483,7 +481,7 @@ export function DepositControlCard({
               onClick={() => setDisputeOpen(false)}
               disabled={pendingAction === "dispute"}
             >
-              Cancel
+              {t("disputeModal.cancel")}
             </Button>
             <Button
               onClick={handleDispute}
@@ -491,8 +489,8 @@ export function DepositControlCard({
               className="bg-amber-500 text-white hover:bg-amber-600"
             >
               {pendingAction === "dispute" ? (
-                <><Loader2 className="mr-2 size-4 animate-spin" />Opening...</>
-              ) : "Open dispute"}
+                <><Loader2 className="mr-2 size-4 animate-spin" />{t("disputeModal.opening")}</>
+              ) : t("disputeModal.submit")}
             </Button>
           </DialogFooter>
         </DialogContent>

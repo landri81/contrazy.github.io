@@ -32,6 +32,7 @@ export const vendorProfileSchema = z.object({
     requiredMessage: "Registration number is required",
   }),
   vatNumber: optionalText("VAT number", INPUT_LIMITS.vatNumber).optional(),
+  preferredLocale: z.enum(["en", "fr"]).default("en"),
 })
 
 export const vendorReviewSchema = z.object({

@@ -1,4 +1,5 @@
-import Link from "next/link"
+import { getTranslations } from "next-intl/server"
+import { Link } from "@/i18n/navigation"
 
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
 import { AdminDisputeActions } from "@/features/dashboard/components/admin-dispute-actions"
@@ -102,11 +103,12 @@ function TablePageSection({
   )
 }
 
-export function VendorActionsView({ workspace }: { workspace: WorkspaceRecord }) {
+export async function VendorActionsView({ workspace }: { workspace: WorkspaceRecord }) {
+  const t = await getTranslations("dashboard.vendor.actions")
   return (
-    <PagePanel title="Action queue" description="Priority tasks to keep the account and customer flow moving.">
+    <PagePanel title={t("title")} description={t("description")}>
       <DashboardTable
-        columns={["Priority", "Action", "Client", "Reference", "Due"]}
+        columns={[t("columns.priority"), t("columns.action"), t("columns.client"), t("columns.reference"), t("columns.due")]}
         rows={workspace.actionItems.map((item) => [
           <StatusBadge key={`${item.reference}-priority`} tone={getStatusTone(item.priority)}>
             {item.priority}
@@ -116,41 +118,42 @@ export function VendorActionsView({ workspace }: { workspace: WorkspaceRecord })
           item.reference,
           item.due,
         ])}
-        emptyMessage="Nothing needs attention right now."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorTransactionsView({
+export async function VendorTransactionsView({
   data,
   searchParams,
 }: {
   data: VendorTransactionsData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.transactions")
   return (
-    <PagePanel title="Transactions" description="Track every customer workflow from setup to payment and deposit handling.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/transactions"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by reference, title, client name, or email"
+        searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "status", label: "Status", value: searchParams?.status, options: vendorTransactionStatusOptions },
-          { name: "kind", label: "Type", value: searchParams?.kind, options: vendorTransactionKindOptions },
+          { name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorTransactionStatusOptions },
+          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
         ]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Type", "Amount", "KYC", "Contract", "Status", "Date"]}
+        columns={[t("columns.client"), t("columns.reference"), t("columns.type"), t("columns.amount"), t("columns.kyc"), t("columns.contract"), t("columns.status"), t("columns.date")]}
         rows={data.items.map((transaction) => [
           <div key={`${transaction.reference}-client`}>
             <p className="font-medium text-foreground">{transaction.clientName}</p>
             <p className="text-xs text-muted-foreground">{transaction.clientEmail}</p>
           </div>,
-          <Link key={`${transaction.reference}-detail`} href={`/vendor/transactions/${transaction.id}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+          <Link key={`${transaction.reference}-detail`} href={`/vendor/transactions/${transaction.id}`} className="font-medium text-foreground hover:text-(--contrazy-teal)">
             {transaction.reference}
           </Link>,
           transaction.kind,
@@ -166,70 +169,74 @@ export function VendorTransactionsView({
           </StatusBadge>,
           transaction.date,
         ])}
-        emptyMessage="No customer workflows have been created yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorTransactionDetailView({ detail }: { detail: TransactionDetailRecord }) {
+export async function VendorTransactionDetailView({ detail }: { detail: TransactionDetailRecord }) {
+  const t = await getTranslations("dashboard")
   return (
     <div className="space-y-6">
       <PagePanel title={`${detail.title} ${detail.reference}`} description={detail.summaryLine}>
         <DetailGrid items={detail.facts.map((fact) => ({ label: fact.label, value: fact.value }))} />
       </PagePanel>
 
-      <PagePanel title="Timeline" description="Key moments across the customer journey.">
+      <PagePanel title={t("shared.timelineTitle")} description={t("shared.timelineDescription")}>
         <TimelineList items={detail.timeline} />
       </PagePanel>
     </div>
   )
 }
 
-export function VendorContractsView({ workspace }: { workspace: WorkspaceRecord }) {
+export async function VendorContractsView({ workspace }: { workspace: WorkspaceRecord }) {
+  const t = await getTranslations("dashboard.vendor.contracts")
   return (
-    <PagePanel title="Contract templates" description="Save the agreements you want to reuse across future workflows.">
+    <PagePanel title={t("title")} description={t("description")}>
       <ResourceCards
         items={workspace.contractTemplates}
-        emptyTitle="No contract templates yet"
-        emptyDescription="Add your first agreement template before sending customer links."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
       />
     </PagePanel>
   )
 }
 
-export function VendorChecklistsView({ workspace }: { workspace: WorkspaceRecord }) {
+export async function VendorChecklistsView({ workspace }: { workspace: WorkspaceRecord }) {
+  const t = await getTranslations("dashboard.vendor.checklists")
   return (
-    <PagePanel title="Checklist templates" description="Store the documents and photos you want to request for each workflow.">
+    <PagePanel title={t("title")} description={t("description")}>
       <ResourceCards
         items={workspace.checklistTemplates}
-        emptyTitle="No checklists yet"
-        emptyDescription="Create a checklist when you are ready to request customer documents."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
       />
     </PagePanel>
   )
 }
 
-export function VendorKycView({
+export async function VendorKycView({
   data,
   searchParams,
 }: {
   data: VendorKycListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.kyc")
   return (
-    <PagePanel title="Identity checks" description="Follow customer verification progress when identity confirmation is required.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/kyc"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by client, reference, provider, or note"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorKycStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorKycStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Status", "Provider", "Note"]}
+        columns={[t("columns.client"), t("columns.reference"), t("columns.status"), t("columns.provider"), t("columns.note")]}
         rows={data.items.map((record) => [
           record.client,
           record.reference,
@@ -239,32 +246,33 @@ export function VendorKycView({
           record.provider,
           record.note,
         ])}
-        emptyMessage="No identity checks are waiting right now."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorSignaturesView({
+export async function VendorSignaturesView({
   data,
   searchParams,
 }: {
   data: VendorSignatureListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.signatures")
   return (
-    <PagePanel title="Signatures" description="See which customers have reviewed and accepted their agreements.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/signatures"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by signer, reference, or template"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorSignatureStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorSignatureStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Signer", "Reference", "Status", "Template", "Date"]}
+        columns={[t("columns.signer"), t("columns.reference"), t("columns.status"), t("columns.template"), t("columns.date")]}
         rows={data.items.map((record) => [
           record.signer,
           record.reference,
@@ -274,32 +282,33 @@ export function VendorSignaturesView({
           record.template,
           record.date,
         ])}
-        emptyMessage="No signatures have been requested yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorDepositsView({
+export async function VendorDepositsView({
   data,
   searchParams,
 }: {
   data: VendorDepositListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.deposits")
   return (
-    <PagePanel title="Deposits" description="Monitor active holds, expiry windows, and later release or capture decisions.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/deposits"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by client name, email, or reference"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorPaymentStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Amount", "Status", "Window", "Actions"]}
+        columns={[t("columns.client"), t("columns.reference"), t("columns.amount"), t("columns.status"), t("columns.window"), t("columns.actions")]}
         rows={data.items.map((record) => [
           record.client,
           record.reference,
@@ -316,32 +325,33 @@ export function VendorDepositsView({
             currency={record.currency}
           />,
         ])}
-        emptyMessage="No deposit activity yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorPaymentsView({
+export async function VendorPaymentsView({
   data,
   searchParams,
 }: {
   data: VendorPaymentListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.payments")
   return (
-    <PagePanel title="Payments" description="Review payment collection across your customer workflows.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/payments"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by client name, email, or reference"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorPaymentStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Amount", "Status", "Date"]}
+        columns={[t("columns.client"), t("columns.reference"), t("columns.amount"), t("columns.status"), t("columns.date")]}
         rows={data.items.map((record) => [
           record.client,
           record.reference,
@@ -351,32 +361,33 @@ export function VendorPaymentsView({
           </StatusBadge>,
           record.date,
         ])}
-        emptyMessage="No payments have been recorded yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorDisputesView({
+export async function VendorDisputesView({
   data,
   searchParams,
 }: {
   data: VendorDisputeListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.disputes")
   return (
-    <PagePanel title="Disputes" description="Track customer issues related to payments or deposits.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/disputes"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by client, reference, or summary"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorDisputeStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorDisputeStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Reference", "Status", "Summary"]}
+        columns={[t("columns.client"), t("columns.reference"), t("columns.status"), t("columns.summary")]}
         rows={data.items.map((record) => [
           record.client,
           record.reference,
@@ -385,31 +396,32 @@ export function VendorDisputesView({
           </StatusBadge>,
           record.summary,
         ])}
-        emptyMessage="No disputes have been opened."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorClientsView({
+export async function VendorClientsView({
   data,
   searchParams,
 }: {
   data: VendorClientListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.clients")
   return (
-    <PagePanel title="Clients" description="Review recent customers and the workflows connected to them.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/clients"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by client name, email, or company"
+        searchPlaceholder={t("searchPlaceholder")}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Client", "Email", "Status", "Recent transaction"]}
+        columns={[t("columns.client"), t("columns.email"), t("columns.status"), t("columns.recentTransaction")]}
         rows={data.items.map((record) => [
           record.name,
           record.email,
@@ -418,40 +430,41 @@ export function VendorClientsView({
           </StatusBadge>,
           record.lastTransaction,
         ])}
-        emptyMessage="No customer profiles have been captured yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorLinksView({
+export async function VendorLinksView({
   data,
   searchParams,
 }: {
   data: VendorLinkListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.links")
   return (
-    <PagePanel title="Customer links" description="Share secure links and QR codes for each customer workflow.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/links"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by reference, title, client, or short code"
+        searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "state", label: "State", value: searchParams?.state, options: vendorLinkStateOptions },
-          { name: "kind", label: "Type", value: searchParams?.kind, options: vendorTransactionKindOptions },
+          { name: "state", label: t("columns.status"), value: searchParams?.state, options: vendorLinkStateOptions },
+          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
         ]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Reference", "Client", "Title", "Amounts", "Short code", "Last activity", "Status", "Actions"]}
+        columns={[t("columns.reference"), t("columns.client"), t("columns.title"), t("columns.amounts"), t("columns.shortCode"), t("columns.lastActivity"), t("columns.status"), t("columns.actions")]}
         rows={data.items.map((record) => [
           <Link
             key={`${record.reference}-reference`}
             href={`/vendor/transactions/${record.transactionId}`}
-            className="inline-block min-w-[130px] font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+            className="inline-block min-w-[130px] font-medium text-foreground hover:text-(--contrazy-teal)"
           >
             {record.reference}
           </Link>,
@@ -476,10 +489,10 @@ export function VendorLinksView({
           </div>,
           <div key={`${record.reference}-amounts`} className="min-w-[132px] space-y-1">
             {record.kind !== "DEPOSIT" && (
-              <p className="text-sm font-medium text-foreground">Service: {record.serviceAmount}</p>
+              <p className="text-sm font-medium text-foreground">{t("serviceAmount", { amount: record.serviceAmount })}</p>
             )}
             {record.kind !== "PAYMENT" && (
-              <p className="text-xs text-muted-foreground">Deposit: {record.depositAmount}</p>
+              <p className="text-xs text-muted-foreground">{t("depositAmount", { amount: record.depositAmount })}</p>
             )}
           </div>,
           <span key={`${record.reference}-short-code`} className="inline-block min-w-[88px]">
@@ -496,32 +509,33 @@ export function VendorLinksView({
             record={record}
           />,
         ])}
-        emptyMessage="No customer links have been issued yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorWebhooksView({
+export async function VendorWebhooksView({
   data,
   searchParams,
 }: {
   data: VendorWebhookListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.vendor.webhooks")
   return (
-    <PagePanel title="Event history" description="Review delivery events and payment updates connected to your account.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/webhooks"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by provider, event name, Stripe ID, or reference"
-        filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorWebhookStatusOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorWebhookStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Provider", "Event", "Reference", "Status", "Date"]}
+        columns={[t("columns.provider"), t("columns.event"), t("columns.reference"), t("columns.status"), t("columns.date")]}
         rows={data.items.map((record) => [
           record.provider,
           <div key={`${record.eventType}-${record.date}-event`}>
@@ -535,51 +549,52 @@ export function VendorWebhooksView({
           </StatusBadge>,
           record.date,
         ])}
-        emptyMessage="No event history is available yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function VendorStripeView({ workspace }: { workspace: WorkspaceRecord }) {
+export async function VendorStripeView({ workspace }: { workspace: WorkspaceRecord }) {
+  const t = await getTranslations("dashboard.vendor.stripe")
   return (
     <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
-      <PagePanel title="Payout setup" description="Review the business details tied to customer payments and deposits.">
+      <PagePanel title={t("payoutSetup.title")} description={t("payoutSetup.description")}>
         <DetailGrid
           items={[
-            { label: "Business", value: workspace.summary.businessName },
+            { label: t("details.business"), value: workspace.summary.businessName },
             {
-              label: "Review status",
+              label: t("details.reviewStatus"),
               value: <StatusBadge tone={getStatusTone(workspace.summary.reviewStatus)}>{workspace.summary.reviewStatus}</StatusBadge>,
             },
             {
-              label: "Payout status",
+              label: t("details.payoutStatus"),
               value: (
                 <StatusBadge tone={getStatusTone(workspace.summary.stripeConnectionStatus)}>
                   {workspace.summary.stripeConnectionStatus}
                 </StatusBadge>
               ),
             },
-            { label: "Primary email", value: workspace.summary.businessEmail },
-            { label: "Recent payment state", value: workspace.payments[0]?.status ?? "No data" },
-            { label: "Recent deposit state", value: workspace.deposits[0]?.status ?? "No data" },
+            { label: t("details.primaryEmail"), value: workspace.summary.businessEmail },
+            { label: t("details.recentPaymentState"), value: workspace.payments[0]?.status ?? t("details.noData") },
+            { label: t("details.recentDepositState"), value: workspace.deposits[0]?.status ?? t("details.noData") },
           ]}
         />
       </PagePanel>
-      <PagePanel title="Recommended next steps" description="Use these checks before accepting live customer payments.">
+      <PagePanel title={t("nextSteps.title")} description={t("nextSteps.description")}>
         <ResourceCards
           items={[
             {
-              title: "Finish payout details",
-              description: "Confirm the payout account so customer funds and deposit holds can move without delay.",
+              title: t("nextSteps.finishPayout.title"),
+              description: t("nextSteps.finishPayout.description"),
             },
             {
-              title: "Keep business details current",
-              description: "Make sure the business email, support email, phone number, and address stay up to date.",
+              title: t("nextSteps.keepDetails.title"),
+              description: t("nextSteps.keepDetails.description"),
             },
             {
-              title: "Monitor customer collections",
-              description: "Check payment and deposit activity here before moving into higher transaction volume.",
+              title: t("nextSteps.monitorCollections.title"),
+              description: t("nextSteps.monitorCollections.description"),
             },
           ]}
         />
@@ -588,40 +603,41 @@ export function VendorStripeView({ workspace }: { workspace: WorkspaceRecord }) 
   )
 }
 
-export function AdminVendorListView({
+export async function AdminVendorListView({
   data,
   searchParams,
 }: {
   data: AdminVendorListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.vendors")
   return (
     <div className="space-y-6">
       <KpiGrid items={data.kpis} />
 
       <PagePanel
-        title="Vendor accounts"
-        description="Manage approval status for all vendor accounts. Use the inline actions to approve, pend, reject, or suspend."
+        title={t("title")}
+        description={t("description")}
         actionHref="/admin/users"
-        actionLabel="All users"
+        actionLabel={t("allUsers")}
       >
         <TablePageSection
           basePath="/admin/vendors"
           searchValue={searchParams?.q}
-          searchPlaceholder="Search by business, owner, email, phone, or country"
-          filters={[
-            { name: "reviewStatus", label: "Review", value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
-            { name: "stripeStatus", label: "Payouts", value: searchParams?.stripeStatus, options: adminStripeConnectionOptions },
+          searchPlaceholder={t("searchPlaceholder")}
+        filters={[
+            { name: "reviewStatus", label: t("columns.reviewStatus"), value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
+            { name: "stripeStatus", label: t("filters.payouts"), value: searchParams?.stripeStatus, options: adminStripeConnectionOptions },
           ]}
           currentPage={data.page}
           totalPages={data.totalPages}
           totalCount={data.totalCount}
           pageSize={data.pageSize}
           searchParams={searchParams}
-          columns={["Business", "Owner", "Country", "Profile", "Transactions", "Review status", "Joined", "Actions"]}
+          columns={[t("columns.business"), t("columns.owner"), t("columns.country"), t("columns.profile"), t("columns.transactions"), t("columns.reviewStatus"), t("columns.joined"), t("columns.actions")]}
           rows={data.vendors.map((vendor) => [
             <div key={`${vendor.id}-business`}>
-              <Link href={`/admin/users/${vendor.userId}`} className="font-medium text-foreground hover:text-[var(--contrazy-teal)]">
+              <Link href={`/admin/users/${vendor.userId}`} className="font-medium text-foreground hover:text-(--contrazy-teal)">
                 {vendor.businessName}
               </Link>
               <p className="text-xs text-muted-foreground">{vendor.businessEmail}</p>
@@ -635,7 +651,7 @@ export function AdminVendorListView({
               {vendor.profileCompletion}%
             </span>,
             <span key={`${vendor.id}-txn`} className="text-sm text-muted-foreground">
-              {vendor.transactionCount} tx · {vendor.clientCount} clients
+              {t("txSummary", { txCount: vendor.transactionCount, clientCount: vendor.clientCount })}
             </span>,
             <StatusBadge key={`${vendor.id}-status`} tone={getStatusTone(vendor.reviewStatus)}>
               {vendor.reviewStatus}
@@ -643,46 +659,51 @@ export function AdminVendorListView({
             vendor.joinedAt,
             <VendorQuickReview key={`${vendor.id}-actions`} userId={vendor.userId} currentStatus={vendor.reviewStatus} />,
           ])}
-          emptyMessage="No vendor accounts have been registered yet."
+          emptyMessage={t("empty")}
         />
       </PagePanel>
     </div>
   )
 }
 
-export function AdminUsersView({
+export async function AdminUsersView({
   data,
   searchParams,
 }: {
   data: AdminUserListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.users")
   const { users, totalCount, page, pageSize, totalPages } = data
+  const descriptionText = t("description", {
+    count: totalCount,
+    plural: totalCount === 1 ? "" : "s",
+  })
 
   return (
     <PagePanel
-      title="All users"
-      description={`${totalCount} registered account${totalCount !== 1 ? "s" : ""}. Vendor accounts can be approved directly from this table.`}
+      title={t("title")}
+      description={descriptionText}
     >
       <TablePageSection
         basePath="/admin/users"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by name, email, or business"
+        searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
-          { name: "reviewStatus", label: "Review", value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
+          { name: "role", label: t("columns.role"), value: searchParams?.role, options: adminRoleOptions },
+          { name: "reviewStatus", label: t("columns.reviewStatus"), value: searchParams?.reviewStatus, options: adminReviewStatusOptions },
         ]}
         currentPage={page}
         totalPages={totalPages}
         totalCount={totalCount}
         pageSize={pageSize}
         searchParams={searchParams}
-        columns={["Name / Email", "Role", "Business", "Review status", "Joined", "Quick actions"]}
+        columns={[t("columns.nameEmail"), t("columns.role"), t("columns.business"), t("columns.reviewStatus"), t("columns.joined"), t("columns.quickActions")]}
         rows={users.map((user) => [
           <div key={`${user.id}-name`}>
             <Link
               href={`/admin/users/${user.id}`}
-              className="font-medium text-foreground hover:text-[var(--contrazy-teal)]"
+              className="font-medium text-foreground hover:text-(--contrazy-teal)"
             >
               {user.name}
             </Link>
@@ -717,13 +738,13 @@ export function AdminUsersView({
             <Link
               key={`${user.id}-view`}
               href={`/admin/users/${user.id}`}
-              className="text-xs text-[var(--contrazy-teal)] hover:underline"
+              className="text-xs text-(--contrazy-teal) hover:underline"
             >
-              View →
+              {t("view")}
             </Link>
           ),
         ])}
-        emptyMessage="No user accounts have been created yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
@@ -738,21 +759,19 @@ function userInitials(name: string) {
     .toUpperCase()
 }
 
-export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
+export async function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
+  const t = await getTranslations("dashboard.admin.userDetail")
   const vp = user.vendorProfile
 
   return (
     <div className="space-y-6">
-      {/* Profile header */}
       <Card className="border-border bg-card shadow-sm">
         <CardContent className="p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            {/* Avatar */}
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[var(--contrazy-teal)]/10 text-lg font-bold text-[var(--contrazy-teal)] ring-2 ring-[var(--contrazy-teal)]/20">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-(--contrazy-teal)/10 text-lg font-bold text-(--contrazy-teal) ring-2 ring-(--contrazy-teal)/20">
               {userInitials(user.name)}
             </div>
 
-            {/* Identity */}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">{user.name}</h1>
@@ -763,32 +782,31 @@ export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">{user.email}</p>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-                <span>Joined {user.joinedAt}</span>
+                <span>{t("joinedLabel", { date: user.joinedAt })}</span>
                 {user.emailVerified ? (
-                  <span className="text-emerald-600">✓ Email verified {user.emailVerified}</span>
+                  <span className="text-emerald-600">{t("emailVerifiedLabel", { date: user.emailVerified })}</span>
                 ) : (
-                  <span className="text-amber-600">⚠ Email not verified</span>
+                  <span className="text-amber-600">{t("emailNotVerified")}</span>
                 )}
                 <span className="hidden sm:inline font-mono opacity-60">ID: {user.id}</span>
               </div>
             </div>
 
-            {/* Vendor KPI strip */}
             {vp ? (
               <div className="flex shrink-0 gap-5 rounded-xl border border-border bg-muted/40 px-5 py-3 sm:flex-col sm:gap-2">
                 <div className="text-center">
                   <p className="text-xl font-bold text-foreground">{vp.transactionCount}</p>
-                  <p className="text-[11px] text-muted-foreground">Transactions</p>
+                  <p className="text-[11px] text-muted-foreground">{t("kpiTransactions")}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-foreground">{vp.clientCount}</p>
-                  <p className="text-[11px] text-muted-foreground">Clients</p>
+                  <p className="text-[11px] text-muted-foreground">{t("kpiClients")}</p>
                 </div>
                 <div className="text-center">
                   <p className={`text-xl font-bold ${vp.profileCompletion === 100 ? "text-emerald-600" : "text-amber-600"}`}>
                     {vp.profileCompletion}%
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Profile</p>
+                  <p className="text-[11px] text-muted-foreground">{t("kpiProfile")}</p>
                 </div>
               </div>
             ) : null}
@@ -796,68 +814,65 @@ export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
         </CardContent>
       </Card>
 
-      {/* Account + Role row */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <PagePanel title="Account details" description="Login credentials and verification status.">
+        <PagePanel title={t("accountDetails.title")} description={t("accountDetails.description")}>
           <DetailGrid
             items={[
-              { label: "Full name", value: user.name },
-              { label: "Email", value: user.email },
-              { label: "Company", value: user.company || "—" },
+              { label: t("accountDetails.fullName"), value: user.name },
+              { label: t("accountDetails.email"), value: user.email },
+              { label: t("accountDetails.company"), value: user.company || "—" },
               {
-                label: "Account status",
+                label: t("accountDetails.accountStatus"),
                 value: <StatusBadge tone={getStatusTone(user.status)}>{user.status}</StatusBadge>,
               },
-              { label: "Email verified", value: user.emailVerified ?? "Not verified" },
-              { label: "Joined", value: user.joinedAt },
+              { label: t("accountDetails.emailVerified"), value: user.emailVerified ?? t("accountDetails.notVerified") },
+              { label: t("accountDetails.joined"), value: user.joinedAt },
             ]}
           />
         </PagePanel>
 
-        <PagePanel title="Role management" description="Change the access level. Super Admin can only be granted by a Super Admin.">
+        <PagePanel title={t("roleManagement.title")} description={t("roleManagement.description")}>
           <UserRoleActions userId={user.id} currentRole={user.role} />
         </PagePanel>
       </div>
 
-      {/* Business profile */}
       {vp ? (
-        <PagePanel title="Business profile" description="Submitted business details and vendor review controls.">
+        <PagePanel title={t("businessProfile.title")} description={t("businessProfile.description")}>
           <div className="space-y-6">
             <DetailGrid
               items={[
-                { label: "Business name", value: vp.businessName || "—" },
-                { label: "Business email", value: vp.businessEmail || "—" },
-                { label: "Support email", value: vp.supportEmail || "—" },
-                { label: "Phone", value: vp.businessPhone || "—" },
-                { label: "Address", value: vp.businessAddress || "—" },
-                { label: "Country", value: vp.businessCountry || "—" },
+                { label: t("businessProfile.businessName"), value: vp.businessName || "—" },
+                { label: t("businessProfile.businessEmail"), value: vp.businessEmail || "—" },
+                { label: t("businessProfile.supportEmail"), value: vp.supportEmail || "—" },
+                { label: t("businessProfile.phone"), value: vp.businessPhone || "—" },
+                { label: t("businessProfile.address"), value: vp.businessAddress || "—" },
+                { label: t("businessProfile.country"), value: vp.businessCountry || "—" },
                 {
-                  label: "Payout (Stripe)",
+                  label: t("businessProfile.payout"),
                   value: (
                     <StatusBadge tone={getStatusTone(vp.stripeConnectionStatus)}>
                       {vp.stripeConnectionStatus}
                     </StatusBadge>
                   ),
                 },
-                { label: "Profile complete", value: `${vp.profileCompletion}%` },
+                { label: t("businessProfile.profileComplete"), value: `${vp.profileCompletion}%` },
               ]}
             />
 
             <div className="border-t border-border pt-5">
-              <p className="mb-3 text-sm font-semibold text-foreground">Review status</p>
+              <p className="mb-3 text-sm font-semibold text-foreground">{t("businessProfile.reviewStatus")}</p>
               <VendorReviewActions userId={user.id} currentStatus={vp.reviewStatus} />
             </div>
           </div>
         </PagePanel>
       ) : null}
 
-      {/* Danger zone */}
       <div className="rounded-xl border border-red-200 bg-red-50/40 p-6 dark:border-red-900 dark:bg-red-950/20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-red-800 dark:text-red-400">Danger zone</h3>
+            <h3 className="text-sm font-semibold text-red-800 dark:text-red-400">{t("dangerZone.title")}</h3>
             <p className="mt-1 max-w-prose text-sm text-red-700 dark:text-red-500">
-              Permanently deletes this account and all associated data including vendor profiles, transactions, and clients. Active transactions must be resolved first.
+              {t("dangerZone.description")}
             </p>
           </div>
           <div className="shrink-0">
@@ -869,29 +884,30 @@ export function AdminUserDetailView({ user }: { user: AdminUserDetailRecord }) {
   )
 }
 
-export function AdminInvitesView({
+export async function AdminInvitesView({
   data,
   searchParams,
 }: {
   data: AdminInviteListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.invites")
   return (
-    <PagePanel title="Invitations" description="Track outstanding invites for vendors and internal team members.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/admin/invites"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by invite email"
+        searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
-          { name: "status", label: "Status", value: searchParams?.status, options: adminInviteStatusOptions },
+          { name: "role", label: t("columns.role"), value: searchParams?.role, options: adminRoleOptions },
+          { name: "status", label: t("columns.status"), value: searchParams?.status, options: adminInviteStatusOptions },
         ]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Email", "Role", "Status", "Expires"]}
+        columns={[t("columns.email"), t("columns.role"), t("columns.status"), t("columns.expires")]}
         rows={data.items.map((invite) => [
           invite.email,
           <StatusBadge key={`${invite.id}-role`} tone={getStatusTone(invite.role)}>
@@ -902,74 +918,77 @@ export function AdminInvitesView({
           </StatusBadge>,
           invite.expiresAt,
         ])}
-        emptyMessage="No invitations have been sent yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function AdminRolesView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+export async function AdminRolesView({ workspace }: { workspace: AdminWorkspaceRecord }) {
+  const t = await getTranslations("dashboard.admin.roles")
   return (
-    <PagePanel title="Access levels" description="The platform uses a fixed set of access levels to keep reviews and operations separate.">
+    <PagePanel title={t("title")} description={t("description")}>
       <ResourceCards
         items={workspace.rolePolicies}
-        emptyTitle="No access levels configured"
-        emptyDescription="Access levels will appear here once the platform rules are available."
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
       />
     </PagePanel>
   )
 }
 
-export function AdminLogsView({
+export async function AdminLogsView({
   data,
   searchParams,
 }: {
   data: AdminLogListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.logs")
   return (
-    <PagePanel title="Activity logs" description="Recent platform and operator activity.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/admin/logs"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by actor, action, entity, provider, or event"
-        filters={[{ name: "source", label: "Source", value: searchParams?.source, options: adminLogSourceOptions }]}
+        searchPlaceholder={t("searchPlaceholder")}
+        filters={[{ name: "source", label: t("filters.source"), value: searchParams?.source, options: adminLogSourceOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["Actor", "Action", "Entity", "Date"]}
+        columns={[t("columns.actor"), t("columns.action"), t("columns.entity"), t("columns.date")]}
         rows={data.items.map((log) => [log.actor, log.action, log.entity, log.date])}
-        emptyMessage="No activity has been recorded yet."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-export function AdminSessionsView({
+export async function AdminSessionsView({
   data,
   searchParams,
 }: {
   data: AdminSessionListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.sessions")
   return (
-    <PagePanel title="Sessions" description="Review current sign-in activity across the platform team.">
+    <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/admin/sessions"
         searchValue={searchParams?.q}
-        searchPlaceholder="Search by user name or email"
+        searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "role", label: "Role", value: searchParams?.role, options: adminRoleOptions },
-          { name: "state", label: "State", value: searchParams?.state, options: adminSessionStateOptions },
+          { name: "role", label: t("columns.role"), value: searchParams?.role, options: adminRoleOptions },
+          { name: "state", label: t("columns.state"), value: searchParams?.state, options: adminSessionStateOptions },
         ]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={["User", "Role", "State", "Last seen"]}
+        columns={[t("columns.user"), t("columns.role"), t("columns.state"), t("columns.lastSeen")]}
         rows={data.items.map((session) => [
           session.user,
           <StatusBadge key={`${session.user}-role`} tone={getStatusTone(session.role)}>
@@ -980,40 +999,39 @@ export function AdminSessionsView({
           </StatusBadge>,
           session.lastSeen,
         ])}
-        emptyMessage="Session activity will appear here as people sign in."
+        emptyMessage={t("empty")}
       />
     </PagePanel>
   )
 }
 
-// ── Admin Disputes ─────────────────────────────────────────────────────────────
-
-export function AdminDisputeListView({
+export async function AdminDisputeListView({
   data,
   searchParams,
 }: {
   data: AdminDisputeListData
   searchParams?: Record<string, string>
 }) {
+  const t = await getTranslations("dashboard.admin.disputes")
   return (
     <div className="space-y-6">
       <KpiGrid items={data.kpis} />
 
       <PagePanel
-        title="Dispute cases"
-        description="Review vendor disputes. Open each case to capture or release the deposit hold."
+        title={t("listTitle")}
+        description={t("listDescription")}
       >
         <TablePageSection
           basePath="/admin/disputes"
           searchValue={searchParams?.q}
-          searchPlaceholder="Search by vendor, client, or transaction reference"
-          filters={[{ name: "status", label: "Status", value: searchParams?.status, options: vendorDisputeStatusOptions }]}
+          searchPlaceholder={t("searchPlaceholder")}
+          filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorDisputeStatusOptions }]}
           currentPage={data.page}
           totalPages={data.totalPages}
           totalCount={data.totalCount}
           pageSize={data.pageSize}
           searchParams={searchParams}
-          columns={["Case", "Vendor", "Client", "Deposit", "Deadline", "Status", "Opened"]}
+          columns={[t("columns.case"), t("columns.vendor"), t("columns.client"), t("columns.deposit"), t("columns.deadline"), t("columns.status"), t("columns.opened")]}
           rows={data.disputes.map((d) => [
             <Link
               key={`${d.id}-ref`}
@@ -1040,42 +1058,40 @@ export function AdminDisputeListView({
             <StatusBadge key={`${d.id}-status`} tone={getStatusTone(d.status)}>{d.status}</StatusBadge>,
             d.openedAt,
           ])}
-          emptyMessage="No disputes have been opened yet."
+          emptyMessage={t("empty")}
         />
       </PagePanel>
     </div>
   )
 }
 
-export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetailRecord }) {
+export async function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetailRecord }) {
+  const t = await getTranslations("dashboard.admin.disputes")
+  const sharedT = await getTranslations("dashboard.shared")
   const statusTone = getStatusTone(dispute.status)
   const isPending = dispute.status === "OPEN" || dispute.status === "UNDER_REVIEW"
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Back link */}
       <Link href="/admin/disputes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        ← Back to disputes
+        {t("backToDisputes")}
       </Link>
 
-      {/* Main card — matches reference design */}
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          {/* Header */}
           <div className="border-b border-border px-6 py-5">
             <h2 className="text-lg font-bold tracking-tight">
-              ⚖️ Dispute · {dispute.clientName} · {dispute.reference}
+              ⚖️ {t("caseTitle")} · {dispute.clientName} · {dispute.reference}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{dispute.summary}</p>
           </div>
 
-          {/* Info grid — 3 cols */}
           <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
             {[
-              { label: "VENDOR", value: dispute.vendorName },
-              { label: "DEPOSIT AMOUNT", value: dispute.depositAmount },
+              { label: t("detailVendor"), value: dispute.vendorName },
+              { label: t("detailDeposit"), value: dispute.depositAmount },
               {
-                label: "STATUS",
+                label: t("detailStatus"),
                 value: (
                   <StatusBadge tone={statusTone}>{dispute.status.replace("_", " ")}</StatusBadge>
                 ),
@@ -1091,12 +1107,11 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
             ))}
           </div>
 
-          {/* Second row — 3 cols */}
           <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
             {[
-              { label: "OPENED ON", value: dispute.openedAt },
+              { label: t("openedOn"), value: dispute.openedAt },
               {
-                label: "RESPONSE DEADLINE",
+                label: t("responseDeadline"),
                 value: (
                   <span className={isPending ? "font-semibold text-amber-600" : "text-foreground"}>
                     {dispute.deadlineAt}
@@ -1104,8 +1119,8 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
                 ),
               },
               {
-                label: "ATTACHMENTS",
-                value: `${dispute.attachmentCount} file${dispute.attachmentCount !== 1 ? "s" : ""}`,
+                label: t("attachments"),
+                value: sharedT("fileCount", { count: dispute.attachmentCount }),
               },
             ].map((cell, i) => (
               <div
@@ -1118,20 +1133,18 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
             ))}
           </div>
 
-          {/* Resolution note if present */}
           {dispute.resolution && (
             <div className="border-b border-border px-6 py-4 bg-muted/30">
-              <p className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase mb-1">Admin resolution note</p>
+              <p className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase mb-1">{sharedT("adminResolutionNote")}</p>
               <p className="text-sm text-foreground">{dispute.resolution}</p>
               {dispute.resolvedAt && (
-                <p className="mt-1 text-xs text-muted-foreground">Resolved on {dispute.resolvedAt}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{sharedT("resolvedOn", { date: dispute.resolvedAt })}</p>
               )}
             </div>
           )}
 
-          {/* Supporting documents */}
           <div className="border-b border-border px-6 py-5">
-            <p className="mb-3 text-sm font-semibold">📎 Supporting documents</p>
+            <p className="mb-3 text-sm font-semibold">📎 {sharedT("supportingDocuments")}</p>
             {dispute.documents.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {dispute.documents.map((doc) => (
@@ -1152,19 +1165,18 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
                       className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[13px] text-foreground"
                     >
                       <p className="font-medium">{doc.label}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{doc.textValue ?? "Text response submitted"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{doc.textValue ?? sharedT("textResponseSubmitted")}</p>
                     </div>
                   )
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No documents uploaded for this transaction.</p>
+              <p className="text-sm text-muted-foreground">{sharedT("noDocuments")}</p>
             )}
           </div>
 
-          {/* History timeline */}
           <div className="border-b border-border px-6 py-5">
-            <p className="mb-4 text-sm font-semibold">🕓 History</p>
+            <p className="mb-4 text-sm font-semibold">🕓 {sharedT("history")}</p>
             <ol className="space-y-4">
               {dispute.history.map((ev, i) => (
                 <li key={i} className="flex gap-3">
@@ -1190,16 +1202,14 @@ export function AdminDisputeDetailView({ dispute }: { dispute: AdminDisputeDetai
             </ol>
           </div>
 
-          {/* Action buttons */}
           <div className="px-6 py-5">
             <AdminDisputeActions disputeId={dispute.id} status={dispute.status} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Linked transaction quick link */}
       <div className="text-sm text-muted-foreground">
-        Transaction:{" "}
+        {sharedT("transactionLabel")}:{" "}
         <Link
           href={`/vendor/transactions/${dispute.transactionId}`}
           className="font-medium text-(--contrazy-teal) hover:underline"

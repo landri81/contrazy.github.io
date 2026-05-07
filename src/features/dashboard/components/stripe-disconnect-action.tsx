@@ -4,11 +4,13 @@ import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2, Unlink } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 
 export function StripeDisconnectAction() {
   const router = useRouter()
+  const t = useTranslations("dashboard.vendor.stripeDisconnect")
   const [isOpen, setIsOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,17 +39,19 @@ export function StripeDisconnectAction() {
         const data = await res.json()
 
         if (!res.ok) {
-          setError(data.message ?? "Failed to disconnect. Please try again.")
+          setError(data.message ?? t("disconnectError"))
           return
         }
 
         router.push("/vendor/stripe?status=disconnected")
         router.refresh()
       } catch {
-        setError("An unexpected error occurred. Please try again.")
+        setError(t("networkError"))
       }
     })
   }
+
+  const warnings = [t("warning1"), t("warning2"), t("warning3"), t("warning4")]
 
   return (
     <div className="space-y-3">
@@ -59,7 +63,7 @@ export function StripeDisconnectAction() {
           onClick={open}
         >
           <Unlink className="size-4" />
-          Disconnect Stripe
+          {t("button")}
         </Button>
       ) : (
         <AnimatePresence>
@@ -75,23 +79,14 @@ export function StripeDisconnectAction() {
                 <AlertTriangle className="size-4 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-                  Disconnect Stripe account?
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-red-700/90 dark:text-red-400/90">
-                  This will remove the Stripe link from your profile and reset your payout status to <strong>Not connected</strong>.
-                </p>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-300">{t("confirmTitle")}</p>
+                <p className="mt-1 text-sm leading-relaxed text-red-700/90 dark:text-red-400/90">{t("confirmDesc")}</p>
               </div>
             </div>
 
             {/* What this affects */}
             <ul className="mt-4 space-y-1.5 border-t border-red-200/60 pt-4 dark:border-red-800/40">
-              {[
-                "You will not be able to collect payments or deposits until you reconnect.",
-                "New transactions requiring payment will be blocked.",
-                "Your Stripe account itself is not deleted — only the link is removed.",
-                "Active transactions with pending payments must be resolved first.",
-              ].map((item) => (
+              {warnings.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-xs text-red-700/80 dark:text-red-400/80">
                   <span className="mt-1 size-1 shrink-0 rounded-full bg-red-400" />
                   {item}
@@ -107,9 +102,7 @@ export function StripeDisconnectAction() {
                 onChange={(e) => setConfirmed(e.target.checked)}
                 className="mt-0.5 size-4 cursor-pointer accent-red-600"
               />
-              <span className="text-xs font-medium text-red-800 dark:text-red-300">
-                I understand that disconnecting will pause all payment capabilities until I reconnect.
-              </span>
+              <span className="text-xs font-medium text-red-800 dark:text-red-300">{t("checkbox")}</span>
             </label>
 
             {/* Error */}
@@ -126,7 +119,7 @@ export function StripeDisconnectAction() {
                 className="h-9 cursor-pointer bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {isPending ? <Loader2 className="size-4 animate-spin" /> : <Unlink className="size-4" />}
-                {isPending ? "Disconnecting…" : "Confirm disconnect"}
+                {isPending ? t("confirming") : t("confirm")}
               </Button>
               <Button
                 type="button"
@@ -135,7 +128,7 @@ export function StripeDisconnectAction() {
                 disabled={isPending}
                 onClick={cancel}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           </motion.div>

@@ -1,40 +1,23 @@
 "use client"
 
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
-
-const cards = [
-  {
-    emoji: "📄",
-    iconBg: "bg-blue-500/[0.06]",
-    title: "Modèles de contrat",
-    desc: "Variables dynamiques : nom, dates, montants. PDF auto-généré à la volée.",
-  },
-  {
-    emoji: "✅",
-    iconBg: "bg-green-500/[0.08]",
-    title: "Checklist documentaire",
-    desc: "Pièces exigées par type : identité, permis, selfie, attestation, justificatif sur mesure.",
-  },
-  {
-    emoji: "⚙️",
-    iconBg: "bg-amber-500/[0.06]",
-    title: "Règles de garantie",
-    desc: "Montant, durée de blocage, conditions de retenue, relances automatiques.",
-  },
-]
+import { useTranslations } from "next-intl"
 
 export function VendorSection() {
+  const t = useTranslations("marketing.vendor")
+  const cards = t.raw("cards") as Array<{ emoji: string; iconBg: string; title: string; desc: string }>
+
   return (
     <section className="bg-background px-5 py-24 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <FadeIn className="max-w-xl">
-          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">Côté vendeur</p>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-[var(--contrazy-teal)]">{t("eyebrow")}</p>
           <h2 className="font-heading mt-3.5 text-[34px] font-bold leading-[1.2] tracking-[-0.5px] text-foreground">
-            Vous <em className="italic text-[var(--contrazy-teal)]">configurez</em>, Contrazy{" "}
-            <em className="italic text-[var(--contrazy-teal)]">exécute</em>
+            {t("titleBefore")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasisOne")}</em>,{" "}
+            {t("titleMiddle")} <em className="italic text-[var(--contrazy-teal)]">{t("titleEmphasisTwo")}</em>
           </h2>
           <p className="mt-3.5 max-w-[480px] text-[15px] leading-[1.7] text-muted-foreground">
-            Chaque vendeur paramètre ses propres règles.
+            {t("description")}
           </p>
         </FadeIn>
 

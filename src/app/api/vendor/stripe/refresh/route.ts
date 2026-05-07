@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
+import { normalizeLocale, toAbsoluteLocalizedAppUrl, withLocalePath } from "@/lib/i18n/locale-utils"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -20,21 +21,22 @@ export async function GET() {
       return blockedResponse
     }
     const origin = getAppBaseUrl()
+    const locale = normalizeLocale(vendorProfile.preferredLocale)
 
     if (!vendorProfile.stripeAccountId) {
-      return NextResponse.redirect(new URL("/vendor/stripe", origin))
+      return NextResponse.redirect(new URL(withLocalePath(locale, "/vendor/stripe"), origin))
     }
 
     const accountLink = await stripe.accountLinks.create({
       account: vendorProfile.stripeAccountId,
-      refresh_url: `${origin}/vendor/stripe/refresh`,
-      return_url: `${origin}/vendor/stripe/return`,
+      refresh_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/stripe/refresh"),
+      return_url: toAbsoluteLocalizedAppUrl(origin, locale, "/vendor/stripe/return"),
       type: "account_onboarding",
     })
 
     return NextResponse.redirect(accountLink.url)
   } catch (error) {
     console.error("Stripe Refresh Error:", error)
-    return NextResponse.redirect(new URL("/vendor/stripe?error=refresh_failed", getAppBaseUrl()))
+    return NextResponse.redirect(new URL(withLocalePath("en", "/vendor/stripe?error=refresh_failed"), getAppBaseUrl()))
   }
 }

@@ -1,20 +1,17 @@
 "use client"
 
-import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { buttonVariants } from "@/components/ui/button"
+import { Link } from "@/i18n/navigation"
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
 
-const stats = [
-  { value: "0 %", label: "Commission caution" },
-  { value: "< 3 min", label: "Dossier complet" },
-  { value: "120+", label: "Pays couverts KYC" },
-  { value: "SES", label: "Signature simple eIDAS" },
-]
-
 export function HeroSection() {
+  const t = useTranslations("marketing.hero")
+  const stats = t.raw("stats") as Array<{ value: string; label: string }>
+
   return (
     <section className="relative overflow-hidden bg-[var(--contrazy-navy)] px-5 pb-24 pt-[140px] text-white lg:px-10">
       <div
@@ -31,7 +28,7 @@ export function HeroSection() {
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
-            Plateforme transactionnelle sécurisée
+            {t("eyebrow")}
           </div>
 
           <motion.h1
@@ -40,8 +37,8 @@ export function HeroSection() {
             transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="font-heading text-[44px] font-bold leading-[1.15] tracking-[-1px] text-white"
           >
-            Contrat, KYC, signature, caution et paiement —{" "}
-            <em className="text-[var(--contrazy-teal)]">en un seul lien</em>
+            {t("titleBefore")}{" "}
+            <em className="text-[var(--contrazy-teal)]">{t("titleEmphasis")}</em>
           </motion.h1>
 
           <motion.p
@@ -50,7 +47,7 @@ export function HeroSection() {
             transition={{ duration: 0.55, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="mt-6 max-w-[480px] text-[17px] leading-[1.75] text-white/55"
           >
-            Envoyez un lien ou un QR code à votre client. Il crée son profil, ses pièces sont vérifiées, le contrat se génère, il signe et il paie. Tout en un.
+            {t("description")}
           </motion.p>
 
           <motion.div
@@ -65,7 +62,7 @@ export function HeroSection() {
                 className: "group h-12 bg-[var(--contrazy-teal)] px-7 text-white hover:bg-[#0eb8a0]",
               })}
             >
-              Essai gratuit 7 jours
+              {t("cta")}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>

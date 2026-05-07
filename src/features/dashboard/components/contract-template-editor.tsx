@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
+import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import type Quill from "quill"
 
@@ -109,6 +110,7 @@ export function ContractTemplateEditor({
   templateCount?: number
   templateLimitMessage?: string | null
 }) {
+  const t = useTranslations("dashboard.vendor.contractTemplateEditor")
   const router = useRouter()
   const editorHostRef = useRef<HTMLDivElement | null>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -144,6 +146,7 @@ export function ContractTemplateEditor({
   const [lastSavedAt, setLastSavedAt] = useState<Date | string | null>(
     initialTemplate?.updatedAt ?? null
   )
+  const formattedLastSavedAt = formatTimestamp(lastSavedAt)
 
   const isEditingTemplate = mode === "edit" && Boolean(initialTemplate?.id)
   const hasReachedTemplateLimit =
@@ -154,7 +157,7 @@ export function ContractTemplateEditor({
     templateCount >= templateLimit
 
   const createBlockedMessage = hasReachedTemplateLimit
-    ? templateLimitMessage ?? "Your current plan limit has been reached."
+    ? templateLimitMessage ?? t("planLimitReached")
     : null
 
   const plainTextContent = useMemo(() => stripContractMarkup(content), [content])
@@ -225,7 +228,7 @@ export function ContractTemplateEditor({
 
       const quill = new QuillClass(host, {
         theme: "snow",
-        placeholder: "Write the agreement your client will review and sign.",
+        placeholder: t("editorPlaceholder"),
         modules: {
           toolbar: toolbarOptions,
         },
@@ -407,8 +410,8 @@ export function ContractTemplateEditor({
     lastSelectionIndexRef.current = draft.selectionIndex
     toast({
       variant: "info",
-      title: "Local draft restored",
-      description: "Recovered the newer draft saved in this browser.",
+      title: t("draftRestoredTitle"),
+      description: t("draftRestoredDesc"),
     })
 
     if (quillRef.current) {
@@ -462,7 +465,7 @@ export function ContractTemplateEditor({
     }
 
     if (content.length > INPUT_LIMITS.contractContent) {
-      setSaveError(`Contract terms cannot exceed ${INPUT_LIMITS.contractContent} characters.`)
+      setSaveError(t("contentTooLong", { limit: INPUT_LIMITS.contractContent }))
       return
     }
 
@@ -486,7 +489,7 @@ export function ContractTemplateEditor({
       if (!res.ok) {
         setSaveError(
           payload?.message ??
-            `Unable to ${isEditingTemplate ? "update" : "create"} template right now.`
+            (isEditingTemplate ? t("saveErrorUpdate") : t("saveErrorCreate"))
         )
         return
       }
@@ -498,8 +501,8 @@ export function ContractTemplateEditor({
         setLastSavedAt(payload?.updatedAt ?? new Date())
         toast({
           variant: "success",
-          title: "Template saved",
-          description: "Your changes have been saved.",
+          title: t("savedTitle"),
+          description: t("savedDesc"),
         })
         router.refresh()
         return
@@ -507,15 +510,13 @@ export function ContractTemplateEditor({
 
       toast({
         variant: "success",
-        title: "Template created",
-        description: `${name.trim() || "Your template"} is ready to edit and use in transactions.`,
+        title: t("createdTitle"),
+        description: t("createdDesc", { name: name.trim() || t("defaultTemplateName") }),
       })
       router.push(`/vendor/contracts/${payload.id}/edit`)
     } catch (error) {
       console.error(error)
-      setSaveError(
-        `Unable to ${isEditingTemplate ? "update" : "create"} template right now.`
-      )
+      setSaveError(isEditingTemplate ? t("saveErrorUpdate") : t("saveErrorCreate"))
     } finally {
       setIsSaving(false)
     }
@@ -526,7 +527,7 @@ export function ContractTemplateEditor({
       return
     }
 
-    if (!window.confirm("Delete this template? Existing signed transactions will stay unchanged.")) {
+    if (!window.confirm(t("deleteConfirm"))) {
       return
     }
 
@@ -540,7 +541,7 @@ export function ContractTemplateEditor({
 
       if (!res.ok) {
         const payload = await res.json().catch(() => null)
-        setSaveError(payload?.message ?? "Unable to delete template right now.")
+        setSaveError(payload?.message ?? t("deleteError"))
         return
       }
 
@@ -549,7 +550,7 @@ export function ContractTemplateEditor({
       router.refresh()
     } catch (error) {
       console.error(error)
-      setSaveError("Unable to delete template right now.")
+      setSaveError(t("deleteError"))
     } finally {
       setIsDeleting(false)
     }
@@ -563,11 +564,11 @@ export function ContractTemplateEditor({
             <div className="space-y-3">
               <DashboardRouteLink
                 href="/vendor/contracts"
-                pendingLabel="Back to templates"
+                pendingLabel={t("backToTemplates")}
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}
               >
                 <ArrowLeft className="size-4" />
-                Back
+                {t("back")}
               </DashboardRouteLink>
 
               <div className="flex items-start gap-3">
@@ -577,10 +578,10 @@ export function ContractTemplateEditor({
 
                 <div className="space-y-1.5">
                   <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                    {isEditingTemplate ? "Edit template" : "New template"}
+                    {isEditingTemplate ? t("editTitle") : t("createTitle")}
                   </h1>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Draft the agreement your client will review and sign.
+                    {t("subtitle")}
                   </p>
                 </div>
               </div>
@@ -600,7 +601,7 @@ export function ContractTemplateEditor({
                 disabled={!isEditorReady && !isPreviewMode}
               >
                 <Eye className="size-4" />
-                {isPreviewMode ? "Back to Editor" : "Preview"}
+                {isPreviewMode ? t("previewToggleBack") : t("previewToggle")}
               </Button>
 
               {isEditingTemplate ? (
@@ -615,7 +616,7 @@ export function ContractTemplateEditor({
                   ) : (
                     <Trash2 className="size-4" />
                   )}
-                  Delete
+                  {t("deleteBtn")}
                 </Button>
               ) : null}
 
@@ -630,7 +631,7 @@ export function ContractTemplateEditor({
                 ) : (
                   <Save className="size-4" />
                 )}
-                {isSaving ? "Saving..." : isEditingTemplate ? "Save" : "Create"}
+                {isSaving ? t("savingBtn") : isEditingTemplate ? t("saveBtn") : t("createBtn")}
               </Button>
             </div>
           </div>
@@ -641,7 +642,7 @@ export function ContractTemplateEditor({
                 htmlFor="template-name"
                 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
               >
-                Name
+                {t("nameLabel")}
               </Label>
               <Input
                 id="template-name"
@@ -649,7 +650,7 @@ export function ContractTemplateEditor({
                 onChange={(event) => {
                   setName(event.target.value)
                 }}
-                placeholder="Standard service agreement"
+                placeholder={t("namePlaceholder")}
                 maxLength={INPUT_LIMITS.contractTemplateName}
                 disabled={!canEdit || isSaving || isDeleting}
                 className="h-10 rounded-xl bg-background shadow-none"
@@ -661,7 +662,7 @@ export function ContractTemplateEditor({
                 htmlFor="template-description"
                 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
               >
-                Description
+                {t("descriptionLabel")}
               </Label>
               <Input
                 id="template-description"
@@ -669,7 +670,7 @@ export function ContractTemplateEditor({
                 onChange={(event) => {
                   setDescription(event.target.value)
                 }}
-                placeholder="Optional internal note"
+                placeholder={t("descriptionPlaceholder")}
                 maxLength={INPUT_LIMITS.contractTemplateDescription}
                 disabled={!canEdit || isSaving || isDeleting}
                 className="h-10 rounded-xl bg-background shadow-none"
@@ -678,7 +679,7 @@ export function ContractTemplateEditor({
 
             <div className="flex items-end">
               <div className="text-sm text-muted-foreground">
-                {formatTimestamp(lastSavedAt) ? `Updated ${formatTimestamp(lastSavedAt)}` : "Unsaved draft"}
+                {formattedLastSavedAt ? t("updatedAt", { date: formattedLastSavedAt }) : t("unsavedDraft")}
               </div>
             </div>
           </div>
@@ -687,17 +688,17 @@ export function ContractTemplateEditor({
 
       {restoreState.status === "available" ? (
         <Alert className="border-[var(--contrazy-teal)]/20 bg-[var(--contrazy-teal)]/5 text-foreground">
-          <AlertTitle>Local draft found</AlertTitle>
+          <AlertTitle>{t("localDraftTitle")}</AlertTitle>
           <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>A newer draft from this browser is available for this template.</span>
+            <span>{t("localDraftDesc")}</span>
             <span className="flex flex-wrap items-center gap-2">
               <Button type="button" size="sm" variant="outline" onClick={handleDiscardDraft}>
                 <X className="size-4" />
-                Discard
+                {t("discard")}
               </Button>
               <Button type="button" size="sm" onClick={handleRestoreDraft}>
                 <RotateCcw className="size-4" />
-                Resume draft
+                {t("resumeDraft")}
               </Button>
             </span>
           </AlertDescription>
@@ -706,21 +707,21 @@ export function ContractTemplateEditor({
 
       {!canEdit ? (
         <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-          <AlertTitle>Editing unavailable</AlertTitle>
+          <AlertTitle>{t("editingUnavailableTitle")}</AlertTitle>
           <AlertDescription>{blockedMessage}</AlertDescription>
         </Alert>
       ) : null}
 
       {createBlockedMessage ? (
         <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-          <AlertTitle>Template limit reached</AlertTitle>
+          <AlertTitle>{t("templateLimitTitle")}</AlertTitle>
           <AlertDescription>{createBlockedMessage}</AlertDescription>
         </Alert>
       ) : null}
 
       {saveError ? (
         <Alert className="border-destructive/25 bg-destructive/5 text-destructive">
-          <AlertTitle>Save failed</AlertTitle>
+          <AlertTitle>{t("saveFailedTitle")}</AlertTitle>
           <AlertDescription>{saveError}</AlertDescription>
         </Alert>
       ) : null}
@@ -729,16 +730,16 @@ export function ContractTemplateEditor({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {name.trim() || "Untitled template"}
+              {name.trim() || t("untitled")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Review the live A4 document layout with sample values applied.
+              {t("previewSubtitle")}
             </p>
           </div>
 
           <Button type="button" variant="outline" onClick={() => setIsPreviewMode(false)}>
             <ArrowLeft className="size-4" />
-            Back to Editor
+            {t("previewToggleBack")}
           </Button>
         </div>
 
@@ -768,7 +769,7 @@ export function ContractTemplateEditor({
       >
         <Card className="overflow-hidden border-border/70 bg-white py-0 shadow-sm xl:flex xl:h-[calc(100vh-8.75rem)] xl:flex-col">
           <CardHeader className="border-b border-border/80 px-5 py-4 sm:px-6">
-            <CardTitle className="text-lg">Contract</CardTitle>
+            <CardTitle className="text-lg">{t("contractCardTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="min-h-0 px-0 py-0 xl:flex-1">
             <div className="contract-editor-shell xl:h-full xl:overflow-hidden">
@@ -797,10 +798,10 @@ export function ContractTemplateEditor({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Insert fields
+                      {t("insertFieldsTitle")}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Add client and transaction values at the current cursor.
+                      {t("insertFieldsDesc")}
                     </p>
                   </div>
 
@@ -812,7 +813,7 @@ export function ContractTemplateEditor({
                     disabled={!isEditorReady}
                   >
                     <Eye className="size-4" />
-                    Preview
+                    {t("previewToggle")}
                   </Button>
                 </div>
 
@@ -853,7 +854,7 @@ export function ContractTemplateEditor({
           <Card className="border-border/70 bg-white py-0 shadow-sm">
             <CardContent className="px-5 py-4 sm:px-6">
               <p className="text-sm text-muted-foreground">
-                {isDirty ? "Changes are being saved locally in this browser." : "All changes are synced with the last manual save."}
+                {isDirty ? t("changesLocal") : t("changesSynced")}
               </p>
             </CardContent>
           </Card>

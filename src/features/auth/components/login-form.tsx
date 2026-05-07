@@ -1,22 +1,24 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { Eye, EyeOff, Loader2, LogIn } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
 import { signIn } from "next-auth/react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import { loginSchema } from "@/features/auth/schemas/auth.schema"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleIcon } from "@/components/ui/google-icon"
+import { Link, useRouter } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { loginSchema } from "@/features/auth/schemas/auth.schema"
 import { getRoleHomePath } from "@/lib/auth/pathing"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function LoginForm() {
+  const t = useTranslations("auth.login")
+  const locale = useLocale()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -32,32 +34,26 @@ export function LoginForm() {
     const parsedPayload = loginSchema.safeParse({ email, password })
 
     if (!parsedPayload.success) {
-      setError(parsedPayload.error.issues[0]?.message ?? "Invalid email or password")
+      setError(t("errors.invalidCredentials"))
       return
     }
 
     try {
       setIsPending(true)
-      const response = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
+      const response = await signIn("credentials", { email, password, redirect: false })
 
       if (response?.error) {
-        setError("Email ou mot de passe incorrect.")
+        setError(t("errors.invalidCredentials"))
         return
       }
 
       const sessionResponse = await fetch("/api/auth/session")
       const session = await sessionResponse.json()
-
       router.push(getRoleHomePath(session?.user?.role))
-
       router.refresh()
     } catch (signInError) {
       console.error(signInError)
-      setError("Impossible de se connecter pour l'instant")
+      setError(t("errors.generic"))
     } finally {
       setIsPending(false)
     }
@@ -65,7 +61,7 @@ export function LoginForm() {
 
   function handleGoogleSignIn() {
     setIsGooglePending(true)
-    signIn("google", { callbackUrl: "/auth-complete" })
+    signIn("google", { callbackUrl: `/${locale}/auth-complete` })
   }
 
   return (
@@ -79,42 +75,35 @@ export function LoginForm() {
           disabled={isGooglePending || isPending}
         >
           <span className="flex size-6 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
-            {isGooglePending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <GoogleIcon className="size-4" />
-            )}
+            {isGooglePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
           </span>
-          {isGooglePending ? "Redirection vers Google..." : "Continuer avec Google"}
+          {t("google")}
         </Button>
 
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">ou</span>
+          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("orContinueWith")}</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
         <form className="space-y-4" onSubmit={handleCredentialsSignIn}>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("emailLabel")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="jean@monentreprise.com"
+              placeholder={t("emailPlaceholder")}
               maxLength={INPUT_LIMITS.email}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Mot de passe oublié ?
+              <Label htmlFor="password">{t("passwordLabel")}</Label>
+              <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+                {t("forgotPassword")}
               </Link>
             </div>
             <div className="relative">
@@ -122,17 +111,17 @@ export function LoginForm() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                placeholder="Votre mot de passe"
+                placeholder="••••••••"
                 className="pr-10"
                 maxLength={INPUT_LIMITS.password}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((value) => !value)}
+                onClick={() => setShowPassword((v) => !v)}
                 className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -160,21 +149,21 @@ export function LoginForm() {
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Connexion en cours...
+                {t("submitting")}
               </>
             ) : (
               <>
                 <LogIn className="size-4" />
-                Se connecter
+                {t("submit")}
               </>
             )}
           </Button>
         </form>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          Pas encore de compte ?{" "}
+          {t("noAccount")}{" "}
           <Link href="/register" className="font-medium text-primary hover:underline">
-            Créer un compte
+            {t("register")}
           </Link>
         </p>
       </CardContent>

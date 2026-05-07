@@ -1,21 +1,23 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { Eye, EyeOff, Loader2, UserPlus } from "lucide-react"
+import { useLocale, useTranslations } from "next-intl"
 import { signIn } from "next-auth/react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import { registerSchema } from "@/features/auth/schemas/auth.schema"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleIcon } from "@/components/ui/google-icon"
+import { Link, useRouter } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { registerSchema } from "@/features/auth/schemas/auth.schema"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function RegisterForm() {
+  const t = useTranslations("auth.register")
+  const locale = useLocale()
   const router = useRouter()
   const [name, setName] = useState("")
   const [businessName, setBusinessName] = useState("")
@@ -31,16 +33,10 @@ export function RegisterForm() {
     event.preventDefault()
     setError(null)
 
-    const parsedPayload = registerSchema.safeParse({
-      name,
-      businessName,
-      email,
-      password,
-      confirmPassword,
-    })
+    const parsedPayload = registerSchema.safeParse({ name, businessName, email, password, confirmPassword })
 
     if (!parsedPayload.success) {
-      setError(parsedPayload.error.issues[0]?.message ?? "Invalid form data")
+      setError(parsedPayload.error.issues[0]?.message ?? t("errors.invalidFormData"))
       return
     }
 
@@ -55,7 +51,7 @@ export function RegisterForm() {
       const registrationPayload = await registrationResponse.json()
 
       if (!registrationResponse.ok) {
-        setError(registrationPayload.message ?? "Unable to create account")
+        setError(registrationPayload.message ?? t("errors.generic"))
         return
       }
 
@@ -74,7 +70,7 @@ export function RegisterForm() {
       router.refresh()
     } catch (registrationError) {
       console.error(registrationError)
-      setError("Unable to create account right now")
+      setError(t("errors.generic"))
     } finally {
       setIsPending(false)
     }
@@ -82,7 +78,7 @@ export function RegisterForm() {
 
   function handleGoogleSignIn() {
     setIsGooglePending(true)
-    signIn("google", { callbackUrl: "/auth-complete" })
+    signIn("google", { callbackUrl: `/${locale}/auth-complete` })
   }
 
   return (
@@ -96,98 +92,94 @@ export function RegisterForm() {
           disabled={isGooglePending || isPending}
         >
           <span className="flex size-6 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
-            {isGooglePending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <GoogleIcon className="size-4" />
-            )}
+            {isGooglePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
           </span>
-          {isGooglePending ? "Redirecting to Google..." : "Sign up with Google"}
+          {t("google")}
         </Button>
 
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">or</span>
+          <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t("orContinueWith")}</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
         <form className="space-y-4" onSubmit={handleRegistration}>
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">{t("nameLabel")}</Label>
             <Input
               id="name"
               type="text"
               autoComplete="name"
-              placeholder="Enter your full name"
+              placeholder={t("namePlaceholder")}
               maxLength={INPUT_LIMITS.personName}
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="businessName">Business Name</Label>
+            <Label htmlFor="businessName">{t("businessNameLabel")}</Label>
             <Input
               id="businessName"
               type="text"
-              placeholder="Enter your business name"
+              placeholder={t("businessNamePlaceholder")}
               maxLength={INPUT_LIMITS.businessName}
               value={businessName}
-              onChange={(event) => setBusinessName(event.target.value)}
+              onChange={(e) => setBusinessName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Business Email</Label>
+            <Label htmlFor="email">{t("emailLabel")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="Enter your business email"
+              placeholder={t("emailPlaceholder")}
               maxLength={INPUT_LIMITS.email}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("passwordLabel")}</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="Minimum 12 characters"
+                placeholder={t("passwordHelp")}
                 className="pr-10"
                 maxLength={INPUT_LIMITS.password}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((value) => !value)}
+                onClick={() => setShowPassword((v) => !v)}
                 className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? "Hide characters" : "Show characters"}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Retype Password</Label>
+            <Label htmlFor="confirmPassword">{t("confirmPasswordLabel")}</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="Retype your password"
+                placeholder={t("confirmPasswordPlaceholder")}
                 className="pr-10"
                 maxLength={INPUT_LIMITS.password}
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword((value) => !value)}
+                onClick={() => setShowPassword((v) => !v)}
                 className="absolute inset-y-0 right-2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? "Hide characters" : "Show characters"}
+                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -215,21 +207,21 @@ export function RegisterForm() {
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Creating account...
+                {t("submitting")}
               </>
             ) : (
               <>
                 <UserPlus className="size-4" />
-                Create Vendor Account
+                {t("submit")}
               </>
             )}
           </Button>
         </form>
 
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          Already registered?{" "}
+          {t("haveAccount")}{" "}
           <Link href="/login" className="font-medium text-primary hover:underline">
-            Sign in
+            {t("signIn")}
           </Link>
         </p>
       </CardContent>

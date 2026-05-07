@@ -1,6 +1,7 @@
 "use client"
 
 import { Check } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { pricingTiers } from "@/content/site"
@@ -8,6 +9,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { setPricingMode } from "@/store/slices/ui-slice"
 
 export function PricingSection() {
+  const t = useTranslations("marketing.pricingSection")
   const pricingMode = useAppSelector((state) => state.ui.pricingMode)
   const dispatch = useAppDispatch()
 
@@ -16,11 +18,11 @@ export function PricingSection() {
       <div className="mx-auto w-full max-w-7xl px-5 lg:px-10">
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="text-xs font-semibold tracking-[0.2em] text-[var(--contrazy-teal)] uppercase">
-            Pricing
+            {t("eyebrow")}
           </p>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Simple launch pricing with room to scale</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">{t("heading")}</h2>
           <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-            Choose a plan that fits your launch stage now, with room to expand as workflow volume grows.
+            {t("subDescription")}
           </p>
           <div className="inline-flex gap-2 rounded-full border border-border bg-background p-1">
             <Button
@@ -29,7 +31,7 @@ export function PricingSection() {
               className={pricingMode === "monthly" ? "bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]" : ""}
               onClick={() => dispatch(setPricingMode("monthly"))}
             >
-              Monthly
+              {t("monthly")}
             </Button>
             <Button
               size="sm"
@@ -37,7 +39,7 @@ export function PricingSection() {
               className={pricingMode === "yearly" ? "bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]" : ""}
               onClick={() => dispatch(setPricingMode("yearly"))}
             >
-              Yearly
+              {t("yearly")}
             </Button>
           </div>
         </div>
@@ -56,7 +58,7 @@ export function PricingSection() {
                 {pricingMode === "monthly" ? tier.monthly : tier.yearly}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {pricingMode === "monthly" ? "per month" : "per year"}
+                {pricingMode === "monthly" ? t("perMonth") : t("perYear")}
               </p>
               <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
                 {tier.items.map((item) => (

@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { CountryCombobox } from "@/components/ui/country-combobox"
@@ -41,6 +42,7 @@ type VendorProfileFormProps = {
     businessCountry: string
     registrationNumber: string
     vatNumber: string
+    preferredLocale: "en" | "fr"
     reviewStatus: string
     stripeConnectionStatus: string
   }
@@ -59,6 +61,7 @@ function normalizeInitialValues(
 
 export function VendorProfileForm({ initialValues, accountEmail }: VendorProfileFormProps) {
   const router = useRouter()
+  const t = useTranslations("dashboard.vendor.profileForm")
   const normalizedInitialValues = useMemo(
     () => normalizeInitialValues(initialValues, accountEmail),
     [accountEmail, initialValues]
@@ -131,7 +134,7 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
       }
 
       setFieldErrors(errors)
-      setError("Please fix the highlighted fields and try again.")
+      setError(t("messages.fixErrors"))
       return
     }
 
@@ -149,16 +152,16 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
         const payload = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? "Unable to save your profile.")
+          setError(payload.message ?? t("messages.saveError"))
           return
         }
 
-        setMessage("Business profile updated.")
+        setMessage(t("messages.success"))
         setIsEditing(false)
         router.refresh()
       } catch (requestError) {
         console.error(requestError)
-        setError("Unable to save your profile right now.")
+        setError(t("messages.networkError"))
       }
     })
   }
@@ -217,15 +220,15 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
             onSubmit={handleSubmit}
           >
             <InfoSection
-              title="Edit details"
-              description="Update your business details here. Your signed-in email is locked and used as the primary business email."
+              title={t("editTitle")}
+              description={t("editDescription")}
             >
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="First name" htmlFor="ownerFirstName" error={fieldErrors.ownerFirstName}>
+                <Field label={t("fields.firstName")} htmlFor="ownerFirstName" error={fieldErrors.ownerFirstName}>
                   <Input
                     id="ownerFirstName"
                     autoComplete="given-name"
-                    placeholder="Enter your first name"
+                    placeholder={t("placeholders.firstName")}
                     maxLength={INPUT_LIMITS.personName}
                     value={form.ownerFirstName}
                     onChange={(event) => updateField("ownerFirstName", event.target.value)}
@@ -233,11 +236,11 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                   />
                 </Field>
 
-                <Field label="Last name" htmlFor="ownerLastName" error={fieldErrors.ownerLastName}>
+                <Field label={t("fields.lastName")} htmlFor="ownerLastName" error={fieldErrors.ownerLastName}>
                   <Input
                     id="ownerLastName"
                     autoComplete="family-name"
-                    placeholder="Enter your last name"
+                    placeholder={t("placeholders.lastName")}
                     maxLength={INPUT_LIMITS.personName}
                     value={form.ownerLastName}
                     onChange={(event) => updateField("ownerLastName", event.target.value)}
@@ -247,10 +250,10 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Business name" htmlFor="businessName" error={fieldErrors.businessName}>
+                <Field label={t("fields.businessName")} htmlFor="businessName" error={fieldErrors.businessName}>
                   <Input
                     id="businessName"
-                    placeholder="Enter your business name"
+                    placeholder={t("placeholders.businessName")}
                     maxLength={INPUT_LIMITS.businessName}
                     value={form.businessName}
                     onChange={(event) => updateField("businessName", event.target.value)}
@@ -258,10 +261,10 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                   />
                 </Field>
 
-                <Field label="Registration number" htmlFor="registrationNumber" error={fieldErrors.registrationNumber}>
+                <Field label={t("fields.registrationNumber")} htmlFor="registrationNumber" error={fieldErrors.registrationNumber}>
                   <Input
                     id="registrationNumber"
-                    placeholder="Enter your company registration number"
+                    placeholder={t("placeholders.registrationNumber")}
                     maxLength={INPUT_LIMITS.registrationNumber}
                     value={form.registrationNumber}
                     onChange={(event) => updateField("registrationNumber", event.target.value)}
@@ -271,18 +274,19 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               </div>
 
               <LockedField
-                label="Login email"
+                label={t("fields.loginEmail")}
                 value={accountEmail}
-                hint="This matches the email you use to sign in and cannot be edited here."
+                hint={t("lockedHint")}
+                badge={t("lockedBadge")}
               />
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Support email" htmlFor="supportEmail" error={fieldErrors.supportEmail}>
+                <Field label={t("fields.supportEmail")} htmlFor="supportEmail" error={fieldErrors.supportEmail}>
                   <Input
                     id="supportEmail"
                     type="email"
                     autoComplete="email"
-                    placeholder="Enter your support email"
+                    placeholder={t("placeholders.supportEmail")}
                     maxLength={INPUT_LIMITS.email}
                     value={form.supportEmail}
                     onChange={(event) => updateField("supportEmail", event.target.value)}
@@ -291,10 +295,10 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                 </Field>
 
                 <Field
-                  label="Business phone"
+                  label={t("fields.businessPhone")}
                   htmlFor="businessPhone"
                   error={fieldErrors.businessPhone}
-                  hint="Include country code, e.g. +1 202 555 0100"
+                  hint={t("placeholders.phoneHint")}
                 >
                   <PhoneInput
                     id="businessPhone"
@@ -306,10 +310,10 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="VAT number" htmlFor="vatNumber" error={fieldErrors.vatNumber}>
+                <Field label={t("fields.vatNumber")} htmlFor="vatNumber" error={fieldErrors.vatNumber}>
                   <Input
                     id="vatNumber"
-                    placeholder="Enter your VAT number"
+                    placeholder={t("placeholders.vatNumber")}
                     maxLength={INPUT_LIMITS.vatNumber}
                     value={form.vatNumber}
                     onChange={(event) => updateField("vatNumber", event.target.value)}
@@ -318,21 +322,50 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                 </Field>
               </div>
 
+              <Field
+                label={t("fields.preferredLocale")}
+                htmlFor="preferredLocale"
+                hint={t("localeHint")}
+              >
+                <div id="preferredLocale" className="flex flex-wrap gap-2">
+                  {(["en", "fr"] as const).map((localeCode) => {
+                    const isActive = form.preferredLocale === localeCode
+
+                    return (
+                      <button
+                        key={localeCode}
+                        type="button"
+                        onClick={() => updateField("preferredLocale", localeCode)}
+                        className={cn(
+                          "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "border-(--contrazy-teal) bg-(--contrazy-teal)/8 text-foreground"
+                            : "border-border/70 bg-background hover:border-(--contrazy-teal)/40 hover:bg-muted/40"
+                        )}
+                      >
+                        <Globe className="size-4" />
+                        {t(`localeOptions.${localeCode}`)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </Field>
+
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Country" htmlFor="businessCountry" error={fieldErrors.businessCountry}>
+                <Field label={t("fields.country")} htmlFor="businessCountry" error={fieldErrors.businessCountry}>
                   <CountryCombobox
                     id="businessCountry"
                     value={form.businessCountry}
                     onChange={(value) => updateField("businessCountry", value)}
-                    placeholder="Select your country"
+                    placeholder={t("placeholders.country")}
                   />
                 </Field>
 
-                <Field label="Business address" htmlFor="businessAddress" error={fieldErrors.businessAddress}>
+                <Field label={t("fields.businessAddress")} htmlFor="businessAddress" error={fieldErrors.businessAddress}>
                   <Textarea
                     id="businessAddress"
                     className="min-h-28"
-                    placeholder="Enter your full business address"
+                    placeholder={t("placeholders.businessAddress")}
                     maxLength={INPUT_LIMITS.address}
                     value={form.businessAddress}
                     onChange={(event) => updateField("businessAddress", event.target.value)}
@@ -345,7 +378,7 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={cancelEditor} disabled={isPending}>
                 <X className="size-4" />
-                Cancel
+                {t("actions.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -355,12 +388,12 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                 {isPending ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Saving profile...
+                    {t("actions.saving")}
                   </>
                 ) : (
                   <>
                     <Save className="size-4" />
-                    Save changes
+                    {t("actions.save")}
                   </>
                 )}
               </Button>
@@ -376,69 +409,74 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
             className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
           >
             <InfoSection
-              title="Contact and identity"
-              description="The main contact details tied to your vendor workspace."
+              title={t("contactTitle")}
+              description={t("contactDescription")}
             >
               <DisplayField
                 icon={UserCircle}
-                label="Account owner"
+                label={t("display.accountOwner")}
                 value={ownerDisplayName}
-                emptyLabel="Add account owner details"
+                emptyLabel={t("display.emptyOwner")}
               />
               <DisplayField
                 icon={Mail}
-                label="Login email"
+                label={t("fields.loginEmail")}
                 value={accountEmail}
-                hint="Locked to your signed-in account"
-                badge="Locked"
+                hint={t("display.loginEmailHint")}
+                badge={t("lockedBadge")}
               />
               <DisplayField
                 icon={Mail}
-                label="Support email"
+                label={t("fields.supportEmail")}
                 value={form.supportEmail}
-                emptyLabel="Add a support email"
+                emptyLabel={t("display.emptySupportEmail")}
+              />
+              <DisplayField
+                icon={Globe}
+                label={t("fields.preferredLocale")}
+                value={t(`localeOptions.${form.preferredLocale}`)}
               />
               <DisplayField
                 icon={Phone}
-                label="Business phone"
+                label={t("fields.businessPhone")}
                 value={form.businessPhone}
-                emptyLabel="Add a phone number"
+                emptyLabel={t("display.emptyPhone")}
               />
             </InfoSection>
 
             <InfoSection
-              title="Business details"
-              description="These details are used for review and payment-readiness checks."
+              title={t("businessTitle")}
+              description={t("businessDescription")}
             >
               <DisplayField
                 icon={Building2}
-                label="Business name"
+                label={t("fields.businessName")}
                 value={form.businessName}
-                emptyLabel="Add your business name"
+                emptyLabel={t("display.emptyBusinessName")}
               />
               <DisplayField
                 icon={Building2}
-                label="Registration number"
+                label={t("fields.registrationNumber")}
                 value={form.registrationNumber}
-                emptyLabel="Add your registration number"
+                emptyLabel={t("display.emptyRegistration")}
               />
               <DisplayField
                 icon={Building2}
-                label="VAT number"
+                label={t("fields.vatNumber")}
                 value={form.vatNumber}
-                emptyLabel="Add your VAT number"
+                emptyLabel={t("display.emptyVat")}
               />
               <DisplayField
                 icon={Globe}
-                label="Country"
+                label={t("fields.country")}
                 value={form.businessCountry}
-                emptyLabel="Select your country"
+                emptyLabel={t("display.emptyCountry")}
               />
               <DisplayField
                 icon={MapPin}
-                label="Business address"
+                label={t("fields.businessAddress")}
                 value={form.businessAddress}
-                emptyLabel="Add your business address"
+                emptyLabel={t("display.emptyAddress")}
                 multiline
               />
             </InfoSection>
@@ -470,20 +508,22 @@ function ProfileOverview({
   onEdit: () => void
   onClose: () => void
 }) {
+  const t = useTranslations("dashboard.vendor.profileForm")
+
   return (
     <div className="rounded-[1.6rem] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Vendor workspace
+              {t("overview.tag")}
             </div>
             <h2 className="mt-3 font-heading text-2xl font-semibold tracking-tight text-foreground">
-              {businessName.trim() || "Business profile"}
+              {businessName.trim() || t("overview.defaultName")}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {fullName.trim() || "Add account owner details"}{" "}
-              <span className="text-border">/</span> keep your workspace details current for review and payouts.
+              {fullName.trim() || t("display.emptyOwner")}{" "}
+              <span className="text-border">/</span> {t("overview.workspaceHint")}
             </p>
           </div>
 
@@ -498,18 +538,18 @@ function ProfileOverview({
             disabled={isPending}
           >
             {isEditing ? <X className="size-4" /> : <PencilLine className="size-4" />}
-            {isEditing ? "Close edit mode" : "Edit profile"}
+            {isEditing ? t("overview.closeEditButton") : t("overview.editButton")}
           </Button>
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <CompactStat
-            label="Profile"
+            label={t("stats.profile")}
             value={`${profileCompletion}%`}
             tone={profileCompletion === 100 ? "success" : "info"}
           />
-          <CompactStat label="Review" value={reviewStatus} tone={statusTone(reviewStatus)} />
-          <CompactStat label="Payout" value={stripeConnectionStatus} tone={statusTone(stripeConnectionStatus)} />
+          <CompactStat label={t("stats.review")} value={reviewStatus} tone={statusTone(reviewStatus)} />
+          <CompactStat label={t("stats.payout")} value={stripeConnectionStatus} tone={statusTone(stripeConnectionStatus)} />
         </div>
       </div>
     </div>
@@ -540,10 +580,12 @@ function LockedField({
   label,
   value,
   hint,
+  badge,
 }: {
   label: string
   value: string
   hint: string
+  badge: string
 }) {
   return (
     <div className="rounded-2xl border border-border/80 bg-muted/20 p-3">
@@ -554,7 +596,7 @@ function LockedField({
         </div>
         <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
           <LockKeyhole className="size-3" />
-          Locked
+          {badge}
         </span>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
@@ -603,7 +645,7 @@ function DisplayField({
               multiline && "whitespace-pre-wrap break-words"
             )}
           >
-            {hasValue ? value : emptyLabel ?? "Not added yet"}
+            {hasValue ? value : emptyLabel ?? "—"}
           </p>
           {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
         </div>

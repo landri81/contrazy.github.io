@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import type { ChecklistTemplate, ChecklistItem } from "@prisma/client"
 import { ListChecks, Plus, Trash2, GripVertical, Image as ImageIcon, FileText } from "lucide-react"
 
@@ -42,15 +43,16 @@ type DraftItem = {
   required: boolean
 }
 
-export function ChecklistTemplateList({ 
+export function ChecklistTemplateList({
   initialTemplates,
   canEdit,
   blockedMessage,
-}: { 
+}: {
   initialTemplates: FullChecklist[]
   canEdit: boolean
   blockedMessage: string
 }) {
+  const t = useTranslations("dashboard.vendor.checklistEditor")
   const [templates, setTemplates] = useState(initialTemplates)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -63,7 +65,7 @@ export function ChecklistTemplateList({
   function openNewDialog() {
     setName("")
     setDescription("")
-    setItems([{ label: "ID Card", description: "Front and back", type: "PHOTO", category: "ID", customCategoryLabel: "", required: true }])
+    setItems([{ label: t("defaultItemLabel"), description: t("defaultItemDesc"), type: "PHOTO", category: "ID", customCategoryLabel: "", required: true }])
     setIsDialogOpen(true)
   }
 
@@ -106,7 +108,7 @@ export function ChecklistTemplateList({
 
   async function handleDelete(id: string) {
     if (!canEdit) return
-    if (!confirm("Are you sure you want to delete this checklist template?")) return
+    if (!confirm(t("confirmDelete"))) return
     
     try {
       const res = await fetch(`/api/vendor/checklists/${id}`, { method: 'DELETE' })
@@ -122,7 +124,7 @@ export function ChecklistTemplateList({
     <div className="space-y-4">
       {!canEdit ? (
         <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-          <AlertTitle>Editing unavailable</AlertTitle>
+          <AlertTitle>{t("editingUnavailable")}</AlertTitle>
           <AlertDescription>{blockedMessage}</AlertDescription>
         </Alert>
       ) : null}
@@ -130,39 +132,39 @@ export function ChecklistTemplateList({
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <Button onClick={openNewDialog} disabled={!canEdit}>
             <Plus className="mr-2 h-4 w-4" />
-            New Checklist
+            {t("newChecklist")}
           </Button>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Requirement Checklist</DialogTitle>
+              <DialogTitle>{t("createTitle")}</DialogTitle>
               <DialogDescription>
-                Define the documents and photos clients must provide.
+                {t("createDescription")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Checklist Name</Label>
+                <Label htmlFor="name">{t("labelName")}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Car Rental Requirements"
+                  placeholder={t("namePlaceholder")}
                   maxLength={INPUT_LIMITS.checklistName}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="description">Description (optional)</Label>
+                <Label htmlFor="description">{t("labelDescription")}</Label>
                 <Input
                   id="description"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="When to use this checklist"
+                  placeholder={t("descriptionPlaceholder")}
                   maxLength={INPUT_LIMITS.checklistDescription}
                 />
               </div>
 
               <div className="mt-4">
-                <Label className="text-base">Requirements</Label>
+                <Label className="text-base">{t("requirementsLabel")}</Label>
                 <div className="space-y-3 mt-3">
                   {items.map((item, index) => (
                     <div key={index} className="flex items-start gap-3 p-3 border rounded-md bg-muted/30">
@@ -170,16 +172,16 @@ export function ChecklistTemplateList({
                       <div className="flex-1 grid gap-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="grid gap-1">
-                            <Label className="text-xs">Label</Label>
+                            <Label className="text-xs">{t("labelLabel")}</Label>
                             <Input
                               value={item.label}
                               onChange={e => updateItem(index, 'label', e.target.value)}
-                              placeholder="e.g. Driver's License"
+                              placeholder={t("itemLabelPlaceholder")}
                               maxLength={INPUT_LIMITS.checklistItemLabel}
                             />
                           </div>
                           <div className="grid gap-1">
-                            <Label className="text-xs">Type</Label>
+                            <Label className="text-xs">{t("labelType")}</Label>
                             <Select
                               value={item.type}
                               onValueChange={(value) => {
@@ -192,16 +194,16 @@ export function ChecklistTemplateList({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="DOCUMENT">Document (PDF/Image)</SelectItem>
-                                <SelectItem value="PHOTO">Photo</SelectItem>
-                                <SelectItem value="TEXT">Text Input</SelectItem>
+                                <SelectItem value="DOCUMENT">{t("typeDocument")}</SelectItem>
+                                <SelectItem value="PHOTO">{t("typePhoto")}</SelectItem>
+                                <SelectItem value="TEXT">{t("typeText")}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="grid gap-1">
-                            <Label className="text-xs">Category</Label>
+                            <Label className="text-xs">{t("labelCategory")}</Label>
                             <Select
                               value={item.category}
                               onValueChange={(value) => {
@@ -229,22 +231,22 @@ export function ChecklistTemplateList({
                             </Select>
                           </div>
                           <div className="grid gap-1">
-                            <Label className="text-xs">Other label</Label>
+                            <Label className="text-xs">{t("labelOther")}</Label>
                             <Input
                               value={item.customCategoryLabel}
                               onChange={e => updateItem(index, "customCategoryLabel", e.target.value)}
-                              placeholder="Custom display label"
+                              placeholder={t("otherPlaceholder")}
                               maxLength={INPUT_LIMITS.checklistItemLabel}
                               disabled={item.category !== "OTHER"}
                             />
                           </div>
                         </div>
                         <div className="grid gap-1">
-                          <Label className="text-xs">Description / Instructions</Label>
+                          <Label className="text-xs">{t("labelInstructions")}</Label>
                           <Input
                             value={item.description}
                             onChange={e => updateItem(index, 'description', e.target.value)}
-                            placeholder="e.g. Please upload both sides"
+                            placeholder={t("instructionsPlaceholder")}
                             maxLength={INPUT_LIMITS.checklistItemInstructions}
                           />
                           <CharacterCount
@@ -259,7 +261,7 @@ export function ChecklistTemplateList({
                             checked={item.required}
                             onCheckedChange={(checked) => updateItem(index, "required", Boolean(checked))}
                           />
-                          <Label htmlFor={`req-${index}`} className="text-xs font-normal">Required field</Label>
+                          <Label htmlFor={`req-${index}`} className="text-xs font-normal">{t("required")}</Label>
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={!canEdit}>
@@ -269,12 +271,12 @@ export function ChecklistTemplateList({
                   ))}
                 </div>
                 <Button variant="outline" size="sm" onClick={addItem} className="mt-3 w-full" disabled={!canEdit}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Requirement
+                  <Plus className="mr-2 h-4 w-4" /> {t("addRequirement")}
                 </Button>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>{t("cancelBtn")}</Button>
               <Button
                 onClick={handleSave}
                 disabled={
@@ -285,7 +287,7 @@ export function ChecklistTemplateList({
                   items.some((item) => !item.label || (item.category === "OTHER" && !item.customCategoryLabel.trim()))
                 }
               >
-                {isSaving ? "Saving..." : "Save Checklist"}
+                {isSaving ? t("saving") : t("saveChecklist")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -296,9 +298,9 @@ export function ChecklistTemplateList({
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <ListChecks className="h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-4 text-lg font-semibold">No checklists yet</h3>
+            <h3 className="mt-4 text-lg font-semibold">{t("empty")}</h3>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-              Create a checklist to standardize the documents and photos you collect from clients.
+              {t("emptyDescription")}
             </p>
           </CardContent>
         </Card>
@@ -310,7 +312,7 @@ export function ChecklistTemplateList({
                 <CardTitle className="line-clamp-1 flex items-center justify-between">
                   {template.name}
                   <span className="text-xs font-normal text-muted-foreground bg-secondary px-2 py-1 rounded-full">
-                    {template.items.length} items
+                    {template.items.length} {t("items")}
                   </span>
                 </CardTitle>
                 {template.description && (
@@ -331,14 +333,14 @@ export function ChecklistTemplateList({
                   ))}
                   {template.items.length > 3 && (
                     <li className="text-xs text-muted-foreground italic pl-5">
-                      + {template.items.length - 3} more
+                      {t("moreItems", { count: template.items.length - 3 })}
                     </li>
                   )}
                 </ul>
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-3">
                 <p className="text-xs text-muted-foreground">
-                  Updated {new Date(template.updatedAt).toLocaleDateString()}
+                  {t("updatedAt", { date: new Date(template.updatedAt).toLocaleDateString() })}
                 </p>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)} disabled={!canEdit}>

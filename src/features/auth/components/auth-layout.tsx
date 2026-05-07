@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { motion } from "framer-motion"
-
+import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 
 type AuthLayoutProps = {
   title: string
@@ -10,24 +10,19 @@ type AuthLayoutProps = {
   children: React.ReactNode
 }
 
-const featurePoints = [
-  { emoji: "🪪", label: "Vérification d'identité automatique" },
-  { emoji: "📝", label: "Contrats auto-générés et signés" },
-  { emoji: "💳", label: "Cautions et paiements sécurisés" },
-  { emoji: "📱", label: "QR Codes dynamiques" },
-]
-
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+  const t = useTranslations("auth.sidebar")
+
   return (
-    <div className="grid min-h-screen bg-[var(--contrazy-bg-muted)] lg:grid-cols-[500px_1fr]">
+    <div className="grid min-h-screen bg-(--contrazy-bg-muted) lg:grid-cols-[500px_1fr]">
       <aside className="relative hidden overflow-hidden border-r border-white/10 bg-[linear-gradient(165deg,#081727_0%,#0c1e2f_48%,#132d46_100%)] px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -left-32 -top-32 size-96 rounded-full bg-[var(--contrazy-teal)]/15 blur-3xl"
+          className="pointer-events-none absolute -left-32 -top-32 size-96 rounded-full bg-(--contrazy-teal)/15 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-24 bottom-0 size-80 rounded-full bg-[var(--contrazy-teal)]/10 blur-3xl"
+          className="pointer-events-none absolute -right-24 bottom-0 size-80 rounded-full bg-(--contrazy-teal)/10 blur-3xl"
         />
 
         <motion.div
@@ -42,26 +37,26 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
             </Link>
 
             <p className="max-w-sm text-[26px] font-semibold leading-tight">
-              Sécurisez toute la transaction, pas seulement le paiement.
+              {t("tagline")}
             </p>
             <p className="max-w-sm text-[14px] leading-[1.75] text-white/62">
-              Contrat, KYC, e-signature, caution et paiement — en un seul lien ou QR code.
+              {t("subTagline")}
             </p>
           </div>
 
           <ul className="space-y-3">
-            {featurePoints.map(({ emoji, label }, index) => (
+            {(["kyc", "contracts", "payments", "qr"] as const).map((key, index) => (
               <motion.li
-                key={label}
+                key={key}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.18 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center gap-3"
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/8 text-[18px]">
-                  {emoji}
+                  {key === "kyc" ? "🪪" : key === "contracts" ? "📝" : key === "payments" ? "💳" : "📱"}
                 </span>
-                <span className="text-[14px] text-white/80">{label}</span>
+                <span className="text-[14px] text-white/80">{t(`features.${key}`)}</span>
               </motion.li>
             ))}
           </ul>
@@ -73,7 +68,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           transition={{ duration: 0.5, delay: 0.5 }}
           className="relative text-xs text-white/45"
         >
-          Connexion sécurisée pour vendeurs, administrateurs et propriétaires de compte
+          {t("secureLogin")}
         </motion.p>
       </aside>
 

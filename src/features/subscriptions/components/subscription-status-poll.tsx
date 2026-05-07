@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle2, Loader2 } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Link, useRouter } from "@/i18n/navigation"
 
 type SubscriptionPollState = {
   allowed: boolean

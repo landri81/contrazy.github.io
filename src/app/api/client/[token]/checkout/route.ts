@@ -5,6 +5,7 @@ import { getNextFinanceStage, type FinanceTransaction } from "@/features/transac
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 import { getAppBaseUrl, getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -51,6 +52,7 @@ export async function POST(
     }
 
     const { transaction } = link
+    const locale = normalizeLocale(transaction.locale)
     const financeTransaction = {
       ...transaction,
       link,
@@ -64,7 +66,7 @@ export async function POST(
     const nextStage = getNextFinanceStage(financeTransaction)
 
     if (nextStage === "complete") {
-      return NextResponse.json({ success: true, url: `/t/${token}/complete` })
+      return NextResponse.json({ success: true, url: withLocalePath(locale, `/t/${token}/complete`) })
     }
 
     const origin = getAppBaseUrl()
@@ -73,8 +75,8 @@ export async function POST(
     const returnsToPayment =
       nextStage === "service_payment" && Boolean(transaction.depositAmount && transaction.depositAmount > 0)
     const successPath = returnsToPayment
-      ? `/t/${token}/payment?stage=service_payment&session_id={CHECKOUT_SESSION_ID}`
-      : `/t/${token}/complete?stage=${nextStage}&session_id={CHECKOUT_SESSION_ID}`
+      ? withLocalePath(locale, `/t/${token}/payment?stage=service_payment&session_id={CHECKOUT_SESSION_ID}`)
+      : withLocalePath(locale, `/t/${token}/complete?stage=${nextStage}&session_id={CHECKOUT_SESSION_ID}`)
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
@@ -93,7 +95,7 @@ export async function POST(
       ],
       mode: "payment",
       success_url: `${origin}${successPath}`,
-      cancel_url: `${origin}/t/${token}/payment`,
+      cancel_url: `${origin}${withLocalePath(locale, `/t/${token}/payment`)}`,
       client_reference_id: transaction.reference,
       customer_email: transaction.clientProfile?.email || undefined,
       metadata: {
