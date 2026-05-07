@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useTranslations } from "next-intl"
 
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
+import { stackArtwork } from "@/features/marketing/section-artwork"
 
 export function StackSection() {
   const t = useTranslations("marketing.stack")
@@ -23,18 +24,18 @@ export function StackSection() {
         </FadeIn>
 
         <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {cards.map((card) => (
+          {cards.map((card, i) => (
             <StaggerItem
               key={card.title}
-              className="rounded-[14px] border border-white/[0.06] bg-[var(--contrazy-navy-soft)] p-6 transition-colors hover:border-[var(--contrazy-teal)]/25"
+              className="group rounded-[16px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 transition-colors hover:border-[var(--contrazy-teal)]/25"
             >
-              <div className="mb-3.5 overflow-hidden rounded-lg bg-white/[0.06] p-3">
+              <div className="mb-4 overflow-hidden rounded-[14px] border border-white/[0.07] bg-[radial-gradient(circle_at_top,rgba(17,201,176,0.14),rgba(255,255,255,0.04)_58%)] p-4">
                 <Image
-                  src={card.src}
+                  src={stackArtwork[i] ?? stackArtwork[stackArtwork.length - 1]}
                   alt={card.alt}
                   width={400}
-                  height={120}
-                  className="h-[120px] w-full rounded object-contain"
+                  height={160}
+                  className="h-[138px] w-full rounded object-contain transition-transform duration-300 group-hover:scale-[1.03]"
                 />
               </div>
               <h3 className="text-[14px] font-bold text-white">{card.title}</h3>

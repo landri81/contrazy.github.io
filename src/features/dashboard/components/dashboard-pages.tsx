@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation"
 
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
 import { AdminDisputeActions } from "@/features/dashboard/components/admin-dispute-actions"
+import { AdminContactReplyForm, MarkReadOnMount } from "@/features/dashboard/components/admin-contact-actions"
 import { Card, CardContent } from "@/components/ui/card"
 import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
 import { DepositQuickActions } from "@/features/dashboard/components/deposit-quick-actions"
@@ -10,6 +11,8 @@ import { PaymentLinkManagementActions } from "@/features/dashboard/components/pa
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import type {
+  AdminContactDetailRecord,
+  AdminContactListData,
   AdminDisputeDetailRecord,
   AdminDisputeListData,
   AdminInviteListData,
@@ -1218,6 +1221,133 @@ export async function AdminDisputeDetailView({ dispute }: { dispute: AdminDisput
         </Link>
         {" · "}{dispute.vendorName}
       </div>
+    </div>
+  )
+}
+
+export async function AdminContactListView({
+  data,
+  searchParams,
+}: {
+  data: AdminContactListData
+  searchParams?: Record<string, string>
+}) {
+  const t = await getTranslations("dashboard.admin.contacts")
+  const statusOptions = [
+    { label: t("statusAll"), value: "" },
+    { label: t("statusNew"), value: "new" },
+    { label: t("statusRead"), value: "read" },
+    { label: t("statusReplied"), value: "replied" },
+    { label: t("statusArchived"), value: "archived" },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <KpiGrid
+        items={[
+          { label: t("kpiTotal"), value: `${data.totalCount}`, tone: "neutral" },
+          { label: t("kpiNew"), value: `${data.newCount}`, tone: data.newCount > 0 ? "warning" : "neutral", detail: data.newCount > 0 ? t("kpiNewDetail") : t("kpiNoPending") },
+        ]}
+      />
+
+      <PagePanel title={t("listTitle")} description={t("listDescription")}>
+        <TablePageSection
+          basePath="/admin/contacts"
+          searchValue={searchParams?.q}
+          searchPlaceholder={t("searchPlaceholder")}
+          filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: statusOptions }]}
+          currentPage={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          searchParams={searchParams}
+          columns={[t("columns.sender"), t("columns.preview"), t("columns.locale"), t("columns.status"), t("columns.date")]}
+          rows={data.items.map((c) => [
+            <div key={`${c.id}-sender`}>
+              <p className="text-sm font-medium text-foreground">{c.name}</p>
+              <p className="text-xs text-muted-foreground">{c.email}</p>
+            </div>,
+            <Link
+              key={`${c.id}-preview`}
+              href={`/admin/contacts/${c.id}`}
+              className="block max-w-xs truncate text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {c.messagePreview}
+            </Link>,
+            <span key={`${c.id}-locale`} className="uppercase text-xs font-medium text-muted-foreground">{c.locale}</span>,
+            <StatusBadge key={`${c.id}-status`} tone={getStatusTone(c.status)}>{c.status}</StatusBadge>,
+            c.createdAt,
+          ])}
+          emptyMessage={t("empty")}
+        />
+      </PagePanel>
+    </div>
+  )
+}
+
+export async function AdminContactDetailView({ contact }: { contact: AdminContactDetailRecord }) {
+  const t = await getTranslations("dashboard.admin.contacts")
+  const isReplied = contact.status === "REPLIED"
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <Link href="/admin/contacts" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        ← {t("backToContacts")}
+      </Link>
+
+      <MarkReadOnMount contactId={contact.id} />
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="border-b border-border px-6 py-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight">
+                  ✉️ {contact.firstName} {contact.lastName}
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">{contact.email}</p>
+              </div>
+              <StatusBadge tone={getStatusTone(contact.status)}>{contact.status}</StatusBadge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
+            {[
+              { label: t("detailLocale"), value: contact.locale.toUpperCase() },
+              { label: t("detailReceived"), value: contact.createdAt },
+              { label: isReplied ? t("detailRepliedAt") : t("detailStatus"), value: isReplied ? contact.repliedAt ?? "—" : contact.status },
+            ].map((cell, i) => (
+              <div
+                key={cell.label}
+                className={`px-6 py-4 ${i < 2 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
+              >
+                <p className="mb-1 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{cell.label}</p>
+                <div className="text-sm font-medium text-foreground">{cell.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-b border-border px-6 py-5">
+            <p className="mb-2 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{t("detailMessage")}</p>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{contact.message}</p>
+          </div>
+
+          {isReplied && contact.replyText && (
+            <div className="border-b border-border px-6 py-5 bg-muted/20">
+              <p className="mb-2 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{t("detailPreviousReply")}</p>
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{contact.replyText}</p>
+              {contact.repliedAt && (
+                <p className="mt-2 text-xs text-muted-foreground">{t("detailRepliedAt")}: {contact.repliedAt}</p>
+              )}
+            </div>
+          )}
+
+          <div className="px-6 py-5">
+            <p className="mb-3 text-sm font-semibold">{isReplied ? t("replyAgain") : t("replyTitle")}</p>
+            <AdminContactReplyForm contactId={contact.id} isReplied={isReplied} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

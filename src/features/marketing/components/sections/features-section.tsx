@@ -1,6 +1,9 @@
 "use client"
 
+import Image from "next/image"
+
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
+import { featureArtwork } from "@/features/marketing/section-artwork"
 import { useTranslations } from "next-intl"
 
 export function FeaturesSection() {
@@ -29,13 +32,22 @@ export function FeaturesSection() {
         </FadeIn>
 
         <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <StaggerItem
               key={f.title}
               className="group rounded-[14px] border border-border bg-background p-7 transition-all hover:-translate-y-[3px] hover:border-[var(--contrazy-teal)]/30 hover:shadow-md"
             >
-              <div className={`flex size-[46px] items-center justify-center rounded-xl text-[22px] ${f.iconBg}`}>
-                {f.emoji}
+              <div
+                className={`flex size-[46px] items-center justify-center overflow-hidden rounded-xl ring-1 ring-black/5 ${f.iconBg}`}
+              >
+                <Image
+                  src={featureArtwork[i] ?? featureArtwork[featureArtwork.length - 1]}
+                  alt={f.title}
+                  width={30}
+                  height={30}
+                  sizes="30px"
+                  className="h-[30px] w-[30px] object-contain transition-transform duration-300 group-hover:scale-105"
+                />
               </div>
               <h3 className="mt-4 text-[15px] font-bold text-foreground">{f.title}</h3>
               <p className="mt-1.5 text-[13px] leading-[1.6] text-muted-foreground">{f.desc}</p>

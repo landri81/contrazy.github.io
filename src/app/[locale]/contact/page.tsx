@@ -20,7 +20,13 @@ export async function generateMetadata({
   }
 }
 
-export default async function ContactPage() {
+export default async function ContactPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale: rawLocale } = await params
+  const locale = normalizeLocale(rawLocale)
   const t = await getTranslations("marketing.contactPage")
   const channels = t.raw("channels") as Array<{ title: string; description: string }>
 
@@ -31,7 +37,7 @@ export default async function ContactPage() {
         title={t("title")}
         description={t("description")}
       />
-      <ContactSection channels={channels} />
+      <ContactSection channels={channels} locale={locale} />
     </PublicShell>
   )
 }

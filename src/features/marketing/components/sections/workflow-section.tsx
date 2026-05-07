@@ -1,6 +1,9 @@
 "use client"
 
+import Image from "next/image"
+
 import { FadeIn, Stagger, StaggerItem } from "@/components/ui/motion"
+import { workflowStepArtwork } from "@/features/marketing/section-artwork"
 import { useTranslations } from "next-intl"
 
 export function WorkflowSection() {
@@ -29,7 +32,17 @@ export function WorkflowSection() {
               }`}
             >
               <p className="text-[11px] font-bold uppercase tracking-[2px] text-[var(--contrazy-teal)]">{step.n}</p>
-              <p className="mt-3 text-[26px]">{step.emoji}</p>
+              <div className="mt-3">
+                <div className="relative mx-auto size-9 overflow-hidden">
+                  <Image
+                    src={workflowStepArtwork[i] ?? workflowStepArtwork[workflowStepArtwork.length - 1]}
+                    alt={step.title}
+                    fill
+                    sizes="36px"
+                    className="object-contain"
+                  />
+                </div>
+              </div>
               <h4 className="mt-3 text-xs font-bold text-foreground">{step.title}</h4>
               <p className="mt-1 text-[11px] leading-[1.4] text-muted-foreground">{step.desc}</p>
             </StaggerItem>

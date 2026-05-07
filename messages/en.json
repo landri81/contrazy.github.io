@@ -240,6 +240,7 @@
           "vendors": "Vendors",
           "invitations": "Invitations",
           "disputes": "Disputes",
+          "contactMessages": "Contact messages",
           "accessLevels": "Access levels",
           "activityLogs": "Activity logs",
           "sessions": "Sessions"
@@ -1640,6 +1641,37 @@
         "responseDeadline": "RESPONSE DEADLINE",
         "attachments": "ATTACHMENTS"
       },
+      "contacts": {
+        "listTitle": "Contact messages",
+        "listDescription": "Messages submitted through the public contact form. Reply directly from here via email.",
+        "searchPlaceholder": "Search by name, email, or message",
+        "kpiTotal": "Total messages",
+        "kpiNew": "Unread",
+        "kpiNewDetail": "Awaiting review",
+        "kpiNoPending": "All reviewed",
+        "statusAll": "All statuses",
+        "statusNew": "New",
+        "statusRead": "Read",
+        "statusReplied": "Replied",
+        "statusArchived": "Archived",
+        "columns": {
+          "sender": "Sender",
+          "preview": "Message",
+          "locale": "Lang",
+          "status": "Status",
+          "date": "Received"
+        },
+        "empty": "No contact messages yet.",
+        "backToContacts": "Back to contact messages",
+        "detailLocale": "LANGUAGE",
+        "detailReceived": "RECEIVED",
+        "detailStatus": "STATUS",
+        "detailRepliedAt": "REPLIED ON",
+        "detailMessage": "MESSAGE",
+        "detailPreviousReply": "PREVIOUS REPLY",
+        "replyTitle": "Send a reply",
+        "replyAgain": "Send another reply"
+      },
       "userActions": {
         "reviewActions": {
           "approve": "Approve",
@@ -2354,6 +2386,8 @@
       "formEmailPlaceholder": "Enter your email address",
       "formMessagePlaceholder": "Describe your workflow, industry, or launch timeline.",
       "formSubmit": "Send message",
+      "formSubmitting": "Sending…",
+      "formErrorGeneric": "Something went wrong. Please try again.",
       "formSuccessTitle": "Message received",
       "formSuccessDesc": "Thanks for reaching out. A member of the Contrazy team will review your message and follow up."
     },

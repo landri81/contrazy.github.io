@@ -8,6 +8,7 @@ export type DashboardIconName =
   | "fileClock"
   | "fileText"
   | "folderKanban"
+  | "inbox"
   | "layoutDashboard"
   | "link2"
   | "logs"
@@ -111,6 +112,7 @@ export function buildAdminNavigation(t: T): DashboardNavSection[] {
       label: t("nav.admin.sections.caseManagement"),
       items: [
         { href: "/admin/disputes", label: t("nav.admin.items.disputes"), icon: "fileClock" },
+        { href: "/admin/contacts", label: t("nav.admin.items.contactMessages"), icon: "inbox" },
       ],
     },
     {
@@ -197,6 +199,7 @@ export const adminNavigation: DashboardNavSection[] = [
     label: "Case management",
     items: [
       { href: "/admin/disputes", label: "Disputes", icon: "fileClock" },
+      { href: "/admin/contacts", label: "Contact messages", icon: "inbox" },
     ],
   },
   {

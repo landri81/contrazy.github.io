@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import { getTranslations } from "next-intl/server"
 
 import { PublicShell } from "@/features/marketing/components/public-shell"
+import { blogFeaturedArtwork, blogPostArtwork } from "@/features/marketing/section-artwork"
 import { normalizeLocale } from "@/lib/i18n/locale-utils"
 
 export async function generateMetadata({
@@ -38,11 +40,20 @@ export default async function BlogPage() {
           {/* Featured post */}
           <div className="mb-12 grid cursor-pointer overflow-hidden rounded-[20px] border border-border bg-background transition-all hover:-translate-y-0.5 hover:shadow-lg sm:grid-cols-2">
             {/* Image side */}
-            <div
-              className="flex min-h-[300px] items-center justify-center text-[72px]"
-              style={{ background: "linear-gradient(135deg, #0c1e2f, #132d46)" }}
-            >
-              {featuredPost.emoji}
+            <div className="relative min-h-[300px] overflow-hidden border-b border-border bg-linear-to-br from-[#eefaf7] via-white to-[#eff6ff] sm:border-b-0 sm:border-r">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(17,201,176,0.16),transparent_58%)]" />
+              <div className="absolute inset-0 p-6 sm:p-8">
+                <div className="relative h-full overflow-hidden rounded-[18px] border border-white/80 bg-white/70 shadow-[0_20px_50px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+                  <Image
+                    src={blogFeaturedArtwork}
+                    alt={featuredPost.title}
+                    fill
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                    className="object-contain p-5 transition-transform duration-300 hover:scale-[1.03]"
+                    priority
+                  />
+                </div>
+              </div>
             </div>
             {/* Content side */}
             <div className="flex flex-col justify-center p-10 sm:p-12">
@@ -63,14 +74,22 @@ export default async function BlogPage() {
 
           {/* Blog grid */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {blogPosts.map((post) => (
+            {blogPosts.map((post, i) => (
               <article
                 key={post.title}
-                className="cursor-pointer overflow-hidden rounded-[14px] border border-border bg-background transition-all hover:-translate-y-1 hover:shadow-lg"
+                className="group cursor-pointer overflow-hidden rounded-[16px] border border-border bg-background transition-all hover:-translate-y-1 hover:shadow-lg"
               >
-                {/* Emoji image area */}
-                <div className="flex h-[160px] items-center justify-center border-b border-border bg-[var(--contrazy-bg-muted)] text-[44px]">
-                  {post.emoji}
+                <div className="relative h-[190px] overflow-hidden border-b border-border bg-linear-to-br from-[#eefaf7] via-white to-[#eff6ff] p-4">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(17,201,176,0.14),transparent_62%)]" />
+                  <div className="relative h-full overflow-hidden rounded-[14px] border border-white/80 bg-white/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <Image
+                      src={blogPostArtwork[i] ?? blogPostArtwork[blogPostArtwork.length - 1]}
+                      alt={post.title}
+                      fill
+                      sizes="(min-width: 1024px) 24vw, (min-width: 640px) 46vw, 100vw"
+                      className="object-contain p-4 transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  </div>
                 </div>
                 {/* Card body */}
                 <div className="p-5">

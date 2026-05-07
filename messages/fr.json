@@ -240,6 +240,7 @@
           "vendors": "Vendeurs",
           "invitations": "Invitations",
           "disputes": "Litiges",
+          "contactMessages": "Messages de contact",
           "accessLevels": "Niveaux d'accès",
           "activityLogs": "Journaux d'activité",
           "sessions": "Sessions"
@@ -1640,6 +1641,37 @@
         "responseDeadline": "DATE LIMITE DE RÉPONSE",
         "attachments": "PIÈCES JOINTES"
       },
+      "contacts": {
+        "listTitle": "Messages de contact",
+        "listDescription": "Messages soumis via le formulaire de contact public. Répondez directement par e-mail depuis cette interface.",
+        "searchPlaceholder": "Rechercher par nom, e-mail ou message",
+        "kpiTotal": "Total des messages",
+        "kpiNew": "Non lus",
+        "kpiNewDetail": "En attente de traitement",
+        "kpiNoPending": "Tous traités",
+        "statusAll": "Tous les statuts",
+        "statusNew": "Nouveau",
+        "statusRead": "Lu",
+        "statusReplied": "Répondu",
+        "statusArchived": "Archivé",
+        "columns": {
+          "sender": "Expéditeur",
+          "preview": "Message",
+          "locale": "Langue",
+          "status": "Statut",
+          "date": "Reçu le"
+        },
+        "empty": "Aucun message de contact pour le moment.",
+        "backToContacts": "Retour aux messages",
+        "detailLocale": "LANGUE",
+        "detailReceived": "REÇU LE",
+        "detailStatus": "STATUT",
+        "detailRepliedAt": "RÉPONDU LE",
+        "detailMessage": "MESSAGE",
+        "detailPreviousReply": "RÉPONSE PRÉCÉDENTE",
+        "replyTitle": "Envoyer une réponse",
+        "replyAgain": "Envoyer une autre réponse"
+      },
       "userActions": {
         "reviewActions": {
           "approve": "Approuver",
@@ -2354,6 +2386,8 @@
       "formEmailPlaceholder": "Entrez votre adresse e-mail",
       "formMessagePlaceholder": "Décrivez votre flux de travail, votre secteur ou votre calendrier de lancement.",
       "formSubmit": "Envoyer le message",
+      "formSubmitting": "Envoi en cours…",
+      "formErrorGeneric": "Une erreur est survenue. Veuillez réessayer.",
       "formSuccessTitle": "Message reçu",
       "formSuccessDesc": "Merci de nous avoir contactés. Un membre de l'équipe Contrazy examinera votre message et vous répondra."
     },

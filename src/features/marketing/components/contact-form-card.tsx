@@ -1,7 +1,7 @@
 "use client"
 
 import { Send } from "lucide-react"
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
@@ -9,9 +9,47 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
-export function ContactFormCard() {
+export function ContactFormCard({ locale }: { locale?: string }) {
   const t = useTranslations("marketing.contactPage")
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+
+    const form = event.currentTarget
+    const data = new FormData(form)
+
+    const body = {
+      firstName: data.get("firstName") as string,
+      lastName: data.get("lastName") as string,
+      email: data.get("email") as string,
+      message: data.get("message") as string,
+      locale: locale ?? "en",
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        })
+
+        const json = await res.json() as { success: boolean; message?: string }
+
+        if (json.success) {
+          setSubmitted(true)
+        } else {
+          setError(json.message ?? t("formErrorGeneric"))
+        }
+      } catch {
+        setError(t("formErrorGeneric"))
+      }
+    })
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 sm:p-8">
@@ -23,38 +61,61 @@ export function ContactFormCard() {
           </p>
         </div>
       ) : (
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault()
-            setSubmitted(true)
-          }}
-        >
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="first-name">{t("formFirstName")}</Label>
-              <Input id="first-name" placeholder={t("formFirstNamePlaceholder")} />
+              <Label htmlFor="firstName">{t("formFirstName")}</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                placeholder={t("formFirstNamePlaceholder")}
+                required
+                disabled={isPending}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last-name">{t("formLastName")}</Label>
-              <Input id="last-name" placeholder={t("formLastNamePlaceholder")} />
+              <Label htmlFor="lastName">{t("formLastName")}</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                placeholder={t("formLastNamePlaceholder")}
+                required
+                disabled={isPending}
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">{t("formEmail")}</Label>
-            <Input id="email" type="email" placeholder={t("formEmailPlaceholder")} />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder={t("formEmailPlaceholder")}
+              required
+              disabled={isPending}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="message">{t("formMessage")}</Label>
             <Textarea
               id="message"
+              name="message"
               className="min-h-32"
               placeholder={t("formMessagePlaceholder")}
+              required
+              disabled={isPending}
             />
           </div>
-          <Button type="submit" className="h-10 bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]">
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="h-10 bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]"
+          >
             <Send className="size-4" />
-            {t("formSubmit")}
+            {isPending ? t("formSubmitting") : t("formSubmit")}
           </Button>
         </form>
       )}

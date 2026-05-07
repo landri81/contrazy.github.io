@@ -2866,3 +2866,122 @@ export async function getAdminSessions(
 export function getStatusTone(status: string) {
   return getStatusToneValue(status)
 }
+
+// ── Contact messages ──────────────────────────────────────────────────────────
+
+export type AdminContactListData = {
+  items: AdminContactRecord[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
+  newCount: number
+}
+
+export type AdminContactRecord = {
+  id: string
+  name: string
+  email: string
+  messagePreview: string
+  locale: string
+  status: string
+  createdAt: string
+}
+
+export type AdminContactDetailRecord = {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+  locale: string
+  status: string
+  replyText: string | null
+  repliedAt: string | null
+  ipAddress: string | null
+  createdAt: string
+}
+
+type AdminContactFilters = { q?: string; status?: string }
+
+export async function getAdminContacts(
+  page: number = 1,
+  pageSize: number = 20,
+  filters: AdminContactFilters = {}
+): Promise<AdminContactListData> {
+  const pagination = resolvePagination({ page, pageSize }, { defaultPageSize: 20, maxPageSize: 100 })
+  const search = normalizeSearchTerm(filters.q)
+  const status = filters.status?.toUpperCase()
+
+  const validStatuses = ["NEW", "READ", "REPLIED", "ARCHIVED"]
+  const statusFilter = status && validStatuses.includes(status) ? status : undefined
+
+  const where: Prisma.ContactMessageWhereInput = {
+    ...(statusFilter ? { status: statusFilter as "NEW" | "READ" | "REPLIED" | "ARCHIVED" } : {}),
+    ...(search
+      ? {
+          OR: [
+            { firstName: containsInsensitive(search) },
+            { lastName: containsInsensitive(search) },
+            { email: containsInsensitive(search) },
+            { message: containsInsensitive(search) },
+          ],
+        }
+      : {}),
+  }
+
+  const [items, totalCount, newCount] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.contactMessage.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip: pagination.skip,
+          take: pagination.pageSize,
+        }),
+      []
+    ),
+    safeQuery(() => prisma.contactMessage.count({ where }), 0),
+    safeQuery(() => prisma.contactMessage.count({ where: { status: "NEW" } }), 0),
+  ])
+
+  return {
+    items: items.map((c) => ({
+      id: c.id,
+      name: `${c.firstName} ${c.lastName}`,
+      email: c.email,
+      messagePreview: c.message.length > 120 ? `${c.message.slice(0, 120)}…` : c.message,
+      locale: c.locale,
+      status: c.status,
+      createdAt: formatDateTime(c.createdAt),
+    })),
+    totalCount,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    totalPages: Math.max(1, Math.ceil(totalCount / pagination.pageSize)),
+    newCount,
+  }
+}
+
+export async function getAdminContactDetail(contactId: string): Promise<AdminContactDetailRecord | null> {
+  const c = await safeQuery(
+    () => prisma.contactMessage.findUnique({ where: { id: contactId } }),
+    null
+  )
+
+  if (!c) return null
+
+  return {
+    id: c.id,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    email: c.email,
+    message: c.message,
+    locale: c.locale,
+    status: c.status,
+    replyText: c.replyText ?? null,
+    repliedAt: c.repliedAt ? formatDateTime(c.repliedAt) : null,
+    ipAddress: c.ipAddress ?? null,
+    createdAt: formatDateTime(c.createdAt),
+  }
+}

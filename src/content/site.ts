@@ -78,7 +78,6 @@ export const footerGroupDefs: FooterGroupDef[] = [
     links: [
       { href: "/blog", labelKey: "footer.links.blog" },
       { href: "/faq", labelKey: "footer.links.faq" },
-      { href: "/api-docs", labelKey: "footer.links.apiDocs" },
       { href: "/help", labelKey: "footer.links.helpCentre" },
       { href: "/status", labelKey: "footer.links.status" },
     ],

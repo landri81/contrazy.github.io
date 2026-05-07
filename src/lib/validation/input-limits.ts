@@ -23,6 +23,8 @@ export const INPUT_LIMITS = {
   disputeSummary: 1_000,
   adminDisputeResolution: 1_500,
   clientCompanyName: 120,
+  contactMessage: 2_000,
+  contactReply: 3_000,
 } as const
 
 export const PHONE_REGEX = /^\+[1-9]\d{0,2}[\s\-]?\d{4,14}$/

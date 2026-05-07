@@ -23,8 +23,6 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
             key={item.question}
             layout
             className="rounded-lg border border-border bg-card"
-            onMouseEnter={() => setOpenIndex(index)}
-            onMouseLeave={() => setOpenIndex((current) => (current === index ? null : current))}
             whileHover={{ y: -2 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -32,7 +30,6 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
               type="button"
               className="flex w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-foreground"
               onClick={() => setOpenIndex(isOpen ? null : index)}
-              onFocus={() => setOpenIndex(index)}
             >
               <span>{item.question}</span>
               <motion.span

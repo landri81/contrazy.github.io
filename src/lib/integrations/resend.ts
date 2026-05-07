@@ -307,6 +307,104 @@ export async function sendClientDisputeResolved(
   })
 }
 
+export async function sendContactAutoReply(
+  to: string,
+  firstName: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  return deliverEmail({
+    to,
+    subject: isFr ? "Nous avons bien reçu votre message" : "We've received your message",
+    html: isFr
+      ? `
+        <h2>Bonjour ${firstName},</h2>
+        <p>Merci de nous avoir contactés. Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.</p>
+        <p>Si votre demande est urgente, n'hésitez pas à nous relancer en répondant directement à cet e-mail.</p>
+        <br />
+        <p>Cordialement,<br />L'équipe Contrazy</p>
+      `
+      : `
+        <h2>Hi ${firstName},</h2>
+        <p>Thanks for reaching out. We've received your message and will get back to you as soon as possible.</p>
+        <p>If your request is urgent, feel free to follow up by replying directly to this email.</p>
+        <br />
+        <p>Best regards,<br />The Contrazy Team</p>
+      `,
+  })
+}
+
+export async function sendAdminContactNotification(
+  adminEmail: string,
+  firstName: string,
+  lastName: string,
+  senderEmail: string,
+  message: string,
+  contactId: string,
+  locale: string
+) {
+  return deliverEmail({
+    to: adminEmail,
+    subject: `[New Contact] ${firstName} ${lastName} — ${senderEmail}`,
+    html: `
+      <h2>New contact form submission</h2>
+      <table style="border-collapse:collapse;width:100%;font-size:14px">
+        <tr><td style="padding:6px 0;color:#666">Name</td><td style="padding:6px 0;font-weight:600">${firstName} ${lastName}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0">${senderEmail}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Locale</td><td style="padding:6px 0">${locale.toUpperCase()}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Message ID</td><td style="padding:6px 0;font-family:monospace">${contactId}</td></tr>
+      </table>
+      <div style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:4px solid #6366f1;border-radius:4px">
+        <p style="margin:0;font-size:14px;white-space:pre-wrap">${message}</p>
+      </div>
+      <p>Log in to the admin dashboard to view and reply to this message.</p>
+      <br />
+      <p>— Contrazy Platform</p>
+    `,
+  })
+}
+
+export async function sendContactReply(
+  to: string,
+  firstName: string,
+  replyText: string,
+  originalMessage: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  return deliverEmail({
+    to,
+    subject: isFr ? "Réponse à votre message — Contrazy" : "Reply to your message — Contrazy",
+    html: isFr
+      ? `
+        <h2>Bonjour ${firstName},</h2>
+        <p>Merci pour votre message. Voici notre réponse :</p>
+        <div style="margin:16px 0;padding:12px 16px;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:4px">
+          <p style="margin:0;font-size:14px;white-space:pre-wrap">${replyText}</p>
+        </div>
+        <details style="margin-top:24px">
+          <summary style="font-size:12px;color:#9ca3af;cursor:pointer">Votre message original</summary>
+          <div style="margin-top:8px;padding:12px;background:#f9fafb;border-radius:4px;font-size:13px;color:#6b7280;white-space:pre-wrap">${originalMessage}</div>
+        </details>
+        <br />
+        <p>Cordialement,<br />L'équipe Contrazy</p>
+      `
+      : `
+        <h2>Hi ${firstName},</h2>
+        <p>Thank you for your message. Here is our reply:</p>
+        <div style="margin:16px 0;padding:12px 16px;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:4px">
+          <p style="margin:0;font-size:14px;white-space:pre-wrap">${replyText}</p>
+        </div>
+        <details style="margin-top:24px">
+          <summary style="font-size:12px;color:#9ca3af;cursor:pointer">Your original message</summary>
+          <div style="margin-top:8px;padding:12px;background:#f9fafb;border-radius:4px;font-size:13px;color:#6b7280;white-space:pre-wrap">${originalMessage}</div>
+        </details>
+        <br />
+        <p>Best regards,<br />The Contrazy Team</p>
+      `,
+  })
+}
+
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,

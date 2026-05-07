@@ -51,14 +51,11 @@ export function FaqSectionFr() {
                   y: -2,
                 }}
                 transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                onMouseEnter={() => setOpenIndex(index)}
-                onMouseLeave={() => setOpenIndex((current) => (current === index ? null : current))}
               >
                 <button
                   type="button"
                   className="flex w-full cursor-pointer items-center justify-between px-6 py-[18px] text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--contrazy-teal)]/35 focus-visible:ring-offset-2"
                   onClick={() => toggleItem(index)}
-                  onFocus={() => setOpenIndex(index)}
                 >
                   <span
                     className={`text-[15px] font-semibold transition-colors ${

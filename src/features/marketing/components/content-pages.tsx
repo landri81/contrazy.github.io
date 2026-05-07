@@ -179,8 +179,10 @@ export function FaqPageSection({
 
 export function ContactSection({
   channels,
+  locale,
 }: {
   channels: readonly { title: string; description: string }[]
+  locale?: string
 }) {
   return (
     <section className="px-5 py-20 lg:px-10">
@@ -198,7 +200,7 @@ export function ContactSection({
             )
           })}
         </div>
-        <ContactFormCard />
+        <ContactFormCard locale={locale} />
       </div>
     </section>
   )
