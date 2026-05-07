@@ -290,6 +290,7 @@ export async function PATCH(
       clientFullName: tx.clientProfile?.fullName,
       clientEmail: tx.clientProfile?.email,
       occurredAt: now,
+      locale: tx.locale,
     })
 
     try {

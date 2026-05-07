@@ -45,40 +45,65 @@ export async function sendTransactionCompletedEmail(
   clientName: string,
   vendorName: string,
   transactionId: string,
-  signedAgreementUrl?: string | null
+  signedAgreementUrl?: string | null,
+  locale?: string
 ) {
   const signedAgreementHref = resolveDocumentAssetUrl(signedAgreementUrl, `${transactionId}-signed.pdf`, getSiteUrl())
+  const isFr = locale === "fr"
 
   return deliverEmail({
     to,
-    subject: `Transaction Completed with ${vendorName}`,
-    html: `
-      <h2>Hi ${clientName},</h2>
-      <p>Your transaction with <strong>${vendorName}</strong> has been successfully completed.</p>
-      <p>Transaction ID: ${transactionId}</p>
-      ${
-        signedAgreementHref
-          ? `<p><a href="${signedAgreementHref}" target="_blank" rel="noreferrer">Download your signed agreement</a></p>`
-          : ""
-      }
-      <p>If you have any questions, please contact the vendor directly.</p>
-      <br />
-      <p>Thanks,<br />The Conntrazy Team</p>
-    `,
+    subject: isFr ? `Transaction complétée avec ${vendorName}` : `Transaction Completed with ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>Votre transaction avec <strong>${vendorName}</strong> a été complétée avec succès.</p>
+        <p>Référence de transaction : ${transactionId}</p>
+        ${
+          signedAgreementHref
+            ? `<p><a href="${signedAgreementHref}" target="_blank" rel="noreferrer">Télécharger votre accord signé</a></p>`
+            : ""
+        }
+        <p>Pour toute question, veuillez contacter le prestataire directement.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>Your transaction with <strong>${vendorName}</strong> has been successfully completed.</p>
+        <p>Transaction ID: ${transactionId}</p>
+        ${
+          signedAgreementHref
+            ? `<p><a href="${signedAgreementHref}" target="_blank" rel="noreferrer">Download your signed agreement</a></p>`
+            : ""
+        }
+        <p>If you have any questions, please contact the vendor directly.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
   })
 }
 
-export async function sendVendorDepositAlert(to: string, vendorName: string, clientName: string, amount: number) {
+export async function sendVendorDepositAlert(to: string, vendorName: string, clientName: string, amount: number, locale?: string) {
+  const isFr = locale === "fr"
   return deliverEmail({
     to,
-    subject: `Deposit Authorized - ${clientName}`,
-    html: `
-      <h2>Hi ${vendorName},</h2>
-      <p>A deposit hold of <strong>${(amount / 100).toFixed(2)}</strong> has been successfully authorized by ${clientName}.</p>
-      <p>You can manage this hold from your dashboard.</p>
-      <br />
-      <p>Thanks,<br />The Conntrazy Team</p>
-    `,
+    subject: isFr ? `Dépôt autorisé — ${clientName}` : `Deposit Authorized - ${clientName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${vendorName},</h2>
+        <p>Un dépôt de garantie de <strong>${(amount / 100).toFixed(2)}</strong> a été autorisé avec succès par ${clientName}.</p>
+        <p>Vous pouvez gérer ce dépôt depuis votre tableau de bord.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${vendorName},</h2>
+        <p>A deposit hold of <strong>${(amount / 100).toFixed(2)}</strong> has been successfully authorized by ${clientName}.</p>
+        <p>You can manage this hold from your dashboard.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
   })
 }
 
@@ -88,24 +113,39 @@ export async function sendVendorDepositStatusEmail(
   clientName: string,
   amount: number,
   currency: string,
-  action: "released" | "captured"
+  action: "released" | "captured",
+  locale?: string
 ) {
+  const isFr = locale === "fr"
   const actionLabel = action === "captured" ? "captured" : "released"
+  const actionLabelFr = action === "captured" ? "capturé" : "libéré"
   const nextLine =
     action === "captured"
       ? "The held amount has now been converted into a charge."
       : "The held amount has now been released back to the client."
+  const nextLineFr =
+    action === "captured"
+      ? "Le montant retenu a été converti en prélèvement."
+      : "Le montant retenu a été libéré et restitué au client."
 
   return deliverEmail({
     to,
-    subject: `Deposit ${actionLabel} - ${clientName}`,
-    html: `
-      <h2>Hi ${vendorName},</h2>
-      <p>The deposit hold of <strong>${formatEmailMoney(amount, currency)}</strong> for ${clientName} was ${actionLabel}.</p>
-      <p>${nextLine}</p>
-      <br />
-      <p>Thanks,<br />The Conntrazy Team</p>
-    `,
+    subject: isFr ? `Dépôt ${actionLabelFr} — ${clientName}` : `Deposit ${actionLabel} - ${clientName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${vendorName},</h2>
+        <p>Le dépôt de garantie de <strong>${formatEmailMoney(amount, currency)}</strong> pour ${clientName} a été ${actionLabelFr}.</p>
+        <p>${nextLineFr}</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${vendorName},</h2>
+        <p>The deposit hold of <strong>${formatEmailMoney(amount, currency)}</strong> for ${clientName} was ${actionLabel}.</p>
+        <p>${nextLine}</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
   })
 }
 
@@ -115,24 +155,39 @@ export async function sendCustomerDepositStatusEmail(
   vendorName: string,
   amount: number,
   currency: string,
-  action: "released" | "captured"
+  action: "released" | "captured",
+  locale?: string
 ) {
+  const isFr = locale === "fr"
   const actionLabel = action === "captured" ? "captured" : "released"
+  const actionLabelFr = action === "captured" ? "capturé" : "libéré"
   const bodyCopy =
     action === "captured"
       ? `The vendor has captured ${formatEmailMoney(amount, currency)} from your authorized deposit hold.`
       : `The vendor has released your ${formatEmailMoney(amount, currency)} deposit hold. The hold is no longer active in the payment flow.`
+  const bodyCopyFr =
+    action === "captured"
+      ? `Le prestataire a prélevé ${formatEmailMoney(amount, currency)} depuis votre dépôt de garantie autorisé.`
+      : `Le prestataire a libéré votre dépôt de garantie de ${formatEmailMoney(amount, currency)}. Le dépôt n'est plus actif.`
 
   return deliverEmail({
     to,
-    subject: `Deposit ${actionLabel} - ${vendorName}`,
-    html: `
-      <h2>Hi ${clientName},</h2>
-      <p>${bodyCopy}</p>
-      <p>Vendor: <strong>${vendorName}</strong></p>
-      <br />
-      <p>Thanks,<br />The Conntrazy Team</p>
-    `,
+    subject: isFr ? `Dépôt ${actionLabelFr} — ${vendorName}` : `Deposit ${actionLabel} - ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>${bodyCopyFr}</p>
+        <p>Prestataire : <strong>${vendorName}</strong></p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>${bodyCopy}</p>
+        <p>Vendor: <strong>${vendorName}</strong></p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
   })
 }
 
@@ -143,20 +198,32 @@ export async function sendDeferredServicePaymentRequestEmail(
   transactionReference: string,
   amount: number,
   currency: string,
-  paymentUrl: string
+  paymentUrl: string,
+  locale?: string
 ) {
+  const isFr = locale === "fr"
   return deliverEmail({
     to,
-    subject: `Payment requested — ${vendorName}`,
-    html: `
-      <h2>Hi ${clientName},</h2>
-      <p>${vendorName} has now requested the service payment for transaction <strong>${transactionReference}</strong>.</p>
-      <p>Amount due: <strong>${formatEmailMoney(amount, currency)}</strong></p>
-      <p><a href="${paymentUrl}" target="_blank" rel="noreferrer">Open the secure payment link</a></p>
-      <p>The rest of your agreement details remain unchanged. Use the same secure flow to complete the payment step.</p>
-      <br />
-      <p>Thanks,<br />The Conntrazy Team</p>
-    `,
+    subject: isFr ? `Paiement demandé — ${vendorName}` : `Payment requested — ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>${vendorName} a demandé le paiement du service pour la transaction <strong>${transactionReference}</strong>.</p>
+        <p>Montant dû : <strong>${formatEmailMoney(amount, currency)}</strong></p>
+        <p><a href="${paymentUrl}" target="_blank" rel="noreferrer">Ouvrir le lien de paiement sécurisé</a></p>
+        <p>Les autres détails de votre accord restent inchangés. Utilisez le même flux sécurisé pour finaliser le paiement.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>${vendorName} has now requested the service payment for transaction <strong>${transactionReference}</strong>.</p>
+        <p>Amount due: <strong>${formatEmailMoney(amount, currency)}</strong></p>
+        <p><a href="${paymentUrl}" target="_blank" rel="noreferrer">Open the secure payment link</a></p>
+        <p>The rest of your agreement details remain unchanged. Use the same secure flow to complete the payment step.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
   })
 }
 

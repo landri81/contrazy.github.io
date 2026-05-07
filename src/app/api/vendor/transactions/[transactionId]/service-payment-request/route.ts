@@ -111,7 +111,7 @@ export async function POST(
     })
 
     if (transaction.clientProfile?.email) {
-      const paymentUrl = `${getAppBaseUrl()}/t/${transaction.link.token}/payment`
+      const paymentUrl = `${getAppBaseUrl()}/${transaction.locale}/t/${transaction.link.token}/payment`
       const sent = await sendDeferredServicePaymentRequestEmail(
         transaction.clientProfile.email,
         transaction.clientProfile.fullName,
@@ -119,7 +119,8 @@ export async function POST(
         transaction.reference,
         transaction.amount,
         transaction.currency,
-        paymentUrl
+        paymentUrl,
+        transaction.locale
       )
 
       if (sent) {

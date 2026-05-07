@@ -495,9 +495,11 @@ function measureSignatureSectionHeight(
 async function buildSignedContractPdf({
   transactionId,
   transactionReference,
+  locale,
 }: {
   transactionId: string
   transactionReference: string
+  locale?: string
 }) {
   const browser = await launchPdfBrowser()
 
@@ -509,7 +511,8 @@ async function buildSignedContractPdf({
 
     const baseUrl = getPdfRenderBaseUrl().replace(/\/$/, "")
     const renderToken = createSignedDocumentRenderToken(transactionId)
-    const renderUrl = `${baseUrl}/print/signed-agreement/${transactionId}?sig=${renderToken}`
+    const localeSegment = locale ?? "en"
+    const renderUrl = `${baseUrl}/${localeSegment}/print/signed-agreement/${transactionId}?sig=${renderToken}`
 
     page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS)
     const response = await page.goto(renderUrl, {
@@ -823,6 +826,7 @@ export async function generateSignedContractArtifact(
   const pdfBytes = await buildSignedContractPdf({
     transactionId: input.transactionId,
     transactionReference: transaction.reference,
+    locale: transaction.locale,
   })
 
   const pdfBuffer = Buffer.from(pdfBytes)

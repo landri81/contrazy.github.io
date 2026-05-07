@@ -171,6 +171,7 @@ async function recordEmailSentEvent(db: DatabaseClient, transactionId: string, d
 
 async function sendCompletionNotifications(db: DatabaseClient, transaction: FinanceTransaction) {
   const vendorName = transaction.vendor?.businessName ?? "Conntrazy vendor"
+  const locale = transaction.locale
 
   if (transaction.clientProfile?.email) {
     const sent = await sendTransactionCompletedEmail(
@@ -178,7 +179,8 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       transaction.clientProfile.fullName,
       vendorName,
       transaction.reference,
-      transaction.contractArtifact?.signedPdfUrl ?? null
+      transaction.contractArtifact?.signedPdfUrl ?? null,
+      locale
     )
 
     if (sent) {
@@ -196,7 +198,8 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       transaction.vendor.businessEmail,
       vendorName,
       transaction.clientProfile.fullName,
-      transaction.depositAmount
+      transaction.depositAmount,
+      locale
     )
 
     if (sent) {
@@ -251,6 +254,8 @@ async function markClientOnboardingCompleted(db: DatabaseClient, transaction: Fi
     detail: "The client finished the agreement flow. The service payment can be requested later from the vendor dashboard.",
     dedupeKey: `event:customer-completed:${transaction.id}`,
   })
+
+  await sendCompletionNotifications(db, transaction)
 }
 
 export async function completeTransactionWithoutPayment(db: DatabaseClient, transactionId: string) {
@@ -571,6 +576,7 @@ export async function recordDepositOutcome(
     clientEmail,
     reason,
     occurredAt,
+    locale,
   }: {
     transactionId: string
     amount: number
@@ -584,6 +590,7 @@ export async function recordDepositOutcome(
     clientEmail?: string | null
     reason?: DepositOutcomeReason
     occurredAt?: Date
+    locale?: string
   }
 ) {
   const paymentKind = action === "capture" ? PaymentKind.DEPOSIT_CAPTURE : PaymentKind.DEPOSIT_RELEASE
@@ -662,7 +669,8 @@ export async function recordDepositOutcome(
       clientFullName,
       recordedAmount,
       currency,
-      action === "capture" ? "captured" : "released"
+      action === "capture" ? "captured" : "released",
+      locale
     )
 
     if (sent) {
@@ -682,7 +690,8 @@ export async function recordDepositOutcome(
       vendorBusinessName ?? "Vendor",
       recordedAmount,
       currency,
-      action === "capture" ? "captured" : "released"
+      action === "capture" ? "captured" : "released",
+      locale
     )
 
     if (sent) {
