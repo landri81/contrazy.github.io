@@ -29,7 +29,6 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import {
-  getRequirementCategoryLabel,
   requirementCategoryOptions,
 } from "@/features/transactions/contract-flow"
 
@@ -53,6 +52,22 @@ export function ChecklistTemplateList({
   blockedMessage: string
 }) {
   const t = useTranslations("dashboard.vendor.checklistEditor")
+
+  const reqCategoryLabels: Record<string, string> = {
+    ID: t("reqCategoryId"),
+    PROOF_OF_ADDRESS: t("reqCategoryProofOfAddress"),
+    DRIVER_LICENSE: t("reqCategoryDriverLicense"),
+    COMPANY_REGISTRATION: t("reqCategoryCompanyRegistration"),
+    CONTRACT_ATTACHMENT: t("reqCategoryContractAttachment"),
+    CUSTOM: t("reqCategoryCustom"),
+    OTHER: t("reqCategoryOther"),
+  }
+
+  function translatedCategoryLabel(category: string, customLabel?: string | null) {
+    if (category === "OTHER" && customLabel?.trim()) return customLabel.trim()
+    return reqCategoryLabels[category] ?? t("reqCategoryCustom")
+  }
+
   const [templates, setTemplates] = useState(initialTemplates)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -224,7 +239,7 @@ export function ChecklistTemplateList({
                               <SelectContent>
                                 {requirementCategoryOptions.map((option) => (
                                   <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {reqCategoryLabels[option.value] ?? option.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -326,7 +341,7 @@ export function ChecklistTemplateList({
                       {item.type === 'PHOTO' ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                       <span className="truncate">{item.label}</span>
                       <span className="rounded-full border border-border/70 bg-muted/30 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em]">
-                        {getRequirementCategoryLabel(item.category, item.customCategoryLabel)}
+                        {translatedCategoryLabel(item.category, item.customCategoryLabel)}
                       </span>
                       {item.required && <span className="text-destructive text-xs">*</span>}
                     </li>

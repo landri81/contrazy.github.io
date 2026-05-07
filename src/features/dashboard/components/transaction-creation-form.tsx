@@ -44,8 +44,6 @@ import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type { VendorActionsUsageRecord, VendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import {
-  getPaymentCollectionTimingLabel,
-  getRequirementCategoryLabel,
   paymentCollectionTimingOptions,
   requirementCategoryOptions,
   requirementTypeOptions,
@@ -265,6 +263,32 @@ export function TransactionCreationForm({
   onSuccessStateChange,
 }: TransactionCreationFormProps) {
   const t = useTranslations("dashboard.vendor.transactionCreation")
+
+  const reqCategoryLabels: Record<string, string> = {
+    ID: t("reqCategoryId"),
+    PROOF_OF_ADDRESS: t("reqCategoryProofOfAddress"),
+    DRIVER_LICENSE: t("reqCategoryDriverLicense"),
+    COMPANY_REGISTRATION: t("reqCategoryCompanyRegistration"),
+    CONTRACT_ATTACHMENT: t("reqCategoryContractAttachment"),
+    CUSTOM: t("reqCategoryCustom"),
+    OTHER: t("reqCategoryOther"),
+  }
+
+  function translatedCategoryLabel(category: string, customLabel?: string | null) {
+    if (category === "OTHER" && customLabel?.trim()) return customLabel.trim()
+    return reqCategoryLabels[category] ?? t("reqCategoryCustom")
+  }
+
+  const reqTypeLabels: Record<string, string> = {
+    DOCUMENT: t("reqTypeDocument"),
+    PHOTO: t("reqTypePhoto"),
+    TEXT: t("reqTypeText"),
+  }
+
+  const paymentTimingLabels: Record<string, { label: string; description: string }> = {
+    AFTER_SIGNING: { label: t("paymentTimingAfterSigningLabel"), description: t("paymentTimingAfterSigningDesc") },
+    AFTER_SERVICE: { label: t("paymentTimingAfterServiceLabel"), description: t("paymentTimingAfterServiceDesc") },
+  }
 
   const STEPS: StepDef[] = [
     { id: 1, label: t("steps.info.label"),      title: t("steps.info.title"),      description: t("steps.info.description"),      icon: STEP_ICONS[0] },
@@ -811,8 +835,8 @@ export function TransactionCreationForm({
                                 : "border-border/70 bg-muted/15 hover:bg-muted/30"
                             )}
                           >
-                            <p className="text-sm font-medium text-foreground">{option.label}</p>
-                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{option.description}</p>
+                            <p className="text-sm font-medium text-foreground">{paymentTimingLabels[option.value]?.label ?? option.label}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{paymentTimingLabels[option.value]?.description ?? option.description}</p>
                           </button>
                         )
                       })}
@@ -914,13 +938,13 @@ export function TransactionCreationForm({
                               >
                                 <SelectTrigger>
                                   <span className="truncate text-sm">
-                                    {requirementTypeOptions.find((option) => option.value === item.type)?.label ?? "Document"}
+                                    {reqTypeLabels[item.type] ?? t("reqTypeDocument")}
                                   </span>
                                 </SelectTrigger>
                                 <SelectContent>
                                   {requirementTypeOptions.map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
-                                      {option.label}
+                                      {reqTypeLabels[option.value] ?? option.label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -933,12 +957,12 @@ export function TransactionCreationForm({
                                 onValueChange={(value) => updateRequirement(index, { category: value as RequirementCategoryValue })}
                               >
                                 <SelectTrigger>
-                                  <span className="truncate text-sm">{getRequirementCategoryLabel(item.category, item.customCategoryLabel)}</span>
+                                  <span className="truncate text-sm">{translatedCategoryLabel(item.category, item.customCategoryLabel)}</span>
                                 </SelectTrigger>
                                 <SelectContent>
                                   {requirementCategoryOptions.map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
-                                      {option.label}
+                                      {reqCategoryLabels[option.value] ?? option.label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1100,7 +1124,7 @@ export function TransactionCreationForm({
                       {amountNum > 0 && (
                         <div className="flex items-center justify-between px-4 py-3">
                           <span className="text-muted-foreground">{t("summaryTiming")}</span>
-                          <span className="font-medium text-foreground">{getPaymentCollectionTimingLabel(paymentCollectionTiming)}</span>
+                          <span className="font-medium text-foreground">{paymentTimingLabels[paymentCollectionTiming]?.label ?? t("paymentTimingAfterSigningLabel")}</span>
                         </div>
                       )}
 

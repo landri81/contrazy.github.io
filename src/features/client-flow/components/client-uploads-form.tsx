@@ -12,7 +12,6 @@ import { CharacterCount } from "@/components/ui/character-count"
 import { Textarea } from "@/components/ui/textarea"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
-import { getRequirementCategoryLabel, getTextRequirementPlaceholder } from "@/features/transactions/contract-flow"
 
 export function ClientUploadsForm({
   token,
@@ -25,6 +24,31 @@ export function ClientUploadsForm({
 }) {
   const t = useTranslations("clientFlow.uploads")
   const router = useRouter()
+
+  const reqCategoryLabels: Record<string, string> = {
+    ID: t("reqCategoryId"),
+    PROOF_OF_ADDRESS: t("reqCategoryProofOfAddress"),
+    DRIVER_LICENSE: t("reqCategoryDriverLicense"),
+    COMPANY_REGISTRATION: t("reqCategoryCompanyRegistration"),
+    CONTRACT_ATTACHMENT: t("reqCategoryContractAttachment"),
+    CUSTOM: t("reqCategoryCustom"),
+    OTHER: t("reqCategoryOther"),
+  }
+
+  function translatedCategoryLabel(category: string, customLabel?: string | null) {
+    if (category === "OTHER" && customLabel?.trim()) return customLabel.trim()
+    return reqCategoryLabels[category] ?? t("reqCategoryCustom")
+  }
+
+  function translatedTextPlaceholder(category: string) {
+    switch (category) {
+      case "PROOF_OF_ADDRESS": return t("reqTextPlaceholderProofOfAddress")
+      case "COMPANY_REGISTRATION": return t("reqTextPlaceholderCompanyRegistration")
+      case "CONTRACT_ATTACHMENT": return t("reqTextPlaceholderContractAttachment")
+      case "OTHER": return t("reqTextPlaceholderOther")
+      default: return t("reqTextPlaceholderDefault")
+    }
+  }
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploads, setUploads] = useState<
@@ -203,7 +227,7 @@ export function ClientUploadsForm({
                       {req.label} {req.required && <span className="text-destructive">*</span>}
                     </h4>
                     <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      {getRequirementCategoryLabel(req.category, req.customCategoryLabel)}
+                      {translatedCategoryLabel(req.category, req.customCategoryLabel)}
                     </span>
                   </div>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -228,7 +252,7 @@ export function ClientUploadsForm({
                         [req.id]: event.target.value,
                       }))
                     }
-                    placeholder={getTextRequirementPlaceholder(req.category)}
+                    placeholder={translatedTextPlaceholder(req.category)}
                     maxLength={INPUT_LIMITS.checklistItemInstructions}
                     className="min-h-[104px] resize-none bg-white"
                   />

@@ -1036,7 +1036,14 @@
         "defaultItemLabel": "ID Card",
         "defaultItemDesc": "Front and back",
         "confirmDelete": "Are you sure you want to delete this checklist template?",
-        "updatedAt": "Updated {date}"
+        "updatedAt": "Updated {date}",
+        "reqCategoryId": "ID",
+        "reqCategoryProofOfAddress": "Proof of address",
+        "reqCategoryDriverLicense": "Driver license",
+        "reqCategoryCompanyRegistration": "Company registration",
+        "reqCategoryContractAttachment": "Contract attachment",
+        "reqCategoryCustom": "Custom document",
+        "reqCategoryOther": "Other"
       },
       "contractTemplates": {
         "title": "Contract templates",
@@ -1268,7 +1275,21 @@
         "errorAmountRequired": "Enter a service payment amount, a deposit hold amount, or both before generating a link.",
         "errorCreate": "Failed to create transaction",
         "errorUnexpected": "An unexpected error occurred.",
-        "reqLabelPlaceholder": "e.g. Driver's license"
+        "reqLabelPlaceholder": "e.g. Driver's license",
+        "paymentTimingAfterSigningLabel": "Collect after signing",
+        "paymentTimingAfterSigningDesc": "The client pays the service amount during the same secure flow.",
+        "paymentTimingAfterServiceLabel": "Collect after service",
+        "paymentTimingAfterServiceDesc": "The client finishes onboarding now and you trigger the service payment later.",
+        "reqTypeDocument": "Document",
+        "reqTypePhoto": "Photo",
+        "reqTypeText": "Text input",
+        "reqCategoryId": "ID",
+        "reqCategoryProofOfAddress": "Proof of address",
+        "reqCategoryDriverLicense": "Driver license",
+        "reqCategoryCompanyRegistration": "Company registration",
+        "reqCategoryContractAttachment": "Contract attachment",
+        "reqCategoryCustom": "Custom document",
+        "reqCategoryOther": "Other"
       },
       "servicePaymentRequest": {
         "title": "Deferred service payment",
@@ -1825,7 +1846,19 @@
       "pdfOrImage": "PDF or Image",
       "uploadSigningError": "Upload signing is unavailable right now. Please try again.",
       "uploadFailed": "Upload failed. Please try again.",
-      "uploadError": "Unable to save documents right now."
+      "uploadError": "Unable to save documents right now.",
+      "reqCategoryId": "ID",
+      "reqCategoryProofOfAddress": "Proof of address",
+      "reqCategoryDriverLicense": "Driver license",
+      "reqCategoryCompanyRegistration": "Company registration",
+      "reqCategoryContractAttachment": "Contract attachment",
+      "reqCategoryCustom": "Custom document",
+      "reqCategoryOther": "Other",
+      "reqTextPlaceholderProofOfAddress": "Enter the address evidence details",
+      "reqTextPlaceholderCompanyRegistration": "Enter the registration details",
+      "reqTextPlaceholderContractAttachment": "Add the attachment notes or reference",
+      "reqTextPlaceholderOther": "Enter the requested information",
+      "reqTextPlaceholderDefault": "Type the requested information"
     },
     "contractReview": {
       "reviewedLabel": "I have reviewed this agreement",

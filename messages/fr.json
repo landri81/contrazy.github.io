@@ -1036,7 +1036,14 @@
         "defaultItemLabel": "Carte d'identité",
         "defaultItemDesc": "Recto et verso",
         "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce modèle de liste de contrôle ?",
-        "updatedAt": "Mis à jour le {date}"
+        "updatedAt": "Mis à jour le {date}",
+        "reqCategoryId": "Pièce d'identité",
+        "reqCategoryProofOfAddress": "Justificatif de domicile",
+        "reqCategoryDriverLicense": "Permis de conduire",
+        "reqCategoryCompanyRegistration": "Immatriculation de société",
+        "reqCategoryContractAttachment": "Annexe contractuelle",
+        "reqCategoryCustom": "Document personnalisé",
+        "reqCategoryOther": "Autre"
       },
       "contractTemplates": {
         "title": "Modèles de contrat",
@@ -1268,7 +1275,21 @@
         "errorAmountRequired": "Saisissez un montant de paiement de service, un montant de blocage de caution, ou les deux avant de générer un lien.",
         "errorCreate": "Échec de la création de la transaction",
         "errorUnexpected": "Une erreur inattendue s'est produite.",
-        "reqLabelPlaceholder": "ex. Permis de conduire"
+        "reqLabelPlaceholder": "ex. Permis de conduire",
+        "paymentTimingAfterSigningLabel": "Paiement après signature",
+        "paymentTimingAfterSigningDesc": "Le client paie le montant du service lors du même flux sécurisé.",
+        "paymentTimingAfterServiceLabel": "Paiement après la prestation",
+        "paymentTimingAfterServiceDesc": "Le client termine l'onboarding maintenant et vous déclenchez le paiement ultérieurement.",
+        "reqTypeDocument": "Document",
+        "reqTypePhoto": "Photo",
+        "reqTypeText": "Saisie texte",
+        "reqCategoryId": "Pièce d'identité",
+        "reqCategoryProofOfAddress": "Justificatif de domicile",
+        "reqCategoryDriverLicense": "Permis de conduire",
+        "reqCategoryCompanyRegistration": "Immatriculation de société",
+        "reqCategoryContractAttachment": "Annexe contractuelle",
+        "reqCategoryCustom": "Document personnalisé",
+        "reqCategoryOther": "Autre"
       },
       "servicePaymentRequest": {
         "title": "Paiement de service différé",
@@ -1825,7 +1846,19 @@
       "pdfOrImage": "PDF ou Image",
       "uploadSigningError": "Signature de téléchargement indisponible. Veuillez réessayer.",
       "uploadFailed": "Téléchargement échoué. Veuillez réessayer.",
-      "uploadError": "Impossible d'enregistrer les documents pour l'instant."
+      "uploadError": "Impossible d'enregistrer les documents pour l'instant.",
+      "reqCategoryId": "Pièce d'identité",
+      "reqCategoryProofOfAddress": "Justificatif de domicile",
+      "reqCategoryDriverLicense": "Permis de conduire",
+      "reqCategoryCompanyRegistration": "Immatriculation de société",
+      "reqCategoryContractAttachment": "Annexe contractuelle",
+      "reqCategoryCustom": "Document personnalisé",
+      "reqCategoryOther": "Autre",
+      "reqTextPlaceholderProofOfAddress": "Entrez les justificatifs d'adresse",
+      "reqTextPlaceholderCompanyRegistration": "Entrez les informations d'immatriculation",
+      "reqTextPlaceholderContractAttachment": "Ajoutez les notes ou la référence de l'annexe",
+      "reqTextPlaceholderOther": "Entrez les informations demandées",
+      "reqTextPlaceholderDefault": "Saisissez les informations demandées"
     },
     "contractReview": {
       "reviewedLabel": "J'ai pris connaissance de cet accord",

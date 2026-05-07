@@ -501,6 +501,78 @@ if (!fr.dashboard.vendor.contractTemplateEditor) fr.dashboard.vendor.contractTem
 en.dashboard.vendor.contractTemplateEditor = Object.assign({}, en.dashboard.vendor.contractTemplateEditor, editorToolbarEN);
 fr.dashboard.vendor.contractTemplateEditor = Object.assign({}, fr.dashboard.vendor.contractTemplateEditor, editorToolbarFR);
 
+// ── Shared contract-flow option labels ───────────────────────────────────────
+// Added to transactionCreation, checklistEditor, and clientFlow.uploads
+
+const contractFlowOptionsEN = {
+  paymentTimingAfterSigningLabel: 'Collect after signing',
+  paymentTimingAfterSigningDesc: 'The client pays the service amount during the same secure flow.',
+  paymentTimingAfterServiceLabel: 'Collect after service',
+  paymentTimingAfterServiceDesc: 'The client finishes onboarding now and you trigger the service payment later.',
+  reqTypeDocument: 'Document',
+  reqTypePhoto: 'Photo',
+  reqTypeText: 'Text input',
+  reqCategoryId: 'ID',
+  reqCategoryProofOfAddress: 'Proof of address',
+  reqCategoryDriverLicense: 'Driver license',
+  reqCategoryCompanyRegistration: 'Company registration',
+  reqCategoryContractAttachment: 'Contract attachment',
+  reqCategoryCustom: 'Custom document',
+  reqCategoryOther: 'Other',
+};
+const contractFlowOptionsFR = {
+  paymentTimingAfterSigningLabel: 'Paiement après signature',
+  paymentTimingAfterSigningDesc: "Le client paie le montant du service lors du même flux sécurisé.",
+  paymentTimingAfterServiceLabel: 'Paiement après la prestation',
+  paymentTimingAfterServiceDesc: "Le client termine l'onboarding maintenant et vous déclenchez le paiement ultérieurement.",
+  reqTypeDocument: 'Document',
+  reqTypePhoto: 'Photo',
+  reqTypeText: 'Saisie texte',
+  reqCategoryId: 'Pièce d\'identité',
+  reqCategoryProofOfAddress: 'Justificatif de domicile',
+  reqCategoryDriverLicense: 'Permis de conduire',
+  reqCategoryCompanyRegistration: 'Immatriculation de société',
+  reqCategoryContractAttachment: 'Annexe contractuelle',
+  reqCategoryCustom: 'Document personnalisé',
+  reqCategoryOther: 'Autre',
+};
+
+// Add to transactionCreation
+en.dashboard.vendor.transactionCreation = Object.assign({}, en.dashboard.vendor.transactionCreation, contractFlowOptionsEN);
+fr.dashboard.vendor.transactionCreation = Object.assign({}, fr.dashboard.vendor.transactionCreation, contractFlowOptionsFR);
+
+// Add to checklistEditor
+if (!en.dashboard.vendor.checklistEditor) en.dashboard.vendor.checklistEditor = {};
+if (!fr.dashboard.vendor.checklistEditor) fr.dashboard.vendor.checklistEditor = {};
+const checklistCategoryEN = Object.fromEntries(Object.entries(contractFlowOptionsEN).filter(([k]) => k.startsWith('reqCategory')));
+const checklistCategoryFR = Object.fromEntries(Object.entries(contractFlowOptionsFR).filter(([k]) => k.startsWith('reqCategory')));
+en.dashboard.vendor.checklistEditor = Object.assign({}, en.dashboard.vendor.checklistEditor, checklistCategoryEN);
+fr.dashboard.vendor.checklistEditor = Object.assign({}, fr.dashboard.vendor.checklistEditor, checklistCategoryFR);
+
+// Add to clientFlow.uploads
+if (!en.clientFlow) en.clientFlow = {};
+if (!fr.clientFlow) fr.clientFlow = {};
+if (!en.clientFlow.uploads) en.clientFlow.uploads = {};
+if (!fr.clientFlow.uploads) fr.clientFlow.uploads = {};
+const uploadsOptionsEN = {
+  ...Object.fromEntries(Object.entries(contractFlowOptionsEN).filter(([k]) => k.startsWith('reqCategory'))),
+  reqTextPlaceholderProofOfAddress: 'Enter the address evidence details',
+  reqTextPlaceholderCompanyRegistration: 'Enter the registration details',
+  reqTextPlaceholderContractAttachment: 'Add the attachment notes or reference',
+  reqTextPlaceholderOther: 'Enter the requested information',
+  reqTextPlaceholderDefault: 'Type the requested information',
+};
+const uploadsOptionsFR = {
+  ...Object.fromEntries(Object.entries(contractFlowOptionsFR).filter(([k]) => k.startsWith('reqCategory'))),
+  reqTextPlaceholderProofOfAddress: "Entrez les justificatifs d'adresse",
+  reqTextPlaceholderCompanyRegistration: "Entrez les informations d'immatriculation",
+  reqTextPlaceholderContractAttachment: "Ajoutez les notes ou la référence de l'annexe",
+  reqTextPlaceholderOther: 'Entrez les informations demandées',
+  reqTextPlaceholderDefault: 'Saisissez les informations demandées',
+};
+en.clientFlow.uploads = Object.assign({}, en.clientFlow.uploads, uploadsOptionsEN);
+fr.clientFlow.uploads = Object.assign({}, fr.clientFlow.uploads, uploadsOptionsFR);
+
 fs.writeFileSync(enPath, JSON.stringify(en, null, 2));
 fs.writeFileSync(frPath, JSON.stringify(fr, null, 2));
 console.log('Both files updated successfully');
