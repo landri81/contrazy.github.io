@@ -190,7 +190,7 @@ export function DetailGrid({
   items: { label: string; value: React.ReactNode }[]
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
       {items.map((item) => (
         <div key={item.label} className="rounded-lg bg-muted p-4">
           <p className="text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase">{item.label}</p>

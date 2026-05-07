@@ -1573,6 +1573,148 @@
           "description": "Permanently deletes this account and all associated data including vendor profiles, transactions, and clients. Active transactions must be resolved first."
         }
       },
+      "vendorManager": {
+        "tabs": {
+          "overview": "Overview",
+          "transactions": "Transactions",
+          "subscription": "Subscription",
+          "access": "Access",
+          "loading": "Loading..."
+        },
+        "header": {
+          "description": "Super admin workspace for {businessName}. Profile data, transaction history, and account controls stay in one place.",
+          "noVendorDescription": "This account does not have a vendor profile yet. You can still review access and account controls here.",
+          "joined": "Joined {date}",
+          "company": "Workspace {company}",
+          "owner": "Account owner",
+          "defaultLocale": "Default locale"
+        },
+        "kpis": {
+          "transactions": "Transactions",
+          "transactionDetail": "Full payment-link history",
+          "clients": "Clients",
+          "clientDetail": "Distinct linked clients",
+          "profile": "Profile",
+          "profileComplete": "Profile complete",
+          "profileIncomplete": "Profile needs attention",
+          "subscription": "Subscription"
+        },
+        "overview": {
+          "accountTitle": "Vendor profile",
+          "accountDescription": "Operational account details and the submitted business profile.",
+          "fields": {
+            "fullName": "Full name",
+            "email": "Email",
+            "reviewStatus": "Review status",
+            "payoutStatus": "Payout setup",
+            "businessName": "Business name",
+            "registrationNumber": "Registration number",
+            "supportEmail": "Support email",
+            "phone": "Phone",
+            "country": "Country",
+            "address": "Address",
+            "vatNumber": "VAT number",
+            "defaultLocale": "Default locale"
+          },
+          "editorTitle": "Edit vendor profile",
+          "editorDescription": "Update the vendor-facing business profile from the super admin workspace.",
+          "noVendorProfile": "No vendor profile has been created for this account yet."
+        },
+        "transactions": {
+          "listTitle": "Links",
+          "listDescription": "Paginated payment-link records.",
+          "columns": {
+            "reference": "Reference",
+            "client": "Client",
+            "link": "Link",
+            "service": "Service",
+            "deposit": "Deposit",
+            "documents": "Docs",
+            "lastActivity": "Last activity",
+            "manage": "Action"
+          },
+          "empty": "No transactions have been launched for this vendor yet.",
+          "manage": "View",
+          "loading": "Opening...",
+          "backToLinks": "Back to links",
+          "lifecycleTitle": "Lifecycle",
+          "lifecycleDescription": "Select a link to inspect its lifecycle.",
+          "emptySelection": "Select a link record.",
+          "openPublicLink": "Open link",
+          "lifecycle": {
+            "link": "Link",
+            "client": "Client",
+            "documents": "Documents",
+            "kyc": "Identity",
+            "agreement": "Agreement",
+            "finance": "Finance",
+            "audit": "Activity"
+          },
+          "clientReady": "Ready",
+          "clientMissing": "Pending",
+          "required": "Required",
+          "submitted": "Submitted",
+          "pending": "Pending",
+          "noRequirements": "No document requirements.",
+          "otherUploads": "Other uploads",
+          "openDocument": "Open document",
+          "notRequired": "Not required",
+          "notStarted": "Not started",
+          "downloadSigned": "Download signed PDF",
+          "servicePayment": "Service payment",
+          "depositCapture": "Deposit capture",
+          "depositRelease": "Deposit release",
+          "noServicePayment": "No service payment has been collected for this transaction.",
+          "noDepositAuth": "No deposit authorization has been created for this transaction.",
+          "noDepositCapture": "No deposit capture has been recorded for this transaction.",
+          "noDepositRelease": "No deposit release has been recorded for this transaction.",
+          "emptyAudit": "No audit or event records were found for this transaction.",
+          "event": "Event",
+          "audit": "Audit"
+        },
+        "documents": {
+          "delete": "Delete document",
+          "confirmDelete": "Delete this submitted document?",
+          "deleteFailed": "Unable to delete this document."
+        },
+        "subscription": {
+          "title": "Subscription",
+          "description": "Current billing plan, lifecycle dates, and usage counters for this vendor account.",
+          "noSubscription": "No subscription",
+          "noSubscriptionDetail": "No active billing record",
+          "fields": {
+            "plan": "Plan",
+            "interval": "Interval",
+            "status": "Status",
+            "currentPeriodStart": "Current period start",
+            "currentPeriodEnd": "Current period end",
+            "cancelAtPeriodEnd": "Cancel at period end",
+            "trialStart": "Trial start",
+            "trialEnd": "Trial end"
+          },
+          "usage": {
+            "transactions": "Transactions used",
+            "signatures": "E-signatures used",
+            "kyc": "KYC verifications used",
+            "qr": "QR codes used",
+            "sms": "SMS / WhatsApp used",
+            "team": "Team seats used"
+          },
+          "empty": "This vendor does not have a subscription record yet."
+        },
+        "access": {
+          "roleTitle": "Role management",
+          "roleDescription": "Adjust access for this account without leaving the vendor management workspace.",
+          "reviewTitle": "Vendor review",
+          "reviewDescription": "Approve, reject, suspend, or move the vendor back to pending review.",
+          "dangerTitle": "Danger zone",
+          "dangerDescription": "Delete the account only after its transactions, payouts, and disputes have been fully resolved."
+        },
+        "shared": {
+          "yes": "Yes",
+          "no": "No"
+        }
+      },
       "invites": {
         "title": "Invitations",
         "description": "Track outstanding invites for vendors and internal team members.",
@@ -1768,9 +1910,24 @@
         "thReview": "Review",
         "thStripe": "Stripe",
         "emptyQueue": "No vendor accounts are waiting for review.",
-        "adminScopeTitle": "Admin scope",
-        "adminScopeDesc": "Current operator details and the main access levels in use.",
-        "activeOperator": "Active operator"
+        "kpiFeesCollected": "Platform fees collected",
+        "kpiFeesDetail": "0.5% fee across {count} deposit captures",
+        "kpiMrr": "Estimated MRR",
+        "kpiMrrDetail": "Based on active subscription plans",
+        "kpiActiveSubscribers": "Active subscribers",
+        "kpiActiveSubscribersDetail": "{count} on trial",
+        "kpiActiveSubscribersNone": "No trials in progress",
+        "kpiTxVolume": "Transaction volume",
+        "kpiTxVolumeDetail": "Total payment volume processed",
+        "kpiVendors": "Vendors",
+        "kpiVendorsDetail": "Tracked vendor accounts",
+        "kpiPending": "Pending reviews",
+        "kpiPendingWaiting": "Need review",
+        "kpiPendingNone": "Nothing waiting",
+        "kpiConnected": "Connected payouts",
+        "kpiConnectedDetail": "Stripe-connected vendors",
+        "kpiUsers": "Users",
+        "kpiUsersDetail": "Registered platform users"
       }
     }
   },

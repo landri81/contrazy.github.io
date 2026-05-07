@@ -51,7 +51,7 @@ import {
 } from "@/features/dashboard/filter-options"
 import { getStatusTone as getStatusToneValue } from "@/features/dashboard/lib/status-tone"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
-import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
+import { buildPaginationMeta, resolvePagination, type PaginationMeta } from "@/lib/pagination"
 
 export type SummaryKpi = {
   label: string
@@ -246,12 +246,17 @@ export type AdminUserDetailRecord = {
   joinedAt: string
   vendorProfile: null | {
     id: string
+    ownerFirstName: string
+    ownerLastName: string
     businessName: string
     businessEmail: string
     supportEmail: string
     businessPhone: string
     businessAddress: string
     businessCountry: string
+    registrationNumber: string
+    vatNumber: string
+    preferredLocale: string
     reviewStatus: string
     stripeConnectionStatus: string
     profileCompletion: number
@@ -397,6 +402,43 @@ function formatDateTime(date: Date | null | undefined) {
   }
 
   return date.toLocaleString("en-US")
+}
+
+function formatAuditMetadataSummary(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null
+  }
+
+  const data = metadata as Record<string, unknown>
+  const parts: string[] = []
+  const currency = typeof data.currency === "string" ? data.currency : null
+
+  if (typeof data.processedAmount === "number" && currency) {
+    parts.push(`Processed ${formatMoney(data.processedAmount, currency)}`)
+  }
+
+  if (
+    typeof data.authorizedAmount === "number" &&
+    typeof data.processedAmount === "number" &&
+    data.authorizedAmount !== data.processedAmount &&
+    currency
+  ) {
+    parts.push(`Authorized ${formatMoney(data.authorizedAmount, currency)}`)
+  }
+
+  if (typeof data.amount === "number" && currency && !("processedAmount" in data)) {
+    parts.push(`Amount ${formatMoney(data.amount, currency)}`)
+  }
+
+  if (typeof data.captureType === "string") {
+    parts.push(`Capture ${data.captureType}`)
+  }
+
+  if (typeof data.paymentCollectionTiming === "string") {
+    parts.push(`Timing ${data.paymentCollectionTiming.replaceAll("_", " ").toLowerCase()}`)
+  }
+
+  return parts.join(" · ") || null
 }
 
 function getFilledCount(values: Array<string | null | undefined>) {
@@ -2222,12 +2264,17 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
     vendorProfile: user.vendorProfile
       ? {
           id: user.vendorProfile.id,
-          businessName: user.vendorProfile.businessName ?? "Not set",
+          ownerFirstName: user.vendorProfile.ownerFirstName ?? "",
+          ownerLastName: user.vendorProfile.ownerLastName ?? "",
+          businessName: user.vendorProfile.businessName ?? "",
           businessEmail: user.vendorProfile.businessEmail ?? user.email,
-          supportEmail: user.vendorProfile.supportEmail ?? "Not set",
-          businessPhone: user.vendorProfile.businessPhone ?? "Not set",
-          businessAddress: user.vendorProfile.businessAddress ?? "Not set",
-          businessCountry: user.vendorProfile.businessCountry ?? "Not set",
+          supportEmail: user.vendorProfile.supportEmail ?? "",
+          businessPhone: user.vendorProfile.businessPhone ?? "",
+          businessAddress: user.vendorProfile.businessAddress ?? "",
+          businessCountry: user.vendorProfile.businessCountry ?? "",
+          registrationNumber: user.vendorProfile.registrationNumber ?? "",
+          vatNumber: user.vendorProfile.vatNumber ?? "",
+          preferredLocale: user.vendorProfile.preferredLocale,
           reviewStatus: user.vendorProfile.reviewStatus,
           stripeConnectionStatus: user.vendorProfile.stripeConnectionStatus,
           profileCompletion: getProfileCompletion(user.vendorProfile),
@@ -2236,6 +2283,677 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
         }
       : null,
   }
+}
+
+// ── Admin Vendor Profile (link-first tree for /admin/users/[userId]) ───────
+
+export type AdminVendorPaymentRecord = {
+  id: string
+  status: string
+  amount: number
+  currency: string
+  stripeIntentId: string | null
+  stripeFeeAmount: number
+  platformFeeAmount: number
+  vendorNetAmount: number
+  processedAt: string | null
+}
+
+export type AdminVendorDepositAuthRecord = {
+  status: string
+  amount: number
+  currency: string
+  stripeIntentId: string | null
+  authorizedAt: string | null
+  capturedAt: string | null
+  releasedAt: string | null
+}
+
+export type AdminVendorEventRecord = {
+  id: string
+  type: string
+  title: string
+  detail: string | null
+  timestamp: string
+  occurredAt: string
+}
+
+export type AdminVendorAuditRecord = {
+  id: string
+  action: string
+  actor: string
+  actorType: string
+  timestamp: string
+  createdAt: string
+  metadataSummary: string | null
+}
+
+export type AdminVendorLinkListRecord = {
+  id: string
+  transactionId: string
+  reference: string
+  title: string
+  linkStatus: string
+  transactionStatus: string
+  shortCode: string | null
+  locale: string
+  clientName: string | null
+  clientEmail: string | null
+  amount: number | null
+  depositAmount: number | null
+  currency: string
+  documentCount: number
+  createdAt: string
+  updatedAt: string
+  lastActivityAt: string
+}
+
+export type AdminVendorLinkDocumentRecord = {
+  id: string
+  label: string
+  type: string
+  fileName: string | null
+  assetUrl: string | null
+  textValue: string | null
+  publicId: string | null
+  uploadedAt: string
+  requirementId: string | null
+  requirementLabel: string | null
+  requirementRequired: boolean
+}
+
+export type AdminVendorLinkRequirementRecord = {
+  id: string
+  label: string
+  type: string
+  required: boolean
+  instructions: string | null
+}
+
+export type AdminVendorLinkDetailRecord = {
+  id: string
+  transactionId: string
+  token: string
+  shortCode: string | null
+  status: string
+  createdAt: string
+  openedAt: string | null
+  expiresAt: string | null
+  completedAt: string | null
+  cancelledAt: string | null
+  cancelReason: string | null
+  cancelledBy: string | null
+  reference: string
+  title: string
+  kind: string
+  transactionStatus: string
+  paymentCollectionTiming: string
+  currency: string
+  amount: number | null
+  depositAmount: number | null
+  notes: string | null
+  locale: string
+  requiresKyc: boolean
+  requireClientCompany: boolean
+  servicePaymentRequestedAt: string | null
+  customerCompletedAt: string | null
+  createdAtLabel: string
+  updatedAt: string
+  client: {
+    fullName: string
+    email: string
+    phone: string | null
+    companyName: string | null
+    address: string | null
+    country: string | null
+  } | null
+  documentSummary: {
+    submittedCount: number
+    requiredCount: number
+    submittedRequiredCount: number
+  }
+  requirements: AdminVendorLinkRequirementRecord[]
+  documents: AdminVendorLinkDocumentRecord[]
+  kyc: {
+    provider: string
+    status: string
+    summary: string | null
+    verifiedAt: string | null
+    createdAt: string
+  } | null
+  signature: {
+    status: string
+    signerName: string | null
+    signedAt: string | null
+  } | null
+  contract: {
+    sourceTemplateName: string | null
+    generatedAt: string
+    reviewCompletedAt: string | null
+    signedPdfUrl: string | null
+    signedPdfHash: string | null
+    signedAt: string | null
+  } | null
+  dispute: { id: string; status: string } | null
+  servicePayment: AdminVendorPaymentRecord | null
+  depositAuth: AdminVendorDepositAuthRecord | null
+  depositCapture: AdminVendorPaymentRecord | null
+  depositRelease: AdminVendorPaymentRecord | null
+  events: AdminVendorEventRecord[]
+  auditLogs: AdminVendorAuditRecord[]
+}
+
+export type AdminVendorLinksPageRecord = PaginationMeta & {
+  records: AdminVendorLinkListRecord[]
+}
+
+export type AdminVendorSubscriptionRecord = {
+  planKey: string
+  billingInterval: string
+  status: string
+  currentPeriodStart: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  trialStart: string | null
+  trialEnd: string | null
+  transactionsUsed: number
+  eSignaturesUsed: number
+  kycVerificationsUsed: number
+  qrCodesUsed: number
+  smsWhatsappUsed: number
+  teamUsersUsed: number
+}
+
+export type AdminVendorProfileRecord = {
+  user: AdminUserDetailRecord
+  subscription: AdminVendorSubscriptionRecord | null
+  links: AdminVendorLinksPageRecord | null
+  selectedLink: AdminVendorLinkDetailRecord | null
+}
+
+export async function getAdminVendorProfile(
+  userId: string,
+  options: {
+    activeTab?: "overview" | "transactions" | "subscription" | "access"
+    linksPage?: string | number | null
+    linksPageSize?: string | number | null
+    selectedLinkId?: string | null
+    includeLinksList?: boolean
+    includeSelectedLink?: boolean
+  } = {}
+): Promise<AdminVendorProfileRecord | null> {
+  const raw = await safeQuery(
+    () =>
+      prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          vendorProfile: {
+            include: {
+              _count: { select: { transactions: true, clients: true } },
+              subscription: true,
+            },
+          },
+        },
+      }),
+    null
+  )
+
+  if (!raw) return null
+
+  const user: AdminUserDetailRecord = {
+    id: raw.id,
+    name: raw.name ?? "Unnamed user",
+    email: raw.email,
+    role: raw.role,
+    company: raw.vendorProfile?.businessName ?? "Conntrazy",
+    status: raw.vendorProfile?.reviewStatus ?? "Active",
+    emailVerified: raw.emailVerified ? formatDateTime(raw.emailVerified) : null,
+    joinedAt: formatDateTime(raw.createdAt),
+    vendorProfile: raw.vendorProfile
+      ? {
+          id: raw.vendorProfile.id,
+          ownerFirstName: raw.vendorProfile.ownerFirstName ?? "",
+          ownerLastName: raw.vendorProfile.ownerLastName ?? "",
+          businessName: raw.vendorProfile.businessName ?? "",
+          businessEmail: raw.vendorProfile.businessEmail ?? raw.email,
+          supportEmail: raw.vendorProfile.supportEmail ?? "",
+          businessPhone: raw.vendorProfile.businessPhone ?? "",
+          businessAddress: raw.vendorProfile.businessAddress ?? "",
+          businessCountry: raw.vendorProfile.businessCountry ?? "",
+          registrationNumber: raw.vendorProfile.registrationNumber ?? "",
+          vatNumber: raw.vendorProfile.vatNumber ?? "",
+          preferredLocale: raw.vendorProfile.preferredLocale,
+          reviewStatus: raw.vendorProfile.reviewStatus,
+          stripeConnectionStatus: raw.vendorProfile.stripeConnectionStatus,
+          profileCompletion: getProfileCompletion(raw.vendorProfile),
+          transactionCount: raw.vendorProfile._count.transactions,
+          clientCount: raw.vendorProfile._count.clients,
+        }
+      : null,
+  }
+
+  const sub = raw.vendorProfile?.subscription ?? null
+  const subscription: AdminVendorSubscriptionRecord | null = sub
+    ? {
+        planKey: sub.planKey,
+        billingInterval: sub.billingInterval,
+        status: sub.status,
+        currentPeriodStart: sub.currentPeriodStart ? formatDate(sub.currentPeriodStart) : null,
+        currentPeriodEnd: sub.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : null,
+        cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        trialStart: sub.trialStart ? formatDate(sub.trialStart) : null,
+        trialEnd: sub.trialEnd ? formatDate(sub.trialEnd) : null,
+        transactionsUsed: sub.transactionsUsed,
+        eSignaturesUsed: sub.eSignaturesUsed,
+        kycVerificationsUsed: sub.kycVerificationsUsed,
+        qrCodesUsed: sub.qrCodesUsed,
+        smsWhatsappUsed: sub.smsWhatsappUsed,
+        teamUsersUsed: sub.teamUsersUsed,
+      }
+    : null
+
+  const includeLinksList = options.includeLinksList ?? options.activeTab === "transactions"
+  const includeSelectedLink = options.includeSelectedLink ?? Boolean(options.selectedLinkId)
+
+  if (
+    !raw.vendorProfile ||
+    options.activeTab !== "transactions" ||
+    (!includeLinksList && !includeSelectedLink)
+  ) {
+    return {
+      user,
+      subscription,
+      links: null,
+      selectedLink: null,
+    }
+  }
+
+  const links: AdminVendorLinksPageRecord | null = includeLinksList
+    ? await (async () => {
+        const pagination = resolvePagination(
+          { page: options.linksPage, pageSize: options.linksPageSize },
+          { defaultPageSize: 12, maxPageSize: 50 }
+        )
+
+        const linkWhere: Prisma.TransactionLinkWhereInput = {
+          transaction: {
+            vendorId: raw.vendorProfile!.id,
+          },
+        }
+
+        const [linkRows, totalCount] = await Promise.all([
+          safeQuery(
+            () =>
+              prisma.transactionLink.findMany({
+                where: linkWhere,
+                orderBy: { createdAt: "desc" },
+                skip: pagination.skip,
+                take: pagination.pageSize,
+                include: {
+                  transaction: {
+                    select: {
+                      id: true,
+                      reference: true,
+                      title: true,
+                      status: true,
+                      amount: true,
+                      depositAmount: true,
+                      currency: true,
+                      locale: true,
+                      updatedAt: true,
+                      clientProfile: {
+                        select: {
+                          fullName: true,
+                          email: true,
+                        },
+                      },
+                      _count: {
+                        select: {
+                          documents: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              }),
+            []
+          ),
+          safeQuery(() => prisma.transactionLink.count({ where: linkWhere }), 0),
+        ])
+
+        return {
+          records: linkRows.map((link) => {
+            const lastActivityAt =
+              link.completedAt ?? link.cancelledAt ?? link.openedAt ?? link.transaction.updatedAt
+
+            return {
+              id: link.id,
+              transactionId: link.transactionId,
+              reference: link.transaction.reference,
+              title: link.transaction.title,
+              linkStatus: link.status,
+              transactionStatus: link.transaction.status,
+              shortCode: link.shortCode ?? null,
+              locale: link.transaction.locale,
+              clientName: link.transaction.clientProfile?.fullName ?? null,
+              clientEmail: link.transaction.clientProfile?.email ?? null,
+              amount: link.transaction.amount ?? null,
+              depositAmount: link.transaction.depositAmount ?? null,
+              currency: link.transaction.currency,
+              documentCount: link.transaction._count.documents,
+              createdAt: formatDateTime(link.createdAt),
+              updatedAt: formatDateTime(link.transaction.updatedAt),
+              lastActivityAt: formatDateTime(lastActivityAt),
+            }
+          }),
+          ...buildPaginationMeta(totalCount, pagination.page, pagination.pageSize),
+        }
+      })()
+    : null
+
+  const selectedLinkId = includeSelectedLink ? (options.selectedLinkId ?? null) : null
+
+  if (!selectedLinkId) {
+    return {
+      user,
+      subscription,
+      links,
+      selectedLink: null,
+    }
+  }
+
+  const selectedRaw = await safeQuery(
+    () =>
+      prisma.transactionLink.findFirst({
+        where: {
+          id: selectedLinkId,
+          transaction: {
+            vendorId: raw.vendorProfile!.id,
+          },
+        },
+        include: {
+          transaction: {
+            include: {
+              clientProfile: {
+                select: {
+                  fullName: true,
+                  email: true,
+                  phone: true,
+                  companyName: true,
+                  address: true,
+                  country: true,
+                },
+              },
+              requirements: {
+                orderBy: { sortOrder: "asc" },
+              },
+              documents: {
+                include: {
+                  requirement: {
+                    select: {
+                      id: true,
+                      label: true,
+                      required: true,
+                    },
+                  },
+                },
+                orderBy: { uploadedAt: "asc" },
+              },
+              payments: true,
+              depositAuthorization: true,
+              kycVerification: {
+                select: {
+                  provider: true,
+                  status: true,
+                  summary: true,
+                  verifiedAt: true,
+                  createdAt: true,
+                },
+              },
+              signatureRecord: {
+                select: {
+                  status: true,
+                  signerName: true,
+                  signedAt: true,
+                },
+              },
+              contractArtifact: {
+                select: {
+                  sourceTemplateName: true,
+                  generatedAt: true,
+                  reviewCompletedAt: true,
+                  signedPdfUrl: true,
+                  signedPdfHash: true,
+                  signedAt: true,
+                },
+              },
+              dispute: {
+                select: {
+                  id: true,
+                  status: true,
+                },
+              },
+              events: {
+                orderBy: { occurredAt: "asc" },
+              },
+            },
+          },
+        },
+      }),
+    null
+  )
+
+  if (!selectedRaw) {
+    return {
+      user,
+      subscription,
+      links,
+      selectedLink: null,
+    }
+  }
+
+  const selectedAuditLogs = await safeQuery(
+    () =>
+      prisma.auditLog.findMany({
+        where: {
+          entityType: "Transaction",
+          entityId: selectedRaw.transactionId,
+        },
+        include: {
+          actor: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+    []
+  )
+
+  const tx = selectedRaw.transaction
+  const servicePayment = tx.payments.find((payment) => payment.kind === PaymentKind.SERVICE_PAYMENT) ?? null
+  const depositCapture = tx.payments.find((payment) => payment.kind === PaymentKind.DEPOSIT_CAPTURE) ?? null
+  const depositRelease = tx.payments.find((payment) => payment.kind === PaymentKind.DEPOSIT_RELEASE) ?? null
+  const requiredRequirements = tx.requirements.filter((requirement) => requirement.required)
+  const submittedRequiredCount = requiredRequirements.filter((requirement) =>
+    tx.documents.some(
+      (document) =>
+        document.requirementId === requirement.id &&
+        (requirement.type === "TEXT" ? Boolean(document.textValue?.trim()) : Boolean(document.assetUrl))
+    )
+  ).length
+
+  const selectedLink: AdminVendorLinkDetailRecord = {
+    id: selectedRaw.id,
+    transactionId: selectedRaw.transactionId,
+    token: selectedRaw.token,
+    shortCode: selectedRaw.shortCode ?? null,
+    status: selectedRaw.status,
+    createdAt: formatDateTime(selectedRaw.createdAt),
+    openedAt: selectedRaw.openedAt ? formatDateTime(selectedRaw.openedAt) : null,
+    expiresAt: selectedRaw.expiresAt ? formatDateTime(selectedRaw.expiresAt) : null,
+    completedAt: selectedRaw.completedAt ? formatDateTime(selectedRaw.completedAt) : null,
+    cancelledAt: selectedRaw.cancelledAt ? formatDateTime(selectedRaw.cancelledAt) : null,
+    cancelReason: selectedRaw.cancelReason ?? null,
+    cancelledBy: selectedRaw.cancelledBy ?? null,
+    reference: tx.reference,
+    title: tx.title,
+    kind: tx.kind,
+    transactionStatus: tx.status,
+    paymentCollectionTiming: tx.paymentCollectionTiming,
+    currency: tx.currency,
+    amount: tx.amount ?? null,
+    depositAmount: tx.depositAmount ?? null,
+    notes: tx.notes ?? null,
+    locale: tx.locale,
+    requiresKyc: tx.requiresKyc,
+    requireClientCompany: tx.requireClientCompany,
+    servicePaymentRequestedAt: tx.servicePaymentRequestedAt ? formatDateTime(tx.servicePaymentRequestedAt) : null,
+    customerCompletedAt: tx.customerCompletedAt ? formatDateTime(tx.customerCompletedAt) : null,
+    createdAtLabel: formatDateTime(tx.createdAt),
+    updatedAt: formatDateTime(tx.updatedAt),
+    client: tx.clientProfile
+      ? {
+          fullName: tx.clientProfile.fullName,
+          email: tx.clientProfile.email,
+          phone: tx.clientProfile.phone ?? null,
+          companyName: tx.clientProfile.companyName ?? null,
+          address: tx.clientProfile.address ?? null,
+          country: tx.clientProfile.country ?? null,
+        }
+      : null,
+    documentSummary: {
+      submittedCount: tx.documents.length,
+      requiredCount: requiredRequirements.length,
+      submittedRequiredCount,
+    },
+    requirements: tx.requirements.map((requirement) => ({
+      id: requirement.id,
+      label: requirement.label,
+      type: requirement.type,
+      required: requirement.required,
+      instructions: requirement.instructions ?? null,
+    })),
+    documents: tx.documents.map((document) => ({
+      id: document.id,
+      label: document.label,
+      type: document.type,
+      fileName: document.fileName ?? null,
+      assetUrl: document.assetUrl ?? null,
+      textValue: document.textValue ?? null,
+      publicId: document.publicId ?? null,
+      uploadedAt: formatDateTime(document.uploadedAt),
+      requirementId: document.requirementId ?? null,
+      requirementLabel: document.requirement?.label ?? null,
+      requirementRequired: document.requirement?.required ?? false,
+    })),
+    kyc: tx.kycVerification
+      ? {
+          provider: tx.kycVerification.provider,
+          status: tx.kycVerification.status,
+          summary: tx.kycVerification.summary ?? null,
+          verifiedAt: tx.kycVerification.verifiedAt ? formatDateTime(tx.kycVerification.verifiedAt) : null,
+          createdAt: formatDateTime(tx.kycVerification.createdAt),
+        }
+      : null,
+    signature: tx.signatureRecord
+      ? {
+          status: tx.signatureRecord.status,
+          signerName: tx.signatureRecord.signerName ?? null,
+          signedAt: tx.signatureRecord.signedAt ? formatDateTime(tx.signatureRecord.signedAt) : null,
+        }
+      : null,
+    contract: tx.contractArtifact
+      ? {
+          sourceTemplateName: tx.contractArtifact.sourceTemplateName ?? null,
+          generatedAt: formatDateTime(tx.contractArtifact.generatedAt),
+          reviewCompletedAt: tx.contractArtifact.reviewCompletedAt
+            ? formatDateTime(tx.contractArtifact.reviewCompletedAt)
+            : null,
+          signedPdfUrl: tx.contractArtifact.signedPdfUrl ?? null,
+          signedPdfHash: tx.contractArtifact.signedPdfHash ?? null,
+          signedAt: tx.contractArtifact.signedAt ? formatDateTime(tx.contractArtifact.signedAt) : null,
+        }
+      : null,
+    dispute: tx.dispute ? { id: tx.dispute.id, status: tx.dispute.status } : null,
+    servicePayment: servicePayment
+      ? {
+          id: servicePayment.id,
+          status: servicePayment.status,
+          amount: servicePayment.amount,
+          currency: servicePayment.currency,
+          stripeIntentId: servicePayment.stripeIntentId ?? null,
+          stripeFeeAmount: servicePayment.stripeFeeAmount ?? 0,
+          platformFeeAmount: servicePayment.platformFeeAmount ?? 0,
+          vendorNetAmount: servicePayment.vendorNetAmount ?? servicePayment.amount,
+          processedAt: servicePayment.processedAt ? formatDateTime(servicePayment.processedAt) : null,
+        }
+      : null,
+    depositAuth: tx.depositAuthorization
+      ? {
+          status: tx.depositAuthorization.status,
+          amount: tx.depositAuthorization.amount,
+          currency: tx.depositAuthorization.currency,
+          stripeIntentId: tx.depositAuthorization.stripeIntentId ?? null,
+          authorizedAt: tx.depositAuthorization.authorizedAt
+            ? formatDateTime(tx.depositAuthorization.authorizedAt)
+            : null,
+          capturedAt: tx.depositAuthorization.capturedAt
+            ? formatDateTime(tx.depositAuthorization.capturedAt)
+            : null,
+          releasedAt: tx.depositAuthorization.releasedAt
+            ? formatDateTime(tx.depositAuthorization.releasedAt)
+            : null,
+        }
+      : null,
+    depositCapture: depositCapture
+      ? {
+          id: depositCapture.id,
+          status: depositCapture.status,
+          amount: depositCapture.amount,
+          currency: depositCapture.currency,
+          stripeIntentId: depositCapture.stripeIntentId ?? null,
+          stripeFeeAmount: depositCapture.stripeFeeAmount ?? 0,
+          platformFeeAmount: depositCapture.platformFeeAmount ?? 0,
+          vendorNetAmount: depositCapture.vendorNetAmount ?? depositCapture.amount,
+          processedAt: depositCapture.processedAt ? formatDateTime(depositCapture.processedAt) : null,
+        }
+      : null,
+    depositRelease: depositRelease
+      ? {
+          id: depositRelease.id,
+          status: depositRelease.status,
+          amount: depositRelease.amount,
+          currency: depositRelease.currency,
+          stripeIntentId: depositRelease.stripeIntentId ?? null,
+          stripeFeeAmount: depositRelease.stripeFeeAmount ?? 0,
+          platformFeeAmount: depositRelease.platformFeeAmount ?? 0,
+          vendorNetAmount: depositRelease.vendorNetAmount ?? depositRelease.amount,
+          processedAt: depositRelease.processedAt ? formatDateTime(depositRelease.processedAt) : null,
+        }
+      : null,
+    events: tx.events.map((event) => ({
+      id: event.id,
+      type: event.type,
+      title: event.title,
+      detail: event.detail ?? null,
+      timestamp: event.occurredAt.toISOString(),
+      occurredAt: formatDateTime(event.occurredAt),
+    })),
+    auditLogs: selectedAuditLogs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      actor: log.actor?.name ?? log.actor?.email ?? "System",
+      actorType: log.actorType,
+      timestamp: log.createdAt.toISOString(),
+      createdAt: formatDateTime(log.createdAt),
+      metadataSummary: formatAuditMetadataSummary(log.metadata),
+    })),
+  }
+
+  return { user, subscription, links, selectedLink }
 }
 
 export async function getAdminVendors(
@@ -2961,6 +3679,309 @@ export async function getAdminContacts(
     totalPages: Math.max(1, Math.ceil(totalCount / pagination.pageSize)),
     newCount,
   }
+}
+
+// ── Admin Analytics ────────────────────────────────────────────────────────
+
+const PLAN_MONTHLY_PRICE_CENTS: Record<string, number> = {
+  STARTER: 4900,
+  PRO: 12900,
+  BUSINESS: 24900,
+  ENTERPRISE: 0,
+}
+
+const PLAN_YEARLY_MONTHLY_CENTS: Record<string, number> = {
+  STARTER: 3917,
+  PRO: 10417,
+  BUSINESS: 20000,
+  ENTERPRISE: 0,
+}
+
+export type AdminAnalyticsPlanRow = {
+  planKey: string
+  planName: string
+  monthlyCount: number
+  yearlyCount: number
+  totalCount: number
+  estimatedMrr: number
+}
+
+export type AdminAnalyticsTrendPoint = {
+  month: string
+  fees: number
+  volume: number
+  newSubs: number
+}
+
+export type AdminAnalyticsData = {
+  // Platform revenue: sum of platformFeeAmount from DEPOSIT_CAPTURE rows (cents)
+  totalPlatformFeeCents: number
+  // What went to Stripe: sum of stripeFeeAmount from DEPOSIT_CAPTURE rows (cents)
+  totalStripeFeeCents: number
+  // Gross deposit amount captured (cents)
+  totalDepositGrossCents: number
+  // Service payment volume: sum of amount from SERVICE_PAYMENT rows (cents)
+  totalServiceVolumeCents: number
+  // Number of captured deposits all-time
+  totalDepositCaptureCount: number
+  estimatedMrr: number
+  activeSubscriberCount: number
+  trialingCount: number
+  planBreakdown: AdminAnalyticsPlanRow[]
+  monthlyTrend: AdminAnalyticsTrendPoint[]
+  billingIntervalSplit: { monthly: number; yearly: number }
+  statusBreakdown: { status: string; count: number }[]
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+export async function getAdminAnalytics(): Promise<AdminAnalyticsData> {
+  const twelveMonthsAgo = new Date()
+  twelveMonthsAgo.setDate(1)
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+  twelveMonthsAgo.setHours(0, 0, 0, 0)
+
+  const [
+    depositCaptureAgg,
+    serviceVolumeAgg,
+    allSubscriptions,
+    recentDepositCaptures,
+    recentServicePayments,
+    recentSubs,
+  ] = await Promise.all([
+    // Platform fee revenue — DEPOSIT_CAPTURE + CAPTURED is the only source of fee income.
+    // SERVICE_PAYMENT rows hardcode platformFeeAmount=0 and must NOT be included here.
+    safeQuery(
+      () =>
+        prisma.payment.aggregate({
+          _sum: {
+            platformFeeAmount: true,
+            stripeFeeAmount: true,
+            amount: true,
+          },
+          _count: { _all: true },
+          where: {
+            kind: PaymentKind.DEPOSIT_CAPTURE,
+            status: PaymentStatus.CAPTURED,
+          },
+        }),
+      { _sum: { platformFeeAmount: null, stripeFeeAmount: null, amount: null }, _count: { _all: 0 } }
+    ),
+    // Service payment volume — separate from deposit fees.
+    safeQuery(
+      () =>
+        prisma.payment.aggregate({
+          _sum: { amount: true },
+          where: {
+            kind: PaymentKind.SERVICE_PAYMENT,
+            status: PaymentStatus.SUCCEEDED,
+          },
+        }),
+      { _sum: { amount: null } }
+    ),
+    safeQuery(
+      () =>
+        prisma.vendorSubscription.findMany({
+          select: { planKey: true, billingInterval: true, status: true },
+        }),
+      []
+    ),
+    // Monthly fee trend: deposit captures in last 12 months.
+    safeQuery(
+      () =>
+        prisma.payment.findMany({
+          where: {
+            kind: PaymentKind.DEPOSIT_CAPTURE,
+            status: PaymentStatus.CAPTURED,
+            createdAt: { gte: twelveMonthsAgo },
+          },
+          select: {
+            platformFeeAmount: true,
+            amount: true,
+            processedAt: true,
+            createdAt: true,
+          },
+        }),
+      []
+    ),
+    // Monthly volume trend: service payments in last 12 months.
+    safeQuery(
+      () =>
+        prisma.payment.findMany({
+          where: {
+            kind: PaymentKind.SERVICE_PAYMENT,
+            status: PaymentStatus.SUCCEEDED,
+            createdAt: { gte: twelveMonthsAgo },
+          },
+          select: { amount: true, processedAt: true, createdAt: true },
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.vendorSubscription.findMany({
+          where: { createdAt: { gte: twelveMonthsAgo } },
+          select: { createdAt: true },
+        }),
+      []
+    ),
+  ])
+
+  const activeSubs = allSubscriptions.filter(
+    (s) => s.status === "ACTIVE" || s.status === "TRIALING"
+  )
+  const trialingCount = allSubscriptions.filter((s) => s.status === "TRIALING").length
+
+  const planKeys = ["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
+  const planBreakdown: AdminAnalyticsPlanRow[] = planKeys.map((planKey) => {
+    const subs = activeSubs.filter((s) => s.planKey === planKey)
+    const monthlyCount = subs.filter((s) => s.billingInterval === "MONTHLY").length
+    const yearlyCount = subs.filter((s) => s.billingInterval === "YEARLY").length
+    const mrr =
+      monthlyCount * (PLAN_MONTHLY_PRICE_CENTS[planKey] ?? 0) +
+      yearlyCount * (PLAN_YEARLY_MONTHLY_CENTS[planKey] ?? 0)
+    return {
+      planKey,
+      planName: planKey.charAt(0) + planKey.slice(1).toLowerCase(),
+      monthlyCount,
+      yearlyCount,
+      totalCount: subs.length,
+      estimatedMrr: mrr,
+    }
+  })
+
+  const statusMap = new Map<string, number>()
+  for (const s of allSubscriptions) {
+    statusMap.set(s.status, (statusMap.get(s.status) ?? 0) + 1)
+  }
+
+  const billingIntervalSplit = {
+    monthly: activeSubs.filter((s) => s.billingInterval === "MONTHLY").length,
+    yearly: activeSubs.filter((s) => s.billingInterval === "YEARLY").length,
+  }
+
+  const estimatedMrr = planBreakdown.reduce((acc, p) => acc + p.estimatedMrr, 0)
+
+  // Build the 12-month trend map, seeding every slot to zero so months with no
+  // activity still appear in the chart rather than being absent.
+  const trendMap = new Map<string, { fees: number; volume: number; newSubs: number }>()
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(1)
+    d.setMonth(d.getMonth() - i)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    trendMap.set(key, { fees: 0, volume: 0, newSubs: 0 })
+  }
+
+  // Fee trend — from deposit captures only.
+  for (const p of recentDepositCaptures) {
+    const d = p.processedAt ?? p.createdAt
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const entry = trendMap.get(key)
+    if (entry) entry.fees += p.platformFeeAmount ?? 0
+  }
+
+  // Volume trend — from service payments only.
+  for (const p of recentServicePayments) {
+    const d = p.processedAt ?? p.createdAt
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const entry = trendMap.get(key)
+    if (entry) entry.volume += p.amount
+  }
+
+  for (const s of recentSubs) {
+    const d = s.createdAt
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const entry = trendMap.get(key)
+    if (entry) entry.newSubs += 1
+  }
+
+  const monthlyTrend: AdminAnalyticsTrendPoint[] = Array.from(trendMap.entries()).map(
+    ([key, data]) => {
+      const [year, month] = key.split("-")
+      const label = `${MONTH_LABELS[Number.parseInt(month) - 1]} '${year.slice(2)}`
+      return {
+        month: label,
+        fees: Math.round(data.fees / 100),
+        volume: Math.round(data.volume / 100),
+        newSubs: data.newSubs,
+      }
+    }
+  )
+
+  return {
+    totalPlatformFeeCents: depositCaptureAgg._sum.platformFeeAmount ?? 0,
+    totalStripeFeeCents: depositCaptureAgg._sum.stripeFeeAmount ?? 0,
+    totalDepositGrossCents: depositCaptureAgg._sum.amount ?? 0,
+    totalServiceVolumeCents: serviceVolumeAgg._sum.amount ?? 0,
+    totalDepositCaptureCount: depositCaptureAgg._count._all,
+    estimatedMrr,
+    activeSubscriberCount: activeSubs.length,
+    trialingCount,
+    planBreakdown,
+    monthlyTrend,
+    billingIntervalSplit,
+    statusBreakdown: Array.from(statusMap.entries()).map(([status, count]) => ({ status, count })),
+  }
+}
+
+// ── Deposit Capture Fee Report ─────────────────────────────────────────────
+// Raw-SQL aggregate grouped by currency for accurate multi-currency safety.
+
+export type DepositCaptureFeeReportRow = {
+  currency: string
+  captureCount: number
+  grossCapturedCents: number
+  stripeFeeCents: number
+  platformFeeCents: number
+  vendorNetCents: number
+  platformFeeEur: string
+  grossCapturedEur: string
+}
+
+export async function getDepositCaptureFeeReport(): Promise<DepositCaptureFeeReportRow[]> {
+  type RawRow = {
+    currency: string
+    capture_count: bigint
+    gross_captured_cents: bigint
+    stripe_fee_cents: bigint
+    platform_fee_cents: bigint
+    vendor_net_cents: bigint
+  }
+
+  const rows = await safeQuery(
+    () =>
+      prisma.$queryRaw<RawRow[]>`
+        SELECT
+          currency,
+          COUNT(*)                                          AS capture_count,
+          SUM(amount)                                       AS gross_captured_cents,
+          SUM(COALESCE("stripeFeeAmount",   0))             AS stripe_fee_cents,
+          SUM(COALESCE("platformFeeAmount", 0))             AS platform_fee_cents,
+          SUM(COALESCE("vendorNetAmount",   0))             AS vendor_net_cents
+        FROM "Payment"
+        WHERE kind   = 'DEPOSIT_CAPTURE'
+          AND status = 'CAPTURED'
+        GROUP BY currency
+        ORDER BY currency
+      `,
+    []
+  )
+
+  return rows.map((row) => {
+    const platformFeeCents   = Number(row.platform_fee_cents)
+    const grossCapturedCents = Number(row.gross_captured_cents)
+    return {
+      currency:            row.currency,
+      captureCount:        Number(row.capture_count),
+      grossCapturedCents,
+      stripeFeeCents:      Number(row.stripe_fee_cents),
+      platformFeeCents,
+      vendorNetCents:      Number(row.vendor_net_cents),
+      platformFeeEur:      `€${(platformFeeCents / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      grossCapturedEur:    `€${(grossCapturedCents / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    }
+  })
 }
 
 export async function getAdminContactDetail(contactId: string): Promise<AdminContactDetailRecord | null> {

@@ -1573,6 +1573,148 @@
           "description": "Supprime définitivement ce compte et toutes les données associées, y compris les profils vendeurs, les transactions et les clients. Les transactions actives doivent être résolues au préalable."
         }
       },
+      "vendorManager": {
+        "tabs": {
+          "overview": "Vue d'ensemble",
+          "transactions": "Transactions",
+          "subscription": "Abonnement",
+          "access": "Accès",
+          "loading": "Chargement..."
+        },
+        "header": {
+          "description": "Espace super administrateur pour {businessName}. Profil, historique des transactions et contrôles du compte restent réunis au même endroit.",
+          "noVendorDescription": "Ce compte ne possède pas encore de profil vendeur. Vous pouvez quand même gérer l'accès et les contrôles du compte ici.",
+          "joined": "Inscrit le {date}",
+          "company": "Espace {company}",
+          "owner": "Titulaire du compte",
+          "defaultLocale": "Langue par défaut"
+        },
+        "kpis": {
+          "transactions": "Transactions",
+          "transactionDetail": "Historique complet des liens de paiement",
+          "clients": "Clients",
+          "clientDetail": "Clients liés distincts",
+          "profile": "Profil",
+          "profileComplete": "Profil complété",
+          "profileIncomplete": "Profil à compléter",
+          "subscription": "Abonnement"
+        },
+        "overview": {
+          "accountTitle": "Profil vendeur",
+          "accountDescription": "Détails opérationnels du compte et profil entreprise soumis.",
+          "fields": {
+            "fullName": "Nom complet",
+            "email": "Email",
+            "reviewStatus": "Statut de révision",
+            "payoutStatus": "Configuration des paiements",
+            "businessName": "Nom de l'entreprise",
+            "registrationNumber": "Numéro d'immatriculation",
+            "supportEmail": "Email de support",
+            "phone": "Téléphone",
+            "country": "Pays",
+            "address": "Adresse",
+            "vatNumber": "Numéro de TVA",
+            "defaultLocale": "Langue par défaut"
+          },
+          "editorTitle": "Modifier le profil vendeur",
+          "editorDescription": "Mettez à jour le profil entreprise visible par le vendeur depuis l'espace super administrateur.",
+          "noVendorProfile": "Aucun profil vendeur n'a encore été créé pour ce compte."
+        },
+        "transactions": {
+          "listTitle": "Liens",
+          "listDescription": "Enregistrements de liens de paiement paginés.",
+          "columns": {
+            "reference": "Référence",
+            "client": "Client",
+            "link": "Lien",
+            "service": "Service",
+            "deposit": "Caution",
+            "documents": "Docs",
+            "lastActivity": "Dernière activité",
+            "manage": "Action"
+          },
+          "empty": "Aucune transaction n'a encore été lancée pour ce vendeur.",
+          "manage": "Voir",
+          "loading": "Ouverture...",
+          "backToLinks": "Retour aux liens",
+          "lifecycleTitle": "Cycle de vie",
+          "lifecycleDescription": "Sélectionnez un lien pour afficher son cycle de vie.",
+          "emptySelection": "Sélectionnez un enregistrement de lien.",
+          "openPublicLink": "Ouvrir le lien",
+          "lifecycle": {
+            "link": "Lien",
+            "client": "Client",
+            "documents": "Documents",
+            "kyc": "Identité",
+            "agreement": "Contrat",
+            "finance": "Finance",
+            "audit": "Activité"
+          },
+          "clientReady": "Prêt",
+          "clientMissing": "En attente",
+          "required": "Requis",
+          "submitted": "Soumis",
+          "pending": "En attente",
+          "noRequirements": "Aucune exigence documentaire.",
+          "otherUploads": "Autres fichiers",
+          "openDocument": "Ouvrir le document",
+          "notRequired": "Non requis",
+          "notStarted": "Non commencé",
+          "downloadSigned": "Télécharger le PDF signé",
+          "servicePayment": "Paiement du service",
+          "depositCapture": "Capture de caution",
+          "depositRelease": "Libération de caution",
+          "noServicePayment": "Aucun paiement de service n'a été collecté pour cette transaction.",
+          "noDepositAuth": "Aucune autorisation de caution n'a été créée pour cette transaction.",
+          "noDepositCapture": "Aucune capture de caution n'a été enregistrée pour cette transaction.",
+          "noDepositRelease": "Aucune libération de caution n'a été enregistrée pour cette transaction.",
+          "emptyAudit": "Aucun événement ni journal d'audit n'a été trouvé pour cette transaction.",
+          "event": "Événement",
+          "audit": "Audit"
+        },
+        "documents": {
+          "delete": "Supprimer le document",
+          "confirmDelete": "Supprimer ce document soumis ?",
+          "deleteFailed": "Impossible de supprimer ce document."
+        },
+        "subscription": {
+          "title": "Abonnement",
+          "description": "Plan actuel, dates du cycle de facturation et compteurs d'utilisation pour ce compte vendeur.",
+          "noSubscription": "Aucun abonnement",
+          "noSubscriptionDetail": "Aucun enregistrement de facturation actif",
+          "fields": {
+            "plan": "Plan",
+            "interval": "Intervalle",
+            "status": "Statut",
+            "currentPeriodStart": "Début de la période en cours",
+            "currentPeriodEnd": "Fin de la période en cours",
+            "cancelAtPeriodEnd": "Annuler à la fin de la période",
+            "trialStart": "Début de l'essai",
+            "trialEnd": "Fin de l'essai"
+          },
+          "usage": {
+            "transactions": "Transactions utilisées",
+            "signatures": "Signatures électroniques utilisées",
+            "kyc": "Vérifications KYC utilisées",
+            "qr": "QR codes utilisés",
+            "sms": "SMS / WhatsApp utilisés",
+            "team": "Sièges équipe utilisés"
+          },
+          "empty": "Ce vendeur ne possède pas encore d'enregistrement d'abonnement."
+        },
+        "access": {
+          "roleTitle": "Gestion des rôles",
+          "roleDescription": "Ajustez l'accès à ce compte sans quitter l'espace de gestion vendeur.",
+          "reviewTitle": "Révision vendeur",
+          "reviewDescription": "Approuvez, rejetez, suspendez ou remettez le vendeur en attente de révision.",
+          "dangerTitle": "Zone de danger",
+          "dangerDescription": "Supprimez le compte uniquement après résolution complète de ses transactions, paiements et litiges."
+        },
+        "shared": {
+          "yes": "Oui",
+          "no": "Non"
+        }
+      },
       "invites": {
         "title": "Invitations",
         "description": "Suivez les invitations en attente pour les vendeurs et les membres de l'équipe interne.",
@@ -1768,9 +1910,24 @@
         "thReview": "Révision",
         "thStripe": "Stripe",
         "emptyQueue": "Aucun compte vendeur en attente de révision.",
-        "adminScopeTitle": "Périmètre admin",
-        "adminScopeDesc": "Détails de l'opérateur actuel et niveaux d'accès principaux en cours d'utilisation.",
-        "activeOperator": "Opérateur actif"
+        "kpiFeesCollected": "Frais plateforme collectés",
+        "kpiFeesDetail": "Frais 0,5 % sur {count} dépôts capturés",
+        "kpiMrr": "MRR estimé",
+        "kpiMrrDetail": "Basé sur les plans d'abonnement actifs",
+        "kpiActiveSubscribers": "Abonnés actifs",
+        "kpiActiveSubscribersDetail": "{count} en essai",
+        "kpiActiveSubscribersNone": "Aucun essai en cours",
+        "kpiTxVolume": "Volume de transactions",
+        "kpiTxVolumeDetail": "Volume total de paiements traités",
+        "kpiVendors": "Vendeurs",
+        "kpiVendorsDetail": "Comptes vendeurs enregistrés",
+        "kpiPending": "Révisions en attente",
+        "kpiPendingWaiting": "À réviser",
+        "kpiPendingNone": "Rien en attente",
+        "kpiConnected": "Paiements connectés",
+        "kpiConnectedDetail": "Vendeurs connectés à Stripe",
+        "kpiUsers": "Utilisateurs",
+        "kpiUsersDetail": "Utilisateurs inscrits sur la plateforme"
       }
     }
   },

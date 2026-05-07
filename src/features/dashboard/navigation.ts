@@ -105,7 +105,6 @@ export function buildAdminNavigation(t: T): DashboardNavSection[] {
       items: [
         { href: "/admin/users", label: t("nav.admin.items.allUsers"), icon: "users" },
         { href: "/admin/vendors", label: t("nav.admin.items.vendors"), icon: "building2" },
-        { href: "/admin/invites", label: t("nav.admin.items.invitations"), icon: "mail" },
       ],
     },
     {
@@ -118,9 +117,7 @@ export function buildAdminNavigation(t: T): DashboardNavSection[] {
     {
       label: t("nav.admin.sections.platform"),
       items: [
-        { href: "/admin/roles", label: t("nav.admin.items.accessLevels"), icon: "shield" },
         { href: "/admin/logs", label: t("nav.admin.items.activityLogs"), icon: "bookText" },
-        { href: "/admin/sessions", label: t("nav.admin.items.sessions"), icon: "fileText" },
       ],
     },
   ]
@@ -192,7 +189,6 @@ export const adminNavigation: DashboardNavSection[] = [
     items: [
       { href: "/admin/users", label: "All users", icon: "users" },
       { href: "/admin/vendors", label: "Vendors", icon: "building2" },
-      { href: "/admin/invites", label: "Invitations", icon: "mail" },
     ],
   },
   {
@@ -205,9 +201,7 @@ export const adminNavigation: DashboardNavSection[] = [
   {
     label: "Platform",
     items: [
-      { href: "/admin/roles", label: "Access levels", icon: "shield" },
       { href: "/admin/logs", label: "Activity logs", icon: "bookText" },
-      { href: "/admin/sessions", label: "Sessions", icon: "fileText" },
     ],
   },
 ]
