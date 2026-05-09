@@ -506,9 +506,9 @@ export function ContractTemplateEditor({
   useLayoutEffect(() => {
     if (isPreviewMode || !editor) return
     const frame = requestAnimationFrame(() => {
-      editor.view.dom.closest(".contract-prose-scroll")
-        ? null
-        : (editor.view.dom.scrollTop = editorScrollTopRef.current)
+      if (!editor.view.dom.closest(".contract-prose-scroll")) {
+        editor.view.dom.scrollTop = editorScrollTopRef.current
+      }
       editor.commands.focus()
     })
     return () => cancelAnimationFrame(frame)

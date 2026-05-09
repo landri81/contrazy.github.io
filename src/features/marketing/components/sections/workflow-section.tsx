@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import Image from "next/image"
-import { motion, useScroll, useSpring, useTransform } from "framer-motion"
+import { motion, useScroll, useSpring, useTransform, type MotionValue } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import { workflowStepArtwork } from "@/features/marketing/section-artwork"
 import { useTranslations } from "next-intl"
@@ -10,9 +10,15 @@ import { buttonVariants } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
+type WorkflowStep = {
+  n: string
+  title: string
+  desc: string
+}
+
 export function WorkflowSection() {
   const t = useTranslations("marketing.workflow")
-  const steps = t.raw("steps") as Array<{ n: string; title: string; desc: string }>
+  const steps = t.raw("steps") as WorkflowStep[]
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -76,14 +82,7 @@ export function WorkflowSection() {
 
             <div className="space-y-10">
               {steps.map((step, i) => (
-                <StepItem
-                  key={step.n}
-                  step={step}
-                  index={i}
-                  // Pass the global scroll progress to each child to handle its own activation
-                  progress={scrollYProgress}
-                  totalSteps={steps.length}
-                />
+                <StepItem key={step.n} step={step} index={i} progress={scrollYProgress} totalSteps={steps.length} />
               ))}
             </div>
           </div>
@@ -94,14 +93,23 @@ export function WorkflowSection() {
   )
 }
 
-function StepItem({ step, index, progress, totalSteps }: { step: any, index: number, progress: any, totalSteps: number }) {
+function StepItem({
+  step,
+  index,
+  progress,
+  totalSteps,
+}: {
+  step: WorkflowStep
+  index: number
+  progress: MotionValue<number>
+  totalSteps: number
+}) {
   // Define the "activation window" for this specific step
   const start = index / totalSteps
   const end = (index + 1) / totalSteps
 
   // Map scroll progress to local styles
   const opacity = useTransform(progress, [start, end], [0.4, 1])
-  const grayscale = useTransform(progress, [start, end], ["100%", "0%"])
   const scale = useTransform(progress, [start, end], [0.98, 1])
   const borderColor = useTransform(progress, [start, end], ["rgba(226, 232, 240, 0.4)", "rgba(20, 184, 166, 0.3)"])
 

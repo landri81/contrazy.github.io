@@ -2,7 +2,7 @@
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import type { StripePaymentElementOptions } from "@stripe/stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation"
 
 import { useRouter } from "@/i18n/navigation"
 import { Button } from "@/components/ui/button"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 import { cn } from "@/lib/utils"
 
 // ── Error Boundary ────────────────────────────────────────────────────────────
@@ -86,10 +87,14 @@ function fmt(cents: number, currency: string) {
 function PaymentElementInner({
   config,
   token,
+  cancelledPath,
+  paymentReturnPath,
   onSuccess,
 }: {
   config: PaymentConfig
   token: string
+  cancelledPath: string
+  paymentReturnPath: string
   onSuccess: (nextStep: string) => void
 }) {
   const t = useTranslations("clientFlow.embeddedPayment")
@@ -101,7 +106,7 @@ function PaymentElementInner({
   const [elementReady, setElementReady] = useState(false)
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  const returnUrl = `${origin}/t/${token}/payment?payment_intent=${config.paymentIntentId}&redirect_status=succeeded`
+  const returnUrl = `${origin}${paymentReturnPath}?payment_intent=${config.paymentIntentId}&redirect_status=succeeded`
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -123,7 +128,16 @@ function PaymentElementInner({
       }
 
       // No redirect = payment confirmed synchronously (no 3DS required)
-      await syncAndNavigate(config.paymentIntentId, token, onSuccess, setError, setSubmitting, t("confirmFailed"), t("confirmError"))
+      await syncAndNavigate(
+        config.paymentIntentId,
+        token,
+        cancelledPath,
+        onSuccess,
+        setError,
+        setSubmitting,
+        t("confirmFailed"),
+        t("confirmError")
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : t("confirmError"))
       setSubmitting(false)
@@ -234,6 +248,7 @@ function PaymentElementInner({
 async function syncAndNavigate(
   paymentIntentId: string,
   token: string,
+  cancelledPath: string,
   onSuccess: (nextStep: string) => void,
   setError: (msg: string | null) => void,
   setSubmitting: (v: boolean) => void,
@@ -249,7 +264,7 @@ async function syncAndNavigate(
     const data = await res.json()
 
     if (res.status === 410) {
-      window.location.href = `/t/${token}/cancelled`
+      window.location.href = cancelledPath
       return
     }
 
@@ -279,11 +294,14 @@ export function EmbeddedPaymentForm({
   currency: string
 }) {
   const t = useTranslations("clientFlow.embeddedPayment")
+  const locale = normalizeLocale(useLocale())
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectPaymentIntentId = searchParams.get("payment_intent")
   const redirectStatus = searchParams.get("redirect_status")
   const isRedirectReturn = Boolean(redirectPaymentIntentId && redirectStatus === "succeeded")
+  const paymentPath = withLocalePath(locale, `/t/${token}/payment`)
+  const cancelledPath = withLocalePath(locale, `/t/${token}/cancelled`)
 
   const [loadState, setLoadState] = useState<LoadState>(isRedirectReturn ? "confirming" : "loading")
   const [config, setConfig] = useState<PaymentConfig | null>(null)
@@ -324,7 +342,16 @@ export function EmbeddedPaymentForm({
     if (isRedirectReturn && redirectPaymentIntentId && reloadKey === 0) {
       // Coming back from 3DS redirect — confirm with server
       const noop = () => {}
-      syncAndNavigate(redirectPaymentIntentId, token, handleSuccess, setInitError, noop, t("confirmFailed"), t("confirmError")).then(() => {
+      syncAndNavigate(
+        redirectPaymentIntentId,
+        token,
+        cancelledPath,
+        handleSuccess,
+        setInitError,
+        noop,
+        t("confirmFailed"),
+        t("confirmError")
+      ).then(() => {
         if (loadState !== "success") setLoadState("ready")
       })
       return
@@ -350,7 +377,7 @@ export function EmbeddedPaymentForm({
         setInitError(t("initErrorRefresh"))
         setLoadState("error")
       })
-  }, [reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cancelledPath, handleSuccess, isRedirectReturn, loadState, redirectPaymentIntentId, reloadKey, router, t, token])
 
   // Memoize stripe instance — only recreate when stripeAccountId changes
   const stripePromise = useMemo(() => {
@@ -533,6 +560,8 @@ export function EmbeddedPaymentForm({
               <PaymentElementInner
                 config={config}
                 token={token}
+                cancelledPath={cancelledPath}
+                paymentReturnPath={paymentPath}
                 onSuccess={handleSuccess}
               />
             </Elements>

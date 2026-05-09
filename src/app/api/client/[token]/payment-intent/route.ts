@@ -4,6 +4,7 @@ import { getNextFinanceStage, type FinanceTransaction } from "@/features/transac
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 import { getConnectedAccountRequestOptions, getStripePublishableKey, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -63,7 +64,10 @@ export async function POST(
     const nextStage = getNextFinanceStage(financeTransaction)
 
     if (nextStage === "complete") {
-      return NextResponse.json({ success: true, redirect: `/t/${token}/complete` })
+      return NextResponse.json({
+        success: true,
+        redirect: withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/complete`),
+      })
     }
 
     const isDeposit = nextStage === "deposit_authorization"

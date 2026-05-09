@@ -8,6 +8,7 @@ import {
 } from "@/features/client-flow/server/client-flow-data"
 import { cancelTransactionLink } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
+import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 
 export async function POST(
   _request: Request,
@@ -21,8 +22,10 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Invalid link" }, { status: 404 })
     }
 
+    const redirectUrl = withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/cancelled`)
+
     if (transaction.link.status === TransactionLinkStatus.CANCELLED) {
-      return NextResponse.json({ success: true, redirectUrl: `/t/${token}/cancelled` })
+      return NextResponse.json({ success: true, redirectUrl })
     }
 
     if (!canCancelClientFlow(transaction)) {
@@ -47,7 +50,7 @@ export async function POST(
       )
     }
 
-    return NextResponse.json({ success: true, redirectUrl: `/t/${token}/cancelled` })
+    return NextResponse.json({ success: true, redirectUrl })
   } catch (error) {
     console.error("Cancel Client Link Error:", error)
     return NextResponse.json({ success: false, message: "Failed to cancel this link" }, { status: 500 })
