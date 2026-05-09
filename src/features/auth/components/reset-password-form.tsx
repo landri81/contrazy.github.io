@@ -3,9 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Link } from "@/i18n/navigation"
+import { useRouter } from "@/i18n/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,7 +14,15 @@ import { Label } from "@/components/ui/label"
 import { resetPasswordSchema } from "@/features/auth/schemas/auth.schema"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
-export function ResetPasswordForm({ token }: { token: string | undefined }) {
+type ResetTokenState = "valid" | "missing" | "invalid"
+
+export function ResetPasswordForm({
+  token,
+  tokenState,
+}: {
+  token: string | undefined
+  tokenState: ResetTokenState
+}) {
   const t = useTranslations("auth.resetPassword")
   const router = useRouter()
   const [password, setPassword] = useState("")
@@ -66,10 +74,15 @@ export function ResetPasswordForm({ token }: { token: string | undefined }) {
   return (
     <Card className="border-border bg-card/80 py-6 shadow-sm">
       <CardContent>
-        {!token ? (
+        {tokenState !== "valid" ? (
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">{t("missingToken")}</p>
+            <p className="text-muted-foreground">
+              {tokenState === "missing" ? t("missingToken") : t("invalidToken")}
+            </p>
             <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+              {t("requestNewLink")}
+            </Link>
+            <Link href="/login" className="font-medium text-primary hover:underline">
               {t("backToLogin")}
             </Link>
           </div>

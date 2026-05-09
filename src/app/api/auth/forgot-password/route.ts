@@ -5,6 +5,7 @@ import { forgotPasswordSchema } from "@/features/auth/schemas/auth.schema"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
 import { resend } from "@/lib/integrations/resend"
+import { resolveRequestLocale, toAbsoluteLocalizedAppUrl } from "@/lib/i18n/locale-utils"
 
 export async function POST(request: Request) {
   try {
@@ -35,6 +36,10 @@ export async function POST(request: Request) {
     const token = randomUUID()
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60)
 
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    })
+
     await prisma.passwordResetToken.create({
       data: {
         userId: user.id,
@@ -44,7 +49,8 @@ export async function POST(request: Request) {
     })
 
     const baseUrl = env.NEXTAUTH_URL ?? "http://localhost:3000"
-    const resetUrl = `${baseUrl}/reset-password?token=${token}`
+    const locale = resolveRequestLocale(request)
+    const resetUrl = `${toAbsoluteLocalizedAppUrl(baseUrl, locale, "/reset-password")}?token=${token}`
 
     await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
