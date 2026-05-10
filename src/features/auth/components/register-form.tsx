@@ -9,11 +9,19 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleIcon } from "@/components/ui/google-icon"
-import { Link, useRouter } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { queueToast, toast } from "@/components/ui/toast"
 import { registerSchema } from "@/features/auth/schemas/auth.schema"
+import { Link, useRouter } from "@/i18n/navigation"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+
+type PendingFlow = "idle" | "credentials" | "google" | "redirecting"
+type RegisterResponsePayload = {
+  success?: boolean
+  code?: string
+  message?: string
+}
 
 export function RegisterForm() {
   const t = useTranslations("auth.register")
@@ -26,8 +34,8 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, setIsPending] = useState(false)
-  const [isGooglePending, setIsGooglePending] = useState(false)
+  const [pendingFlow, setPendingFlow] = useState<PendingFlow>("idle")
+  const isBusy = pendingFlow !== "idle"
 
   async function handleRegistration(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,17 +49,36 @@ export function RegisterForm() {
     }
 
     try {
-      setIsPending(true)
+      setPendingFlow("credentials")
       const registrationResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsedPayload.data),
       })
 
-      const registrationPayload = await registrationResponse.json()
+      let registrationPayload: RegisterResponsePayload | null = null
+
+      try {
+        registrationPayload = (await registrationResponse.json()) as RegisterResponsePayload
+      } catch {
+        registrationPayload = null
+      }
 
       if (!registrationResponse.ok) {
-        setError(registrationPayload.message ?? t("errors.generic"))
+        const message =
+          registrationResponse.status === 409 || registrationPayload?.code === "EMAIL_EXISTS"
+            ? t("errors.emailExists")
+            : registrationResponse.status === 400
+              ? t("errors.invalidFormData")
+              : t("errors.generic")
+
+        setError(message)
+        toast({
+          variant: "error",
+          title: t("toast.createFailedTitle"),
+          description: message,
+        })
+        setPendingFlow("idle")
         return
       }
 
@@ -59,26 +86,58 @@ export function RegisterForm() {
         email: parsedPayload.data.email,
         password: parsedPayload.data.password,
         redirect: false,
+        callbackUrl: `/${locale}/auth-complete`,
       })
 
-      if (signInResult?.error) {
-        router.push("/login")
+      if (!signInResult?.ok || signInResult.error) {
+        queueToast({
+          variant: "warning",
+          title: t("toast.accountCreatedTitle"),
+          description: t("toast.accountCreatedManualSignInDescription"),
+        })
+        setPendingFlow("redirecting")
+        router.replace("/login")
         return
       }
 
-      router.push("/vendor/profile")
-      router.refresh()
+      queueToast({
+        variant: "success",
+        title: t("toast.accountCreatedTitle"),
+        description: t("toast.accountCreatedDescription"),
+      })
+      setPendingFlow("redirecting")
+      router.replace("/auth-complete")
     } catch (registrationError) {
       console.error(registrationError)
-      setError(t("errors.generic"))
-    } finally {
-      setIsPending(false)
+      const message = t("errors.generic")
+      setError(message)
+      toast({
+        variant: "error",
+        title: t("toast.createFailedTitle"),
+        description: message,
+      })
+      setPendingFlow("idle")
     }
   }
 
   function handleGoogleSignIn() {
-    setIsGooglePending(true)
-    signIn("google", { callbackUrl: `/${locale}/auth-complete` })
+    if (isBusy) {
+      return
+    }
+
+    setError(null)
+    setPendingFlow("google")
+    void signIn("google", { callbackUrl: `/${locale}/auth-complete` }).catch((googleError) => {
+      console.error(googleError)
+      const message = t("errors.generic")
+      setError(message)
+      toast({
+        variant: "error",
+        title: t("toast.googleStartFailedTitle"),
+        description: message,
+      })
+      setPendingFlow("idle")
+    })
   }
 
   return (
@@ -89,10 +148,10 @@ export function RegisterForm() {
           variant="outline"
           className="h-11 w-full justify-center gap-3 border-border/70 bg-background/80 font-medium shadow-sm hover:bg-background"
           onClick={handleGoogleSignIn}
-          disabled={isGooglePending || isPending}
+          disabled={isBusy}
         >
           <span className="flex size-6 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
-            {isGooglePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
+            {pendingFlow === "google" ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
           </span>
           {t("google")}
         </Button>
@@ -202,12 +261,12 @@ export function RegisterForm() {
           <Button
             type="submit"
             className="h-11 w-full gap-2 bg-[var(--contrazy-navy)] font-medium text-white hover:bg-[var(--contrazy-navy-soft)]"
-            disabled={isPending || isGooglePending}
+            disabled={isBusy}
           >
-            {isPending ? (
+            {pendingFlow === "credentials" || pendingFlow === "redirecting" ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                {t("submitting")}
+                {pendingFlow === "redirecting" ? t("redirecting") : t("submitting")}
               </>
             ) : (
               <>

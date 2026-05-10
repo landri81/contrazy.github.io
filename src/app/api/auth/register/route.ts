@@ -7,13 +7,28 @@ import { prisma } from "@/lib/db/prisma"
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    let body: unknown
+
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "INVALID_JSON",
+          message: "Invalid request body",
+        },
+        { status: 400 }
+      )
+    }
+
     const parsedBody = registerSchema.safeParse(body)
 
     if (!parsedBody.success) {
       return NextResponse.json(
         {
           success: false,
+          code: "INVALID_INPUT",
           message: parsedBody.error.issues[0]?.message ?? "Invalid input",
         },
         { status: 400 }
@@ -30,7 +45,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: "Email already exists" },
+        { success: false, code: "EMAIL_EXISTS", message: "Email already exists" },
         { status: 409 }
       )
     }
@@ -59,6 +74,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        code: "ACCOUNT_CREATED",
         message: "Account created",
         user,
       },
@@ -69,6 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
+        code: "ACCOUNT_CREATE_FAILED",
         message: "Unable to create account",
       },
       { status: 500 }

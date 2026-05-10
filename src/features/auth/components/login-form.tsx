@@ -9,12 +9,14 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { GoogleIcon } from "@/components/ui/google-icon"
-import { Link, useRouter } from "@/i18n/navigation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { queueToast, toast } from "@/components/ui/toast"
 import { loginSchema } from "@/features/auth/schemas/auth.schema"
-import { getRoleHomePath } from "@/lib/auth/pathing"
+import { Link, useRouter } from "@/i18n/navigation"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
+
+type PendingFlow = "idle" | "credentials" | "google" | "redirecting"
 
 export function LoginForm() {
   const t = useTranslations("auth.login")
@@ -24,8 +26,8 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, setIsPending] = useState(false)
-  const [isGooglePending, setIsGooglePending] = useState(false)
+  const [pendingFlow, setPendingFlow] = useState<PendingFlow>("idle")
+  const isBusy = pendingFlow !== "idle"
 
   async function handleCredentialsSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -39,29 +41,64 @@ export function LoginForm() {
     }
 
     try {
-      setIsPending(true)
-      const response = await signIn("credentials", { email, password, redirect: false })
+      setPendingFlow("credentials")
+      const response = await signIn("credentials", {
+        email: parsedPayload.data.email,
+        password: parsedPayload.data.password,
+        redirect: false,
+        callbackUrl: `/${locale}/auth-complete`,
+      })
 
-      if (response?.error) {
-        setError(t("errors.invalidCredentials"))
+      if (!response?.ok || response.error) {
+        const message = t("errors.invalidCredentials")
+        setError(message)
+        toast({
+          variant: "error",
+          title: t("toast.signInFailedTitle"),
+          description: message,
+        })
+        setPendingFlow("idle")
         return
       }
 
-      const sessionResponse = await fetch("/api/auth/session")
-      const session = await sessionResponse.json()
-      router.push(getRoleHomePath(session?.user?.role))
-      router.refresh()
+      queueToast({
+        variant: "success",
+        title: t("toast.signedInTitle"),
+        description: t("toast.signedInDescription"),
+      })
+      setPendingFlow("redirecting")
+      router.replace("/auth-complete")
     } catch (signInError) {
       console.error(signInError)
-      setError(t("errors.generic"))
-    } finally {
-      setIsPending(false)
+      const message = t("errors.generic")
+      setError(message)
+      toast({
+        variant: "error",
+        title: t("toast.signInFailedTitle"),
+        description: message,
+      })
+      setPendingFlow("idle")
     }
   }
 
   function handleGoogleSignIn() {
-    setIsGooglePending(true)
-    signIn("google", { callbackUrl: `/${locale}/auth-complete` })
+    if (isBusy) {
+      return
+    }
+
+    setError(null)
+    setPendingFlow("google")
+    void signIn("google", { callbackUrl: `/${locale}/auth-complete` }).catch((googleError) => {
+      console.error(googleError)
+      const message = t("errors.generic")
+      setError(message)
+      toast({
+        variant: "error",
+        title: t("toast.googleStartFailedTitle"),
+        description: message,
+      })
+      setPendingFlow("idle")
+    })
   }
 
   return (
@@ -72,10 +109,10 @@ export function LoginForm() {
           variant="outline"
           className="h-11 w-full justify-center gap-3 border-border/70 bg-background/80 font-medium shadow-sm hover:bg-background"
           onClick={handleGoogleSignIn}
-          disabled={isGooglePending || isPending}
+          disabled={isBusy}
         >
           <span className="flex size-6 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5">
-            {isGooglePending ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
+            {pendingFlow === "google" ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-4" />}
           </span>
           {t("google")}
         </Button>
@@ -144,12 +181,12 @@ export function LoginForm() {
           <Button
             type="submit"
             className="h-11 w-full gap-2 bg-(--contrazy-teal) font-medium text-white hover:bg-[#0eb8a0]"
-            disabled={isPending || isGooglePending}
+            disabled={isBusy}
           >
-            {isPending ? (
+            {pendingFlow === "credentials" || pendingFlow === "redirecting" ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                {t("submitting")}
+                {pendingFlow === "redirecting" ? t("redirecting") : t("submitting")}
               </>
             ) : (
               <>

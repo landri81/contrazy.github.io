@@ -87,7 +87,7 @@ export function KpiGrid({
   items: { label: string; value: string; detail?: string; tone?: Tone }[]
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
         <Card key={item.label} className="border-border bg-card py-4 shadow-sm">
           <CardContent className="space-y-2">

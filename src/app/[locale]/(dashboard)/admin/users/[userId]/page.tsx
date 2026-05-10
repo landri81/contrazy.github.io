@@ -22,15 +22,28 @@ export default async function AdminUserDetailPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>
-  searchParams: Promise<{ tab?: string; page?: string }>
+  searchParams: Promise<{
+    tab?: string
+    page?: string
+    q?: string
+    linkStatus?: string
+    transactionStatus?: string
+    kind?: string
+  }>
 }) {
   await requireAdminAccess()
   const { userId } = await params
-  const { tab, page } = await searchParams
+  const { tab, page, q, linkStatus, transactionStatus, kind } = await searchParams
   const activeTab = resolveActiveTab(tab)
   const data = await getAdminVendorProfile(userId, {
     activeTab,
     linksPage: page,
+    linksFilters: {
+      q,
+      linkStatus,
+      transactionStatus,
+      kind,
+    },
     includeSelectedLink: false,
   })
 

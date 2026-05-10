@@ -2348,6 +2348,20 @@ export type AdminVendorLinkListRecord = {
   lastActivityAt: string
 }
 
+export type AdminVendorLinksFilterInput = {
+  q?: string | null
+  linkStatus?: string | null
+  transactionStatus?: string | null
+  kind?: string | null
+}
+
+export type AdminVendorLinksFilters = {
+  q: string
+  linkStatus: TransactionLinkStatus | null
+  transactionStatus: TransactionStatus | null
+  kind: TransactionKind | null
+}
+
 export type AdminVendorLinkDocumentRecord = {
   id: string
   label: string
@@ -2445,6 +2459,9 @@ export type AdminVendorLinkDetailRecord = {
 
 export type AdminVendorLinksPageRecord = PaginationMeta & {
   records: AdminVendorLinkListRecord[]
+  filters: AdminVendorLinksFilters
+  hasNextPage: boolean
+  hasPreviousPage: boolean
 }
 
 export type AdminVendorSubscriptionRecord = {
@@ -2477,6 +2494,7 @@ export async function getAdminVendorProfile(
     activeTab?: "overview" | "transactions" | "subscription" | "access"
     linksPage?: string | number | null
     linksPageSize?: string | number | null
+    linksFilters?: AdminVendorLinksFilterInput
     selectedLinkId?: string | null
     includeLinksList?: boolean
     includeSelectedLink?: boolean
@@ -2569,86 +2587,11 @@ export async function getAdminVendorProfile(
   }
 
   const links: AdminVendorLinksPageRecord | null = includeLinksList
-    ? await (async () => {
-        const pagination = resolvePagination(
-          { page: options.linksPage, pageSize: options.linksPageSize },
-          { defaultPageSize: 12, maxPageSize: 50 }
-        )
-
-        const linkWhere: Prisma.TransactionLinkWhereInput = {
-          transaction: {
-            vendorId: raw.vendorProfile!.id,
-          },
-        }
-
-        const [linkRows, totalCount] = await Promise.all([
-          safeQuery(
-            () =>
-              prisma.transactionLink.findMany({
-                where: linkWhere,
-                orderBy: { createdAt: "desc" },
-                skip: pagination.skip,
-                take: pagination.pageSize,
-                include: {
-                  transaction: {
-                    select: {
-                      id: true,
-                      reference: true,
-                      title: true,
-                      status: true,
-                      amount: true,
-                      depositAmount: true,
-                      currency: true,
-                      locale: true,
-                      updatedAt: true,
-                      clientProfile: {
-                        select: {
-                          fullName: true,
-                          email: true,
-                        },
-                      },
-                      _count: {
-                        select: {
-                          documents: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              }),
-            []
-          ),
-          safeQuery(() => prisma.transactionLink.count({ where: linkWhere }), 0),
-        ])
-
-        return {
-          records: linkRows.map((link) => {
-            const lastActivityAt =
-              link.completedAt ?? link.cancelledAt ?? link.openedAt ?? link.transaction.updatedAt
-
-            return {
-              id: link.id,
-              transactionId: link.transactionId,
-              reference: link.transaction.reference,
-              title: link.transaction.title,
-              linkStatus: link.status,
-              transactionStatus: link.transaction.status,
-              shortCode: link.shortCode ?? null,
-              locale: link.transaction.locale,
-              clientName: link.transaction.clientProfile?.fullName ?? null,
-              clientEmail: link.transaction.clientProfile?.email ?? null,
-              amount: link.transaction.amount ?? null,
-              depositAmount: link.transaction.depositAmount ?? null,
-              currency: link.transaction.currency,
-              documentCount: link.transaction._count.documents,
-              createdAt: formatDateTime(link.createdAt),
-              updatedAt: formatDateTime(link.transaction.updatedAt),
-              lastActivityAt: formatDateTime(lastActivityAt),
-            }
-          }),
-          ...buildPaginationMeta(totalCount, pagination.page, pagination.pageSize),
-        }
-      })()
+    ? await getAdminVendorLinksPage(raw.vendorProfile.id, {
+        page: options.linksPage,
+        pageSize: options.linksPageSize,
+        filters: options.linksFilters,
+      })
     : null
 
   const selectedLinkId = includeSelectedLink ? (options.selectedLinkId ?? null) : null
@@ -2954,6 +2897,151 @@ export async function getAdminVendorProfile(
   }
 
   return { user, subscription, links, selectedLink }
+}
+
+export async function getAdminVendorLinksPage(
+  vendorId: string,
+  options: {
+    page?: string | number | null
+    pageSize?: string | number | null
+    filters?: AdminVendorLinksFilterInput
+  } = {}
+): Promise<AdminVendorLinksPageRecord> {
+  const pagination = resolvePagination(
+    { page: options.page, pageSize: options.pageSize },
+    { defaultPageSize: 12, maxPageSize: 100 }
+  )
+
+  const normalizedSearch = normalizeSearchTerm(options.filters?.q)
+  const search = normalizedSearch ? normalizedSearch.slice(0, 120) : undefined
+  const linkStatus = normalizeFilterOptionValue(
+    options.filters?.linkStatus,
+    vendorLinkStateOptions
+  ) as TransactionLinkStatus | undefined
+  const transactionStatus = normalizeFilterOptionValue(
+    options.filters?.transactionStatus,
+    vendorTransactionStatusOptions
+  ) as TransactionStatus | undefined
+  const kind = normalizeFilterOptionValue(options.filters?.kind, vendorTransactionKindOptions) as
+    | TransactionKind
+    | undefined
+
+  const where: Prisma.TransactionWhereInput = {
+    vendorId,
+    link: linkStatus ? { is: { status: linkStatus } } : { isNot: null },
+    ...(transactionStatus ? { status: transactionStatus } : {}),
+    ...(kind ? { kind } : {}),
+    ...(search
+      ? {
+          OR: [
+            { reference: containsInsensitive(search) },
+            { title: containsInsensitive(search) },
+            { link: { is: { shortCode: containsInsensitive(search) } } },
+            {
+              clientProfile: {
+                is: {
+                  OR: [
+                    { fullName: containsInsensitive(search) },
+                    { email: containsInsensitive(search) },
+                    { companyName: containsInsensitive(search) },
+                  ],
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  }
+
+  const totalCount = await safeQuery(() => prisma.transaction.count({ where }), 0)
+  const totalPages = Math.max(1, Math.ceil(totalCount / pagination.pageSize))
+  const page = Math.min(pagination.page, totalPages)
+  const skip = (page - 1) * pagination.pageSize
+
+  const transactions =
+    totalCount === 0
+      ? []
+      : await safeQuery(
+          () =>
+            prisma.transaction.findMany({
+              where,
+              include: {
+                clientProfile: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+                link: {
+                  select: {
+                    id: true,
+                    shortCode: true,
+                    status: true,
+                    createdAt: true,
+                    openedAt: true,
+                    completedAt: true,
+                    cancelledAt: true,
+                  },
+                },
+                _count: {
+                  select: {
+                    documents: true,
+                  },
+                },
+              },
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              skip,
+              take: pagination.pageSize,
+            }),
+          []
+        )
+
+  const records = transactions.flatMap((transaction) => {
+    if (!transaction.link) {
+      return []
+    }
+
+    const lastActivityAt =
+      transaction.link.completedAt ??
+      transaction.link.cancelledAt ??
+      transaction.link.openedAt ??
+      transaction.updatedAt
+
+    return [
+      {
+        id: transaction.link.id,
+        transactionId: transaction.id,
+        reference: transaction.reference,
+        title: transaction.title,
+        linkStatus: transaction.link.status,
+        transactionStatus: transaction.status,
+        shortCode: transaction.link.shortCode ?? null,
+        locale: transaction.locale,
+        clientName: transaction.clientProfile?.fullName ?? null,
+        clientEmail: transaction.clientProfile?.email ?? null,
+        amount: transaction.amount ?? null,
+        depositAmount: transaction.depositAmount ?? null,
+        currency: transaction.currency,
+        documentCount: transaction._count.documents,
+        createdAt: formatDateTime(transaction.link.createdAt),
+        updatedAt: formatDateTime(transaction.updatedAt),
+        lastActivityAt: formatDateTime(lastActivityAt),
+      },
+    ]
+  })
+
+  return {
+    records,
+    filters: {
+      q: search ?? "",
+      linkStatus: linkStatus ?? null,
+      transactionStatus: transactionStatus ?? null,
+      kind: kind ?? null,
+    },
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+    ...buildPaginationMeta(totalCount, page, pagination.pageSize),
+  }
 }
 
 export async function getAdminVendors(

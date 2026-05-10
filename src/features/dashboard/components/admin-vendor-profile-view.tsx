@@ -16,11 +16,19 @@ import type {
   AdminVendorAuditRecord,
   AdminVendorEventRecord,
   AdminVendorLinkDetailRecord,
+  AdminVendorLinksPageRecord,
   AdminVendorProfileRecord,
 } from "@/features/dashboard/server/dashboard-data"
 import { getStatusTone } from "@/features/dashboard/server/dashboard-data"
 
 type VendorManagerTab = "overview" | "transactions" | "subscription" | "access"
+type AdminVendorTransactionsSearchParams = {
+  page?: string
+  q?: string
+  linkStatus?: string
+  transactionStatus?: string
+  kind?: string
+}
 
 function userInitials(name: string) {
   return name
@@ -66,6 +74,20 @@ function buildUserDetailHref(userId: string, query: Record<string, string | unde
 
 function buildPublicLinkHref(link: AdminVendorLinkDetailRecord) {
   return `/${link.locale}/t/${link.token}`
+}
+
+function buildTransactionsQuery(links: AdminVendorLinksPageRecord | null): AdminVendorTransactionsSearchParams {
+  if (!links) {
+    return {}
+  }
+
+  return {
+    page: links.page > 1 ? String(links.page) : undefined,
+    q: links.filters.q || undefined,
+    linkStatus: links.filters.linkStatus ?? undefined,
+    transactionStatus: links.filters.transactionStatus ?? undefined,
+    kind: links.filters.kind ?? undefined,
+  }
 }
 
 function mergeLifecycleTrail(events: AdminVendorEventRecord[], audits: AdminVendorAuditRecord[]) {
@@ -599,6 +621,7 @@ export async function AdminVendorProfileView({
   const user = data.user
   const vendorProfile = data.user.vendorProfile
   const links = data.links
+  const transactionsQuery = buildTransactionsQuery(links)
 
   const tabs: Array<{ key: VendorManagerTab; label: string }> = [
     { key: "overview", label: t("tabs.overview") },
@@ -686,7 +709,10 @@ export async function AdminVendorProfileView({
         activeTab={activeTab}
         tabs={tabs.map((tab) => ({
           ...tab,
-          href: buildUserDetailHref(user.id, { tab: tab.key }),
+          href: buildUserDetailHref(user.id, {
+            tab: tab.key,
+            ...transactionsQuery,
+          }),
         }))}
       >
         {activeTab === "overview" ? (
@@ -748,7 +774,7 @@ export async function AdminVendorProfileView({
         ) : null}
 
         {activeTab === "transactions" ? (
-          links && links.records.length > 0 ? (
+          links ? (
             <PagePanel title={t("transactions.listTitle")} description={t("transactions.listDescription")}>
               <AdminVendorLinksTable userId={user.id} links={links} />
             </PagePanel>
@@ -847,11 +873,11 @@ export async function AdminVendorProfileView({
 
 export async function AdminVendorLinkDetailView({
   data,
-  page,
+  searchParams,
   canDeleteDocuments = false,
 }: {
   data: AdminVendorProfileRecord
-  page?: string
+  searchParams?: AdminVendorTransactionsSearchParams
   canDeleteDocuments?: boolean
 }) {
   const t = await getTranslations("dashboard.admin.vendorManager")
@@ -862,9 +888,38 @@ export async function AdminVendorLinkDetailView({
     return null
   }
 
+  const linkStatusLabels = {
+    ACTIVE: t("transactions.filterOptions.linkStatus.ACTIVE"),
+    PROCESSING: t("transactions.filterOptions.linkStatus.PROCESSING"),
+    COMPLETED: t("transactions.filterOptions.linkStatus.COMPLETED"),
+    CANCELLED: t("transactions.filterOptions.linkStatus.CANCELLED"),
+  }
+  const transactionStatusLabels = {
+    DRAFT: t("transactions.filterOptions.transactionStatus.DRAFT"),
+    LINK_SENT: t("transactions.filterOptions.transactionStatus.LINK_SENT"),
+    CUSTOMER_STARTED: t("transactions.filterOptions.transactionStatus.CUSTOMER_STARTED"),
+    DOCS_SUBMITTED: t("transactions.filterOptions.transactionStatus.DOCS_SUBMITTED"),
+    KYC_VERIFIED: t("transactions.filterOptions.transactionStatus.KYC_VERIFIED"),
+    CONTRACT_GENERATED: t("transactions.filterOptions.transactionStatus.CONTRACT_GENERATED"),
+    SIGNED: t("transactions.filterOptions.transactionStatus.SIGNED"),
+    PAYMENT_AUTHORIZED: t("transactions.filterOptions.transactionStatus.PAYMENT_AUTHORIZED"),
+    COMPLETED: t("transactions.filterOptions.transactionStatus.COMPLETED"),
+    CANCELLED: t("transactions.filterOptions.transactionStatus.CANCELLED"),
+    DISPUTED: t("transactions.filterOptions.transactionStatus.DISPUTED"),
+  }
+  const kindLabels = {
+    PAYMENT: t("transactions.filterOptions.kind.PAYMENT"),
+    DEPOSIT: t("transactions.filterOptions.kind.DEPOSIT"),
+    HYBRID: t("transactions.filterOptions.kind.HYBRID"),
+  }
+
   const backHref = buildUserDetailHref(user.id, {
     tab: "transactions",
-    page,
+    page: searchParams?.page,
+    q: searchParams?.q,
+    linkStatus: searchParams?.linkStatus,
+    transactionStatus: searchParams?.transactionStatus,
+    kind: searchParams?.kind,
   })
 
   return (
@@ -884,9 +939,15 @@ export async function AdminVendorLinkDetailView({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <StatusBadge tone={getStatusTone(link.status)}>{link.status}</StatusBadge>
-          <StatusBadge tone={getStatusTone(link.transactionStatus)}>{link.transactionStatus}</StatusBadge>
-          <StatusBadge tone={getStatusTone(link.kind)}>{link.kind}</StatusBadge>
+          <StatusBadge tone={getStatusTone(link.status)}>
+            {linkStatusLabels[link.status as keyof typeof linkStatusLabels] ?? link.status}
+          </StatusBadge>
+          <StatusBadge tone={getStatusTone(link.transactionStatus)}>
+            {transactionStatusLabels[link.transactionStatus as keyof typeof transactionStatusLabels] ?? link.transactionStatus}
+          </StatusBadge>
+          <StatusBadge tone={getStatusTone(link.kind)}>
+            {kindLabels[link.kind as keyof typeof kindLabels] ?? link.kind}
+          </StatusBadge>
         </div>
       </div>
 

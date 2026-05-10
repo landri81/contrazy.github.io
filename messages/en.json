@@ -71,6 +71,7 @@
       "forgotPassword": "Forgot your password?",
       "submit": "Sign in",
       "submitting": "Signing in…",
+      "redirecting": "Redirecting…",
       "noAccount": "No account yet?",
       "register": "Create a free account",
       "orContinueWith": "Or continue with",
@@ -78,6 +79,12 @@
       "errors": {
         "invalidCredentials": "Invalid email or password.",
         "generic": "An error occurred. Please try again."
+      },
+      "toast": {
+        "signedInTitle": "Signed in",
+        "signedInDescription": "Redirecting to your workspace.",
+        "signInFailedTitle": "Unable to sign in",
+        "googleStartFailedTitle": "Unable to start Google sign-in"
       },
       "hidePassword": "Hide password",
       "showPassword": "Show password"
@@ -101,6 +108,7 @@
       "confirmPasswordPlaceholder": "Retype your password",
       "submit": "Create my account",
       "submitting": "Creating account…",
+      "redirecting": "Redirecting…",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
       "terms": "By creating an account, you accept our",
@@ -109,10 +117,25 @@
       "privacyLink": "Privacy Policy",
       "errors": {
         "generic": "Unable to create account right now",
-        "invalidFormData": "Invalid form data"
+        "invalidFormData": "Invalid form data",
+        "emailExists": "An account already exists for this email."
+      },
+      "toast": {
+        "accountCreatedTitle": "Account created",
+        "accountCreatedDescription": "Redirecting to your workspace.",
+        "accountCreatedManualSignInDescription": "Your account is ready. Sign in with your new credentials.",
+        "createFailedTitle": "Unable to create account",
+        "googleStartFailedTitle": "Unable to start Google sign-up"
       },
       "hidePassword": "Hide password",
       "showPassword": "Show password"
+    },
+    "complete": {
+      "title": "Finishing sign-in",
+      "subtitle": "We are preparing your workspace and routing you to the right destination.",
+      "statusTitle": "Secure session in progress",
+      "statusDescription": "This usually takes a moment while we confirm your account access and load your next screen.",
+      "checkingSession": "Checking your session and workspace access"
     },
     "forgotPassword": {
       "title": "Reset your password",
@@ -330,7 +353,7 @@
           "qrCodes": "QR Codes / month",
           "contractTemplates": "Contract templates",
           "kyc": "KYC verifications / month",
-          "unlimited": "Unlimited — {used} used",
+          "unlimited": "Unlimited",
           "notIncluded": "Not included",
           "trial": "Trial"
         },
@@ -1626,7 +1649,44 @@
         },
         "transactions": {
           "listTitle": "Links",
-          "listDescription": "Paginated payment-link records.",
+          "listDescription": "Paginated payment-link records with server-side search and filters.",
+          "searchPlaceholder": "Search by reference, title, client, company, email, or short code",
+          "filters": {
+            "linkStatus": "Link status",
+            "transactionStatus": "Transaction status",
+            "kind": "Type",
+            "locale": "Locale"
+          },
+          "filterOptions": {
+            "linkStatus": {
+              "ACTIVE": "Active",
+              "PROCESSING": "Processing",
+              "COMPLETED": "Completed",
+              "CANCELLED": "Cancelled"
+            },
+            "transactionStatus": {
+              "DRAFT": "Draft",
+              "LINK_SENT": "Link sent",
+              "CUSTOMER_STARTED": "Customer started",
+              "DOCS_SUBMITTED": "Documents submitted",
+              "KYC_VERIFIED": "KYC verified",
+              "CONTRACT_GENERATED": "Contract generated",
+              "SIGNED": "Signed",
+              "PAYMENT_AUTHORIZED": "Payment authorized",
+              "COMPLETED": "Completed",
+              "CANCELLED": "Cancelled",
+              "DISPUTED": "Disputed"
+            },
+            "kind": {
+              "PAYMENT": "Payment",
+              "DEPOSIT": "Deposit",
+              "HYBRID": "Hybrid"
+            },
+            "locale": {
+              "en": "English",
+              "fr": "French"
+            }
+          },
           "columns": {
             "reference": "Reference",
             "client": "Client",
@@ -1638,8 +1698,13 @@
             "manage": "Action"
           },
           "empty": "No transactions have been launched for this vendor yet.",
+          "emptyFiltered": "No link matches the current search or filters.",
           "manage": "View",
           "loading": "Opening...",
+          "errors": {
+            "loadTitle": "Unable to update results",
+            "requestFailed": "Please try again."
+          },
           "backToLinks": "Back to links",
           "lifecycleTitle": "Lifecycle",
           "lifecycleDescription": "Select a link to inspect its lifecycle.",

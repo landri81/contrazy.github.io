@@ -9,11 +9,17 @@ export default async function AdminUserLinkDetailPage({
   searchParams,
 }: {
   params: Promise<{ userId: string; linkId: string }>
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{
+    page?: string
+    q?: string
+    linkStatus?: string
+    transactionStatus?: string
+    kind?: string
+  }>
 }) {
   const { session } = await requireAdminAccess()
   const { userId, linkId } = await params
-  const { page } = await searchParams
+  const { page, q, linkStatus, transactionStatus, kind } = await searchParams
 
   const data = await getAdminVendorProfile(userId, {
     activeTab: "transactions",
@@ -29,7 +35,13 @@ export default async function AdminUserLinkDetailPage({
   return (
     <AdminVendorLinkDetailView
       data={data}
-      page={page}
+      searchParams={{
+        page,
+        q,
+        linkStatus,
+        transactionStatus,
+        kind,
+      }}
       canDeleteDocuments={session.user.role === "SUPER_ADMIN"}
     />
   )

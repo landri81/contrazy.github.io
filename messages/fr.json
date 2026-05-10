@@ -71,6 +71,7 @@
       "forgotPassword": "Mot de passe oublié ?",
       "submit": "Se connecter",
       "submitting": "Connexion en cours…",
+      "redirecting": "Redirection…",
       "noAccount": "Pas encore de compte ?",
       "register": "Créer un compte gratuit",
       "orContinueWith": "Ou continuer avec",
@@ -78,6 +79,12 @@
       "errors": {
         "invalidCredentials": "Email ou mot de passe invalide.",
         "generic": "Une erreur est survenue. Veuillez réessayer."
+      },
+      "toast": {
+        "signedInTitle": "Connexion réussie",
+        "signedInDescription": "Redirection vers votre espace.",
+        "signInFailedTitle": "Connexion impossible",
+        "googleStartFailedTitle": "Impossible de démarrer la connexion Google"
       },
       "hidePassword": "Masquer le mot de passe",
       "showPassword": "Afficher le mot de passe"
@@ -101,6 +108,7 @@
       "confirmPasswordPlaceholder": "Retapez votre mot de passe",
       "submit": "Créer mon compte",
       "submitting": "Création du compte…",
+      "redirecting": "Redirection…",
       "haveAccount": "Déjà un compte ?",
       "signIn": "Se connecter",
       "terms": "En créant un compte, vous acceptez nos",
@@ -109,10 +117,25 @@
       "privacyLink": "Politique de confidentialité",
       "errors": {
         "generic": "Impossible de créer le compte pour le moment",
-        "invalidFormData": "Données de formulaire invalides"
+        "invalidFormData": "Données de formulaire invalides",
+        "emailExists": "Un compte existe déjà pour cet email."
+      },
+      "toast": {
+        "accountCreatedTitle": "Compte créé",
+        "accountCreatedDescription": "Redirection vers votre espace.",
+        "accountCreatedManualSignInDescription": "Votre compte est prêt. Connectez-vous avec vos nouveaux identifiants.",
+        "createFailedTitle": "Création du compte impossible",
+        "googleStartFailedTitle": "Impossible de démarrer l'inscription Google"
       },
       "hidePassword": "Masquer le mot de passe",
       "showPassword": "Afficher le mot de passe"
+    },
+    "complete": {
+      "title": "Connexion en finalisation",
+      "subtitle": "Nous préparons votre espace et vous dirigeons vers la bonne destination.",
+      "statusTitle": "Session sécurisée en cours",
+      "statusDescription": "Cela prend généralement un instant pendant que nous confirmons votre accès et chargeons votre prochain écran.",
+      "checkingSession": "Vérification de votre session et de l'accès à votre espace"
     },
     "forgotPassword": {
       "title": "Réinitialiser votre mot de passe",
@@ -330,7 +353,7 @@
           "qrCodes": "QR Codes / mois",
           "contractTemplates": "Modèles de contrat",
           "kyc": "Vérifications KYC / mois",
-          "unlimited": "Illimité — {used} utilisé(s)",
+          "unlimited": "Illimité",
           "notIncluded": "Non inclus",
           "trial": "Essai"
         },
@@ -1626,7 +1649,44 @@
         },
         "transactions": {
           "listTitle": "Liens",
-          "listDescription": "Enregistrements de liens de paiement paginés.",
+          "listDescription": "Enregistrements de liens de paiement paginés avec recherche et filtres côté serveur.",
+          "searchPlaceholder": "Rechercher par référence, titre, client, société, email ou code court",
+          "filters": {
+            "linkStatus": "Statut du lien",
+            "transactionStatus": "Statut de la transaction",
+            "kind": "Type",
+            "locale": "Langue"
+          },
+          "filterOptions": {
+            "linkStatus": {
+              "ACTIVE": "Actif",
+              "PROCESSING": "En traitement",
+              "COMPLETED": "Terminé",
+              "CANCELLED": "Annulé"
+            },
+            "transactionStatus": {
+              "DRAFT": "Brouillon",
+              "LINK_SENT": "Lien envoyé",
+              "CUSTOMER_STARTED": "Client démarré",
+              "DOCS_SUBMITTED": "Documents envoyés",
+              "KYC_VERIFIED": "KYC vérifié",
+              "CONTRACT_GENERATED": "Contrat généré",
+              "SIGNED": "Signé",
+              "PAYMENT_AUTHORIZED": "Paiement autorisé",
+              "COMPLETED": "Terminé",
+              "CANCELLED": "Annulé",
+              "DISPUTED": "Contesté"
+            },
+            "kind": {
+              "PAYMENT": "Paiement",
+              "DEPOSIT": "Caution",
+              "HYBRID": "Hybride"
+            },
+            "locale": {
+              "en": "Anglais",
+              "fr": "Français"
+            }
+          },
           "columns": {
             "reference": "Référence",
             "client": "Client",
@@ -1638,8 +1698,13 @@
             "manage": "Action"
           },
           "empty": "Aucune transaction n'a encore été lancée pour ce vendeur.",
+          "emptyFiltered": "Aucun lien ne correspond à la recherche ou aux filtres actifs.",
           "manage": "Voir",
           "loading": "Ouverture...",
+          "errors": {
+            "loadTitle": "Impossible de mettre à jour les résultats",
+            "requestFailed": "Veuillez réessayer."
+          },
           "backToLinks": "Retour aux liens",
           "lifecycleTitle": "Cycle de vie",
           "lifecycleDescription": "Sélectionnez un lien pour afficher son cycle de vie.",

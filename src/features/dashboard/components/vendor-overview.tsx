@@ -101,7 +101,7 @@ function UsageBar({
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-[12px]">
           <span className="font-medium text-foreground">{label}</span>
-          <span className="font-semibold text-[var(--contrazy-teal)]">{unlimitedLabel.replace("{used}", String(used))}</span>
+          <span className="font-semibold text-[var(--contrazy-teal)]">{unlimitedLabel}</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-[var(--contrazy-teal)]/20">
           <div className="h-1.5 w-full rounded-full bg-[var(--contrazy-teal)]/40" />

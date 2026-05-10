@@ -7,6 +7,7 @@ import { createPortal } from "react-dom"
 import { useTranslations } from "next-intl"
 
 export type ToastVariant = "success" | "error" | "warning" | "info"
+export type ToastInput = Omit<ToastItem, "id">
 
 interface ToastItem {
   id: string
@@ -19,14 +20,27 @@ interface ToastItem {
 // Module-level event bus — no React context needed
 const listeners = new Set<(t: ToastItem) => void>()
 const subscribeToHydration = () => () => {}
+const QUEUED_TOAST_KEY = "contrazy:queued-toast"
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
 }
 
-export function toast(opts: Omit<ToastItem, "id">) {
+export function toast(opts: ToastInput) {
   const item: ToastItem = { ...opts, id: uid() }
   listeners.forEach((fn) => fn(item))
+}
+
+export function queueToast(opts: ToastInput) {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(QUEUED_TOAST_KEY, JSON.stringify(opts))
+  } catch {
+    // If storage is unavailable, skip the queued toast rather than blocking navigation.
+  }
 }
 
 const variantConfig: Record<
@@ -65,13 +79,31 @@ export function Toaster() {
   const mounted = useSyncExternalStore(subscribeToHydration, () => true, () => false)
 
   useEffect(() => {
-    const handler = (item: ToastItem) => {
+    const showToast = (item: ToastItem) => {
       setToasts((prev) => [...prev, item])
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== item.id))
       }, item.duration ?? 4500)
     }
+
+    const handler = (item: ToastItem) => {
+      showToast(item)
+    }
+
     listeners.add(handler)
+
+    try {
+      const raw = window.sessionStorage.getItem(QUEUED_TOAST_KEY)
+
+      if (raw) {
+        window.sessionStorage.removeItem(QUEUED_TOAST_KEY)
+        const queuedToast = JSON.parse(raw) as ToastInput
+        showToast({ ...queuedToast, id: uid() })
+      }
+    } catch {
+      window.sessionStorage.removeItem(QUEUED_TOAST_KEY)
+    }
+
     return () => {
       listeners.delete(handler)
     }
