@@ -24,6 +24,7 @@ type TableQueryShellProps = {
   searchValue?: string
   searchPlaceholder?: string
   filters?: TableQueryFilter[]
+  actions?: React.ReactNode
   currentPage: number
   totalPages: number
   totalCount: number
@@ -84,6 +85,7 @@ export function TableQueryShell({
   searchValue = "",
   searchPlaceholder = "Search records",
   filters = [],
+  actions,
   currentPage,
   totalPages,
   totalCount,
@@ -228,6 +230,11 @@ export function TableQueryShell({
             <RotateCcw className="size-3.5" />
             {t("reset")}
           </button>
+          {actions ? (
+            <div className={cn("flex items-center gap-2", isPending && "pointer-events-none opacity-60")}>
+              {actions}
+            </div>
+          ) : null}
         </div>
       </form>
 

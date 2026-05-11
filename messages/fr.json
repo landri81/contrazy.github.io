@@ -216,6 +216,31 @@
       "openedOn": "Ouvert le",
       "responseDeadline": "Date limite de réponse",
       "attachments": "Pièces jointes",
+      "exportDialog": {
+        "trigger": "Exporter",
+        "availableRangeLabel": "Plage de données disponible",
+        "availableRangeValue": "{start} à {end}",
+        "startDate": "Date de début",
+        "endDate": "Date de fin",
+        "cancel": "Annuler",
+        "submit": "Exporter le CSV",
+        "exporting": "Préparation du CSV",
+        "noDataAvailable": "Aucun enregistrement exportable n'est disponible pour les filtres actuels.",
+        "errors": {
+          "noData": "Aucun enregistrement exportable n'est disponible pour les filtres actuels.",
+          "startRequired": "Sélectionnez une date de début avant l'export.",
+          "endRequired": "Sélectionnez une date de fin avant l'export.",
+          "invalidRange": "La date de début doit être antérieure ou égale à la date de fin.",
+          "beforeAvailable": "La date de début est antérieure à la plage de données disponible.",
+          "afterAvailable": "La date de fin est postérieure à la plage de données disponible.",
+          "unexpected": "Une erreur inattendue est survenue pendant la préparation de l'export."
+        },
+        "toast": {
+          "successTitle": "Export prêt",
+          "successDescription": "Le téléchargement de votre CSV a commencé.",
+          "errorTitle": "Échec de l'export"
+        }
+      },
       "fileCount": "{count, plural, one {# fichier} other {# fichiers}}",
       "adminResolutionNote": "Note de résolution admin",
       "resolvedOn": "Résolu le {date}",
@@ -316,6 +341,94 @@
           "label": "Contrats signés",
           "detail": "Signatures"
         },
+        "hero": {
+          "eyebrow": "Cockpit d'exploitation",
+          "badges": {
+            "live": "Prêt à lancer",
+            "setup": "Configuration en cours",
+            "review": "Révision en cours",
+            "actionRequired": "Action requise",
+            "planRequired": "Offre requise"
+          },
+          "actions": {
+            "viewBilling": "Voir la facturation",
+            "completeProfile": "Compléter le profil",
+            "openProfile": "Ouvrir le profil entreprise",
+            "connectStripe": "Connecter Stripe",
+            "addContract": "Ajouter un modèle de contrat",
+            "createLink": "Créer un lien sécurisé",
+            "openTransactions": "Ouvrir les transactions"
+          },
+          "states": {
+            "planRequired": {
+              "title": "{businessName} a besoin d'une offre active",
+              "description": "Activez la facturation avant de lancer de nouveaux flux clients ou la collecte des paiements."
+            },
+            "profile": {
+              "title": "Terminez le profil entreprise de {businessName}",
+              "description": "Renseignez d'abord les informations de l'entreprise afin que chaque nouveau lien et contrat utilise les bonnes données."
+            },
+            "review": {
+              "title": "{businessName} est encore en cours de révision",
+              "description": "Préparez l'espace pendant la révision, puis passez directement aux transactions en production."
+            },
+            "stripe": {
+              "title": "Connectez Stripe avant de prendre des paiements en direct",
+              "description": "Vos liens sécurisés, cautions et paiements de service ont besoin d'un compte de versement connecté avant le lancement."
+            },
+            "contract": {
+              "title": "Ajoutez le premier modèle d'accord pour {businessName}",
+              "description": "Enregistrez un contrat réutilisable avant de lancer de nouveaux flux clients depuis le tableau de bord vendeur."
+            },
+            "ready": {
+              "title": "{businessName} est prêt pour les flux clients en direct",
+              "description": "Lancez des liens sécurisés, suivez chaque étape du flux, et gardez la signature et la finance dans un seul tableau de bord."
+            }
+          },
+          "metrics": {
+            "liveWorkflows": {
+              "label": "Flux actifs",
+              "detail": "Parcours clients actuellement en mouvement"
+            },
+            "completed": {
+              "label": "Terminés",
+              "detail": "Flux clients finalisés"
+            },
+            "signedContracts": {
+              "label": "Contrats signés",
+              "detail": "Accords acceptés dans l'espace"
+            },
+            "activeDeposits": {
+              "label": "Cautions actives",
+              "detail": "Provisions autorisées encore surveillées"
+            }
+          }
+        },
+        "pipeline": {
+          "title": "Pipeline des flux",
+          "description": "Étapes actuelles des flux sur {count} opérations en direct.",
+          "open": "Ouvrir les transactions",
+          "stages": {
+            "linkSent": "Lien envoyé",
+            "customerActive": "Client actif",
+            "kycReady": "KYC vérifié",
+            "contractReady": "Prêt à signer",
+            "signed": "Signé / finance",
+            "completed": "Terminé"
+          },
+          "details": {
+            "linkSent": "En attente de l'ouverture du flux par le client",
+            "customerActive": "Les informations client ou les exigences sont en cours",
+            "kycReady": "La vérification d'identité est terminée",
+            "contractReady": "L'accord est prêt pour l'étape de signature",
+            "signed": "Signé et en cours de paiement ou de gestion de caution",
+            "completed": "Flux clients entièrement clôturés"
+          },
+          "flags": {
+            "disputed": "{count} litige(s)",
+            "cancelled": "{count} annulé(s)"
+          }
+        },
         "planUsage": {
           "title": "Offre & utilisation",
           "description": "Votre utilisation de l'abonnement pour cette période de facturation.",
@@ -330,10 +443,23 @@
         },
         "businessReadiness": {
           "title": "Prêt pour le lancement",
-          "description": "Checklist avant d'accepter votre premier client."
+          "description": "Vérifications clés avant d'envoyer des liens clients en production.",
+          "items": {
+            "profile": "Profil entreprise",
+            "review": "Révision du compte",
+            "stripe": "Connexion Stripe",
+            "contracts": "Modèles de contrat",
+            "requirements": "Modèle d'exigences"
+          },
+          "states": {
+            "templatesReady": "{count} prêt(s)",
+            "templatesMissing": "Manquant",
+            "requirementsReady": "{count} prêt(s)",
+            "requirementsOptional": "Optionnel"
+          }
         },
         "readyToGoLive": "Prêt pour le lancement",
-        "stepsComplete": "{n}/3 étapes complètes",
+        "stepsComplete": "{n}/{total} étapes complètes",
         "profileCompletion": "Profil complété",
         "reviewStatus": "Statut de révision",
         "payoutSetup": "Configuration des paiements",
@@ -341,6 +467,47 @@
         "completeProfile": "Compléter le profil entreprise",
         "setUpPayouts": "Configurer les paiements",
         "openActionQueue": "Ouvrir la file d'actions",
+        "activity": {
+          "title": "Activité en direct",
+          "description": "Événements récents clients, contrats, KYC et paiements dans votre espace.",
+          "openEvents": "Événements plateforme",
+          "emptyTitle": "Aucune activité récente",
+          "emptyDescription": "Les événements de lien sécurisé, signature, KYC et paiement apparaîtront ici dès que les flux clients avanceront.",
+          "openTransaction": "Ouvrir la transaction",
+          "untitledWorkflow": "Flux sans titre",
+          "reference": "Réf. {reference}",
+          "groups": {
+            "link": "Lien",
+            "client": "Client",
+            "kyc": "KYC",
+            "contract": "Contrat",
+            "payment": "Paiement",
+            "deposit": "Caution",
+            "issue": "Incident",
+            "completed": "Terminé"
+          },
+          "labels": {
+            "LINK_CREATED": "Lien sécurisé créé",
+            "LINK_OPENED": "Lien sécurisé ouvert par le client",
+            "PROFILE_SUBMITTED": "Profil client envoyé",
+            "DOCUMENTS_SUBMITTED": "Exigences envoyées",
+            "KYC_STARTED": "Vérification d'identité démarrée",
+            "KYC_VERIFIED": "Vérification d'identité approuvée",
+            "KYC_FAILED": "Vérification d'identité échouée",
+            "CONTRACT_REVIEWED": "Contrat consulté",
+            "SIGNATURE_COMPLETED": "Contrat signé",
+            "SERVICE_PAYMENT_REQUESTED": "Paiement du service demandé",
+            "SERVICE_PAYMENT_SUCCEEDED": "Paiement du service confirmé",
+            "DEPOSIT_AUTHORIZED": "Caution autorisée",
+            "DEPOSIT_CAPTURED": "Caution capturée",
+            "DEPOSIT_RELEASED": "Caution libérée",
+            "DISPUTE_OPENED": "Litige ouvert",
+            "TRANSACTION_CANCELLED": "Transaction annulée",
+            "LINK_CANCELLED": "Lien sécurisé annulé",
+            "COMPLETED": "Transaction terminée",
+            "TRANSACTION_CREATED": "Transaction créée"
+          }
+        },
         "recentTransactions": {
           "title": "Transactions récentes",
           "description": "Derniers flux clients pour {businessName}.",
@@ -354,7 +521,11 @@
           "contractTemplates": "Modèles de contrat",
           "kyc": "Vérifications KYC / mois",
           "unlimited": "Illimité",
+          "unlimitedCaption": "Aucune limite stricte sur cette offre pour la période en cours.",
           "notIncluded": "Non inclus",
+          "notIncludedCaption": "Cette capacité n'est pas disponible avec l'offre actuelle.",
+          "limitReached": "Limite atteinte pour cette période de facturation.",
+          "remaining": "{count} restant(s) sur cette période",
           "trial": "Essai"
         },
         "table": {
@@ -384,6 +555,10 @@
         "title": "Transactions",
         "description": "Suivez chaque flux client de la configuration au paiement et à la gestion des cautions.",
         "searchPlaceholder": "Rechercher par référence, titre, nom du client ou email",
+        "exportDialog": {
+          "title": "Exporter les transactions en CSV",
+          "description": "Téléchargez l'ensemble actuel des transactions au format CSV UTF-8 avec une plage valide de dates de création."
+        },
         "columns": {
           "client": "Client",
           "reference": "Référence",
@@ -406,6 +581,10 @@
         "title": "Vérifications d'identité",
         "description": "Suivez la progression de la vérification des clients lorsqu'une confirmation d'identité est requise.",
         "searchPlaceholder": "Rechercher par client, référence, prestataire ou note",
+        "exportDialog": {
+          "title": "Exporter le KYC en CSV",
+          "description": "Téléchargez l'ensemble actuel du KYC au format CSV UTF-8 avec une plage valide de dates de dossier."
+        },
         "columns": {
           "client": "Client",
           "reference": "Référence",
@@ -419,12 +598,25 @@
         "title": "Signatures",
         "description": "Voyez quels clients ont examiné et accepté leurs accords.",
         "searchPlaceholder": "Rechercher par signataire, référence ou modèle",
+        "exportDialog": {
+          "title": "Exporter les signatures en CSV",
+          "description": "Téléchargez l'ensemble actuel des signatures au format CSV UTF-8 avec une plage valide de dates de signature."
+        },
         "columns": {
           "signer": "Signataire",
           "reference": "Référence",
           "status": "Statut",
           "template": "Modèle",
-          "date": "Date"
+          "date": "Date",
+          "signatureImage": "Image de signature"
+        },
+        "viewSignature": "Voir la signature",
+        "preview": {
+          "title": "Image de signature enregistrée",
+          "description": "Consultez l'image de signature enregistrée jointe à cet accord signé.",
+          "loading": "Chargement de l'image de signature...",
+          "unavailable": "Aucune image de signature enregistrée n'est disponible pour cet enregistrement.",
+          "failed": "L'aperçu de la signature ne peut pas être chargé pour le moment."
         },
         "empty": "Aucune signature n'a encore été demandée."
       },
@@ -471,6 +663,10 @@
         "title": "Clients",
         "description": "Consultez les clients récents et les flux qui leur sont associés.",
         "searchPlaceholder": "Rechercher par nom du client, email ou entreprise",
+        "exportDialog": {
+          "title": "Exporter les clients en CSV",
+          "description": "Téléchargez l'ensemble actuel des clients au format CSV UTF-8 avec une plage valide de dates de création."
+        },
         "columns": {
           "client": "Client",
           "email": "Email",
@@ -483,6 +679,33 @@
         "title": "Liens clients",
         "description": "Partagez des liens sécurisés et des QR codes pour chaque flux client.",
         "searchPlaceholder": "Rechercher par référence, titre, client ou code court",
+        "exportDialog": {
+          "trigger": "Exporter",
+          "title": "Exporter les liens en CSV",
+          "description": "Téléchargez l'ensemble actuel des liens au format CSV UTF-8 avec une plage valide de dates de création.",
+          "availableRangeLabel": "Plage de données disponible",
+          "availableRangeValue": "{start} à {end}",
+          "startDate": "Date de début",
+          "endDate": "Date de fin",
+          "cancel": "Annuler",
+          "submit": "Exporter le CSV",
+          "exporting": "Préparation du CSV",
+          "noDataAvailable": "Aucun enregistrement exportable n'est disponible pour les filtres actuels.",
+          "errors": {
+            "noData": "Aucun enregistrement exportable n'est disponible pour les filtres actuels.",
+            "startRequired": "Sélectionnez une date de début avant l'export.",
+            "endRequired": "Sélectionnez une date de fin avant l'export.",
+            "invalidRange": "La date de début doit être antérieure ou égale à la date de fin.",
+            "beforeAvailable": "La date de début est antérieure à la plage de données disponible.",
+            "afterAvailable": "La date de fin est postérieure à la plage de données disponible.",
+            "unexpected": "Une erreur inattendue est survenue pendant la préparation de l'export."
+          },
+          "toast": {
+            "successTitle": "Export prêt",
+            "successDescription": "Le téléchargement de votre CSV a commencé.",
+            "errorTitle": "Échec de l'export"
+          }
+        },
         "columns": {
           "reference": "Référence",
           "client": "Client",
@@ -968,7 +1191,10 @@
         "createModal": {
           "title": "Nouvelle transaction",
           "description": "Créez le lien sécurisé, configurez le parcours client et décidez si ce flux nécessite un QR.",
-          "closeLabel": "Fermer la fenêtre de transaction"
+          "closeLabel": "Fermer la fenêtre de transaction",
+          "closingLabel": "Fermeture",
+          "closingTitle": "Fermeture de la configuration",
+          "closingDescription": "Retour à votre espace de travail."
         },
         "discardModal": {
           "title": "Ignorer la configuration de la transaction ?",

@@ -9,6 +9,8 @@ import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBa
 import { DepositQuickActions } from "@/features/dashboard/components/deposit-quick-actions"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { TableQueryShell } from "@/features/dashboard/components/table-query-shell"
+import { VendorSignatureImageDialog } from "@/features/dashboard/components/vendor-signature-image-dialog"
+import { VendorTableExportDialog } from "@/features/dashboard/components/vendor-table-export-dialog"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import type {
   AdminContactDetailRecord,
@@ -60,6 +62,7 @@ function TablePageSection({
   searchValue,
   searchPlaceholder,
   filters,
+  actions,
   currentPage,
   totalPages,
   totalCount,
@@ -78,6 +81,7 @@ function TablePageSection({
     value?: string
     options: { label: string; value: string }[]
   }[]
+  actions?: React.ReactNode
   currentPage: number
   totalPages: number
   totalCount: number
@@ -96,6 +100,7 @@ function TablePageSection({
       searchValue={searchValue}
       searchPlaceholder={searchPlaceholder}
       filters={filters}
+      actions={actions}
       currentPage={currentPage}
       totalPages={totalPages}
       totalCount={totalCount}
@@ -130,9 +135,11 @@ export async function VendorActionsView({ workspace }: { workspace: WorkspaceRec
 export async function VendorTransactionsView({
   data,
   searchParams,
+  availableExportRange,
 }: {
   data: VendorTransactionsData
   searchParams?: Record<string, string>
+  availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.transactions")
   return (
@@ -145,6 +152,16 @@ export async function VendorTransactionsView({
           { name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorTransactionStatusOptions },
           { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
         ]}
+        actions={
+          <VendorTableExportDialog
+            endpoint="/api/vendor/transactions/export"
+            filenamePrefix="vendor-transactions"
+            requestPayload={searchParams}
+            availableRange={availableExportRange}
+            title={t("exportDialog.title")}
+            description={t("exportDialog.description")}
+          />
+        }
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -222,9 +239,11 @@ export async function VendorChecklistsView({ workspace }: { workspace: Workspace
 export async function VendorKycView({
   data,
   searchParams,
+  availableExportRange,
 }: {
   data: VendorKycListData
   searchParams?: Record<string, string>
+  availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.kyc")
   return (
@@ -234,6 +253,16 @@ export async function VendorKycView({
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
         filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorKycStatusOptions }]}
+        actions={
+          <VendorTableExportDialog
+            endpoint="/api/vendor/kyc/export"
+            filenamePrefix="vendor-kyc"
+            requestPayload={searchParams}
+            availableRange={availableExportRange}
+            title={t("exportDialog.title")}
+            description={t("exportDialog.description")}
+          />
+        }
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -258,9 +287,11 @@ export async function VendorKycView({
 export async function VendorSignaturesView({
   data,
   searchParams,
+  availableExportRange,
 }: {
   data: VendorSignatureListData
   searchParams?: Record<string, string>
+  availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.signatures")
   return (
@@ -270,12 +301,29 @@ export async function VendorSignaturesView({
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
         filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorSignatureStatusOptions }]}
+        actions={
+          <VendorTableExportDialog
+            endpoint="/api/vendor/signatures/export"
+            filenamePrefix="vendor-signatures"
+            requestPayload={searchParams}
+            availableRange={availableExportRange}
+            title={t("exportDialog.title")}
+            description={t("exportDialog.description")}
+          />
+        }
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
         pageSize={data.pageSize}
         searchParams={searchParams}
-        columns={[t("columns.signer"), t("columns.reference"), t("columns.status"), t("columns.template"), t("columns.date")]}
+        columns={[
+          t("columns.signer"),
+          t("columns.reference"),
+          t("columns.status"),
+          t("columns.template"),
+          t("columns.date"),
+          t("columns.signatureImage"),
+        ]}
         rows={data.items.map((record) => [
           record.signer,
           record.reference,
@@ -284,6 +332,16 @@ export async function VendorSignaturesView({
           </StatusBadge>,
           record.template,
           record.date,
+          record.hasSignatureImage ? (
+            <VendorSignatureImageDialog
+              key={`${record.transactionId}-signature-image`}
+              transactionId={record.transactionId}
+            />
+          ) : (
+            <span key={`${record.reference}-no-signature-image`} className="text-muted-foreground">
+              —
+            </span>
+          ),
         ])}
         emptyMessage={t("empty")}
       />
@@ -408,9 +466,11 @@ export async function VendorDisputesView({
 export async function VendorClientsView({
   data,
   searchParams,
+  availableExportRange,
 }: {
   data: VendorClientListData
   searchParams?: Record<string, string>
+  availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.clients")
   return (
@@ -419,6 +479,16 @@ export async function VendorClientsView({
         basePath="/vendor/clients"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
+        actions={
+          <VendorTableExportDialog
+            endpoint="/api/vendor/clients/export"
+            filenamePrefix="vendor-clients"
+            requestPayload={searchParams}
+            availableRange={availableExportRange}
+            title={t("exportDialog.title")}
+            description={t("exportDialog.description")}
+          />
+        }
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -442,9 +512,11 @@ export async function VendorClientsView({
 export async function VendorLinksView({
   data,
   searchParams,
+  availableExportRange,
 }: {
   data: VendorLinkListData
   searchParams?: Record<string, string>
+  availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.links")
   return (
@@ -457,6 +529,16 @@ export async function VendorLinksView({
           { name: "state", label: t("columns.status"), value: searchParams?.state, options: vendorLinkStateOptions },
           { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
         ]}
+        actions={
+          <VendorTableExportDialog
+            endpoint="/api/vendor/links/export"
+            filenamePrefix="vendor-links"
+            requestPayload={searchParams}
+            availableRange={availableExportRange}
+            title={t("exportDialog.title")}
+            description={t("exportDialog.description")}
+          />
+        }
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}

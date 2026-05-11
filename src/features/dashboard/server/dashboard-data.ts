@@ -1,4 +1,7 @@
 import {
+  type ChecklistItem,
+  type ChecklistTemplate,
+  type ContractTemplate,
   DisputeStatus,
   InvitationStatus,
   KycStatus,
@@ -120,6 +123,11 @@ export type VendorActionsUsageRecord = {
   kyc: { used: number; limit: number | null; remaining: number | null; allowed: boolean }
 }
 
+export type VendorCreateLinkDialogData = {
+  contracts: ContractTemplate[]
+  checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
+}
+
 export type VendorDepositRecord = {
   transactionId: string
   client: string
@@ -156,6 +164,27 @@ export type SubscriptionUsageRecord = {
   teamUsers: { used: number; limit: number | null }
 }
 
+export type VendorOverviewFlowRecord = {
+  linkSent: number
+  customerActive: number
+  kycReady: number
+  contractReady: number
+  signed: number
+  completed: number
+  disputed: number
+  cancelled: number
+}
+
+export type VendorOverviewActivityRecord = {
+  id: string
+  type: TransactionEventType | "TRANSACTION_CREATED"
+  reference: string
+  transactionId: string
+  transactionTitle: string | null
+  clientName: string | null
+  occurredAt: string
+}
+
 export type WorkspaceRecord = {
   summary: {
     fullName: string
@@ -176,6 +205,8 @@ export type WorkspaceRecord = {
     signedContracts: number
   }
   subscriptionUsage: SubscriptionUsageRecord | null
+  overviewFlow: VendorOverviewFlowRecord
+  overviewActivity: VendorOverviewActivityRecord[]
   alerts: AlertRecord[]
   kpis: SummaryKpi[]
   actionItems: {
@@ -189,7 +220,15 @@ export type WorkspaceRecord = {
   contractTemplates: { title: string; description: string; tag?: string; meta?: string }[]
   checklistTemplates: { title: string; description: string; tag?: string; meta?: string }[]
   kycCases: { client: string; reference: string; status: string; provider: string; note: string }[]
-  signatures: { signer: string; reference: string; status: string; template: string; date: string }[]
+  signatures: {
+    transactionId: string
+    signer: string
+    reference: string
+    status: string
+    template: string
+    date: string
+    hasSignatureImage: boolean
+  }[]
   deposits: VendorDepositRecord[]
   payments: { client: string; reference: string; amount: string; status: string; date: string }[]
   disputes: { client: string; reference: string; status: string; summary: string }[]
@@ -563,6 +602,48 @@ export function buildVendorActionsUsage(subscription: VendorSubscription | null)
   }
 }
 
+export async function getVendorCreateLinkDialogData(
+  email: string | undefined | null
+): Promise<VendorCreateLinkDialogData> {
+  const context = await getVendorContextByEmail(email)
+
+  if (!context) {
+    return {
+      contracts: [],
+      checklists: [],
+    }
+  }
+
+  const [contracts, checklists] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.contractTemplate.findMany({
+          where: { vendorId: context.vendorProfile.id },
+          orderBy: { name: "asc" },
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.checklistTemplate.findMany({
+          where: { vendorId: context.vendorProfile.id },
+          include: {
+            items: {
+              orderBy: { sortOrder: "asc" },
+            },
+          },
+          orderBy: { name: "asc" },
+        }),
+      []
+    ),
+  ])
+
+  return {
+    contracts,
+    checklists,
+  }
+}
+
 export function buildVendorLinkRecord(
   transaction: VendorLinkSource,
   options?: { qrRemaining?: number | null }
@@ -791,9 +872,89 @@ function formatDisplayLabel(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+function createEmptyVendorOverviewFlow(): VendorOverviewFlowRecord {
+  return {
+    linkSent: 0,
+    customerActive: 0,
+    kycReady: 0,
+    contractReady: 0,
+    signed: 0,
+    completed: 0,
+    disputed: 0,
+    cancelled: 0,
+  }
+}
+
+function buildVendorOverviewFlow(
+  groups: Array<{
+    status: TransactionStatus
+    _count: { _all: number }
+  }>
+): VendorOverviewFlowRecord {
+  const counts = new Map(groups.map((group) => [group.status, group._count._all]))
+
+  return {
+    linkSent: counts.get(TransactionStatus.LINK_SENT) ?? 0,
+    customerActive:
+      (counts.get(TransactionStatus.CUSTOMER_STARTED) ?? 0) +
+      (counts.get(TransactionStatus.DOCS_SUBMITTED) ?? 0),
+    kycReady: counts.get(TransactionStatus.KYC_VERIFIED) ?? 0,
+    contractReady: counts.get(TransactionStatus.CONTRACT_GENERATED) ?? 0,
+    signed:
+      (counts.get(TransactionStatus.SIGNED) ?? 0) +
+      (counts.get(TransactionStatus.PAYMENT_AUTHORIZED) ?? 0),
+    completed: counts.get(TransactionStatus.COMPLETED) ?? 0,
+    disputed: counts.get(TransactionStatus.DISPUTED) ?? 0,
+    cancelled: counts.get(TransactionStatus.CANCELLED) ?? 0,
+  }
+}
+
 function normalizeSearchTerm(value: string | null | undefined) {
   const normalized = value?.trim()
   return normalized ? normalized : undefined
+}
+
+function buildVendorKycTransactionWhere(
+  vendorId: string,
+  options: {
+    status?: KycStatus
+    search?: string
+  } = {}
+): Prisma.TransactionWhereInput {
+  const { status, search } = options
+
+  return {
+    vendorId,
+    AND: [
+      { OR: [{ requiresKyc: true }, { kycVerification: { isNot: null } }] },
+      ...(status
+        ? status === KycStatus.PENDING
+          ? [{ OR: [{ kycVerification: { is: null } }, { kycVerification: { is: { status } } }]}]
+          : [{ kycVerification: { is: { status } } }]
+        : []),
+      ...(search
+        ? [
+            {
+              OR: [
+                { reference: containsInsensitive(search) },
+                {
+                  clientProfile: {
+                    is: {
+                      OR: [
+                        { fullName: containsInsensitive(search) },
+                        { email: containsInsensitive(search) },
+                      ],
+                    },
+                  },
+                },
+                { kycVerification: { is: { provider: containsInsensitive(search) } } },
+                { kycVerification: { is: { summary: containsInsensitive(search) } } },
+              ],
+            },
+          ]
+        : []),
+    ],
+  }
 }
 
 function containsInsensitive(value: string) {
@@ -845,6 +1006,8 @@ function createEmptyVendorWorkspace(summary: WorkspaceRecord["summary"]): Worksp
     summary,
     stats: { totalTransactions: 0, totalClients: 0, activeDeposits: 0, signedContracts: 0 },
     subscriptionUsage: null,
+    overviewFlow: createEmptyVendorOverviewFlow(),
+    overviewActivity: [],
     alerts: buildVendorAlerts(summary),
     kpis: buildVendorKpis({
       transactionCount: 0,
@@ -932,10 +1095,31 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
   })
 
   const vendorId = user.vendorProfile.id
+  const overviewActivityTypes: TransactionEventType[] = [
+    TransactionEventType.LINK_CREATED,
+    TransactionEventType.LINK_OPENED,
+    TransactionEventType.PROFILE_SUBMITTED,
+    TransactionEventType.DOCUMENTS_SUBMITTED,
+    TransactionEventType.KYC_STARTED,
+    TransactionEventType.KYC_VERIFIED,
+    TransactionEventType.KYC_FAILED,
+    TransactionEventType.CONTRACT_REVIEWED,
+    TransactionEventType.SIGNATURE_COMPLETED,
+    TransactionEventType.SERVICE_PAYMENT_REQUESTED,
+    TransactionEventType.SERVICE_PAYMENT_SUCCEEDED,
+    TransactionEventType.DEPOSIT_AUTHORIZED,
+    TransactionEventType.DEPOSIT_CAPTURED,
+    TransactionEventType.DEPOSIT_RELEASED,
+    TransactionEventType.DISPUTE_OPENED,
+    TransactionEventType.TRANSACTION_CANCELLED,
+    TransactionEventType.LINK_CANCELLED,
+    TransactionEventType.COMPLETED,
+  ]
 
   const [transactions, contracts, checklists, webhooks, clients,
          totalTransactionCount, totalClientCount, activeDepositCount, signedContractCount,
-         vendorSubscription, contractTemplateCount, acceptedInvitationCount] = await Promise.all([
+         transactionStatusGroups, recentActivityEvents, vendorSubscription,
+         contractTemplateCount, acceptedInvitationCount, verifiedKycCount] = await Promise.all([
     safeQuery(
       () =>
         prisma.transaction.findMany({
@@ -945,6 +1129,12 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
             contractTemplate: true,
             kycVerification: true,
             signatureRecord: true,
+            contractArtifact: {
+              select: {
+                signatureImagePublicId: true,
+                signatureImageUrl: true,
+              },
+            },
             depositAuthorization: true,
             payments: true,
             dispute: true,
@@ -1001,9 +1191,47 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     safeQuery(() => prisma.transaction.count({
       where: { vendorId, signatureRecord: { is: { status: "SIGNED" } } },
     }), 0),
+    safeQuery(
+      () =>
+        prisma.transaction.groupBy({
+          by: ["status"],
+          where: { vendorId },
+          _count: { _all: true },
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.transactionEvent.findMany({
+          where: {
+            transaction: { vendorId },
+            type: { in: overviewActivityTypes },
+          },
+          include: {
+            transaction: {
+              select: {
+                id: true,
+                reference: true,
+                title: true,
+                clientProfile: { select: { fullName: true } },
+              },
+            },
+          },
+          orderBy: { occurredAt: "desc" },
+          take: 8,
+        }),
+      []
+    ),
     safeQuery(() => prisma.vendorSubscription.findUnique({ where: { vendorId } }), null),
     safeQuery(() => prisma.contractTemplate.count({ where: { vendorId } }), 0),
     safeQuery(() => prisma.invitation.count({ where: { vendorId, status: "ACCEPTED" } }), 0),
+    safeQuery(
+      () =>
+        prisma.transaction.count({
+          where: buildVendorKycTransactionWhere(vendorId, { status: KycStatus.VERIFIED }),
+        }),
+      0
+    ),
   ])
 
   const mappedTransactions = transactions.map((transaction) => ({
@@ -1055,7 +1283,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
           limit: getContractTemplateLimit(vendorSubscription),
         },
         kyc: {
-          used: vendorSubscription.kycVerificationsUsed,
+          used: verifiedKycCount,
           limit: getKycLimit(vendorSubscription),
           allowed: canUseKyc(vendorSubscription),
         },
@@ -1066,6 +1294,37 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
         },
       }
     : null
+  const overviewFlow = {
+    ...buildVendorOverviewFlow(transactionStatusGroups),
+    kycReady: verifiedKycCount,
+  }
+  const overviewActivity: WorkspaceRecord["overviewActivity"] = recentActivityEvents.map((event) => ({
+    id: event.id,
+    type: event.type,
+    reference: event.transaction.reference,
+    transactionId: event.transaction.id,
+    transactionTitle: event.transaction.title,
+    clientName: event.transaction.clientProfile?.fullName ?? null,
+    occurredAt: event.occurredAt.toISOString(),
+  }))
+
+  if (overviewActivity.length < 6) {
+    const existingTransactionIds = new Set(overviewActivity.map((item) => item.transactionId))
+    const fallbackItems = transactions
+      .filter((transaction) => !existingTransactionIds.has(transaction.id))
+      .slice(0, 6 - overviewActivity.length)
+      .map((transaction) => ({
+        id: `fallback-${transaction.id}`,
+        type: "TRANSACTION_CREATED" as const,
+        reference: transaction.reference,
+        transactionId: transaction.id,
+        transactionTitle: transaction.title,
+        clientName: transaction.clientProfile?.fullName ?? null,
+        occurredAt: transaction.createdAt.toISOString(),
+      }))
+
+    overviewActivity.push(...fallbackItems)
+  }
 
   return {
     ...createEmptyVendorWorkspace(summary),
@@ -1077,6 +1336,8 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
       signedContracts: signedContractCount,
     },
     subscriptionUsage: isActive ? subscriptionUsage : null,
+    overviewFlow,
+    overviewActivity,
     alerts: buildVendorAlerts(summary),
     kpis: buildVendorKpis({
       transactionCount: totalTransactionCount,
@@ -1111,11 +1372,16 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     signatures: transactions
       .filter((transaction) => transaction.signatureRecord)
       .map((transaction) => ({
+        transactionId: transaction.id,
         signer: transaction.signatureRecord?.signerName ?? transaction.clientProfile?.fullName ?? "Client",
         reference: transaction.reference,
         status: transaction.signatureRecord?.status ?? "PENDING",
         template: transaction.contractTemplate?.name ?? "Agreement",
         date: formatDateTime(transaction.signatureRecord?.signedAt ?? transaction.signatureRecord?.createdAt),
+        hasSignatureImage: Boolean(
+          transaction.contractArtifact?.signatureImagePublicId ??
+            transaction.contractArtifact?.signatureImageUrl
+        ),
       })),
     deposits: transactions
       .filter((transaction) => transaction.depositAuthorization)
@@ -1292,38 +1558,7 @@ export async function getVendorKycPageData(
   const search = normalizeSearchTerm(filters.q)
   const status = normalizeFilterOptionValue(filters.status, vendorKycStatusOptions) as KycStatus | undefined
 
-  const where: Prisma.TransactionWhereInput = {
-    vendorId: context.vendorProfile.id,
-    AND: [
-      { OR: [{ requiresKyc: true }, { kycVerification: { isNot: null } }] },
-      ...(status
-        ? status === KycStatus.PENDING
-          ? [{ OR: [{ kycVerification: { is: null } }, { kycVerification: { is: { status } } }] }]
-          : [{ kycVerification: { is: { status } } }]
-        : []),
-      ...(search
-        ? [
-            {
-              OR: [
-                { reference: containsInsensitive(search) },
-                {
-                  clientProfile: {
-                    is: {
-                      OR: [
-                        { fullName: containsInsensitive(search) },
-                        { email: containsInsensitive(search) },
-                      ],
-                    },
-                  },
-                },
-                { kycVerification: { is: { provider: containsInsensitive(search) } } },
-                { kycVerification: { is: { summary: containsInsensitive(search) } } },
-              ],
-            },
-          ]
-        : []),
-    ],
-  }
+  const where = buildVendorKycTransactionWhere(context.vendorProfile.id, { status, search })
 
   const [transactions, totalCount] = await Promise.all([
     safeQuery(
@@ -1407,6 +1642,12 @@ export async function getVendorSignaturesPageData(
             clientProfile: { select: { fullName: true } },
             contractTemplate: { select: { name: true } },
             signatureRecord: { select: { signerName: true, status: true, signedAt: true, createdAt: true } },
+            contractArtifact: {
+              select: {
+                signatureImagePublicId: true,
+                signatureImageUrl: true,
+              },
+            },
           },
           orderBy: { updatedAt: "desc" },
           skip: pagination.skip,
@@ -1419,11 +1660,16 @@ export async function getVendorSignaturesPageData(
 
   return buildPaginatedResult(
     transactions.map((transaction) => ({
+      transactionId: transaction.id,
       signer: transaction.signatureRecord?.signerName ?? transaction.clientProfile?.fullName ?? "Client",
       reference: transaction.reference,
       status: transaction.signatureRecord?.status ?? "PENDING",
       template: transaction.contractTemplate?.name ?? "Agreement",
       date: formatDateTime(transaction.signatureRecord?.signedAt ?? transaction.signatureRecord?.createdAt),
+      hasSignatureImage: Boolean(
+        transaction.contractArtifact?.signatureImagePublicId ??
+          transaction.contractArtifact?.signatureImageUrl
+      ),
     })),
     totalCount,
     pagination.page,

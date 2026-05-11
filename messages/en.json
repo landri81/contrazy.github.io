@@ -216,6 +216,31 @@
       "openedOn": "Opened on",
       "responseDeadline": "Response deadline",
       "attachments": "Attachments",
+      "exportDialog": {
+        "trigger": "Export",
+        "availableRangeLabel": "Available data range",
+        "availableRangeValue": "{start} to {end}",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "cancel": "Cancel",
+        "submit": "Export CSV",
+        "exporting": "Preparing CSV",
+        "noDataAvailable": "No exportable records are available for the current filters.",
+        "errors": {
+          "noData": "There are no exportable records for the current filters.",
+          "startRequired": "Select a start date before exporting.",
+          "endRequired": "Select an end date before exporting.",
+          "invalidRange": "The start date must be on or before the end date.",
+          "beforeAvailable": "The start date is earlier than the available data range.",
+          "afterAvailable": "The end date is later than the available data range.",
+          "unexpected": "An unexpected error occurred while preparing the export."
+        },
+        "toast": {
+          "successTitle": "Export ready",
+          "successDescription": "Your CSV download has started.",
+          "errorTitle": "Export failed"
+        }
+      },
       "fileCount": "{count, plural, one {# file} other {# files}}",
       "adminResolutionNote": "Admin resolution note",
       "resolvedOn": "Resolved on {date}",
@@ -316,6 +341,94 @@
           "label": "Signed contracts",
           "detail": "Signatures"
         },
+        "hero": {
+          "eyebrow": "Operations cockpit",
+          "badges": {
+            "live": "Ready to launch",
+            "setup": "Setup in progress",
+            "review": "Review in progress",
+            "actionRequired": "Action required",
+            "planRequired": "Plan required"
+          },
+          "actions": {
+            "viewBilling": "View billing",
+            "completeProfile": "Complete profile",
+            "openProfile": "Open business profile",
+            "connectStripe": "Connect Stripe",
+            "addContract": "Add contract template",
+            "createLink": "Create secure link",
+            "openTransactions": "Open transactions"
+          },
+          "states": {
+            "planRequired": {
+              "title": "{businessName} needs an active plan",
+              "description": "Activate billing before launching new client flows or payment collection."
+            },
+            "profile": {
+              "title": "Finish the business profile for {businessName}",
+              "description": "Complete the company details first so every new link and agreement is backed by the right business data."
+            },
+            "review": {
+              "title": "{businessName} is still moving through account review",
+              "description": "Keep the workspace ready while review completes, then move directly into live transactions."
+            },
+            "stripe": {
+              "title": "Connect Stripe before taking live payments",
+              "description": "Your secure links, deposits, and service payments need a connected payout account before going live."
+            },
+            "contract": {
+              "title": "Add the first agreement template for {businessName}",
+              "description": "Save a reusable contract before launching new customer workflows from the vendor dashboard."
+            },
+            "ready": {
+              "title": "{businessName} is ready for live customer flows",
+              "description": "Launch secure links, track each workflow stage, and keep signature and finance steps moving from one dashboard."
+            }
+          },
+          "metrics": {
+            "liveWorkflows": {
+              "label": "Live workflows",
+              "detail": "Currently moving through the client journey"
+            },
+            "completed": {
+              "label": "Completed",
+              "detail": "Finished customer workflows"
+            },
+            "signedContracts": {
+              "label": "Signed contracts",
+              "detail": "Accepted agreements across the workspace"
+            },
+            "activeDeposits": {
+              "label": "Active deposits",
+              "detail": "Authorized holds still being monitored"
+            }
+          }
+        },
+        "pipeline": {
+          "title": "Flow pipeline",
+          "description": "Current workflow stages across {count} live operations.",
+          "open": "Open transactions",
+          "stages": {
+            "linkSent": "Link sent",
+            "customerActive": "Client active",
+            "kycReady": "KYC verified",
+            "contractReady": "Ready to sign",
+            "signed": "Signed / finance",
+            "completed": "Completed"
+          },
+          "details": {
+            "linkSent": "Waiting for the client to open the flow",
+            "customerActive": "Client details or requirements are in progress",
+            "kycReady": "Identity verification is complete",
+            "contractReady": "Agreement is ready for the signature step",
+            "signed": "Signed and moving into payment or deposit handling",
+            "completed": "Fully closed customer workflows"
+          },
+          "flags": {
+            "disputed": "{count} disputed",
+            "cancelled": "{count} cancelled"
+          }
+        },
         "planUsage": {
           "title": "Plan & usage",
           "description": "Your current subscription usage for this billing period.",
@@ -330,10 +443,23 @@
         },
         "businessReadiness": {
           "title": "Business readiness",
-          "description": "Checklist before accepting your first client."
+          "description": "Core launch checks before sending live customer links.",
+          "items": {
+            "profile": "Business profile",
+            "review": "Account review",
+            "stripe": "Stripe connection",
+            "contracts": "Contract templates",
+            "requirements": "Requirements template"
+          },
+          "states": {
+            "templatesReady": "{count} ready",
+            "templatesMissing": "Missing",
+            "requirementsReady": "{count} ready",
+            "requirementsOptional": "Optional"
+          }
         },
         "readyToGoLive": "Ready to go live",
-        "stepsComplete": "{n}/3 steps complete",
+        "stepsComplete": "{n}/{total} steps complete",
         "profileCompletion": "Profile completion",
         "reviewStatus": "Review status",
         "payoutSetup": "Payout setup",
@@ -341,6 +467,47 @@
         "completeProfile": "Complete business profile",
         "setUpPayouts": "Set up payouts",
         "openActionQueue": "Open action queue",
+        "activity": {
+          "title": "Live activity",
+          "description": "Recent client, contract, KYC, and payment events from your workspace.",
+          "openEvents": "Platform events",
+          "emptyTitle": "No recent live activity",
+          "emptyDescription": "Secure link, signature, KYC, and payment events will appear here once customer workflows start moving.",
+          "openTransaction": "Open transaction",
+          "untitledWorkflow": "Untitled workflow",
+          "reference": "Ref. {reference}",
+          "groups": {
+            "link": "Link",
+            "client": "Client",
+            "kyc": "KYC",
+            "contract": "Contract",
+            "payment": "Payment",
+            "deposit": "Deposit",
+            "issue": "Issue",
+            "completed": "Completed"
+          },
+          "labels": {
+            "LINK_CREATED": "Secure link created",
+            "LINK_OPENED": "Client opened secure link",
+            "PROFILE_SUBMITTED": "Client profile submitted",
+            "DOCUMENTS_SUBMITTED": "Requirements submitted",
+            "KYC_STARTED": "Identity verification started",
+            "KYC_VERIFIED": "Identity verification approved",
+            "KYC_FAILED": "Identity verification failed",
+            "CONTRACT_REVIEWED": "Agreement reviewed",
+            "SIGNATURE_COMPLETED": "Agreement signed",
+            "SERVICE_PAYMENT_REQUESTED": "Service payment requested",
+            "SERVICE_PAYMENT_SUCCEEDED": "Service payment confirmed",
+            "DEPOSIT_AUTHORIZED": "Deposit authorized",
+            "DEPOSIT_CAPTURED": "Deposit captured",
+            "DEPOSIT_RELEASED": "Deposit released",
+            "DISPUTE_OPENED": "Dispute opened",
+            "TRANSACTION_CANCELLED": "Transaction cancelled",
+            "LINK_CANCELLED": "Secure link cancelled",
+            "COMPLETED": "Transaction completed",
+            "TRANSACTION_CREATED": "Transaction created"
+          }
+        },
         "recentTransactions": {
           "title": "Recent transactions",
           "description": "Latest customer workflows for {businessName}.",
@@ -354,7 +521,11 @@
           "contractTemplates": "Contract templates",
           "kyc": "KYC verifications / month",
           "unlimited": "Unlimited",
+          "unlimitedCaption": "No hard cap on this plan for the current period.",
           "notIncluded": "Not included",
+          "notIncludedCaption": "This capability is not available on the current plan.",
+          "limitReached": "Limit reached for this billing period.",
+          "remaining": "{count} remaining this period",
           "trial": "Trial"
         },
         "table": {
@@ -384,6 +555,10 @@
         "title": "Transactions",
         "description": "Track every customer workflow from setup to payment and deposit handling.",
         "searchPlaceholder": "Search by reference, title, client name, or email",
+        "exportDialog": {
+          "title": "Export transactions CSV",
+          "description": "Download the current transactions dataset as a UTF-8 CSV using a valid creation-date range."
+        },
         "columns": {
           "client": "Client",
           "reference": "Reference",
@@ -406,6 +581,10 @@
         "title": "Identity checks",
         "description": "Follow customer verification progress when identity confirmation is required.",
         "searchPlaceholder": "Search by client, reference, provider, or note",
+        "exportDialog": {
+          "title": "Export KYC CSV",
+          "description": "Download the current KYC dataset as a UTF-8 CSV using a valid case-date range."
+        },
         "columns": {
           "client": "Client",
           "reference": "Reference",
@@ -419,12 +598,25 @@
         "title": "Signatures",
         "description": "See which customers have reviewed and accepted their agreements.",
         "searchPlaceholder": "Search by signer, reference, or template",
+        "exportDialog": {
+          "title": "Export signatures CSV",
+          "description": "Download the current signatures dataset as a UTF-8 CSV using a valid signature-date range."
+        },
         "columns": {
           "signer": "Signer",
           "reference": "Reference",
           "status": "Status",
           "template": "Template",
-          "date": "Date"
+          "date": "Date",
+          "signatureImage": "Signature image"
+        },
+        "viewSignature": "View signature",
+        "preview": {
+          "title": "Stored signature image",
+          "description": "Review the stored signature image attached to this signed agreement.",
+          "loading": "Loading signature image...",
+          "unavailable": "No stored signature image is available for this record.",
+          "failed": "The signature preview could not be loaded right now."
         },
         "empty": "No signatures have been requested yet."
       },
@@ -471,6 +663,10 @@
         "title": "Clients",
         "description": "Review recent customers and the workflows connected to them.",
         "searchPlaceholder": "Search by client name, email, or company",
+        "exportDialog": {
+          "title": "Export clients CSV",
+          "description": "Download the current clients dataset as a UTF-8 CSV using a valid creation-date range."
+        },
         "columns": {
           "client": "Client",
           "email": "Email",
@@ -483,6 +679,33 @@
         "title": "Customer links",
         "description": "Share secure links and QR codes for each customer workflow.",
         "searchPlaceholder": "Search by reference, title, client, or short code",
+        "exportDialog": {
+          "trigger": "Export",
+          "title": "Export links CSV",
+          "description": "Download the current links dataset as a UTF-8 CSV using a valid creation-date range.",
+          "availableRangeLabel": "Available data range",
+          "availableRangeValue": "{start} to {end}",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "cancel": "Cancel",
+          "submit": "Export CSV",
+          "exporting": "Preparing CSV",
+          "noDataAvailable": "No exportable records are available for the current filters.",
+          "errors": {
+            "noData": "There are no exportable records for the current filters.",
+            "startRequired": "Select a start date before exporting.",
+            "endRequired": "Select an end date before exporting.",
+            "invalidRange": "The start date must be on or before the end date.",
+            "beforeAvailable": "The start date is earlier than the available data range.",
+            "afterAvailable": "The end date is later than the available data range.",
+            "unexpected": "An unexpected error occurred while preparing the export."
+          },
+          "toast": {
+            "successTitle": "Export ready",
+            "successDescription": "Your CSV download has started.",
+            "errorTitle": "Export failed"
+          }
+        },
         "columns": {
           "reference": "Reference",
           "client": "Client",
@@ -968,7 +1191,10 @@
         "createModal": {
           "title": "New transaction",
           "description": "Create the secure link, configure the client journey, and decide whether this workflow needs a QR.",
-          "closeLabel": "Close transaction modal"
+          "closeLabel": "Close transaction modal",
+          "closingLabel": "Closing",
+          "closingTitle": "Closing transaction setup",
+          "closingDescription": "Returning to your workspace."
         },
         "discardModal": {
           "title": "Discard transaction setup?",
