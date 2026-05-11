@@ -2520,7 +2520,7 @@
           "label": "Flux actifs"
         },
         {
-          "value": "14 min",
+          "value": "3 min",
           "label": "Temps moyen"
         },
         {
@@ -3226,6 +3226,66 @@
     "noRecordsYet": "Aucun enregistrement pour l'instant."
   },
   "subscriptions": {
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "subtitle": "Indépendants · 1 utilisateur",
+        "billingLabel": "Sans engagement",
+        "ctaLabel": "Commencer",
+        "items": {
+          "0": "10 transactions / mois",
+          "1": "10 e-signatures / mois",
+          "2": "2 QR codes",
+          "3": "1 vérification KYC / mois",
+          "4": "1 modèle de contrat",
+          "5": "Envoi par email",
+          "6": "Stripe Identity inclus"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "subtitle": "Loueurs · Prestataires",
+        "billingLabel": "Essai gratuit 7 jours",
+        "ctaLabel": "Essai gratuit 7 jours",
+        "items": {
+          "0": "Tout ce qui est inclus dans Starter",
+          "1": "Transactions illimitées",
+          "2": "E-signatures illimitées",
+          "3": "10 vérifications KYC / mois",
+          "4": "Contrats générés automatiquement",
+          "5": "QR codes illimités",
+          "6": "Profils clients persistants"
+        }
+      },
+      "business": {
+        "name": "Business",
+        "subtitle": "Gestionnaires · Équipes",
+        "billingLabel": "Essai gratuit 7 jours",
+        "badge": "Recommandé",
+        "ctaLabel": "Essai gratuit 7 jours",
+        "items": {
+          "0": "Tout ce qui est inclus dans Pro",
+          "1": "25 vérifications KYC / mois",
+          "2": "Contrats illimités",
+          "3": "Workflow de gestion des litiges",
+          "4": "3 utilisateurs"
+        }
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "subtitle": "API · Marque blanche",
+        "billingLabel": "Facturation annuelle",
+        "ctaLabel": "Nous contacter",
+        "items": {
+          "0": "Tout ce qui est inclus dans Business",
+          "1": "API REST et webhooks",
+          "2": "Marque blanche complète",
+          "3": "KYC illimité",
+          "4": "Utilisateurs illimités",
+          "5": "SLA et support dédié"
+        }
+      }
+    },
     "planCard": {
       "current": "Actuel",
       "currentPlan": "Plan actuel",

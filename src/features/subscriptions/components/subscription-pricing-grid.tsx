@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl"
 
 import { useRouter } from "@/i18n/navigation"
 import {
+  getLocalizedSubscriptionPlans,
   resolveMarketingPlanHref,
-  subscriptionPlans,
   type SubscriptionBillingIntervalSlug,
   type SubscriptionPlanSlug,
 } from "@/features/subscriptions/config"
@@ -26,11 +26,13 @@ export function SubscriptionPricingGrid({
   initialInterval = "monthly",
 }: SubscriptionPricingGridProps) {
   const t = useTranslations("subscriptions.billing")
+  const tPlans = useTranslations("subscriptions.plans")
   const router = useRouter()
   const [billingInterval, setBillingInterval] = useState<SubscriptionBillingIntervalSlug>(initialInterval)
   const [pendingPlan, setPendingPlan] = useState<SubscriptionPlanSlug | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const plans = useMemo(() => getLocalizedSubscriptionPlans(tPlans), [tPlans])
 
   const discountLabel = useMemo(() => {
     return billingInterval === "yearly" ? t("discountLabel") : t("discountTeaser")
@@ -114,7 +116,7 @@ export function SubscriptionPricingGrid({
       </AnimatePresence>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {subscriptionPlans.map((plan, index) => {
+        {plans.map((plan, index) => {
           const isLoading = pendingPlan === plan.key && isPending
           const href = resolveMarketingPlanHref(viewerRole, plan.key)
 

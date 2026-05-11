@@ -20,7 +20,7 @@ export function SiteFooter() {
       <div className="mx-auto grid w-full max-w-7xl gap-12 px-5 py-15 lg:grid-cols-[2fr_1fr_1fr_1fr] lg:px-10">
         <div>
           <Link href="/" className="text-[22px] font-extrabold tracking-tight text-foreground">
-            Con<span className="text-(--contrazy-teal)">trazy</span>
+            C<span className="text-[var(--contrazy-teal)]">on</span>trazy
           </Link>
           <p className="mt-3.5 max-w-70 text-[14px] leading-[1.7] text-muted-foreground">
             {t("footer.tagline")}

@@ -32,26 +32,133 @@ export type SubscriptionPlanDefinition = {
   features: SubscriptionPlanFeatures
 }
 
+type SubscriptionPlanTranslationKey =
+  | "starter.name"
+  | "starter.subtitle"
+  | "starter.billingLabel"
+  | "starter.ctaLabel"
+  | "starter.items.0"
+  | "starter.items.1"
+  | "starter.items.2"
+  | "starter.items.3"
+  | "starter.items.4"
+  | "starter.items.5"
+  | "starter.items.6"
+  | "pro.name"
+  | "pro.subtitle"
+  | "pro.billingLabel"
+  | "pro.ctaLabel"
+  | "pro.items.0"
+  | "pro.items.1"
+  | "pro.items.2"
+  | "pro.items.3"
+  | "pro.items.4"
+  | "pro.items.5"
+  | "pro.items.6"
+  | "business.name"
+  | "business.subtitle"
+  | "business.billingLabel"
+  | "business.badge"
+  | "business.ctaLabel"
+  | "business.items.0"
+  | "business.items.1"
+  | "business.items.2"
+  | "business.items.3"
+  | "business.items.4"
+  | "enterprise.name"
+  | "enterprise.subtitle"
+  | "enterprise.billingLabel"
+  | "enterprise.ctaLabel"
+  | "enterprise.items.0"
+  | "enterprise.items.1"
+  | "enterprise.items.2"
+  | "enterprise.items.3"
+  | "enterprise.items.4"
+  | "enterprise.items.5"
+
+type SubscriptionPlanTranslationFn = (key: SubscriptionPlanTranslationKey) => string
+
+const subscriptionPlanTranslationKeys = {
+  starter: {
+    name: "starter.name",
+    subtitle: "starter.subtitle",
+    billingLabel: "starter.billingLabel",
+    ctaLabel: "starter.ctaLabel",
+    items: [
+      "starter.items.0",
+      "starter.items.1",
+      "starter.items.2",
+      "starter.items.3",
+      "starter.items.4",
+      "starter.items.5",
+      "starter.items.6",
+    ],
+  },
+  pro: {
+    name: "pro.name",
+    subtitle: "pro.subtitle",
+    billingLabel: "pro.billingLabel",
+    ctaLabel: "pro.ctaLabel",
+    items: [
+      "pro.items.0",
+      "pro.items.1",
+      "pro.items.2",
+      "pro.items.3",
+      "pro.items.4",
+      "pro.items.5",
+      "pro.items.6",
+    ],
+  },
+  business: {
+    name: "business.name",
+    subtitle: "business.subtitle",
+    billingLabel: "business.billingLabel",
+    badge: "business.badge",
+    ctaLabel: "business.ctaLabel",
+    items: [
+      "business.items.0",
+      "business.items.1",
+      "business.items.2",
+      "business.items.3",
+      "business.items.4",
+    ],
+  },
+  enterprise: {
+    name: "enterprise.name",
+    subtitle: "enterprise.subtitle",
+    billingLabel: "enterprise.billingLabel",
+    ctaLabel: "enterprise.ctaLabel",
+    items: [
+      "enterprise.items.0",
+      "enterprise.items.1",
+      "enterprise.items.2",
+      "enterprise.items.3",
+      "enterprise.items.4",
+      "enterprise.items.5",
+    ],
+  },
+} as const
+
 export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     key: "starter",
     name: "Starter",
-    subtitle: "Indépendants · 1 utilisateur",
+    subtitle: "Solo operators · 1 user",
     monthlyAmountCents: 900,
     yearlyAmountCents: 9200,
     yearlyOriginalAmountCents: 10800,
     yearlyMonthlyEquivalentCents: 800,
-    billingLabel: "Sans engagement",
-    ctaLabel: "Commencer",
+    billingLabel: "No commitment",
+    ctaLabel: "Get started",
     contactOnly: false,
     items: [
-      "10 transactions / mois",
-      "10 e-signatures / mois",
-      "2 QR Codes",
-      "1 vérification KYC / mois",
-      "1 modèle de contrat",
-      "Envoi par email",
-      "Stripe Identity inclus",
+      "10 transactions / month",
+      "10 e-signatures / month",
+      "2 QR codes",
+      "1 KYC verification / month",
+      "1 contract template",
+      "Email delivery",
+      "Stripe Identity included",
     ],
     features: {
       transactionsPerPeriod: 10,
@@ -65,22 +172,22 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     key: "pro",
     name: "Pro",
-    subtitle: "Loueurs · Prestataires",
+    subtitle: "Rentals · Service businesses",
     monthlyAmountCents: 2400,
     yearlyAmountCents: 24500,
     yearlyOriginalAmountCents: 28800,
     yearlyMonthlyEquivalentCents: 2000,
-    billingLabel: "Essai gratuit 7 jours",
-    ctaLabel: "Essai gratuit 7 jours",
+    billingLabel: "7-day free trial",
+    ctaLabel: "Start 7-day trial",
     contactOnly: false,
     items: [
       "Everything in Starter",
-      "Transactions illimitées",
-      "E-signatures illimitées",
-      "10 vérifications KYC / mois",
-      "Contrats auto-générés",
-      "QR Codes illimités",
-      "Profils clients persistants",
+      "Unlimited transactions",
+      "Unlimited e-signatures",
+      "10 KYC verifications / month",
+      "Auto-generated contracts",
+      "Unlimited QR codes",
+      "Persistent client profiles",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -94,22 +201,22 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     key: "business",
     name: "Business",
-    subtitle: "Gestionnaires · Équipes",
+    subtitle: "Managers · Teams",
     monthlyAmountCents: 4900,
     yearlyAmountCents: 50000,
     yearlyOriginalAmountCents: 58800,
     yearlyMonthlyEquivalentCents: 4200,
-    billingLabel: "Essai gratuit 7 jours",
-    badge: "Recommandé",
+    billingLabel: "7-day free trial",
+    badge: "Recommended",
     recommended: true,
-    ctaLabel: "Essai gratuit 7 jours",
+    ctaLabel: "Start 7-day trial",
     contactOnly: false,
     items: [
       "Everything in Pro",
-      "25 vérifications KYC / mois",
-      "Contrats illimités",
-      "Workflow litiges",
-      "3 utilisateurs",
+      "25 KYC verifications / month",
+      "Unlimited contracts",
+      "Dispute management workflow",
+      "3 users",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -123,21 +230,21 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
   {
     key: "enterprise",
     name: "Enterprise",
-    subtitle: "API · Marque blanche",
+    subtitle: "API · White-label",
     monthlyAmountCents: null,
     yearlyAmountCents: null,
     yearlyOriginalAmountCents: null,
     yearlyMonthlyEquivalentCents: null,
-    billingLabel: "Facturation annuelle",
-    ctaLabel: "Nous contacter",
+    billingLabel: "Annual billing",
+    ctaLabel: "Contact us",
     contactOnly: true,
     items: [
       "Everything in Business",
-      "API REST + webhooks",
-      "Marque blanche complète",
-      "KYC illimité",
-      "Utilisateurs illimités",
-      "SLA + support dédié",
+      "REST API and webhooks",
+      "Full white-label",
+      "Unlimited KYC",
+      "Unlimited users",
+      "SLA and dedicated support",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -153,6 +260,24 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
 export const subscriptionPlanMap = Object.fromEntries(
   subscriptionPlans.map((plan) => [plan.key, plan])
 ) as Record<SubscriptionPlanSlug, SubscriptionPlanDefinition>
+
+export function getLocalizedSubscriptionPlans(
+  t: SubscriptionPlanTranslationFn
+): SubscriptionPlanDefinition[] {
+  return subscriptionPlans.map((plan) => {
+    const translationKeys = subscriptionPlanTranslationKeys[plan.key]
+
+    return {
+      ...plan,
+      name: t(translationKeys.name),
+      subtitle: t(translationKeys.subtitle),
+      billingLabel: t(translationKeys.billingLabel),
+      badge: plan.key === "business" ? t(subscriptionPlanTranslationKeys.business.badge) : undefined,
+      ctaLabel: t(translationKeys.ctaLabel),
+      items: translationKeys.items.map((key) => t(key)),
+    }
+  })
+}
 
 export function parseSubscriptionPlanKey(value: string | null | undefined): SubscriptionPlanSlug | null {
   if (!value) {

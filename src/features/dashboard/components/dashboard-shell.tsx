@@ -154,7 +154,7 @@ export function DashboardShell({
               </Sheet>
             </div>
             <Link href="/" className="text-lg font-extrabold tracking-tight">
-              Con<span className="text-(--contrazy-teal)">trazy</span>
+              C<span className="text-[var(--contrazy-teal)]">on</span>trazy
             </Link>
             <div className="hidden lg:block">
               <p className="text-xs text-white/45">{title}</p>

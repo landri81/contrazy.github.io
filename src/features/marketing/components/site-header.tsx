@@ -61,8 +61,8 @@ export function SiteHeader({ session }: { session: PublicHeaderSession }) {
     <>
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[color:rgb(12_30_47/96%)] text-white backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 lg:px-10">
-          <Link href="/" className="text-xl font-extrabold tracking-tight">
-            Con<span className="text-[var(--contrazy-teal)]">trazy</span>
+          <Link href="/" className="text-3xl font-extrabold tracking-tight">
+            C<span className="text-[var(--contrazy-teal)]">on</span>trazy
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm text-white/70 md:flex">

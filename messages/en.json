@@ -2520,7 +2520,7 @@
           "label": "Active workflows"
         },
         {
-          "value": "14m",
+          "value": "3m",
           "label": "Average completion"
         },
         {
@@ -3226,6 +3226,66 @@
     "noRecordsYet": "No records yet."
   },
   "subscriptions": {
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "subtitle": "Solo operators · 1 user",
+        "billingLabel": "No commitment",
+        "ctaLabel": "Get started",
+        "items": {
+          "0": "10 transactions / month",
+          "1": "10 e-signatures / month",
+          "2": "2 QR codes",
+          "3": "1 KYC verification / month",
+          "4": "1 contract template",
+          "5": "Email delivery",
+          "6": "Stripe Identity included"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "subtitle": "Rentals · Service businesses",
+        "billingLabel": "7-day free trial",
+        "ctaLabel": "Start 7-day trial",
+        "items": {
+          "0": "Everything in Starter",
+          "1": "Unlimited transactions",
+          "2": "Unlimited e-signatures",
+          "3": "10 KYC verifications / month",
+          "4": "Auto-generated contracts",
+          "5": "Unlimited QR codes",
+          "6": "Persistent client profiles"
+        }
+      },
+      "business": {
+        "name": "Business",
+        "subtitle": "Managers · Teams",
+        "billingLabel": "7-day free trial",
+        "badge": "Recommended",
+        "ctaLabel": "Start 7-day trial",
+        "items": {
+          "0": "Everything in Pro",
+          "1": "25 KYC verifications / month",
+          "2": "Unlimited contracts",
+          "3": "Dispute management workflow",
+          "4": "3 users"
+        }
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "subtitle": "API · White-label",
+        "billingLabel": "Annual billing",
+        "ctaLabel": "Contact us",
+        "items": {
+          "0": "Everything in Business",
+          "1": "REST API and webhooks",
+          "2": "Full white-label",
+          "3": "Unlimited KYC",
+          "4": "Unlimited users",
+          "5": "SLA and dedicated support"
+        }
+      }
+    },
     "planCard": {
       "current": "Current",
       "currentPlan": "Current plan",

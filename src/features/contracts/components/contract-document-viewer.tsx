@@ -39,7 +39,7 @@ function ContrazyWordmark() {
         className="size-6"
       />
       <span className="font-sans text-[1.05rem] font-extrabold tracking-tight text-slate-950">
-        Con<span className="text-(--contrazy-teal)">trazy</span>
+        C<span className="text-[var(--contrazy-teal)]">on</span>trazy
       </span>
     </div>
   )
@@ -118,7 +118,7 @@ function ReviewFooter({ reference }: { reference?: string | null }) {
           className="size-4 opacity-75"
         />
         <span className="font-sans text-[0.78rem] font-extrabold tracking-tight text-slate-400">
-          Con<span className="text-(--contrazy-teal) opacity-80">trazy</span>
+          C<span className="text-[var(--contrazy-teal)]">on</span>trazy
         </span>
       </div>
       {reference ? (

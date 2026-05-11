@@ -40,6 +40,13 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Always land the bare domain on French, regardless of stored locale or browser preference.
+  if (pathname === "/") {
+    const url = req.nextUrl.clone()
+    url.pathname = `/${routing.defaultLocale}`
+    return NextResponse.redirect(url)
+  }
+
   const barePath = stripLocale(pathname)
   const locale = resolveLocale(pathname)
 

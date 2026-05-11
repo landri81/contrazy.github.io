@@ -35,8 +35,8 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
             className="relative space-y-10"
           >
             <div className="space-y-5">
-              <Link href="/" className="inline-flex items-center text-2xl font-extrabold tracking-tight">
-                Con<span className="text-(--contrazy-teal)">trazy</span>
+              <Link href="/" className="text-3xl font-extrabold tracking-tight">
+                C<span className="text-[var(--contrazy-teal)]">on</span>trazy
               </Link>
 
               <p className="max-w-sm text-[26px] font-semibold leading-tight">
@@ -84,8 +84,8 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           >
             <div className="rounded-[28px] border border-border/70 bg-background/88 p-6 shadow-[0_30px_80px_-40px_rgba(12,30,47,0.3)] backdrop-blur xl:p-8">
               <div className="mb-6 text-center">
-                <Link href="/" className="inline-flex items-center text-[22px] font-extrabold tracking-tight text-foreground">
-                  Con<span className="text-(--contrazy-teal)">trazy</span>
+                <Link href="/" className="text-3xl font-extrabold tracking-tight">
+                  C<span className="text-[var(--contrazy-teal)]">on</span>trazy
                 </Link>
                 <h1 className="mt-2 text-[22px] font-bold tracking-tight text-foreground">{title}</h1>
                 <p className="mt-1 text-[13px] leading-[1.6] text-muted-foreground">{subtitle}</p>

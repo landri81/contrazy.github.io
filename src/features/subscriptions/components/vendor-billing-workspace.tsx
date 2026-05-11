@@ -36,6 +36,7 @@ import {
 import { toast } from "@/components/ui/toast"
 import {
   formatEuroAmount,
+  getLocalizedSubscriptionPlans,
   subscriptionPlans,
   type SubscriptionBillingIntervalSlug,
   type SubscriptionPlanSlug,
@@ -185,7 +186,9 @@ function BillingPlanGrid({
   loading: string | null
 }) {
   const t = useTranslations("subscriptions.billing")
+  const tPlans = useTranslations("subscriptions.plans")
   const router = useRouter()
+  const localizedPlans = useMemo(() => getLocalizedSubscriptionPlans(tPlans), [tPlans])
 
   function handleSelect(planKey: SubscriptionPlanSlug) {
     if (planKey === "enterprise") {
@@ -212,7 +215,7 @@ function BillingPlanGrid({
 
   return (
     <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {subscriptionPlans.map((plan) => {
+      {localizedPlans.map((plan) => {
         const isCurrent =
           plan.key === currentPlanSlug &&
           plan.key !== "enterprise" &&
@@ -224,10 +227,10 @@ function BillingPlanGrid({
         let ctaLabel = plan.ctaLabel
 
         if (!plan.contactOnly && !canFreshCheckout && !isCurrent) {
-          const currentPlanOrder = subscriptionPlans.findIndex(
+          const currentPlanOrder = localizedPlans.findIndex(
             (p) => p.key === currentPlanSlug
           )
-          const thisPlanOrder = subscriptionPlans.findIndex(
+          const thisPlanOrder = localizedPlans.findIndex(
             (p) => p.key === plan.key
           )
 
@@ -530,7 +533,9 @@ function InvoiceTable({ invoices }: { invoices: BillingInvoice[] }) {
 
 function SubscriptionStatusBand({ subscription }: { subscription: SerializedSubscription }) {
   const t = useTranslations("subscriptions.billing")
-  const planDef = subscriptionPlans.find((plan) => plan.key === subscription.planSlug)
+  const tPlans = useTranslations("subscriptions.plans")
+  const localizedPlans = useMemo(() => getLocalizedSubscriptionPlans(tPlans), [tPlans])
+  const planDef = localizedPlans.find((plan) => plan.key === subscription.planSlug)
   const statusLabels: Record<string, string> = {
     ACTIVE: t("statusActive"),
     TRIALING: t("statusTrialing"),
@@ -568,12 +573,12 @@ function SubscriptionStatusBand({ subscription }: { subscription: SerializedSubs
             </span>
             {subscription.trialEnd && subscription.status === "TRIALING" ? (
               <span className="text-[12px] text-muted-foreground">
-                Trial ends {formatDate(subscription.trialEnd)}
+                {t("trialEnds", { date: formatDate(subscription.trialEnd) })}
               </span>
             ) : null}
             {!subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd && subscription.status !== "TRIALING" ? (
               <span className="text-[12px] text-muted-foreground">
-                Renews {formatDate(subscription.currentPeriodEnd)}
+                {t("renews", { date: formatDate(subscription.currentPeriodEnd) })}
               </span>
             ) : null}
           </div>
@@ -594,7 +599,9 @@ export function VendorBillingWorkspace({
 }) {
   const router = useRouter()
   const t = useTranslations("subscriptions.billing")
+  const tPlans = useTranslations("subscriptions.plans")
   const stripePromise = useMemo(() => loadStripe(stripePublishableKey), [stripePublishableKey])
+  const localizedPlans = useMemo(() => getLocalizedSubscriptionPlans(tPlans), [tPlans])
 
   const sub = workspace.subscription
   const isActive = workspace.access.allowed
@@ -816,8 +823,8 @@ export function VendorBillingWorkspace({
   }
 
   // Plan definition helpers
-  const selectedPlanDef = planModal.plan ? subscriptionPlans.find((p) => p.key === planModal.plan) : null
-  const intervalLabel = planModal.interval === "yearly" ? "annuel" : "mensuel"
+  const selectedPlanDef = planModal.plan ? localizedPlans.find((p) => p.key === planModal.plan) : null
+  const intervalLabel = planModal.interval === "yearly" ? t("annualLabel") : t("monthlyLabel")
   const planPrice = planModal.interval === "yearly"
     ? selectedPlanDef?.yearlyAmountCents
     : selectedPlanDef?.monthlyAmountCents
