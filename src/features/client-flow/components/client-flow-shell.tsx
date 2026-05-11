@@ -14,15 +14,30 @@ import {
   UserCircle,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { usePathname } from "@/i18n/navigation"
 
-import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
 import { LocaleSwitcher } from "@/components/ui/locale-switcher"
+import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
+import { usePathname } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
-type StepKey = "profile" | "documents" | "kyc" | "contract" | "sign" | "payment" | "complete"
+type StepKey =
+  | "profile"
+  | "documents"
+  | "kyc"
+  | "contract"
+  | "sign"
+  | "payment"
+  | "complete"
 
-const stepOrder: StepKey[] = ["profile", "documents", "kyc", "contract", "sign", "payment", "complete"]
+const stepOrder: StepKey[] = [
+  "profile",
+  "documents",
+  "kyc",
+  "contract",
+  "sign",
+  "payment",
+  "complete",
+]
 
 const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = {
   profile: UserCircle,
@@ -44,6 +59,8 @@ type ClientFlowShellProps = {
   children: React.ReactNode
 }
 
+const motionEase = [0.25, 0.46, 0.45, 0.94] as const
+
 export function ClientFlowShell({
   vendorName,
   reference,
@@ -55,6 +72,8 @@ export function ClientFlowShell({
 }: ClientFlowShellProps) {
   const tShell = useTranslations("clientFlow.shell")
   const tSteps = useTranslations("clientFlow.steps")
+  const pathname = usePathname() ?? ""
+  const reduceMotion = useReducedMotion()
 
   const stepLabelMap: Record<StepKey, string> = {
     profile: tSteps("profile"),
@@ -66,145 +85,121 @@ export function ClientFlowShell({
     complete: tSteps("complete"),
   }
 
-  const pathname = usePathname() ?? ""
   const visibleSteps = stepOrder.filter((step) => enabledSteps.includes(step))
-  const currentStep = visibleSteps.find((step) => pathname.endsWith(`/${step}`)) ?? visibleSteps[0]
-  const currentIndex = visibleSteps.indexOf(currentStep)
-  const reduceMotion = useReducedMotion()
+  const currentStep =
+    visibleSteps.find((step) => pathname.endsWith(`/${step}`)) ?? visibleSteps[0]
+  const currentIndex = Math.max(0, visibleSteps.indexOf(currentStep))
+  const CurrentIcon = currentStep ? stepIcons[currentStep] : UserCircle
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(17,201,176,0.13),transparent_32rem),linear-gradient(180deg,#f8fafc_0%,#eef3f7_100%)] text-foreground">
-      <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 shadow-sm shadow-slate-900/5 backdrop-blur-xl">
-        <div className="mx-auto flex w-full  items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-[var(--contrazy-navy)] text-white shadow-sm shadow-slate-900/15">
-              <span className="text-sm font-extrabold tracking-tight">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 supports-backdrop-filter:backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-sm bg-[var(--contrazy-navy)] text-white"
+            >
+              <span className="text-xs font-extrabold tracking-tight">
                 C<span className="text-[var(--contrazy-teal)]">t</span>
               </span>
             </div>
-            <div className="leading-tight">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{tShell("vendor")}</p>
-              <p className="text-sm font-semibold text-foreground">{vendorName}</p>
+
+            <div className="min-w-0 leading-tight">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {tShell("vendor")}
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground">{vendorName}</p>
             </div>
           </div>
-          <div className="hidden items-center gap-3 md:flex">
+
+          <div className="flex min-w-0 items-center justify-end gap-2">
             <LocaleSwitcher variant="light" />
-            <div className="h-5 w-px bg-slate-200" />
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-              <LockKeyhole className="size-3.5" />
+
+            <div className="hidden h-5 w-px bg-border sm:block" />
+
+            <div className="hidden items-center gap-1.5 rounded-sm border border-border bg-muted px-2.5 py-1.5 text-xs font-medium text-muted-foreground md:inline-flex">
+              <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
               {tShell("protectedSession")}
             </div>
-            {canCancel ? <ClientCancelLinkAction token={token} /> : null}
+
             {reference ? (
-              <div className="text-right leading-tight">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{tShell("reference")}</p>
-                <p className="text-sm font-medium text-foreground">{reference}</p>
+              <div className="hidden border-l border-border pl-3 text-right leading-tight sm:block">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {tShell("reference")}
+                </p>
+                <p className="max-w-28 truncate text-sm font-medium text-foreground md:max-w-40">
+                  {reference}
+                </p>
               </div>
             ) : null}
-          </div>
-          <div className="flex items-center gap-2 md:hidden">
-            <LocaleSwitcher variant="light" />
+
             {canCancel ? <ClientCancelLinkAction token={token} /> : null}
-            {reference ? (
-              <div className="text-right leading-tight">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{tShell("reference")}</p>
-                <p className="text-sm font-medium text-foreground">{reference}</p>
-              </div>
-            ) : null}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-8 lg:py-8">
-        <motion.aside
-          initial={reduceMotion ? false : { opacity: 0, x: -18 }}
-          animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="client-flow-sidebar relative hidden overflow-hidden rounded-lg bg-[var(--contrazy-navy)] p-5 text-white shadow-xl shadow-slate-900/15 lg:sticky lg:top-24 lg:block lg:h-[calc(100dvh-8rem)]"
-        >
-          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_0%,rgba(17,201,176,0.32),transparent_18rem)]" />
-          <div className="client-flow-sidebar-inner scrollbar-thin-subtle relative flex h-full flex-col overflow-y-auto pr-1">
-            <div className="client-flow-sidebar-badge inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">
-              <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
-              {tShell("secureOnboarding")}
-            </div>
+      <main className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-5 sm:py-5">
+        <section className="border-b border-border pb-4">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-sm border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <LockKeyhole className="size-3.5 text-[var(--contrazy-teal)]" />
+                {tShell("secureOnboarding")}
+              </div>
 
-            <div className="client-flow-sidebar-intro mt-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">{tShell("transaction")}</p>
-              <h1 className="client-flow-sidebar-title mt-3 font-heading text-3xl font-semibold leading-tight text-white">
+              <h1 className="mt-3 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                 {tShell("completeRequest", { vendorName })}
               </h1>
-              <p className="client-flow-sidebar-copy mt-4 text-sm leading-6 text-white/65">
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                 {tShell("progressSaved")}
               </p>
             </div>
 
-            <div className="client-flow-sidebar-summary mt-8 flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.07] p-4">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-xs uppercase tracking-[0.18em] text-white/45">{tShell("currentStep")}</span>
-                <span className="text-sm font-semibold text-[var(--contrazy-teal)]">{tShell("stepOf", { current: currentIndex + 1, total: visibleSteps.length })}</span>
+            <div className="flex min-w-0 items-center gap-3 rounded-sm border border-border bg-background px-3 py-2 md:min-w-64">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-muted text-[var(--contrazy-teal)]">
+                <CurrentIcon className="size-4" />
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-white/10">
-                  {(() => {
-                    const Icon = stepIcons[currentStep]
-                    return <Icon className="size-4 text-[var(--contrazy-teal)]" />
-                  })()}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">{stepLabelMap[currentStep]}</p>
-                  {reference ? <p className="client-flow-sidebar-reference text-xs text-white/50">{tShell("reference")} {reference}</p> : null}
-                </div>
+              <div className="min-w-0 leading-tight">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {tShell("currentStep")}
+                </p>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {currentStep ? stepLabelMap[currentStep] : "—"}
+                </p>
+              </div>
+              <div className="ml-auto shrink-0 rounded-full border border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--contrazy-teal)]">
+                {tShell("stepOf", {
+                  current: currentIndex + 1,
+                  total: visibleSteps.length,
+                })}
               </div>
             </div>
-
-            <div className="client-flow-sidebar-steps mt-auto hidden flex-col gap-3 pt-8 lg:flex">
-              {visibleSteps.slice(0, 4).map((step, index) => {
-                const isCurrent = step === currentStep
-                const isDone = completedSteps.includes(step) || index < currentIndex
-
-                return (
-                  <div key={step} className="client-flow-sidebar-step flex items-center gap-3 text-sm">
-                    <span
-                      className={cn(
-                        "flex size-6 items-center justify-center rounded-full border text-[11px] font-bold",
-                        isDone
-                          ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-[var(--contrazy-navy)]"
-                          : isCurrent
-                            ? "border-white/40 bg-white/10 text-white"
-                            : "border-white/15 text-white/45"
-                      )}
-                    >
-                      {isDone ? <Check className="size-3" /> : index + 1}
-                    </span>
-                    <span className={cn(isCurrent ? "text-white" : isDone ? "text-white/75" : "text-white/45")}>
-                      {stepLabelMap[step]}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
           </div>
-        </motion.aside>
+        </section>
 
-        <section className="min-w-0">
-          <div className="sticky top-24 z-50">
-            <ProgressStepper steps={visibleSteps} currentIndex={currentIndex} completed={completedSteps} labelMap={stepLabelMap} />
-          </div>
+        <div className="sticky top-[57px] z-30 border-b border-border bg-background/95 py-3 supports-backdrop-filter:backdrop-blur sm:top-[57px]">
+          <ProgressStepper
+            steps={visibleSteps}
+            currentIndex={currentIndex}
+            completed={completedSteps}
+            labelMap={stepLabelMap}
+          />
+        </div>
 
-          <div className="relative mt-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        <section className="min-w-0 py-5">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: motionEase }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </section>
       </main>
     </div>
@@ -225,75 +220,61 @@ function ProgressStepper({
   if (steps.length === 0) return null
 
   const safeIndex = Math.max(0, currentIndex)
-  const progressPercent = steps.length === 1 ? 100 : (safeIndex / (steps.length - 1)) * 100
-  const currentStep = steps[currentIndex]
-  const trackInset = `${100 / (steps.length * 2)}%`
-  const trackLength = `${100 - 100 / steps.length}%`
+  const currentStep = steps[safeIndex]
 
   return (
-    <div className="rounded-lg border border-white bg-white/85 p-4 shadow-sm shadow-slate-900/5 backdrop-blur-sm sm:p-5">
-      <div className="relative">
-        <div
-          className="absolute top-4 h-1 rounded-full bg-slate-200 sm:top-[18px]"
-          style={{ left: trackInset, right: trackInset }}
-        />
-        <motion.div
-          className="absolute top-4 h-1 rounded-full bg-[var(--contrazy-teal)] sm:top-[18px]"
-          style={{ left: trackInset }}
-          initial={false}
-          animate={{ width: `calc(${trackLength} * ${progressPercent / 100})` }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        />
-        <div className="relative grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
-          {steps.map((step, index) => {
-            const Icon = stepIcons[step]
-            const isCompleted = completed.includes(step) || index < currentIndex
-            const isCurrent = index === currentIndex
+    <nav aria-label="Client onboarding progress">
+      <ol className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin-subtle sm:overflow-visible sm:pb-0">
+        {steps.map((step, index) => {
+          const Icon = stepIcons[step]
+          const isCompleted = completed.includes(step) || index < safeIndex
+          const isCurrent = index === safeIndex
 
-            return (
-              <div key={step} className="flex min-w-0 flex-col items-center gap-2">
-                <motion.div
-                  initial={false}
-                  animate={{ scale: isCurrent ? 1.08 : 1 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className={cn(
-                    "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors sm:size-9",
-                    isCompleted
-                      ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white shadow-sm shadow-emerald-500/25"
-                      : isCurrent
-                        ? "border-[var(--contrazy-teal)] bg-white text-[var(--contrazy-teal)] shadow-md shadow-emerald-500/20"
-                        : "border-slate-200 bg-white text-muted-foreground"
-                  )}
-                >
-                  {isCompleted ? <Check className="size-3" /> : <Icon className="size-3 sm:size-3.5" />}
-                </motion.div>
+          return (
+            <li key={step} className="flex min-w-0 flex-1 items-center gap-2 first:min-w-fit">
+              <div
+                aria-current={isCurrent ? "step" : undefined}
+                className={cn(
+                  "flex h-8 min-w-fit items-center gap-2 rounded-sm px-2 text-xs font-semibold transition-colors",
+                  isCurrent
+                    ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
+                    : isCompleted
+                      ? "text-foreground"
+                      : "text-muted-foreground"
+                )}
+              >
                 <span
                   className={cn(
-                    "hidden max-w-20 truncate text-center text-[10px] font-semibold uppercase tracking-[0.08em] sm:block",
-                    isCurrent
-                      ? "text-foreground"
-                      : isCompleted
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground/50"
+                    "flex size-5 shrink-0 items-center justify-center rounded-sm border text-[10px]",
+                    isCompleted
+                      ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white"
+                      : isCurrent
+                        ? "border-[var(--contrazy-teal)] text-[var(--contrazy-teal)]"
+                        : "border-border text-muted-foreground"
                   )}
                 >
-                  {labelMap[step]}
+                  {isCompleted ? <Check className="size-3" /> : <Icon className="size-3" />}
                 </span>
+                <span className="hidden max-w-24 truncate sm:block">{labelMap[step]}</span>
               </div>
-            )
-          })}
-        </div>
-      </div>
 
-      <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 sm:hidden">
-        <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+              {index < steps.length - 1 ? (
+                <span aria-hidden="true" className="h-px min-w-5 flex-1 bg-border" />
+              ) : null}
+            </li>
+          )
+        })}
+      </ol>
+
+      <div className="mt-2 flex items-center justify-between border border-border bg-muted/30 px-3 py-2 sm:hidden">
+        <span className="truncate text-xs font-semibold uppercase tracking-wide text-foreground">
           {labelMap[currentStep]}
         </span>
         <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
-          {currentIndex + 1} / {steps.length}
+          {safeIndex + 1} / {steps.length}
           <ArrowRight className="size-3" />
         </span>
       </div>
-    </div>
+    </nav>
   )
 }
