@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { shouldRequestExtendedCardAuthorization } from "@/features/subscriptions/server/feature-gates"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -36,7 +37,11 @@ export async function POST(
       include: {
         transaction: {
           include: {
-            vendor: true,
+            vendor: {
+              include: {
+                subscription: true,
+              },
+            },
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
@@ -73,19 +78,27 @@ export async function POST(
     const isDeposit = nextStage === "deposit_authorization"
     const amountCents = isDeposit ? transaction.depositAmount! : transaction.amount!
     const stripeAccountId = transaction.vendor.stripeAccountId
+    const requestExtendedAuthorization =
+      isDeposit && shouldRequestExtendedCardAuthorization(transaction.vendor.subscription)
 
     const intent = await stripe.paymentIntents.create(
       {
         amount: amountCents,
         currency: transaction.currency.toLowerCase(),
         capture_method: isDeposit ? "manual" : "automatic",
-        automatic_payment_methods: { enabled: true },
+        payment_method_types: ["card"],
+        payment_method_options: {
+          card: {
+            request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
+          },
+        },
         metadata: {
           transactionId: transaction.id,
           vendorId: transaction.vendorId,
           kind: transaction.kind,
           financeStage: nextStage,
           token,
+          authorizationWindowDays: String(requestExtendedAuthorization ? 30 : 7),
         },
         description: `${transaction.title} — ${isDeposit ? "Security Deposit" : "Service Payment"} (${transaction.reference})`,
         receipt_email: transaction.clientProfile?.email ?? undefined,
@@ -99,7 +112,11 @@ export async function POST(
       title: isDeposit ? "Deposit authorization started" : "Service payment started",
       detail: `PaymentIntent ${intent.id} created for ${isDeposit ? "deposit hold" : "service payment"}.`,
       dedupeKey: `event:payment-intent:${transaction.id}:${nextStage}:${intent.id}`,
-      metadata: { intentId: intent.id, financeStage: nextStage },
+      metadata: {
+        intentId: intent.id,
+        financeStage: nextStage,
+        authorizationWindowDays: requestExtendedAuthorization ? 30 : 7,
+      },
     })
 
     return NextResponse.json({

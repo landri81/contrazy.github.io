@@ -44,6 +44,7 @@ type SubscriptionPlanTranslationKey =
   | "starter.items.4"
   | "starter.items.5"
   | "starter.items.6"
+  | "starter.items.7"
   | "pro.name"
   | "pro.subtitle"
   | "pro.billingLabel"
@@ -55,6 +56,7 @@ type SubscriptionPlanTranslationKey =
   | "pro.items.4"
   | "pro.items.5"
   | "pro.items.6"
+  | "pro.items.7"
   | "business.name"
   | "business.subtitle"
   | "business.billingLabel"
@@ -65,6 +67,7 @@ type SubscriptionPlanTranslationKey =
   | "business.items.2"
   | "business.items.3"
   | "business.items.4"
+  | "business.items.5"
   | "enterprise.name"
   | "enterprise.subtitle"
   | "enterprise.billingLabel"
@@ -92,6 +95,7 @@ const subscriptionPlanTranslationKeys = {
       "starter.items.4",
       "starter.items.5",
       "starter.items.6",
+      "starter.items.7",
     ],
   },
   pro: {
@@ -107,6 +111,7 @@ const subscriptionPlanTranslationKeys = {
       "pro.items.4",
       "pro.items.5",
       "pro.items.6",
+      "pro.items.7",
     ],
   },
   business: {
@@ -121,6 +126,7 @@ const subscriptionPlanTranslationKeys = {
       "business.items.2",
       "business.items.3",
       "business.items.4",
+      "business.items.5",
     ],
   },
   enterprise: {
@@ -159,6 +165,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "1 contract template",
       "Email delivery",
       "Stripe Identity included",
+      "7-day card authorization",
     ],
     features: {
       transactionsPerPeriod: 10,
@@ -188,6 +195,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Auto-generated contracts",
       "Unlimited QR codes",
       "Persistent client profiles",
+      "Up to 30-day card authorization",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -217,6 +225,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Unlimited contracts",
       "Dispute management workflow",
       "3 users",
+      "Up to 30-day card authorization",
     ],
     features: {
       transactionsPerPeriod: null,

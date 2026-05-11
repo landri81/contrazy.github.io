@@ -3261,7 +3261,8 @@
           "3": "1 vérification KYC / mois",
           "4": "1 modèle de contrat",
           "5": "Envoi par email",
-          "6": "Stripe Identity inclus"
+          "6": "Stripe Identity inclus",
+          "7": "Autorisation carte 7 jours"
         }
       },
       "pro": {
@@ -3276,7 +3277,8 @@
           "3": "10 vérifications KYC / mois",
           "4": "Contrats générés automatiquement",
           "5": "QR codes illimités",
-          "6": "Profils clients persistants"
+          "6": "Profils clients persistants",
+          "7": "Autorisation carte jusqu'à 30 jours"
         }
       },
       "business": {
@@ -3290,7 +3292,8 @@
           "1": "25 vérifications KYC / mois",
           "2": "Contrats illimités",
           "3": "Workflow de gestion des litiges",
-          "4": "3 utilisateurs"
+          "4": "3 utilisateurs",
+          "5": "Autorisation carte jusqu'à 30 jours"
         }
       },
       "enterprise": {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type Stripe from "stripe"
 
+import { shouldRequestExtendedCardAuthorization } from "@/features/subscriptions/server/feature-gates"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -37,7 +38,11 @@ export async function POST(
       include: {
         transaction: {
           include: {
-            vendor: true,
+            vendor: {
+              include: {
+                subscription: true,
+              },
+            },
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
@@ -72,6 +77,9 @@ export async function POST(
     const origin = getAppBaseUrl()
     const lineItemAmount = nextStage === "service_payment" ? transaction.amount! : transaction.depositAmount!
     const lineItemName = nextStage === "service_payment" ? "Service Payment" : "Security Deposit"
+    const requestExtendedAuthorization =
+      nextStage === "deposit_authorization" &&
+      shouldRequestExtendedCardAuthorization(transaction.vendor.subscription)
     const returnsToPayment =
       nextStage === "service_payment" && Boolean(transaction.depositAmount && transaction.depositAmount > 0)
     const successPath = returnsToPayment
@@ -80,6 +88,11 @@ export async function POST(
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
+      payment_method_options: {
+        card: {
+          request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
+        },
+      },
       line_items: [
         {
           price_data: {
@@ -117,6 +130,7 @@ export async function POST(
               kind: transaction.kind,
               financeStage: nextStage,
               token,
+              authorizationWindowDays: String(requestExtendedAuthorization ? 30 : 7),
             },
           }
         : {
@@ -144,6 +158,7 @@ export async function POST(
       metadata: {
         sessionId: stripeSession.id,
         financeStage: nextStage,
+        authorizationWindowDays: requestExtendedAuthorization ? 30 : 7,
       },
     })
 

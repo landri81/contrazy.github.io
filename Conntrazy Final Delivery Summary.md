@@ -3,7 +3,8 @@
 **Prepared for:** Aziz Landri  
 **Developer:** Shakil Khan (Full Stack Engineer)  
 **Project:** Conntrazy MVP  
-**Status:** 100% complete against the approved MVP delivery scope  
+**Status:** 100% complete against the approved MVP delivery scope, with the
+latest core operational updates integrated into the live product  
 
 ---
 
@@ -11,6 +12,12 @@
 
 Conntrazy has been completed as a full MVP based on the agreed proposal and the
 system overview meeting.
+
+Since the initial MVP completion, the live product has also been strengthened
+with key production updates around shareable link and QR delivery, revisitable
+pre-payment onboarding steps, safer document lifecycle cleanup, vendor export
+tools, secure signature image preview, and plan-based card authorization
+windows.
 
 The delivered product gives vendors one connected workflow to:
 
@@ -71,8 +78,10 @@ That objective is now fully achieved.
 - prepare reusable checklist and document requirements
 - create a transaction
 - generate a secure link and QR code
+- share that link or QR through copy, email, WhatsApp, Facebook, or downloadable QR image
 - send the client into one guided workflow
 - track progress from the dashboard
+- export operational records from key vendor tables
 - manage payment and deposit outcomes
 
 ### A client can now:
@@ -83,6 +92,7 @@ That objective is now fully achieved.
 - complete KYC when required
 - review a populated agreement
 - sign the agreement
+- go back and update earlier steps before payment begins
 - complete payment and/or authorize a deposit
 - finish the workflow in one connected journey
 
@@ -148,13 +158,15 @@ Delivered:
 - transaction creation workflow
 - secure link generation
 - QR code generation
+- final-step sharing for link distribution by copy, email, WhatsApp, and Facebook
+- QR download and sharing as a real image
 - definition of transaction requirements
 - contract attachment to the transaction
 - payment amount and deposit amount handling
 
 Business result:
 
-The vendor can create a real client journey from one dashboard.
+The vendor can create and distribute a real client journey from one dashboard.
 
 ## Client information flow
 
@@ -165,13 +177,17 @@ Delivered:
 - secure client access by link or QR code
 - client information capture
 - document and photo collection
+- revisitable pre-payment steps for profile, documents, identity, contract, and signature
+- saved document state reloaded when the client returns to a previous step
+- secure replace and delete handling with cleanup of obsolete Cloudinary files
 - staged flow progression
 - completion tracking
 
 Business result:
 
 The client can complete the required journey in one place without a heavy
-account creation process.
+account creation process, while still being able to correct information before
+finance begins.
 
 ## KYC and identity verification
 
@@ -183,6 +199,8 @@ Delivered:
 - Stripe Identity integration for verification
 - KYC status tracking
 - KYC tied to the transaction journey
+- ability to continue forward when identity verification is already satisfied
+- controlled restart of identity verification before payment when a fresh check is required
 
 Final business rule confirmed:
 
@@ -205,6 +223,7 @@ Delivered:
 - in-flow contract review
 - agreement confirmation and signature
 - signed agreement output and contract artifact handling
+- contract step can be revisited before payment if upstream data needs to be corrected
 
 Business result:
 
@@ -220,6 +239,7 @@ Delivered:
 - built-in signature step
 - customer agreement confirmation
 - signature capture as part of the guided flow
+- ability to revisit and update the signature before any payment or deposit step begins
 
 Business result:
 
@@ -233,6 +253,7 @@ This part is complete.
 Delivered:
 
 - service payment handling
+- card-only collection flow for the live payment experience
 - vendor-controlled payment timing
 - vendor choice to trigger payment directly after contract signing or after the service
 - payment status tracking
@@ -252,6 +273,10 @@ This part is complete.
 Delivered:
 
 - deposit authorization
+- plan-based authorization windows for card holds:
+  - Starter uses the standard 7-day authorization window
+  - Pro can request up to 30-day extended authorization where Stripe and the card network allow it
+  - Business can request up to 30-day extended authorization where Stripe and the card network allow it
 - vendor-controlled deposit decisions
 - full capture
 - partial capture with vendor-defined amount
@@ -274,6 +299,8 @@ This part is complete.
 
 Delivered operational rules:
 
+- before any payment or deposit starts, earlier onboarding steps can be revisited and corrected
+- once service payment or deposit flow begins, earlier onboarding routes are locked
 - deposit decisions are manual and controlled by the vendor
 - the vendor can choose between:
   - full capture
@@ -313,6 +340,8 @@ Delivered:
 - vendor dashboard views
 - transaction progress visibility
 - payment and deposit visibility
+- CSV export for links, transactions, clients, KYC, and signatures
+- secure preview of stored signature images from the signatures workspace
 - admin oversight tools
 - activity monitoring
 
@@ -397,6 +426,10 @@ The delivered version correctly focuses on:
 - real Stripe-connected operations
 - a strong foundation for scale
 
+The current live version also includes core operational refinements beyond the
+baseline MVP, especially around reporting, shareability, data correction before
+payment, and safer asset handling.
+
 This matches the proposal direction exactly.
 
 ---
@@ -406,10 +439,14 @@ This matches the proposal direction exactly.
 The commercial logic agreed during planning is supported by the delivered
 workflow structure:
 
+- the current live payment experience is standardized on card payments
 - normal service payment can be processed through the platform flow
 - standard service payments do not carry a Conntrazy platform fee
 - deposit authorization is handled as a separate operational step
 - deposit release and capture are managed after the transaction when required
+- Starter uses the standard 7-day card authorization window
+- Pro can request up to 30-day extended card authorization for eligible deposit holds
+- Business can request up to 30-day extended card authorization for eligible deposit holds
 - deposit capture follows the confirmed fee structure of **2% + 0.25 EUR**
 - within that captured deposit fee:
   - **1.5% + 0.25 EUR** goes directly to Stripe
