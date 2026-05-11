@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { Variants } from "framer-motion"
 import type { ChecklistItem, ChecklistTemplate, ContractTemplate } from "@prisma/client"
@@ -11,19 +11,25 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  Copy,
   CreditCard,
+  Download,
+  ExternalLink,
   FileText,
   Info,
   Link as LinkIcon,
   Loader2,
   LockKeyhole,
+  Mail,
+  MessageCircle,
   Plus,
   QrCode,
+  Share2,
   ShieldCheck,
   Trash2,
   Wallet,
 } from "lucide-react"
-import { QRCodeSVG } from "qrcode.react"
+import { QRCodeCanvas } from "qrcode.react"
 
 import { useTranslations } from "next-intl"
 
@@ -449,7 +455,12 @@ export function TransactionCreationForm({
   const [error, setError] = useState<string | null>(null)
   const [stepError, setStepError] = useState<string | null>(null)
   const [successLink, setSuccessLink] = useState<string | null>(null)
+  const [successRecord, setSuccessRecord] = useState<VendorLinkRecord | null>(null)
+  const [successError, setSuccessError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isDownloadingQrImage, setIsDownloadingQrImage] = useState(false)
+  const [isSharingQrImage, setIsSharingQrImage] = useState(false)
+  const qrCanvasContainerRef = useRef<HTMLDivElement | null>(null)
 
   const amountNum = Number.parseFloat(amount) || 0
   const depositNum = Number.parseFloat(depositAmount) || 0
@@ -680,7 +691,9 @@ export function TransactionCreationForm({
         return
       }
 
-      const link = `${window.location.origin}/t/${data.link.token}`
+      const link = data.linkRecord?.shareLink || (data.link?.token ? `${window.location.origin}/t/${data.link.token}` : "")
+      setSuccessRecord(data.linkRecord ?? null)
+      setSuccessError(null)
       setSuccessLink(link)
 
       if (onLinkCreated && data.linkRecord) {
@@ -695,13 +708,22 @@ export function TransactionCreationForm({
 
   function handleCopy() {
     if (!successLink) return
-    void navigator.clipboard.writeText(successLink)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
+    void navigator.clipboard
+      .writeText(successLink)
+      .then(() => {
+        setSuccessError(null)
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 2000)
+      })
+      .catch(() => {
+        setSuccessError(t("shareCopyError"))
+      })
   }
 
   function handleReset() {
     setSuccessLink(null)
+    setSuccessRecord(null)
+    setSuccessError(null)
     setCopied(false)
     setTitle("")
     setNotes("")
@@ -719,69 +741,336 @@ export function TransactionCreationForm({
     setStep(1)
   }
 
+  function openSharePopup(url: string) {
+    window.open(url, "_blank", "noopener,noreferrer,width=720,height=760")
+  }
+
+  function getSuccessShareLink() {
+    return successRecord?.shareLink ?? successLink ?? ""
+  }
+
+  function getSuccessShareTitle() {
+    return successRecord?.title?.trim() || title.trim() || t("successDefaultTitle")
+  }
+
+  function buildShareMessage(link: string) {
+    return t("shareMessage", {
+      title: getSuccessShareTitle(),
+      link,
+    })
+  }
+
+  function handleShareWhatsApp() {
+    const link = getSuccessShareLink()
+    if (!link) return
+
+    setSuccessError(null)
+    openSharePopup(`https://wa.me/?text=${encodeURIComponent(buildShareMessage(link))}`)
+  }
+
+  function handleShareFacebook() {
+    const link = getSuccessShareLink()
+    if (!link) return
+
+    setSuccessError(null)
+    openSharePopup(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(
+        buildShareMessage(link)
+      )}`
+    )
+  }
+
+  function handleShareEmail() {
+    const link = getSuccessShareLink()
+    if (!link) return
+
+    setSuccessError(null)
+    window.location.href = `mailto:?subject=${encodeURIComponent(
+      t("shareEmailSubject", { title: getSuccessShareTitle() })
+    )}&body=${encodeURIComponent(buildShareMessage(link))}`
+  }
+
+  function handleOpenSecureLink() {
+    const link = getSuccessShareLink()
+    if (!link) return
+
+    setSuccessError(null)
+    window.open(link, "_blank", "noopener,noreferrer")
+  }
+
+  function getQrCanvasElement() {
+    return qrCanvasContainerRef.current?.querySelector("canvas") ?? null
+  }
+
+  function getQrImageFileName() {
+    const base =
+      successRecord?.reference?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") ||
+      "secure-link"
+
+    return `${base}-qr.png`
+  }
+
+  async function createQrImageFile() {
+    const canvas = getQrCanvasElement()
+
+    if (!canvas) {
+      return null
+    }
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((nextBlob) => resolve(nextBlob), "image/png")
+    })
+
+    if (!blob) {
+      return null
+    }
+
+    return new File([blob], getQrImageFileName(), { type: "image/png" })
+  }
+
+  async function handleDownloadQrImage() {
+    setSuccessError(null)
+    setIsDownloadingQrImage(true)
+
+    try {
+      const file = await createQrImageFile()
+
+      if (!file) {
+        setSuccessError(t("shareQrImageError"))
+        return
+      }
+
+      const url = URL.createObjectURL(file)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = file.name
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setIsDownloadingQrImage(false)
+    }
+  }
+
+  async function handleShareQrImage() {
+    const link = getSuccessShareLink()
+
+    if (!link || typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      return
+    }
+
+    setSuccessError(null)
+    setIsSharingQrImage(true)
+
+    try {
+      const file = await createQrImageFile()
+
+      if (!file) {
+        setSuccessError(t("shareQrImageError"))
+        return
+      }
+
+      const payload = {
+        title: t("shareQrImageTitle", { title: getSuccessShareTitle() }),
+        text: t("shareQrImageText", { link }),
+        files: [file],
+      }
+
+      if (typeof navigator.canShare === "function" && !navigator.canShare(payload)) {
+        setSuccessError(t("shareQrImageUnsupported"))
+        return
+      }
+
+      await navigator.share(payload)
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === "AbortError") {
+        return
+      }
+
+      setSuccessError(t("shareQrImageError"))
+    } finally {
+      setIsSharingQrImage(false)
+    }
+  }
+
   if (successLink) {
+    const shareLink = getSuccessShareLink()
+    const shareTitle = getSuccessShareTitle()
+    const canShareQrImage = typeof navigator !== "undefined" && typeof navigator.share === "function"
+
     return (
       <div className="flex h-full min-h-0 flex-col bg-background">
         <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-8">
-          <div className="mx-auto w-full max-w-xl text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-sm border border-[var(--contrazy-teal)]/35 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="text-center">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-sm border border-[var(--contrazy-teal)]/35 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
               <CheckCircle2 className="size-6" />
-            </div>
-            <h1 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{t("successTitle")}</h1>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              {generateQr ? t("successDescWithQr") : t("successDescNoQr")}
-            </p>
-
-            <div className="mt-6 border-y border-border py-4">
-              <Label htmlFor="generated-link" className={fieldLabelClass}>
-                {t("summaryTitleRow")}
-              </Label>
-              <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
-                <Input
-                  id="generated-link"
-                  readOnly
-                  value={successLink}
-                  className={cn(controlClass, "bg-muted/30 text-xs")}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn(buttonSecondaryClass, "cursor-pointer")}
-                  onClick={handleCopy}
-                >
-                  {copied ? t("copied") : t("copy")}
-                </Button>
               </div>
+              <h1 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{t("successTitle")}</h1>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                {generateQr ? t("successDescWithQr") : t("successDescNoQr")}
+              </p>
             </div>
 
-            {generateQr ? (
-              <div className="mt-5 flex flex-col items-center justify-center">
-                <div className="border border-border bg-background p-3">
-                  <QRCodeSVG value={successLink} size={132} level="M" includeMargin />
+            <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+              <section className="rounded-sm border border-border bg-muted/10 p-4 text-left">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{t("sharePanelTitle")}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("sharePanelDesc")}</p>
+                  </div>
+                  <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                    {successRecord?.reference ?? shareTitle}
+                  </span>
                 </div>
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                  <QrCode className="size-3.5" />
-                  {t("qrReadyLabel")}
-                </p>
-              </div>
-            ) : (
-              <div className="mx-auto mt-5 flex max-w-md items-start gap-3 border border-dashed border-border bg-muted/20 p-3 text-left">
-                <LockKeyhole className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">{t("qrNotGenerated")}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("qrNotGeneratedDesc")}</p>
-                </div>
-              </div>
-            )}
 
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(buttonSecondaryClass, "mt-6 cursor-pointer")}
-              onClick={handleReset}
-            >
-              {t("createAnother")}
-            </Button>
+                <div className="mt-4">
+                  <Label htmlFor="generated-link" className={fieldLabelClass}>
+                    {t("secureLinkLabel")}
+                  </Label>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                    <Input
+                      id="generated-link"
+                      readOnly
+                      value={shareLink}
+                      className={cn(controlClass, "bg-background text-xs")}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "cursor-pointer")}
+                      onClick={handleCopy}
+                    >
+                      <Copy className="mr-2 size-4" />
+                      {copied ? t("copied") : t("copyLink")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "cursor-pointer")}
+                      onClick={handleOpenSecureLink}
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      {t("openLink")}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <p className={fieldLabelClass}>{t("shareChannelsTitle")}</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "justify-start cursor-pointer")}
+                      onClick={handleShareWhatsApp}
+                    >
+                      <MessageCircle className="mr-2 size-4" />
+                      {t("shareWhatsApp")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "justify-start cursor-pointer")}
+                      onClick={handleShareFacebook}
+                    >
+                      <Share2 className="mr-2 size-4" />
+                      {t("shareFacebook")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "justify-start cursor-pointer")}
+                      onClick={handleShareEmail}
+                    >
+                      <Mail className="mr-2 size-4" />
+                      {t("shareEmail")}
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{t("shareChannelsHint")}</p>
+                </div>
+
+                {successError ? (
+                  <div className="mt-4 flex items-start gap-2 rounded-sm border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                    <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                    <p>{successError}</p>
+                  </div>
+                ) : null}
+              </section>
+
+              {generateQr ? (
+                <aside className="rounded-sm border border-border bg-background p-4">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-foreground">{t("qrPanelTitle")}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("qrPanelDesc")}</p>
+                  </div>
+
+                  <div
+                    ref={qrCanvasContainerRef}
+                    className="mt-4 flex justify-center rounded-sm border border-border bg-white p-4"
+                  >
+                    <QRCodeCanvas value={shareLink} size={176} level="M" includeMargin />
+                  </div>
+
+                  <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                    <QrCode className="size-3.5" />
+                    {t("qrReadyLabel")}
+                  </p>
+
+                  <div className="mt-4 grid gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(buttonSecondaryClass, "justify-start cursor-pointer")}
+                      onClick={handleDownloadQrImage}
+                      disabled={isDownloadingQrImage || isSharingQrImage}
+                    >
+                      {isDownloadingQrImage ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 size-4" />
+                      )}
+                      {t("downloadQrImage")}
+                    </Button>
+
+                    {canShareQrImage ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(buttonSecondaryClass, "justify-start cursor-pointer")}
+                        onClick={handleShareQrImage}
+                        disabled={isDownloadingQrImage || isSharingQrImage}
+                      >
+                        {isSharingQrImage ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <Share2 className="mr-2 size-4" />
+                        )}
+                        {t("shareQrImage")}
+                      </Button>
+                    ) : null}
+                  </div>
+                </aside>
+              ) : (
+                <aside className="flex items-start gap-3 rounded-sm border border-dashed border-border bg-muted/20 p-4 text-left">
+                  <LockKeyhole className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{t("qrNotGenerated")}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("qrNotGeneratedDesc")}</p>
+                  </div>
+                </aside>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(buttonSecondaryClass, "cursor-pointer")}
+                onClick={handleReset}
+              >
+                {t("createAnother")}
+              </Button>
+            </div>
           </div>
         </main>
       </div>

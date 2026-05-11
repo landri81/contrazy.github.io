@@ -351,6 +351,7 @@ export async function POST(request: Request) {
           amount: transaction.amount,
           depositAmount: transaction.depositAmount,
           currency: transaction.currency,
+          locale: transaction.locale,
           notes: transaction.notes,
           updatedAt: transaction.updatedAt,
           clientProfile: null,
