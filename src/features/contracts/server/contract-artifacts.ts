@@ -2,7 +2,7 @@ import { createHash } from "crypto"
 import { readFile } from "fs/promises"
 import { join } from "path"
 
-import type { Prisma, PrismaClient } from "@prisma/client"
+import { SignatureStatus, type Prisma, type PrismaClient } from "@prisma/client"
 import sparticuzChromium from "@sparticuz/chromium"
 import { PDFDocument, StandardFonts, rgb, type PDFImage, type PDFPage, type PDFFont } from "pdf-lib"
 import { chromium as playwrightCoreChromium } from "playwright-core"
@@ -795,6 +795,35 @@ export async function persistReviewedContractSnapshot(
     data: {
       renderedContentBeforeSignature,
       reviewCompletedAt: new Date(),
+    },
+  })
+}
+
+export async function invalidateTransactionAgreementState(
+  db: DatabaseClient,
+  transactionId: string
+) {
+  await db.transactionContractArtifact.updateMany({
+    where: { transactionId },
+    data: {
+      renderedContentBeforeSignature: null,
+      renderedContentAfterSignature: null,
+      signatureImageUrl: null,
+      signatureImagePublicId: null,
+      signedPdfUrl: null,
+      signedPdfPublicId: null,
+      signedPdfHash: null,
+      reviewCompletedAt: null,
+      signedAt: null,
+      signedTimezone: null,
+    },
+  })
+
+  await db.signatureRecord.updateMany({
+    where: { transactionId },
+    data: {
+      status: SignatureStatus.PENDING,
+      signedAt: null,
     },
   })
 }

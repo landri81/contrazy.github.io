@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 
 export function PaymentActionForm({
   token,
@@ -26,7 +27,7 @@ export function PaymentActionForm({
 }) {
   const t = useTranslations("clientFlow.paymentAction")
   const router = useRouter()
-  const [isPending, setIsPending] = useState(false)
+  const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
 
   function fmt(cents: number) {
@@ -34,13 +35,18 @@ export function PaymentActionForm({
   }
 
   async function handleCheckout() {
-    setIsPending(true)
+    submission.start()
     setError(null)
     try {
       const res = await fetch(`/api/client/${token}/checkout`, { method: "POST" })
       const data = await res.json()
-      if (res.status === 410) { router.replace(`/t/${token}/cancelled`); return }
+      if (res.status === 410) {
+        submission.keepLocked()
+        router.replace(`/t/${token}/cancelled`)
+        return
+      }
       if (data.url) {
+        submission.keepLocked()
         window.location.href = data.url
       } else {
         setError(data?.message ?? t("checkoutError"))
@@ -48,7 +54,7 @@ export function PaymentActionForm({
     } catch {
       setError(t("checkoutError"))
     } finally {
-      setIsPending(false)
+      submission.finish()
     }
   }
 
@@ -185,10 +191,10 @@ export function PaymentActionForm({
         <Button
           onClick={handleCheckout}
           className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
-          disabled={isPending || pendingConfirmation}
+          disabled={submission.isLocked || pendingConfirmation}
         >
-          {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-          {isPending ? t("redirecting") : ctaLabel}
+          {submission.isLocked ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+          {submission.isLocked ? t("redirecting") : ctaLabel}
         </Button>
       </CardFooter>
     </Card>

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { generateSignedContractArtifact } from "@/features/contracts/server/contract-artifacts"
-import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
+import {
+  canRevisitClientStep,
+  clientFlowTransactionInclude,
+  getNextClientStep,
+} from "@/features/client-flow/server/client-flow-data"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -72,6 +76,22 @@ export async function POST(
 
     const transactionId = link.transaction.id
     const vendorId = link.transaction.vendorId
+    const currentTransaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: clientFlowTransactionInclude,
+    })
+
+    if (!currentTransaction) {
+      return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
+    }
+
+    if (!canRevisitClientStep(currentTransaction, "sign")) {
+      return NextResponse.json(
+        { success: false, message: "The signature can no longer be changed after payment has started." },
+        { status: 409 }
+      )
+    }
+
     const signerName = link.transaction.clientProfile?.fullName || "Unknown"
     const signerEmail = link.transaction.clientProfile?.email || "Unknown"
     const signedAt = new Date()

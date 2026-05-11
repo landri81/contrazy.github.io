@@ -74,6 +74,13 @@ export default async function ClientKycReturnPage(props: {
           where: { transactionId: transaction.id },
           select: { status: true },
         })
+        const hasVerifiedEvent = await tx.transactionEvent.findFirst({
+          where: {
+            transactionId: transaction.id,
+            type: "KYC_VERIFIED",
+          },
+          select: { id: true },
+        })
 
         await tx.kycVerification.update({
           where: { transactionId: transaction.id },
@@ -90,8 +97,9 @@ export default async function ClientKycReturnPage(props: {
         })
 
         // Only count once: skip if this transaction's KYC was already VERIFIED
-        // (guards against rare webhook + return-page concurrency).
-        if (current?.status !== "VERIFIED") {
+        // or a previous verified event was already recorded (guards against
+        // webhook + return-page concurrency and intentional pre-payment restarts).
+        if (current?.status !== "VERIFIED" && !hasVerifiedEvent) {
           await incrementVendorSubscriptionUsage(tx, transaction.vendorId, "kycVerificationsUsed")
         }
 

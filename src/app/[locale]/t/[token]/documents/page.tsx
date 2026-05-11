@@ -26,6 +26,7 @@ export default async function ClientDocumentsPage(props: { params: Promise<{ loc
       <ClientUploadsForm
         token={token}
         requirements={transaction.requirements}
+        existingDocuments={transaction.documents}
         skipStep={getNextClientStep(transaction)}
       />
     </div>

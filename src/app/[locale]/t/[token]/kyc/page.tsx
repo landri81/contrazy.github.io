@@ -27,15 +27,12 @@ export default async function ClientKycPage(props: {
 
   const kycStatus = transaction.kycVerification?.status
 
-  if (kycStatus === "VERIFIED" || kycStatus === "PENDING") {
-    redirect(withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/${getNextClientStep(transaction)}`))
-  }
-
   const subscription = await prisma.vendorSubscription.findUnique({
     where: { vendorId: transaction.vendorId },
   })
   const provider = getKycProvider(subscription)
   const isFailed = kycStatus === "FAILED"
+  const nextStep = getNextClientStep(transaction)
   const t = await getTranslations("clientFlow.kycPage")
 
   return (
@@ -46,9 +43,19 @@ export default async function ClientKycPage(props: {
       </div>
 
       {provider === "stripe_identity" ? (
-        <ClientStripeIdentityForm token={token} failed={isFailed} />
+        <ClientStripeIdentityForm
+          token={token}
+          failed={isFailed}
+          currentStatus={kycStatus ?? null}
+          nextStep={nextStep}
+        />
       ) : (
-        <ClientKycForm token={token} failed={isFailed} />
+        <ClientKycForm
+          token={token}
+          failed={isFailed}
+          currentStatus={kycStatus ?? null}
+          nextStep={nextStep}
+        />
       )}
     </div>
   )

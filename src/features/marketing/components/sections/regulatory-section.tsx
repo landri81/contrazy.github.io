@@ -1,6 +1,7 @@
 "use client"
 
 import { FadeIn } from "@/components/ui/motion"
+import { Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 export function RegulatorySection() {
@@ -22,7 +23,10 @@ export function RegulatorySection() {
 
         <FadeIn delay={0.1} className="mt-12">
           <div className="rounded-[14px] border border-border border-l-[3px] border-l-amber-500 bg-background p-7">
-            <h3 className="text-[15px] font-bold text-foreground">⚠️ {t("cardTitle")}</h3>
+            <div className="mb-4 flex items-center gap-3">
+              <Info className="size-4 text-[var(--contrazy-teal)]" />
+              <h3 className="text-[15px] font-bold text-foreground">{t("cardTitle")}</h3>
+            </div>
             <p className="mt-3 text-[14px] leading-[1.7] text-muted-foreground">
               {t("cardDescription")}
             </p>

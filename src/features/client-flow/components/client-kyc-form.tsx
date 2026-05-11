@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
 
 type UploadedDoc = {
@@ -24,13 +25,34 @@ type UploadedDoc = {
   originalFilename: string
 }
 
-export function ClientKycForm({ token, failed }: { token: string; failed?: boolean }) {
+export function ClientKycForm({
+  token,
+  failed,
+  currentStatus,
+  nextStep,
+}: {
+  token: string
+  failed?: boolean
+  currentStatus?: string | null
+  nextStep: string
+}) {
   const t = useTranslations("clientFlow.kycForm")
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isContinuing, setIsContinuing] = useState(false)
+  const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
   const [uploaded, setUploaded] = useState<UploadedDoc | null>(null)
+  const hasPendingVerification = currentStatus === "PENDING"
+  const hasVerifiedIdentity = currentStatus === "VERIFIED"
+  const hasExistingVerification = hasPendingVerification || hasVerifiedIdentity
+  const submitLabel = hasExistingVerification ? t("replaceSubmitBtn") : t("submitBtn")
+
+  function handleContinue() {
+    if (isContinuing || submission.isLocked) return
+    setIsContinuing(true)
+    router.push(`/t/${token}/${nextStep}`)
+  }
 
   async function handleFileChange(file: File) {
     if (!file) return
@@ -78,9 +100,9 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
   }
 
   async function handleSubmit() {
-    if (!uploaded || isSubmitting) return
+    if (!uploaded || submission.isLocked) return
     setError(null)
-    setIsSubmitting(true)
+    submission.start()
 
     try {
       const res = await fetch(`/api/client/${token}/kyc`, {
@@ -94,6 +116,7 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       })
 
       if (res.status === 410) {
+        submission.keepLocked()
         router.replace(`/t/${token}/cancelled`)
         return
       }
@@ -106,12 +129,13 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       }
 
       // Reload the KYC page — server will detect PENDING and redirect to next step
+      submission.keepLocked()
       router.push(`/t/${token}/kyc`)
       router.refresh()
     } catch {
       setError(t("unexpectedError"))
     } finally {
-      setIsSubmitting(false)
+      submission.finish()
     }
   }
 
@@ -139,6 +163,20 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
             <p>{t("rejectionNotice")}</p>
           </div>
         )}
+
+        {hasPendingVerification ? (
+          <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/20 dark:text-sky-200">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-300" />
+            <p>{t("pendingNotice")}</p>
+          </div>
+        ) : null}
+
+        {hasVerifiedIdentity ? (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-200">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+            <p>{t("verifiedNotice")}</p>
+          </div>
+        ) : null}
 
         {/* Accepted documents info */}
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
@@ -237,19 +275,31 @@ export function ClientKycForm({ token, failed }: { token: string; failed?: boole
       </CardContent>
 
       <CardFooter className="px-5 pb-5 pt-3">
-        <Button
-          type="button"
-          className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
-          disabled={!uploaded || isUploading || isSubmitting}
-          onClick={handleSubmit}
-        >
-          {isSubmitting ? (
-            <Loader2 className="mr-2 size-4 animate-spin" />
-          ) : (
-            <ShieldCheck className="mr-2 size-4" />
-          )}
-          {isSubmitting ? t("submitting") : t("submitBtn")}
-        </Button>
+        {hasExistingVerification && !uploaded ? (
+          <Button
+            type="button"
+            className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
+            disabled={isUploading || submission.isLocked || isContinuing}
+            onClick={handleContinue}
+          >
+            {isContinuing ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+            {isContinuing ? t("continuing") : t("continueBtn")}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
+            disabled={!uploaded || isUploading || submission.isLocked || isContinuing}
+            onClick={handleSubmit}
+          >
+            {submission.isLocked ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="mr-2 size-4" />
+            )}
+            {submission.isLocked ? t("submitting") : submitLabel}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )

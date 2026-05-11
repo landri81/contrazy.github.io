@@ -1,29 +1,134 @@
 "use client"
 
-import { useState } from "react"
+import type { DocumentAsset, RequirementType, TransactionRequirement } from "@prisma/client"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
-import { AlertCircle, CheckCircle2, Loader2, UploadCloud } from "lucide-react"
+import {
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  Loader2,
+  Trash2,
+  UploadCloud,
+} from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { CharacterCount } from "@/components/ui/character-count"
 import { Textarea } from "@/components/ui/textarea"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
+import { getClientDocumentUploadFolder } from "@/features/client-flow/lib/client-document-uploads"
+import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
-import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
+import { isPdfFile, resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
+
+type SavedUploadEntry = {
+  source: "saved"
+  documentId: string
+  secure_url: string
+  public_id: string
+  original_filename: string
+}
+
+type LocalUploadEntry = {
+  source: "local"
+  secure_url: string
+  public_id: string
+  original_filename: string
+}
+
+type UploadEntry = SavedUploadEntry | LocalUploadEntry
+
+type CleanupAssetPayload = {
+  publicId: string
+  assetUrl: string
+  fileName: string
+}
+
+function buildInitialDocumentState(
+  requirements: TransactionRequirement[],
+  existingDocuments: DocumentAsset[]
+) {
+  const requirementsById = new Map(requirements.map((requirement) => [requirement.id, requirement]))
+  const savedUploads: Record<string, SavedUploadEntry> = {}
+  const uploads: Record<string, UploadEntry> = {}
+  const textInputs: Record<string, string> = {}
+
+  for (const document of existingDocuments) {
+    if (!document.requirementId) {
+      continue
+    }
+
+    const requirement = requirementsById.get(document.requirementId)
+    const resolvedType = (requirement?.type ?? document.type) as RequirementType
+
+    if (resolvedType === "TEXT") {
+      if (document.textValue?.trim()) {
+        textInputs[document.requirementId] = document.textValue
+      }
+
+      continue
+    }
+
+    if (!document.assetUrl || !document.publicId) {
+      continue
+    }
+
+    const savedUpload: SavedUploadEntry = {
+      source: "saved",
+      documentId: document.id,
+      secure_url: document.assetUrl,
+      public_id: document.publicId,
+      original_filename: document.fileName || document.label,
+    }
+
+    savedUploads[document.requirementId] = savedUpload
+    uploads[document.requirementId] = savedUpload
+  }
+
+  return { savedUploads, uploads, textInputs }
+}
+
+function toCleanupAsset(upload: UploadEntry): CleanupAssetPayload {
+  return {
+    publicId: upload.public_id,
+    assetUrl: upload.secure_url,
+    fileName: upload.original_filename,
+  }
+}
 
 export function ClientUploadsForm({
   token,
   requirements,
+  existingDocuments,
   skipStep,
 }: {
   token: string
-  requirements: import("@prisma/client").TransactionRequirement[]
+  requirements: TransactionRequirement[]
+  existingDocuments: DocumentAsset[]
   skipStep: string
 }) {
   const t = useTranslations("clientFlow.uploads")
   const router = useRouter()
+  const submission = useSubmissionLock()
+
+  const initialState = useMemo(
+    () => buildInitialDocumentState(requirements, existingDocuments),
+    [existingDocuments, requirements]
+  )
+
+  const [error, setError] = useState<string | null>(null)
+  const [uploads, setUploads] = useState<Record<string, UploadEntry>>(() => initialState.uploads)
+  const [savedUploads, setSavedUploads] = useState<Record<string, SavedUploadEntry>>(
+    () => initialState.savedUploads
+  )
+  const [textInputs, setTextInputs] = useState<Record<string, string>>(() => initialState.textInputs)
+  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({})
+  const [deletingState, setDeletingState] = useState<Record<string, boolean>>({})
+  const pendingLocalAssetsRef = useRef<CleanupAssetPayload[]>([])
+  const skipPendingCleanupRef = useRef(false)
 
   const reqCategoryLabels: Record<string, string> = {
     ID: t("reqCategoryId"),
@@ -42,22 +147,62 @@ export function ClientUploadsForm({
 
   function translatedTextPlaceholder(category: string) {
     switch (category) {
-      case "PROOF_OF_ADDRESS": return t("reqTextPlaceholderProofOfAddress")
-      case "COMPANY_REGISTRATION": return t("reqTextPlaceholderCompanyRegistration")
-      case "CONTRACT_ATTACHMENT": return t("reqTextPlaceholderContractAttachment")
-      case "OTHER": return t("reqTextPlaceholderOther")
-      default: return t("reqTextPlaceholderDefault")
+      case "PROOF_OF_ADDRESS":
+        return t("reqTextPlaceholderProofOfAddress")
+      case "COMPANY_REGISTRATION":
+        return t("reqTextPlaceholderCompanyRegistration")
+      case "CONTRACT_ATTACHMENT":
+        return t("reqTextPlaceholderContractAttachment")
+      case "OTHER":
+        return t("reqTextPlaceholderOther")
+      default:
+        return t("reqTextPlaceholderDefault")
     }
   }
-  const [isPending, setIsPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [uploads, setUploads] = useState<
-    Record<string, { secure_url: string; public_id: string; original_filename: string }>
-  >({})
-  const [textInputs, setTextInputs] = useState<Record<string, string>>({})
-  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({})
 
-  // If there are no requirements, we should ideally skip this step
+  async function cleanupTemporaryAssets(
+    assets: CleanupAssetPayload[],
+    options?: { keepalive?: boolean }
+  ) {
+    if (assets.length === 0) {
+      return
+    }
+
+    try {
+      await fetch(`/api/client/${token}/documents/cleanup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assets }),
+        keepalive: options?.keepalive,
+      })
+    } catch (cleanupError) {
+      console.warn("Temporary upload cleanup failed", cleanupError)
+    }
+  }
+
+  useEffect(() => {
+    pendingLocalAssetsRef.current = Object.values(uploads).flatMap((upload) =>
+      upload.source === "local" ? [toCleanupAsset(upload)] : []
+    )
+  }, [uploads])
+
+  useEffect(() => {
+    return () => {
+      if (skipPendingCleanupRef.current || pendingLocalAssetsRef.current.length === 0) {
+        return
+      }
+
+      void fetch(`/api/client/${token}/documents/cleanup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assets: pendingLocalAssetsRef.current }),
+        keepalive: true,
+      }).catch((cleanupError) => {
+        console.warn("Temporary upload cleanup failed", cleanupError)
+      })
+    }
+  }, [token])
+
   if (requirements.length === 0) {
     return (
       <Card className="border-border/70 bg-card/95 shadow-sm">
@@ -79,18 +224,27 @@ export function ClientUploadsForm({
   }
 
   async function handleFileChange(reqId: string, file: File) {
+    const previousUpload = uploads[reqId]
+
     setError(null)
-    setUploadingState(prev => ({ ...prev, [reqId]: true }))
+    setUploadingState((prev) => ({ ...prev, [reqId]: true }))
+
     try {
-      // 1. Get signature from our backend
-      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", { method: "POST" })
+      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          folder: getClientDocumentUploadFolder(token),
+        }),
+      })
+
       if (!sigRes.ok) {
         setError(t("uploadSigningError"))
         return
       }
+
       const { timestamp, signature, apiKey, cloudName, folder } = await sigRes.json()
 
-      // 2. Upload directly to Cloudinary
       const formData = new FormData()
       formData.append("file", file)
       formData.append("api_key", apiKey)
@@ -99,36 +253,111 @@ export function ClientUploadsForm({
       if (folder) formData.append("folder", folder)
 
       const uploadEndpoint = isPdfFile(file) ? "raw" : "auto"
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${uploadEndpoint}/upload`, {
-        method: "POST",
-        body: formData,
-      })
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/${uploadEndpoint}/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      )
 
       const uploadData = await uploadRes.json()
 
-      if (uploadRes.ok) {
-        setUploads(prev => ({
-          ...prev,
-          [reqId]: {
-            secure_url: uploadData.secure_url,
-            public_id: uploadData.public_id,
-            original_filename: file.name
-          }
-        }))
-      } else {
+      if (!uploadRes.ok) {
         setError(uploadData?.error?.message ?? t("uploadFailed"))
+        return
       }
-    } catch (e) {
-      console.error(e)
+
+      const nextUpload: LocalUploadEntry = {
+        source: "local",
+        secure_url: uploadData.secure_url,
+        public_id: uploadData.public_id,
+        original_filename: file.name,
+      }
+
+      setUploads((prev) => ({
+        ...prev,
+        [reqId]: nextUpload,
+      }))
+
+      if (previousUpload?.source === "local" && previousUpload.public_id !== nextUpload.public_id) {
+        void cleanupTemporaryAssets([toCleanupAsset(previousUpload)])
+      }
+    } catch (uploadError) {
+      console.error(uploadError)
       setError(t("uploadFailed"))
     } finally {
-      setUploadingState(prev => ({ ...prev, [reqId]: false }))
+      setUploadingState((prev) => ({ ...prev, [reqId]: false }))
+    }
+  }
+
+  async function handleRemoveUpload(reqId: string) {
+    const currentUpload = uploads[reqId]
+
+    if (!currentUpload) {
+      return
+    }
+
+    setError(null)
+    setDeletingState((prev) => ({ ...prev, [reqId]: true }))
+
+    try {
+      if (currentUpload.source === "saved") {
+        const response = await fetch(`/api/client/${token}/documents/${currentUpload.documentId}`, {
+          method: "DELETE",
+        })
+
+        if (!response.ok) {
+          if (response.status === 410) {
+            router.replace(`/t/${token}/cancelled`)
+            return
+          }
+
+          const payload = await response.json().catch(() => null)
+          setError(payload?.message ?? t("removeFileError"))
+          return
+        }
+
+        setSavedUploads((prev) => {
+          const next = { ...prev }
+          delete next[reqId]
+          return next
+        })
+
+        setUploads((prev) => {
+          const next = { ...prev }
+          delete next[reqId]
+          return next
+        })
+
+        return
+      }
+
+      await cleanupTemporaryAssets([toCleanupAsset(currentUpload)])
+
+      setUploads((prev) => {
+        const next = { ...prev }
+        const fallbackSavedUpload = savedUploads[reqId]
+
+        if (fallbackSavedUpload) {
+          next[reqId] = fallbackSavedUpload
+        } else {
+          delete next[reqId]
+        }
+
+        return next
+      })
+    } catch (removeError) {
+      console.error(removeError)
+      setError(t("removeFileError"))
+    } finally {
+      setDeletingState((prev) => ({ ...prev, [reqId]: false }))
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setIsPending(true)
+    submission.start()
     setError(null)
 
     const docsPayload = requirements.reduce<Array<Record<string, string>>>((payload, requirement) => {
@@ -156,7 +385,9 @@ export function ClientUploadsForm({
       }
 
       payload.push({
-        ...upload,
+        secure_url: upload.secure_url,
+        public_id: upload.public_id,
+        original_filename: upload.original_filename,
         requirementId: requirement.id,
         label: requirement.label,
         type: requirement.type,
@@ -169,14 +400,17 @@ export function ClientUploadsForm({
       const res = await fetch(`/api/client/${token}/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documents: docsPayload })
+        body: JSON.stringify({ documents: docsPayload }),
       })
 
       if (res.ok) {
         const payload = await res.json()
+        skipPendingCleanupRef.current = true
+        submission.keepLocked()
         router.push(`/t/${token}/${payload.nextStep ?? "kyc"}`)
       } else {
         if (res.status === 410) {
+          submission.keepLocked()
           router.replace(`/t/${token}/cancelled`)
           return
         }
@@ -188,13 +422,15 @@ export function ClientUploadsForm({
       console.error(err)
       setError(t("uploadError"))
     } finally {
-      setIsPending(false)
+      submission.finish()
     }
   }
 
-  // Check if all required uploads have a corresponding file or text answer
+  const hasPendingMutations =
+    Object.values(uploadingState).some(Boolean) || Object.values(deletingState).some(Boolean)
+
   const allRequiredMet = requirements
-    .filter(r => r.required)
+    .filter((requirement) => requirement.required)
     .every((requirement) =>
       requirement.type === "TEXT"
         ? Boolean(textInputs[requirement.id]?.trim())
@@ -218,92 +454,192 @@ export function ClientUploadsForm({
               </motion.div>
             ) : null}
           </AnimatePresence>
-          {requirements.map((req) => (
-            <div key={req.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="font-medium text-sm">
-                      {req.label} {req.required && <span className="text-destructive">*</span>}
-                    </h4>
-                    <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      {translatedCategoryLabel(req.category, req.customCategoryLabel)}
-                    </span>
+
+          {requirements.map((req) => {
+            const currentUpload = uploads[req.id]
+            const isComplete =
+              req.type === "TEXT"
+                ? Boolean(textInputs[req.id]?.trim())
+                : Boolean(currentUpload)
+            const isUploading = Boolean(uploadingState[req.id])
+            const isDeleting = Boolean(deletingState[req.id])
+            const uploadHref =
+              currentUpload &&
+              (resolveDocumentAssetUrl(
+                currentUpload.secure_url,
+                currentUpload.original_filename
+              ) ?? currentUpload.secure_url)
+
+            return (
+              <div key={req.id} className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                <div className="mb-3 flex items-start justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm font-medium">
+                        {req.label} {req.required && <span className="text-destructive">*</span>}
+                      </h4>
+                      <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        {translatedCategoryLabel(req.category, req.customCategoryLabel)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {req.type === "TEXT"
+                        ? t("textResponse")
+                        : req.type === "PHOTO"
+                          ? t("photoUpload")
+                          : t("documentUpload")}
+                    </p>
+                    {req.instructions ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{req.instructions}</p>
+                    ) : null}
                   </div>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                    {req.type === "TEXT" ? t("textResponse") : req.type === "PHOTO" ? t("photoUpload") : t("documentUpload")}
-                  </p>
-                  {req.instructions && (
-                    <p className="text-xs text-muted-foreground mt-1">{req.instructions}</p>
-                  )}
+
+                  {isComplete ? <CheckCircle2 className="size-5 text-green-500" /> : null}
                 </div>
-                {(req.type === "TEXT" ? Boolean(textInputs[req.id]?.trim()) : Boolean(uploads[req.id])) && (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+
+                {req.type === "TEXT" ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={textInputs[req.id] ?? ""}
+                      onChange={(event) =>
+                        setTextInputs((current) => ({
+                          ...current,
+                          [req.id]: event.target.value,
+                        }))
+                      }
+                      placeholder={translatedTextPlaceholder(req.category)}
+                      maxLength={INPUT_LIMITS.checklistItemInstructions}
+                      className="min-h-[104px] resize-none bg-white"
+                    />
+                    <CharacterCount
+                      current={(textInputs[req.id] ?? "").length}
+                      limit={INPUT_LIMITS.checklistItemInstructions}
+                      className="text-right"
+                    />
+                  </div>
+                ) : currentUpload ? (
+                  <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/90 p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <p className="truncate text-sm font-medium text-emerald-900">
+                          {currentUpload.original_filename}
+                        </p>
+                        <p className="text-xs text-emerald-700/90">
+                          {currentUpload.source === "saved"
+                            ? t("savedUpload")
+                            : t("newUploadReady")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <a
+                        href={uploadHref ?? currentUpload.secure_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900"
+                        )}
+                      >
+                        <Eye className="size-3.5" />
+                        {t("viewFile")}
+                      </a>
+
+                      <label
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "relative cursor-pointer overflow-hidden border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900",
+                          (isUploading || isDeleting || submission.isLocked) &&
+                            "pointer-events-none opacity-60"
+                        )}
+                      >
+                        <input
+                          type="file"
+                          className="absolute inset-0 cursor-pointer opacity-0"
+                          onChange={(event) => {
+                            const nextFile = event.target.files?.[0]
+
+                            if (nextFile) {
+                              void handleFileChange(req.id, nextFile)
+                            }
+
+                            event.target.value = ""
+                          }}
+                          disabled={isUploading || isDeleting || submission.isLocked}
+                          accept={req.type === "PHOTO" ? "image/*" : "image/*,.pdf"}
+                        />
+                        {isUploading ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <UploadCloud className="size-3.5" />
+                        )}
+                        {isUploading ? t("replacingFile") : t("replaceFile")}
+                      </label>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => void handleRemoveUpload(req.id)}
+                        disabled={isUploading || isDeleting || submission.isLocked}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                        {isDeleting ? t("removingFile") : t("removeFile")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      onChange={(event) => {
+                        const nextFile = event.target.files?.[0]
+
+                        if (nextFile) {
+                          void handleFileChange(req.id, nextFile)
+                        }
+
+                        event.target.value = ""
+                      }}
+                      disabled={isUploading || submission.isLocked}
+                      accept={req.type === "PHOTO" ? "image/*" : "image/*,.pdf"}
+                    />
+                    <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/70 p-4 text-center transition-colors hover:bg-muted/50">
+                      {isUploading ? (
+                        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          <UploadCloud className="mb-2 size-6 text-muted-foreground" />
+                          <span className="text-sm font-medium text-primary">
+                            {t("clickToUpload")}
+                          </span>
+                          <span className="mt-1 text-xs text-muted-foreground">
+                            {req.type === "PHOTO" ? t("imagesOnly") : t("pdfOrImage")}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {req.type === "TEXT" ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={textInputs[req.id] ?? ""}
-                    onChange={(event) =>
-                      setTextInputs((current) => ({
-                        ...current,
-                        [req.id]: event.target.value,
-                      }))
-                    }
-                    placeholder={translatedTextPlaceholder(req.category)}
-                    maxLength={INPUT_LIMITS.checklistItemInstructions}
-                    className="min-h-[104px] resize-none bg-white"
-                  />
-                  <CharacterCount
-                    current={(textInputs[req.id] ?? "").length}
-                    limit={INPUT_LIMITS.checklistItemInstructions}
-                    className="text-right"
-                  />
-                </div>
-              ) : uploads[req.id] ? (
-                <div className="truncate rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-700">
-                  {uploads[req.id].original_filename}
-                </div>
-              ) : (
-                <div className="relative">
-                  <input
-                    type="file"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleFileChange(req.id, e.target.files[0])
-                      }
-                    }}
-                    disabled={uploadingState[req.id]}
-                    accept={req.type === 'PHOTO' ? 'image/*' : 'image/*,.pdf'}
-                  />
-                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/70 p-4 text-center transition-colors hover:bg-muted/50">
-                    {uploadingState[req.id] ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    ) : (
-                      <>
-                        <UploadCloud className="h-6 w-6 text-muted-foreground mb-2" />
-                        <span className="text-sm font-medium text-primary">{t("clickToUpload")}</span>
-                        <span className="text-xs text-muted-foreground mt-1">
-                          {req.type === 'PHOTO' ? t("imagesOnly") : t("pdfOrImage")}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </CardContent>
+
         <CardFooter>
           <Button
             type="submit"
             className="w-full bg-[var(--contrazy-navy)] text-white hover:bg-[var(--contrazy-navy-soft)]"
-            disabled={isPending || !allRequiredMet}
+            disabled={submission.isLocked || hasPendingMutations || !allRequiredMet}
           >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submission.isLocked ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
             {t("continueBtn")}
           </Button>
         </CardFooter>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 
+import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
 import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -40,6 +41,22 @@ export async function POST(
     }
 
     const { transaction } = link
+    const currentTransaction = await prisma.transaction.findUnique({
+      where: { id: transaction.id },
+      include: clientFlowTransactionInclude,
+    })
+
+    if (!currentTransaction) {
+      return NextResponse.json({ success: false, message: "Transaction not found." }, { status: 404 })
+    }
+
+    if (!canRevisitClientStep(currentTransaction, "kyc")) {
+      return NextResponse.json(
+        { success: false, message: "Identity details can no longer be changed after payment has started." },
+        { status: 409 }
+      )
+    }
+
     const locale = normalizeLocale(transaction.locale)
 
     const subscription = await prisma.vendorSubscription.findUnique({

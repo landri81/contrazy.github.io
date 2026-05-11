@@ -5,6 +5,7 @@ import { ClientFlowShell } from "@/features/client-flow/components/client-flow-s
 import { ClientLinkCancelledState } from "@/features/client-flow/components/client-link-cancelled-state"
 import {
   canCancelClientFlow,
+  canRevisitClientStep,
   getClientFlowState,
   getTransactionByToken,
   hasContractStep,
@@ -63,6 +64,7 @@ export default async function TokenLayout({
   if (state.hasSignature && hasContractStep(transaction)) completedSteps.push("sign")
   if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")
   if (transaction.status === "COMPLETED" || state.financeComplete) completedSteps.push("complete")
+  const revisitableSteps = completedSteps.filter((step) => canRevisitClientStep(transaction, step))
 
   return (
     <ClientFlowShell
@@ -72,6 +74,7 @@ export default async function TokenLayout({
       canCancel={canCancelClientFlow(transaction)}
       enabledSteps={enabledSteps}
       completedSteps={completedSteps}
+      revisitableSteps={revisitableSteps}
     >
       {children}
     </ClientFlowShell>

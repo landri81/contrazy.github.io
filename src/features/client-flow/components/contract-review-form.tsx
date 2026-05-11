@@ -13,6 +13,7 @@ import {
   ContractDocumentViewer,
   type ContractDocumentMeta,
 } from "@/features/contracts/components/contract-document-viewer"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 
 export function ContractReviewForm({
   token,
@@ -25,14 +26,14 @@ export function ContractReviewForm({
 }) {
   const t = useTranslations("clientFlow.contractReview")
   const router = useRouter()
-  const [isPending, setIsPending] = useState(false)
+  const submission = useSubmissionLock()
   const [reviewed, setReviewed] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!reviewed) return
-    setIsPending(true)
+    submission.start()
     setError(null)
 
     try {
@@ -44,9 +45,11 @@ export function ContractReviewForm({
 
       if (res.ok) {
         const payload = await res.json()
+        submission.keepLocked()
         router.push(`/t/${token}/${payload.nextStep ?? "sign"}`)
       } else {
         if (res.status === 410) {
+          submission.keepLocked()
           router.replace(`/t/${token}/cancelled`)
           return
         }
@@ -58,7 +61,7 @@ export function ContractReviewForm({
       console.error(err)
       setError(t("errorContinue"))
     } finally {
-      setIsPending(false)
+      submission.finish()
     }
   }
 
@@ -93,7 +96,7 @@ export function ContractReviewForm({
             onCheckedChange={(c: boolean) => setReviewed(c)}
           />
           <div className="grid flex-1 gap-1.5 leading-none">
-            <Label htmlFor="reviewed" className="text-base font-medium">
+            <Label htmlFor="reviewed" className="cursor-pointer text-base font-medium">
               {t("reviewedLabel")}
             </Label>
             <p className="text-sm text-muted-foreground">
@@ -105,9 +108,9 @@ export function ContractReviewForm({
           <Button
             type="submit"
             className="w-full bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
-            disabled={isPending || !reviewed}
+            disabled={submission.isLocked || !reviewed}
           >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submission.isLocked && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("continueToSign")}
           </Button>
         </div>

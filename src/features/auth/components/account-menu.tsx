@@ -1,11 +1,12 @@
 "use client"
 
-import { LayoutDashboard, LogOut, UserCircle2 } from "lucide-react"
+import { useState } from "react"
+import { LayoutDashboard, Loader2, LogOut, UserCircle2 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { useLocale, useTranslations } from "next-intl"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useRouter } from "@/i18n/navigation"
+import { usePathname, useRouter } from "@/i18n/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,16 +43,59 @@ function getInitials(name?: string | null, email?: string | null) {
 }
 
 export function AccountMenu({ user, profileHref, workspaceHref, className }: AccountMenuProps) {
+  const [open, setOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"workspace" | "profile" | "signout" | null>(null)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const t = useTranslations("site.header")
   const locale = useLocale()
   const router = useRouter()
+  const pathname = usePathname() ?? ""
   const displayName = user.name?.trim() || user.email?.split("@")[0] || t("account")
   const displayEmail = user.email?.trim() || t("signedIn")
   const initials = getInitials(user.name, user.email)
   const shouldShowWorkspace = Boolean(workspaceHref && workspaceHref !== profileHref)
+  const isRoutePending = Boolean(pendingHref && pendingHref !== pathname)
+  const activePendingAction =
+    pendingAction === "signout" || isRoutePending ? pendingAction : null
+  const isMenuBusy = Boolean(activePendingAction)
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isMenuBusy && !nextOpen) {
+      return
+    }
+
+    if (nextOpen) {
+      setPendingAction(null)
+      setPendingHref(null)
+    }
+
+    setOpen(nextOpen)
+  }
+
+  function handleNavigate(action: "workspace" | "profile", href: string) {
+    if (isMenuBusy) {
+      return
+    }
+
+    setOpen(false)
+    setPendingAction(action)
+    setPendingHref(href)
+    router.push(href)
+  }
+
+  function handleSignOut() {
+    if (isMenuBusy) {
+      return
+    }
+
+    setOpen(false)
+    setPendingAction("signout")
+    setPendingHref(null)
+    void signOut({ callbackUrl: `/${locale}/login` })
+  }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isMenuBusy ? true : open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger
         aria-label={t("account")}
         className={cn(
@@ -81,20 +125,38 @@ export function AccountMenu({ user, profileHref, workspaceHref, className }: Acc
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {shouldShowWorkspace ? (
-          <DropdownMenuItem onClick={() => router.push(workspaceHref!)}>
-            <LayoutDashboard className="size-4" />
+          <DropdownMenuItem
+            onClick={() => handleNavigate("workspace", workspaceHref!)}
+            disabled={isMenuBusy}
+          >
+            {activePendingAction === "workspace" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LayoutDashboard className="size-4" />
+            )}
             {t("workspace")}
           </DropdownMenuItem>
         ) : null}
         {profileHref ? (
-          <DropdownMenuItem onClick={() => router.push(profileHref)}>
-            <UserCircle2 className="size-4" />
+          <DropdownMenuItem
+            onClick={() => handleNavigate("profile", profileHref)}
+            disabled={isMenuBusy}
+          >
+            {activePendingAction === "profile" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <UserCircle2 className="size-4" />
+            )}
             {t("profile")}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: `/${locale}/login` })}>
-          <LogOut className="size-4" />
+        <DropdownMenuItem variant="destructive" onClick={handleSignOut} disabled={isMenuBusy}>
+          {activePendingAction === "signout" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <LogOut className="size-4" />
+          )}
           {t("signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { persistReviewedContractSnapshot } from "@/features/contracts/server/contract-artifacts"
-import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
+import {
+  canRevisitClientStep,
+  clientFlowTransactionInclude,
+  getNextClientStep,
+} from "@/features/client-flow/server/client-flow-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
@@ -30,12 +34,29 @@ export async function POST(
 
     const { link } = linkContext
     const transactionId = link.transaction.id
+    const currentTransaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: clientFlowTransactionInclude,
+    })
+
+    if (!currentTransaction) {
+      return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
+    }
+
+    if (!canRevisitClientStep(currentTransaction, "contract")) {
+      return NextResponse.json(
+        { success: false, message: "The agreement can no longer be changed after payment has started." },
+        { status: 409 }
+      )
+    }
 
     await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
 
     await prisma.transaction.update({
       where: { id: transactionId },
-      data: { status: "CONTRACT_GENERATED" },
+      data: {
+        status: currentTransaction.status === "SIGNED" ? currentTransaction.status : "CONTRACT_GENERATED",
+      },
     })
 
     await persistReviewedContractSnapshot(prisma, transactionId)

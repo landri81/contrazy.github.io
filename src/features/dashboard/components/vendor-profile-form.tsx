@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import {
   Building2,
   CheckCircle2,
+  CreditCard,
   Globe,
   Loader2,
   LockKeyhole,
@@ -12,7 +13,9 @@ import {
   PencilLine,
   Phone,
   Save,
+  ShieldCheck,
   UserCircle,
+  UserRound,
   X,
 } from "lucide-react"
 import { useMemo, useState, useTransition } from "react"
@@ -510,49 +513,114 @@ function ProfileOverview({
 }) {
   const t = useTranslations("dashboard.vendor.profileForm")
 
+  const stats = [
+    {
+      label: t("stats.profile"),
+      value: `${profileCompletion}%`,
+      icon: UserRound,
+      tone: profileCompletion === 100 ? "success" : "info",
+    },
+    {
+      label: t("stats.review"),
+      value: reviewStatus,
+      icon: ShieldCheck,
+      tone: statusTone(reviewStatus),
+    },
+    {
+      label: t("stats.payout"),
+      value: stripeConnectionStatus,
+      icon: CreditCard,
+      tone: statusTone(stripeConnectionStatus),
+    },
+  ]
+
+  const toneClassMap: Record<string, string> = {
+    success: "border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]",
+    info: "border-border bg-muted text-muted-foreground",
+    warning: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-400",
+    danger: "border-destructive/25 bg-destructive/5 text-destructive",
+    error: "border-destructive/25 bg-destructive/5 text-destructive",
+    muted: "border-border bg-muted text-muted-foreground",
+    default: "border-border bg-muted text-muted-foreground",
+  }
+
   return (
-    <div className="rounded-[1.6rem] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-4 shadow-sm sm:p-5">
-      <div className="flex flex-col gap-4">
+    <section className="border rounded-xl border-border bg-background text-foreground">
+      <div className="border-b border-border px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="inline-flex items-center gap-2 rounded-sm border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Building2 className="size-3.5 text-[var(--contrazy-teal)]" />
               {t("overview.tag")}
             </div>
-            <h2 className="mt-3 font-heading text-2xl font-semibold tracking-tight text-foreground">
+
+            <h2 className="mt-3 truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {businessName.trim() || t("overview.defaultName")}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {fullName.trim() || t("display.emptyOwner")}{" "}
-              <span className="text-border">/</span> {t("overview.workspaceHint")}
-            </p>
+
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <UserRound className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  {fullName.trim() || t("display.emptyOwner")}
+                </span>
+              </span>
+              <span className="text-border">/</span>
+              <span>{t("overview.workspaceHint")}</span>
+            </div>
           </div>
 
           <Button
             type="button"
             variant={isEditing ? "outline" : "default"}
             className={cn(
-              "gap-2 sm:self-start",
-              !isEditing && "bg-(--contrazy-navy) text-white hover:bg-(--contrazy-navy-soft)"
+              "h-9 cursor-pointer rounded-sm shadow-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0 sm:self-start",
+              isEditing
+                ? "border-border bg-background text-foreground hover:bg-muted"
+                : "bg-[var(--contrazy-navy)] text-white hover:opacity-90"
             )}
             onClick={isEditing ? onClose : onEdit}
             disabled={isPending}
           >
-            {isEditing ? <X className="size-4" /> : <PencilLine className="size-4" />}
+            {isEditing ? (
+              <X className="mr-1.5 size-4" />
+            ) : (
+              <PencilLine className="mr-1.5 size-4" />
+            )}
             {isEditing ? t("overview.closeEditButton") : t("overview.editButton")}
           </Button>
         </div>
-
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <CompactStat
-            label={t("stats.profile")}
-            value={`${profileCompletion}%`}
-            tone={profileCompletion === 100 ? "success" : "info"}
-          />
-          <CompactStat label={t("stats.review")} value={reviewStatus} tone={statusTone(reviewStatus)} />
-          <CompactStat label={t("stats.payout")} value={stripeConnectionStatus} tone={statusTone(stripeConnectionStatus)} />
-        </div>
       </div>
-    </div>
+
+      <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        {stats.map((item) => {
+          const Icon = item.icon
+          const toneClass = toneClassMap[item.tone] ?? toneClassMap.default
+
+          return (
+            <div key={item.label} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+              <div
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-sm border",
+                  toneClass
+                )}
+              >
+                <Icon className="size-4" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {item.label}
+                </p>
+                <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                  {item.value}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

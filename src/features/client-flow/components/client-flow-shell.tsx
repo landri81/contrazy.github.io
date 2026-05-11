@@ -1,6 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { useState } from "react"
 import {
   ArrowRight,
   Camera,
@@ -8,6 +9,7 @@ import {
   CheckCircle2,
   CreditCard,
   FileText,
+  Loader2,
   LockKeyhole,
   PenLine,
   ShieldCheck,
@@ -17,7 +19,7 @@ import { useTranslations } from "next-intl"
 
 import { LocaleSwitcher } from "@/components/ui/locale-switcher"
 import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
-import { usePathname } from "@/i18n/navigation"
+import { Link, usePathname } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
 type StepKey =
@@ -56,6 +58,7 @@ type ClientFlowShellProps = {
   canCancel: boolean
   enabledSteps: StepKey[]
   completedSteps: StepKey[]
+  revisitableSteps: StepKey[]
   children: React.ReactNode
 }
 
@@ -68,6 +71,7 @@ export function ClientFlowShell({
   canCancel,
   enabledSteps,
   completedSteps,
+  revisitableSteps,
   children,
 }: ClientFlowShellProps) {
   const tShell = useTranslations("clientFlow.shell")
@@ -184,7 +188,9 @@ export function ClientFlowShell({
             steps={visibleSteps}
             currentIndex={currentIndex}
             completed={completedSteps}
+            revisitableSteps={revisitableSteps}
             labelMap={stepLabelMap}
+            token={token}
           />
         </div>
 
@@ -210,53 +216,90 @@ function ProgressStepper({
   steps,
   currentIndex,
   completed,
+  revisitableSteps,
   labelMap,
+  token,
 }: {
   steps: StepKey[]
   currentIndex: number
   completed: StepKey[]
+  revisitableSteps: StepKey[]
   labelMap: Record<StepKey, string>
+  token: string
 }) {
+  const pathname = usePathname() ?? ""
+  const [pendingStep, setPendingStep] = useState<StepKey | null>(null)
   if (steps.length === 0) return null
 
   const safeIndex = Math.max(0, currentIndex)
   const currentStep = steps[safeIndex]
+  const revisitableStepSet = new Set(revisitableSteps)
+  const financeLocked = pathname.endsWith("/payment") || pathname.endsWith("/complete")
 
   return (
-    <nav aria-label="Client onboarding progress">
+    <nav aria-label="Client onboarding progress" aria-busy={pendingStep ? "true" : "false"}>
       <ol className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin-subtle sm:overflow-visible sm:pb-0">
         {steps.map((step, index) => {
           const Icon = stepIcons[step]
+          const stepHref = `/t/${token}/${step}`
           const isCompleted = completed.includes(step) || index < safeIndex
           const isCurrent = index === safeIndex
+          const isRevisitable = revisitableStepSet.has(step) && !isCurrent && !financeLocked
+          const isPending = pendingStep === step && !pathname.endsWith(`/${step}`)
+          const stepClassName = cn(
+            "flex h-8 min-w-fit items-center gap-2 rounded-sm px-2 text-xs font-semibold transition-colors",
+            pendingStep && !isPending && "pointer-events-none opacity-55",
+            isCurrent
+              ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
+              : isRevisitable
+                ? "text-foreground hover:bg-muted hover:text-[var(--contrazy-teal)]"
+                : isCompleted
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+          )
+          const stepInner = (
+            <>
+              <span
+                className={cn(
+                  "flex size-5 shrink-0 items-center justify-center rounded-sm border text-[10px]",
+                  isCompleted
+                    ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white"
+                    : isCurrent
+                      ? "border-[var(--contrazy-teal)] text-[var(--contrazy-teal)]"
+                      : "border-border text-muted-foreground"
+                )}
+              >
+                {isPending ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : isCompleted ? (
+                  <Check className="size-3" />
+                ) : (
+                  <Icon className="size-3" />
+                )}
+              </span>
+              <span className="hidden max-w-24 truncate sm:block">{labelMap[step]}</span>
+            </>
+          )
 
           return (
             <li key={step} className="flex min-w-0 flex-1 items-center gap-2 first:min-w-fit">
-              <div
-                aria-current={isCurrent ? "step" : undefined}
-                className={cn(
-                  "flex h-8 min-w-fit items-center gap-2 rounded-sm px-2 text-xs font-semibold transition-colors",
-                  isCurrent
-                    ? "bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]"
-                    : isCompleted
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-sm border text-[10px]",
-                    isCompleted
-                      ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white"
-                      : isCurrent
-                        ? "border-[var(--contrazy-teal)] text-[var(--contrazy-teal)]"
-                        : "border-border text-muted-foreground"
-                  )}
+              {isRevisitable ? (
+                <Link
+                  href={stepHref}
+                  className={stepClassName}
+                  onClick={() => setPendingStep(step)}
+                  aria-disabled={pendingStep ? "true" : undefined}
                 >
-                  {isCompleted ? <Check className="size-3" /> : <Icon className="size-3" />}
-                </span>
-                <span className="hidden max-w-24 truncate sm:block">{labelMap[step]}</span>
-              </div>
+                  {stepInner}
+                </Link>
+              ) : (
+                <div
+                  aria-current={isCurrent ? "step" : undefined}
+                  className={stepClassName}
+                >
+                  {stepInner}
+                </div>
+              )}
 
               {index < steps.length - 1 ? (
                 <span aria-hidden="true" className="h-px min-w-5 flex-1 bg-border" />

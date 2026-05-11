@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 
 import { FadeIn } from "@/components/ui/motion"
 import { SubscriptionPricingGrid } from "@/features/subscriptions/components/subscription-pricing-grid"
+import { ReceiptText } from "lucide-react"
 
 export function PricingSectionFr({ viewerRole = null }: { viewerRole?: UserRole | null }) {
   const t = useTranslations("marketing.pricingSection")
@@ -29,7 +30,10 @@ export function PricingSectionFr({ viewerRole = null }: { viewerRole?: UserRole 
         {/* Transaction fees note */}
         <FadeIn delay={0.1} className="mt-8">
           <div className="rounded-[14px] border border-border border-l-[3px] border-l-[var(--contrazy-teal)] bg-background p-7">
-            <h3 className="text-[15px] font-bold text-foreground">💳 {t("feesTitle")}</h3>
+            <div className="mb-4 flex items-center gap-3">
+              <ReceiptText className="size-4 text-[var(--contrazy-teal)]" />
+              <h3 className="text-[15px] font-bold text-foreground"> {t("feesTitle")}</h3>
+            </div>
             <p className="mt-2 text-[14px] leading-[1.7] text-muted-foreground">
               <strong className="text-foreground">{t("fees.releaseLabel")}</strong> :{" "}
               <span className="font-bold text-green-600">{t("fees.releaseValue")}</span> · {t("fees.releaseDetail")}

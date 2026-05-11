@@ -13,6 +13,7 @@ import { CountryCombobox } from "@/components/ui/country-combobox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PhoneInput } from "@/components/ui/phone-input"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ClientProfileForm({
@@ -34,7 +35,7 @@ export function ClientProfileForm({
 }) {
   const router = useRouter()
   const t = useTranslations("clientFlow.profile")
-  const [isPending, setIsPending] = useState(false)
+  const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
 
@@ -63,7 +64,7 @@ export function ClientProfileForm({
       return
     }
 
-    setIsPending(true)
+    submission.start()
     try {
       const res = await fetch(`/api/client/${token}/profile`, {
         method: "POST",
@@ -73,11 +74,13 @@ export function ClientProfileForm({
 
       if (res.ok) {
         const payload = await res.json()
+        submission.keepLocked()
         router.push(`/t/${token}/${payload.nextStep ?? "documents"}`)
         return
       }
 
       if (res.status === 410) {
+        submission.keepLocked()
         router.replace(`/t/${token}/cancelled`)
         return
       }
@@ -88,7 +91,7 @@ export function ClientProfileForm({
       console.error(err)
       setError(t("unableToSave"))
     } finally {
-      setIsPending(false)
+      submission.finish()
     }
   }
 
@@ -297,9 +300,9 @@ export function ClientProfileForm({
             <Button
               type="submit"
               className="h-12 w-full gap-2 rounded-lg bg-[var(--contrazy-navy)] font-semibold text-white shadow-lg shadow-slate-900/15 hover:bg-[var(--contrazy-navy-soft)] disabled:cursor-not-allowed"
-              disabled={isPending || !firstName || !lastName || !email || !address || !country || (requireCompany && !companyName.trim())}
+              disabled={submission.isLocked || !firstName || !lastName || !email || !address || !country || (requireCompany && !companyName.trim())}
             >
-              {isPending ? (
+              {submission.isLocked ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
                   {t("saving")}

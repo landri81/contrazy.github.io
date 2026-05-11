@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
 
+import { invalidateTransactionAgreementState } from "@/features/contracts/server/contract-artifacts"
 import { clientProfileSchema } from "@/features/client-flow/schemas/client-profile.schema"
-import { clientFlowTransactionInclude, getNextClientStep } from "@/features/client-flow/server/client-flow-data"
+import {
+  canRevisitClientStep,
+  clientFlowTransactionInclude,
+  getNextClientStep,
+} from "@/features/client-flow/server/client-flow-data"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -38,6 +43,21 @@ export async function POST(
     const { firstName, lastName, fullName, email, phone, companyName, address, country } = parsedBody.data
 
     const transactionId = link.transaction.id
+    const currentTransaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: clientFlowTransactionInclude,
+    })
+
+    if (!currentTransaction) {
+      return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
+    }
+
+    if (!canRevisitClientStep(currentTransaction, "profile")) {
+      return NextResponse.json(
+        { success: false, message: "Profile details can no longer be changed after payment has started." },
+        { status: 409 }
+      )
+    }
 
     if (link.transaction.requireClientCompany && !companyName) {
       return NextResponse.json(
@@ -76,6 +96,24 @@ export async function POST(
       where: { id: transactionId },
       data: { clientProfileId, status: "CUSTOMER_STARTED" },
     })
+
+    const hadAgreementProgress = Boolean(
+      currentTransaction.contractArtifact?.reviewCompletedAt ||
+        currentTransaction.contractArtifact?.signedPdfUrl ||
+        currentTransaction.signatureRecord?.signatureDataUrl
+    )
+
+    if (hadAgreementProgress) {
+      await invalidateTransactionAgreementState(prisma, transactionId)
+
+      await recordTransactionEvent(prisma, {
+        transactionId,
+        type: "LINK_UPDATED",
+        title: "Agreement reopened after profile update",
+        detail: "Client profile details changed, so the agreement must be reviewed and signed again before payment.",
+        dedupeKey: `event:agreement-reopened:${transactionId}:${Date.now()}`,
+      })
+    }
 
     await recordTransactionEvent(prisma, {
       transactionId,

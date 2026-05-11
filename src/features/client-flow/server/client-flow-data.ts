@@ -30,6 +30,23 @@ export const clientFlowSteps = [
 
 export type ClientFlowStep = (typeof clientFlowSteps)[number]["key"]
 
+const editableClientFlowSteps = new Set<ClientFlowStep>([
+  "profile",
+  "documents",
+  "kyc",
+  "contract",
+  "sign",
+])
+
+const clientFinanceLockEventTypes = new Set([
+  "PAYMENT_SESSION_CREATED",
+  "SERVICE_PAYMENT_REQUESTED",
+  "SERVICE_PAYMENT_SUCCEEDED",
+  "DEPOSIT_AUTHORIZED",
+  "DEPOSIT_CAPTURED",
+  "DEPOSIT_RELEASED",
+])
+
 export const clientFlowTransactionInclude = {
   link: true,
   vendor: true,
@@ -154,6 +171,13 @@ export function hasReviewedContract(transaction: ClientFlowTransaction) {
     return true
   }
 
+  if (transaction.contractArtifact) {
+    return Boolean(
+      transaction.contractArtifact.reviewCompletedAt ||
+        transaction.contractArtifact.signedPdfUrl
+    )
+  }
+
   return (
     reviewedContractStatuses.has(transaction.status) ||
     transaction.events.some((event) => event.type === "CONTRACT_REVIEWED")
@@ -193,6 +217,34 @@ export function getClientFlowState(transaction: ClientFlowTransaction) {
     nextFinanceStage,
     financeComplete,
   }
+}
+
+export function hasStartedClientFinance(
+  transaction: Pick<
+    ClientFlowTransaction,
+    "payments" | "depositAuthorization" | "events" | "servicePaymentRequestedAt"
+  >
+) {
+  return Boolean(
+    transaction.servicePaymentRequestedAt ||
+      transaction.payments.length > 0 ||
+      transaction.depositAuthorization ||
+      transaction.events.some((event) => clientFinanceLockEventTypes.has(event.type))
+  )
+}
+
+export function canRevisitClientStep(
+  transaction: Pick<
+    ClientFlowTransaction,
+    "payments" | "depositAuthorization" | "events" | "servicePaymentRequestedAt"
+  >,
+  step: ClientFlowStep
+) {
+  return editableClientFlowSteps.has(step) && !hasStartedClientFinance(transaction)
+}
+
+function getClientEditLockRedirectStep(transaction: ClientFlowTransaction): ClientFlowStep {
+  return getClientFlowState(transaction).financeComplete ? "complete" : "payment"
 }
 
 export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlowStep {
@@ -273,6 +325,10 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
 
   if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {
     redirect(getClientRoute(transaction, "complete"))
+  }
+
+  if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction)) {
+    redirect(getClientRoute(transaction, getClientEditLockRedirectStep(transaction)))
   }
 
   switch (currentStep) {

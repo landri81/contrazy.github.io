@@ -5,19 +5,27 @@ import { motion } from "framer-motion"
 import { useTranslations } from "next-intl"
 import type { ChecklistItem, ChecklistTemplate, ContractTemplate } from "@prisma/client"
 import {
+  Activity,
   AlertCircle,
+  ArrowRight,
   ArrowUpRight,
   BadgeCheck,
+  CalendarClock,
   CheckCircle2,
   CreditCard,
+  FileText,
+  Gauge,
   Plus,
   QrCode,
   ShieldCheck,
+  Sparkles,
+  UserRound,
+  WalletCards,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { VendorCreateLinkDialog } from "@/features/dashboard/components/vendor-create-link-dialog"
-import { DashboardTable, PagePanel, StatusBadge } from "@/features/dashboard/components/dashboard-ui"
+import { DashboardTable, StatusBadge } from "@/features/dashboard/components/dashboard-ui"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-route-link"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
@@ -38,17 +46,69 @@ type VendorLinkWorkspaceProps = {
   initialLinks: VendorLinkRecord[]
 }
 
+type UsageTone = "default" | "warning" | "danger" | "accent"
+
 function isLiveStatus(status: string) {
   return status === "ACTIVE" || status === "PROCESSING"
 }
 
 function formatPeriodEnd(value: string | null) {
   if (!value) return null
+
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   })
+}
+
+function getUsagePercent(used: number, limit: number | null) {
+  if (limit === null || limit <= 0) return null
+  return Math.min(100, Math.max(0, Math.round((used / limit) * 100)))
+}
+
+function StatusPill({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2 text-black/80 backdrop-blur">
+      <Icon className="size-3.5 shrink-0 text-[var(--contrazy-teal)]" />
+      <div className="min-w-0 leading-tight">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-black/45">
+          {label}
+        </p>
+        <p className="truncate text-xs font-semibold text-black">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function WarningNotice({
+  title,
+  detail,
+}: {
+  title: string
+  detail: string
+}) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
+      <div className="flex items-start gap-2.5">
+        <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="mt-0.5 text-xs leading-5 text-amber-900/80 dark:text-amber-300/80">
+            {detail}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function UsageCard({
@@ -57,18 +117,29 @@ function UsageCard({
   detail,
   tone = "default",
   icon: Icon,
+  percent,
 }: {
   label: string
   value: string
   detail: string
-  tone?: "default" | "warning" | "danger" | "accent"
+  tone?: UsageTone
   icon: React.ElementType
+  percent: number | null
 }) {
-  const toneClasses: Record<NonNullable<typeof tone>, string> = {
-    default: "border-border/80 bg-white/90 text-foreground",
-    warning: "border-amber-200/90 bg-amber-50/95 text-amber-950",
-    danger: "border-red-200/90 bg-red-50/95 text-red-950",
-    accent: "border-[var(--contrazy-teal)]/18 bg-[var(--contrazy-teal)]/6 text-foreground",
+  const toneClasses: Record<UsageTone, string> = {
+    default: "border-border bg-background text-muted-foreground",
+    accent:
+      "border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]",
+    warning:
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-400",
+    danger: "border-destructive/25 bg-destructive/5 text-destructive",
+  }
+
+  const meterClasses: Record<UsageTone, string> = {
+    default: "bg-muted-foreground/50",
+    accent: "bg-[var(--contrazy-teal)]",
+    warning: "bg-amber-500",
+    danger: "bg-destructive",
   }
 
   return (
@@ -76,19 +147,133 @@ function UsageCard({
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("rounded-2xl border px-4 py-3.5 shadow-sm", toneClasses[tone])}
+      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="group rounded-2xl border border-border bg-background p-4 shadow-sm shadow-slate-950/[0.03] transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-950/[0.06]"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-          <p className="mt-2 text-[1.9rem] leading-none font-semibold tracking-tight">{value}</p>
-          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{detail}</p>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-2 text-3xl font-semibold leading-none tracking-tight text-foreground">
+            {value}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
         </div>
-        <div className="flex size-9 items-center justify-center rounded-2xl bg-background/95 shadow-sm ring-1 ring-border/60">
-          <Icon className="size-[15px]" />
+
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-xl border",
+            toneClasses[tone]
+          )}
+        >
+          <Icon className="size-4" />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <motion.div
+            initial={false}
+            animate={{ width: percent === null ? "100%" : `${percent}%` }}
+            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className={cn(
+              "h-full rounded-full",
+              percent === null ? "bg-muted-foreground/30" : meterClasses[tone]
+            )}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>{percent === null ? "Unlimited" : `${percent}% used`}</span>
+          <span className="opacity-70">Current period</span>
         </div>
       </div>
     </motion.div>
+  )
+}
+
+function MobileTransactionCard({
+  record,
+  t,
+  onRecordChange,
+  onUsageChange,
+}: {
+  record: VendorLinkRecord
+  t: ReturnType<typeof useTranslations<"dashboard.vendor.linkWorkspace">>
+  onRecordChange: (nextRecord: VendorLinkRecord) => void
+  onUsageChange: (nextUsage: VendorActionsUsageRecord | null) => void
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4 shadow-sm shadow-slate-950/[0.03]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            href={`/vendor/transactions/${record.transactionId}`}
+            className="font-semibold text-foreground transition hover:text-[var(--contrazy-teal)]"
+          >
+            {record.reference}
+          </Link>
+          <p className="mt-1 truncate text-sm font-medium text-foreground" title={record.title}>
+            {record.title}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={record.clientEmail}>
+            {record.clientName} · {record.clientEmail}
+          </p>
+        </div>
+
+        <StatusBadge tone={getStatusTone(record.status)}>{record.status}</StatusBadge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 border-y border-border py-3 text-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("table.columns.amount")}
+          </p>
+          <div className="mt-1 space-y-0.5">
+            {record.kind !== "DEPOSIT" ? (
+              <p className="font-semibold text-foreground">{record.serviceAmount}</p>
+            ) : null}
+            {record.kind !== "PAYMENT" ? (
+              <p className="text-xs text-muted-foreground">
+                {t("table.holdPrefix")} {record.depositAmount}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("table.columns.lastActivity")}
+          </p>
+          <p className="mt-1 font-medium text-foreground">{record.lastActivity}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full border border-border bg-muted px-2 py-0.5 capitalize">
+            {record.kind.replaceAll("_", " ").toLowerCase()}
+          </span>
+
+          {record.qrReady ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 px-2 py-0.5 text-[var(--contrazy-teal)]">
+              <CheckCircle2 className="size-3" />
+              {t("table.qrReady")}
+            </span>
+          ) : (
+            <span className="rounded-full border border-border bg-muted px-2 py-0.5">
+              {t("table.linkOnly")}
+            </span>
+          )}
+        </div>
+
+        <PaymentLinkManagementActions
+          record={record}
+          onRecordChange={onRecordChange}
+          onUsageChange={onUsageChange}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -107,6 +292,7 @@ export function VendorLinkWorkspace({
 
   const activeCount = recentLinks.filter((item) => item.status === "ACTIVE").length
   const processingCount = recentLinks.filter((item) => item.status === "PROCESSING").length
+
   const transactionLimitReached =
     usageState?.transactions.remaining !== null &&
     (usageState?.transactions.remaining ?? 0) <= 0
@@ -138,7 +324,10 @@ export function VendorLinkWorkspace({
     return warnings
   }, [blockedMessage, canLaunch, hasStripe, transactionLimitReached, t])
 
-  function handleCreatedLink(nextRecord: VendorLinkRecord, nextUsage: VendorActionsUsageRecord | null) {
+  function handleCreatedLink(
+    nextRecord: VendorLinkRecord,
+    nextUsage: VendorActionsUsageRecord | null
+  ) {
     setRecentLinks((current) => {
       const next = [nextRecord, ...current.filter((item) => item.id !== nextRecord.id)]
       return next.filter((item) => isLiveStatus(item.status)).slice(0, 6)
@@ -169,59 +358,106 @@ export function VendorLinkWorkspace({
   const txUsed = usageState?.transactions.used ?? 0
   const txTotal = usageState?.transactions.limit ?? 0
   const txRemaining = usageState?.transactions.remaining ?? null
+  const txPercent = getUsagePercent(txUsed, txLimit)
 
   const qrLimit = usageState?.qrCodes.limit ?? null
   const qrUsed = usageState?.qrCodes.used ?? 0
   const qrTotal = usageState?.qrCodes.limit ?? 0
   const qrRemaining = usageState?.qrCodes.remaining ?? null
+  const qrPercent = getUsagePercent(qrUsed, qrLimit)
 
   const kycAllowed = usageState?.kyc.allowed
   const kycLimit = usageState?.kyc.limit ?? null
   const kycUsed = usageState?.kyc.used ?? 0
   const kycTotal = usageState?.kyc.limit ?? 0
   const kycRemaining = usageState?.kyc.remaining ?? null
+  const kycPercent = getUsagePercent(kycUsed, kycLimit)
 
   return (
     <div className="space-y-6">
       <motion.section
-        initial={{ opacity: 0, y: 14 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[28px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.98))] p-5 text-foreground shadow-[0_20px_45px_-28px_rgba(15,23,42,0.24)]"
+        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm shadow-slate-950/[0.04]"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(15,23,42,0.06),transparent_26%)]" />
-        <div className="relative space-y-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-2xl space-y-2.5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--contrazy-teal)]/18 bg-[var(--contrazy-teal)]/7 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-slate-700 uppercase">
-                <BadgeCheck className="size-3.5 text-[var(--contrazy-teal)]" />
-                {usageState ? `${usageState.planName} ${t("header.planSuffix")}` : t("header.activePlan")}
+        <div className="grid lg:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
+          <div className="relative overflow-hidden  p-5 text-black sm:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(17,201,176,0.32),transparent_22rem),linear-gradient(135deg,rgba(255,255,255,0.10),transparent_38%)]" />
+
+            <div className="relative flex min-h-[260px] flex-col justify-between gap-8">
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-black/80 backdrop-blur">
+                    <BadgeCheck className="size-3.5 text-[var(--contrazy-teal)]" />
+                    {usageState
+                      ? `${usageState.planName} ${t("header.planSuffix")}`
+                      : t("header.activePlan")}
+                  </div>
+
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--contrazy-teal)]">
+                    <Sparkles className="size-3.5" />
+                    {statusLabel}
+                  </div>
+                </div>
+
+                <div className="max-w-2xl">
+                  <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+                    {t("header.title")}
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-black/65">
+                    {t("header.description")}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight text-slate-900">{t("header.title")}</h2>
-                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">{t("header.description")}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
-                  {statusLabel}
-                </span>
-                <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
-                  {t("header.renewsLabel")} {periodEndLabel ?? "—"}
-                </span>
-                <span className="rounded-full border border-border/80 bg-background/80 px-3 py-1">
-                  {t("header.activitySummary", { active: activeCount, processing: processingCount })}
-                </span>
+
+              <div className="grid gap-2 sm:grid-cols-3">
+                <StatusPill
+                  icon={Activity}
+                  label={t("header.activePlan")}
+                  value={statusLabel}
+                />
+                <StatusPill
+                  icon={CalendarClock}
+                  label={t("header.renewsLabel")}
+                  value={periodEndLabel ?? "—"}
+                />
+                <StatusPill
+                  icon={Gauge}
+                  label={t("table.columns.status")}
+                  value={t("header.activitySummary", {
+                    active: activeCount,
+                    processing: processingCount,
+                  })}
+                />
               </div>
             </div>
+          </div>
 
-            <div className="flex w-full flex-col gap-2.5 sm:flex-row xl:w-auto xl:justify-end">
+          <aside className="flex flex-col justify-between gap-5 border-t border-border bg-muted/20 p-5 sm:p-6 lg:border-l lg:border-t-0">
+            <div>
+              <div className="flex size-10 items-center justify-center rounded-2xl border border-border bg-background text-[var(--contrazy-teal)] shadow-sm">
+                <WalletCards className="size-5" />
+              </div>
+
+              <h3 className="mt-4 text-base font-semibold tracking-tight text-foreground">
+                {t("header.newTransaction")}
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {t("header.description")}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
               <DashboardRouteLink
                 href="/vendor/billing"
                 pendingLabel={t("header.planUsageLink")}
-                className="inline-flex items-center justify-center rounded-2xl border border-border/80 bg-background/90 px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-background"
+                className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
               >
                 {t("header.planUsageLink")}
                 <ArrowUpRight className="size-4" />
               </DashboardRouteLink>
+
               <VendorCreateLinkDialog
                 contracts={contracts}
                 checklists={checklists}
@@ -233,7 +469,7 @@ export function VendorLinkWorkspace({
                 renderTrigger={({ openDialog, disabled, blockedReason }) => (
                   <Button
                     type="button"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--contrazy-teal)] px-4 text-sm font-semibold text-slate-950 hover:bg-[var(--contrazy-teal)]/90 disabled:bg-muted disabled:text-muted-foreground"
+                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--contrazy-teal)] px-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-[var(--contrazy-teal)]/90 focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0 disabled:bg-muted disabled:text-muted-foreground"
                     onClick={openDialog}
                     disabled={disabled}
                     title={blockedReason ?? undefined}
@@ -244,80 +480,114 @@ export function VendorLinkWorkspace({
                 )}
               />
             </div>
-          </div>
+          </aside>
+        </div>
 
-          {headerWarnings.length > 0 ? (
-            <div className="grid gap-2 lg:grid-cols-3">
+        {headerWarnings.length > 0 ? (
+          <div className="border-t border-border bg-background px-4 py-4 sm:px-5">
+            <div className="grid gap-3 lg:grid-cols-3">
               {headerWarnings.map((warning) => (
-                <div
+                <WarningNotice
                   key={warning.title}
-                  className="rounded-2xl border border-amber-200/80 bg-amber-50/85 px-3.5 py-3 text-sm text-amber-950"
-                >
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-                    <div>
-                      <p className="font-semibold">{warning.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-amber-900/80">{warning.detail}</p>
-                    </div>
-                  </div>
-                </div>
+                  title={warning.title}
+                  detail={warning.detail}
+                />
               ))}
             </div>
-          ) : null}
-
-          <div className="grid gap-3 lg:grid-cols-3">
-            <UsageCard
-              label={t("usage.transactions")}
-              value={txLimit === null ? t("usage.unlimited") : `${txRemaining ?? 0}`}
-              detail={
-                txLimit === null
-                  ? t("usage.launchedPeriod", { used: txUsed })
-                  : t("usage.usedOf", { used: txUsed, total: txTotal })
-              }
-              tone={transactionLimitReached ? "danger" : "accent"}
-              icon={CreditCard}
-            />
-            <UsageCard
-              label={t("usage.qrCodes")}
-              value={qrLimit === null ? t("usage.unlimited") : `${qrRemaining ?? 0}`}
-              detail={
-                qrLimit === null
-                  ? t("usage.generatedPeriod", { used: qrUsed })
-                  : t("usage.generatedOf", { used: qrUsed, total: qrTotal })
-              }
-              tone={
-                qrRemaining !== null && (qrRemaining ?? 0) <= 0 ? "warning" : "default"
-              }
-              icon={QrCode}
-            />
-            <UsageCard
-              label={t("usage.kyc")}
-              value={
-                kycAllowed
-                  ? kycLimit === null ? t("usage.unlimited") : `${kycRemaining ?? 0}`
-                  : t("usage.unavailable")
-              }
-              detail={
-                !kycAllowed
-                  ? t("usage.kycUnavailableHint")
-                  : kycLimit === null
-                    ? t("usage.verificationRequests", { used: kycUsed })
-                    : t("usage.usedOf", { used: kycUsed, total: kycTotal })
-              }
-              tone={kycAllowed ? "default" : "warning"}
-              icon={ShieldCheck}
-            />
           </div>
-        </div>
+        ) : null}
       </motion.section>
 
-      <PagePanel
-        title={t("table.title")}
-        description={t("table.description")}
-        actionHref="/vendor/links"
-        actionLabel={t("table.actionLabel")}
-      >
-        <div className="overflow-hidden rounded-xl border">
+      <section className="grid gap-4 lg:grid-cols-3">
+        <UsageCard
+          label={t("usage.transactions")}
+          value={txLimit === null ? t("usage.unlimited") : `${txRemaining ?? 0}`}
+          detail={
+            txLimit === null
+              ? t("usage.launchedPeriod", { used: txUsed })
+              : t("usage.usedOf", { used: txUsed, total: txTotal })
+          }
+          tone={transactionLimitReached ? "danger" : "accent"}
+          icon={CreditCard}
+          percent={txPercent}
+        />
+
+        <UsageCard
+          label={t("usage.qrCodes")}
+          value={qrLimit === null ? t("usage.unlimited") : `${qrRemaining ?? 0}`}
+          detail={
+            qrLimit === null
+              ? t("usage.generatedPeriod", { used: qrUsed })
+              : t("usage.generatedOf", { used: qrUsed, total: qrTotal })
+          }
+          tone={qrRemaining !== null && (qrRemaining ?? 0) <= 0 ? "warning" : "default"}
+          icon={QrCode}
+          percent={qrPercent}
+        />
+
+        <UsageCard
+          label={t("usage.kyc")}
+          value={
+            kycAllowed
+              ? kycLimit === null
+                ? t("usage.unlimited")
+                : `${kycRemaining ?? 0}`
+              : t("usage.unavailable")
+          }
+          detail={
+            !kycAllowed
+              ? t("usage.kycUnavailableHint")
+              : kycLimit === null
+                ? t("usage.verificationRequests", { used: kycUsed })
+                : t("usage.usedOf", { used: kycUsed, total: kycTotal })
+          }
+          tone={kycAllowed ? "default" : "warning"}
+          icon={ShieldCheck}
+          percent={kycPercent}
+        />
+      </section>
+
+      <section className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm shadow-slate-950/[0.04]">
+        <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <FileText className="size-3.5 text-[var(--contrazy-teal)]" />
+              {t("table.title")}
+            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              {t("table.description")}
+            </p>
+          </div>
+
+          <DashboardRouteLink
+            href="/vendor/links"
+            pendingLabel={t("table.actionLabel")}
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
+          >
+            {t("table.actionLabel")}
+            <ArrowRight className="size-4" />
+          </DashboardRouteLink>
+        </div>
+
+        <div className="block space-y-3 bg-muted/20 p-4 md:hidden">
+          {recentLinks.length > 0 ? (
+            recentLinks.map((record) => (
+              <MobileTransactionCard
+                key={record.id}
+                record={record}
+                t={t}
+                onRecordChange={handleRecordChange}
+                onUsageChange={handleUsageChange}
+              />
+            ))
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-background px-4 py-8 text-center text-sm text-muted-foreground">
+              {t("table.empty")}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-hidden md:block">
           <DashboardTable
             columns={[
               t("table.columns.reference"),
@@ -332,36 +602,52 @@ export function VendorLinkWorkspace({
               <Link
                 key={`${record.id}-reference`}
                 href={`/vendor/transactions/${record.transactionId}`}
-                className="inline-block min-w-[130px] font-medium text-foreground hover:text-(--contrazy-teal)"
+                className="inline-block min-w-[130px] font-semibold text-foreground transition hover:text-[var(--contrazy-teal)]"
               >
                 {record.reference}
               </Link>,
 
               <div key={`${record.id}-client`} className="w-[180px] min-w-[180px]">
-                <p className="truncate font-medium text-foreground" title={record.clientName}>
-                  {record.clientName}
-                </p>
-                <p className="truncate text-xs text-muted-foreground" title={record.clientEmail}>
-                  {record.clientEmail}
-                </p>
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground">
+                    <UserRound className="size-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className="truncate font-medium text-foreground"
+                      title={record.clientName}
+                    >
+                      {record.clientName}
+                    </p>
+                    <p
+                      className="truncate text-xs text-muted-foreground"
+                      title={record.clientEmail}
+                    >
+                      {record.clientEmail}
+                    </p>
+                  </div>
+                </div>
               </div>,
 
               <div key={`${record.id}-title`} className="w-[240px] min-w-[240px]">
                 <p
-                  className="truncate text-sm font-medium text-foreground"
+                  className="truncate text-sm font-semibold text-foreground"
                   title={record.title}
                 >
                   {record.title}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span className="capitalize">{record.kind.replaceAll("_", " ").toLowerCase()}</span>
+                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 capitalize">
+                    {record.kind.replaceAll("_", " ").toLowerCase()}
+                  </span>
+
                   {record.qrReady ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--contrazy-teal)]/30 bg-[var(--contrazy-teal)]/10 px-2 py-0.5 text-[var(--contrazy-teal)]">
                       <CheckCircle2 className="size-3" />
                       {t("table.qrReady")}
                     </span>
                   ) : (
-                    <span className="rounded-full border border-border bg-muted/60 px-2 py-0.5">
+                    <span className="rounded-full border border-border bg-muted px-2 py-0.5">
                       {t("table.linkOnly")}
                     </span>
                   )}
@@ -369,12 +655,17 @@ export function VendorLinkWorkspace({
               </div>,
 
               <div key={`${record.id}-amounts`} className="min-w-[132px] space-y-0.5">
-                {record.kind !== "DEPOSIT" && (
-                  <p className="text-sm font-medium text-foreground">{record.serviceAmount}</p>
-                )}
-                {record.kind !== "PAYMENT" && (
-                  <p className="text-xs text-muted-foreground">{t("table.holdPrefix")} {record.depositAmount}</p>
-                )}
+                {record.kind !== "DEPOSIT" ? (
+                  <p className="text-sm font-semibold text-foreground">
+                    {record.serviceAmount}
+                  </p>
+                ) : null}
+
+                {record.kind !== "PAYMENT" ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("table.holdPrefix")} {record.depositAmount}
+                  </p>
+                ) : null}
               </div>,
 
               <span
@@ -398,7 +689,7 @@ export function VendorLinkWorkspace({
             emptyMessage={t("table.empty")}
           />
         </div>
-      </PagePanel>
+      </section>
     </div>
   )
 }

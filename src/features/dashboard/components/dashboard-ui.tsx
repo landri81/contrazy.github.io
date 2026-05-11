@@ -109,6 +109,34 @@ export function KpiGrid({
   )
 }
 
+export function KpiGridSuperAdmin({
+  items,
+}: {
+  items: { label: string; value: string; detail?: string; tone?: Tone }[]
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <Card key={item.label} className="border-border bg-card py-4 shadow-sm">
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted-foreground">{item.label}</p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">{item.value}</p>
+            {item.detail ? (
+              item.tone ? (
+                <div className="text-xs">
+                  <StatusBadge tone={item.tone}>{item.detail}</StatusBadge>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{item.detail}</p>
+              )
+            ) : null}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
 export function AlertStrip({
   items,
 }: {

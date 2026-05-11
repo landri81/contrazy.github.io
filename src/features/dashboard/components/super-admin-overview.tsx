@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server"
 
 import {
   DashboardTable,
-  KpiGrid,
+  KpiGridSuperAdmin,
   PagePanel,
   StatusBadge,
 } from "@/features/dashboard/components/dashboard-ui"
@@ -64,7 +64,7 @@ export async function SuperAdminOverview({ email, workspace, analytics }: SuperA
   return (
     <div className="space-y-6">
       {/* Revenue KPI strip */}
-      <KpiGrid items={analyticsKpis} />
+      <KpiGridSuperAdmin items={analyticsKpis} />
 
       {/* Main revenue trend charts */}
       <div className="grid gap-6 xl:grid-cols-2">

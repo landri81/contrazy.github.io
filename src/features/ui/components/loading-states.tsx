@@ -5,42 +5,89 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function MarketingPageSkeleton() {
   return (
-    <div className="min-h-screen bg-background px-5 py-10 lg:px-10">
-      <div className="mx-auto w-full max-w-7xl space-y-8">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-36 rounded-full" />
-          <div className="hidden gap-3 md:flex">
-            <Skeleton className="h-10 w-24 rounded-full" />
-            <Skeleton className="h-10 w-28 rounded-full" />
-          </div>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <div className="space-y-5">
-            <Skeleton className="h-9 w-40 rounded-full" />
-            <Skeleton className="h-16 w-full max-w-3xl rounded-2xl" />
-            <Skeleton className="h-16 w-full max-w-2xl rounded-2xl" />
-            <Skeleton className="h-5 w-full max-w-xl rounded-full" />
-            <div className="flex gap-3 pt-2">
-              <Skeleton className="h-11 w-44 rounded-full" />
-              <Skeleton className="h-11 w-40 rounded-full" />
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-background">
+        <div className="mx-auto flex w-full items-center justify-between gap-4 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <Skeleton className="size-8 rounded-sm bg-muted" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-20 rounded-sm bg-muted" />
+              <Skeleton className="h-4 w-32 rounded-sm bg-muted" />
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="border-border/70 bg-card/70">
-                <CardHeader className="space-y-3">
-                  <Skeleton className="h-4 w-24 rounded-full" />
-                  <Skeleton className="h-10 w-20 rounded-xl" />
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Skeleton className="h-4 w-full rounded-full" />
-                  <Skeleton className="h-4 w-3/4 rounded-full" />
-                </CardContent>
-              </Card>
-            ))}
+
+          <div className="hidden items-center gap-2 md:flex">
+            <Skeleton className="h-9 w-20 rounded-sm bg-muted" />
+            <Skeleton className="h-9 w-24 rounded-sm bg-muted" />
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="mx-auto w-full px-4 py-6 sm:px-5 sm:py-8">
+        <section className="border-b border-border pb-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <div className="min-w-0 space-y-4">
+              <Skeleton className="h-5 w-36 rounded-sm bg-muted" />
+
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full max-w-2xl rounded-sm bg-muted" />
+                <Skeleton className="h-10 w-full max-w-xl rounded-sm bg-muted" />
+              </div>
+
+              <Skeleton className="h-4 w-full max-w-lg rounded-sm bg-muted" />
+              <Skeleton className="h-4 w-full max-w-md rounded-sm bg-muted" />
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Skeleton className="h-9 w-36 rounded-sm bg-muted" />
+                <Skeleton className="h-9 w-32 rounded-sm bg-muted" />
+              </div>
+            </div>
+
+            <div className="hidden border border-border bg-background p-4 lg:block">
+              <div className="border-b border-border pb-3">
+                <Skeleton className="h-4 w-28 rounded-sm bg-muted" />
+                <Skeleton className="mt-2 h-7 w-24 rounded-sm bg-muted" />
+              </div>
+
+              <div className="space-y-3 pt-4">
+                <Skeleton className="h-3.5 w-full rounded-sm bg-muted" />
+                <Skeleton className="h-3.5 w-5/6 rounded-sm bg-muted" />
+                <Skeleton className="h-3.5 w-2/3 rounded-sm bg-muted" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 py-6 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="border border-border bg-background p-4">
+              <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+                <Skeleton className="h-4 w-24 rounded-sm bg-muted" />
+                <Skeleton className="size-7 rounded-sm bg-muted" />
+              </div>
+
+              <div className="space-y-2 pt-3">
+                <Skeleton className="h-7 w-20 rounded-sm bg-muted" />
+                <Skeleton className="h-3.5 w-full rounded-sm bg-muted" />
+                <Skeleton className="h-3.5 w-3/4 rounded-sm bg-muted" />
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section className="border border-border bg-background p-4">
+          <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
+            <Skeleton className="h-5 w-40 rounded-sm bg-muted" />
+            <Skeleton className="h-8 w-24 rounded-sm bg-muted" />
+          </div>
+
+          <div className="grid gap-4 pt-4 md:grid-cols-3">
+            <Skeleton className="h-28 rounded-sm bg-muted" />
+            <Skeleton className="h-28 rounded-sm bg-muted" />
+            <Skeleton className="h-28 rounded-sm bg-muted" />
+          </div>
+        </section>
+      </main>
     </div>
   )
 }

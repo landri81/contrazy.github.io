@@ -1,12 +1,11 @@
 import { TransactionStatus } from "@prisma/client"
 import { NextResponse } from "next/server"
 
+import { destroyDocumentCloudinaryAsset } from "@/features/client-flow/server/client-document-assets"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { canAccessAdminScope } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
-import { cloudinary } from "@/lib/integrations/cloudinary"
-import { extractCloudinaryAssetDescriptor, isPdfAssetUrl } from "@/lib/integrations/cloudinary-assets"
 
 export const runtime = "nodejs"
 
@@ -143,20 +142,14 @@ export async function DELETE(
     })
 
     if (document.publicId || document.assetUrl) {
-      const descriptor = extractCloudinaryAssetDescriptor(document.assetUrl, document.fileName)
-      const publicId = document.publicId ?? descriptor?.publicId
-      const resourceType = descriptor?.resourceType ?? (isPdfAssetUrl(document.assetUrl, document.fileName) ? "raw" : "image")
-
-      if (publicId) {
-        try {
-          await cloudinary.uploader.destroy(publicId, {
-            resource_type: resourceType,
-            type: "upload",
-            invalidate: true,
-          })
-        } catch (error) {
-          console.warn("Cloudinary cleanup failed after admin document deletion", error)
-        }
+      try {
+        await destroyDocumentCloudinaryAsset({
+          publicId: document.publicId,
+          assetUrl: document.assetUrl,
+          fileName: document.fileName,
+        })
+      } catch (error) {
+        console.warn("Cloudinary cleanup failed after admin document deletion", error)
       }
     }
 

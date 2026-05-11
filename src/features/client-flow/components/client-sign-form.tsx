@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 import { SignaturePad } from "@/components/ui/signature-pad"
 import { cn } from "@/lib/utils"
 
@@ -386,8 +387,9 @@ export function ClientSignForm({
   )
 
   const [method, setMethod] = useState<SignatureMethod>(initialMethod)
-  const [isPending, setIsPending] = useState(false)
+  const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
+  const [isReplacingSavedSignature, setIsReplacingSavedSignature] = useState(false)
 
   // Per-method captured data URLs
   const [drawDataUrl, setDrawDataUrl] = useState<string | null>(
@@ -460,7 +462,7 @@ export function ClientSignForm({
     typedName?: string
     fontKey?: string
   }) {
-    setIsPending(true)
+    submission.start()
     setError(null)
 
     const signedTimezone =
@@ -485,11 +487,13 @@ export function ClientSignForm({
 
       if (response.ok) {
         const payload = await response.json()
+        submission.keepLocked()
         router.push(`/t/${token}/${payload.nextStep ?? "payment"}`)
         return
       }
 
       if (response.status === 410) {
+        submission.keepLocked()
         router.replace(`/t/${token}/cancelled`)
         return
       }
@@ -500,7 +504,7 @@ export function ClientSignForm({
       console.error(err)
       setError(t("errorRecording"))
     } finally {
-      setIsPending(false)
+      submission.finish()
     }
   }
 
@@ -522,7 +526,7 @@ export function ClientSignForm({
     { key: "upload" as SignatureMethod, label: t("uploadTab"), Icon: ImageUp  },
   ]
 
-  if (hasFinalizedSignature) {
+  if (hasFinalizedSignature && !isReplacingSavedSignature) {
     return (
       <div className="space-y-4">
         <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 shadow-sm">
@@ -569,9 +573,20 @@ export function ClientSignForm({
         <Button
           type="button"
           className="h-12 w-full bg-(--contrazy-navy) text-base font-semibold text-white hover:bg-(--contrazy-navy-soft) active:scale-[0.98]"
+          disabled={submission.isLocked}
           onClick={() => router.push(`/t/${token}/${continueStep}`)}
         >
           {t("continueBtn")}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full"
+          disabled={submission.isLocked}
+          onClick={() => setIsReplacingSavedSignature(true)}
+        >
+          {t("updateBtn")}
         </Button>
       </div>
     )
@@ -691,9 +706,9 @@ export function ClientSignForm({
       <Button
         type="submit"
         className="h-12 w-full bg-(--contrazy-navy) text-base font-semibold text-white hover:bg-(--contrazy-navy-soft) active:scale-[0.98]"
-        disabled={isPending || !signatureDataUrl}
+        disabled={submission.isLocked || !signatureDataUrl}
       >
-        {isPending ? (
+        {submission.isLocked ? (
           <>
             <Loader2 className="mr-2 size-5 animate-spin" />
             {t("recording")}
