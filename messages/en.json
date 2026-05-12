@@ -1239,7 +1239,7 @@
         },
         "actionRequired": {
           "title": "Action needed in Stripe",
-          "description": "Stripe needs more information. Open the live alerts below to restore payments and payouts."
+          "description": "Stripe needs more information. Open the Stripe dashboard below to restore payments and payouts."
         },
         "afterConnection": {
           "tag": "After connection",
@@ -1247,6 +1247,21 @@
           "item1": "Collect client payments inside contract links.",
           "item2": "Place deposit holds and release unused amounts cleanly.",
           "item3": "Route payouts directly into your Stripe account."
+        },
+        "hostedDashboard": {
+          "tag": "Hosted by Stripe",
+          "title": "Open your Stripe dashboard",
+          "description": "This opens your own Stripe account in Stripe. Contrazy keeps only contract-related activity here.",
+          "item1": "Review payouts, full payment history, disputes, and account settings directly in Stripe.",
+          "item2": "Use Contrazy for contract-linked activity, client workflows, deposits, and audit events.",
+          "item3": "Return here anytime to resume onboarding, confirm status changes, or disconnect the account.",
+          "button": "Open Stripe dashboard",
+          "securityNote": "Opens Stripe in a separate tab and signs you into your own Stripe account there.",
+          "keepInsideTag": "Inside Contrazy",
+          "keepInsideTitle": "Contrazy stays focused on Contrazy activity",
+          "keepInsideDescription": "Your Contrazy workspace continues to show contract-linked payments, deposits, customer onboarding progress, and transaction events without mixing in unrelated Stripe account activity.",
+          "testMode": "Test mode",
+          "liveMode": "Live mode"
         },
         "statusLabels": {
           "connected": "Connected",

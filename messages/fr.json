@@ -1239,7 +1239,7 @@
         },
         "actionRequired": {
           "title": "Action requise dans Stripe",
-          "description": "Stripe a besoin de plus d'informations. Ouvrez les alertes en direct ci-dessous pour restaurer les paiements et les virements."
+          "description": "Stripe a besoin de plus d'informations. Ouvrez le tableau Stripe ci-dessous pour rétablir les paiements et les virements."
         },
         "afterConnection": {
           "tag": "Après connexion",
@@ -1247,6 +1247,21 @@
           "item1": "Collectez les paiements clients dans les liens contractuels.",
           "item2": "Placez des blocages de caution et libérez les montants inutilisés proprement.",
           "item3": "Acheminez les virements directement vers votre compte Stripe."
+        },
+        "hostedDashboard": {
+          "tag": "Hébergé par Stripe",
+          "title": "Ouvrir votre tableau Stripe",
+          "description": "Cela ouvre votre propre compte Stripe dans Stripe. Contrazy ne conserve ici que l'activité liée aux contrats.",
+          "item1": "Consultez les virements, l'historique complet des paiements, les litiges et les réglages du compte directement dans Stripe.",
+          "item2": "Utilisez Contrazy pour l'activité liée aux contrats, les parcours clients, les cautions et les événements d'audit.",
+          "item3": "Revenez ici à tout moment pour reprendre l'intégration, confirmer les changements de statut ou déconnecter le compte.",
+          "button": "Ouvrir le tableau Stripe",
+          "securityNote": "Ouvre Stripe dans un onglet séparé et vous connecte à votre propre compte Stripe.",
+          "keepInsideTag": "Dans Contrazy",
+          "keepInsideTitle": "Contrazy reste centré sur l'activité Contrazy",
+          "keepInsideDescription": "Votre espace Contrazy continue d'afficher les paiements liés aux contrats, les cautions, l'avancement du parcours client et les événements de transaction sans mélanger l'activité non liée de votre compte Stripe.",
+          "testMode": "Mode test",
+          "liveMode": "Mode live"
         },
         "statusLabels": {
           "connected": "Connecté",

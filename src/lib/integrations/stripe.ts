@@ -19,6 +19,12 @@ export function getAppBaseUrl() {
   return getSiteUrl()
 }
 
+export function getStripeDashboardUrl(livemode = !env.STRIPE_SECRET_KEY.startsWith("sk_test_")) {
+  return livemode
+    ? "https://dashboard.stripe.com"
+    : "https://dashboard.stripe.com/test"
+}
+
 export function getConnectedAccountRequestOptions(stripeAccountId?: string | null): Stripe.RequestOptions | undefined {
   if (!stripeAccountId) {
     return undefined

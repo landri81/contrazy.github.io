@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
   Info,
   ShieldAlert,
   Sparkles,
@@ -10,11 +11,10 @@ import {
 } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
+import { buttonVariants } from "@/components/ui/button"
 import { requireSubscribedVendorProfileAccess } from "@/lib/auth/guards"
 import { StripeConnectCard } from "@/features/dashboard/components/stripe-connect-card"
 import { StripeDisconnectAction } from "@/features/dashboard/components/stripe-disconnect-action"
-import { StripeEmbeddedDashboard } from "@/features/dashboard/components/stripe-embedded-dashboard"
-import { getStripePublishableKey } from "@/lib/integrations/stripe"
 
 type StatusKey = "connected" | "incomplete" | "error" | "no_account" | "disconnected"
 
@@ -74,7 +74,6 @@ export default async function VendorStripePage({
     t("afterConnection.item2"),
     t("afterConnection.item3"),
   ]
-
   return (
     <div className="space-y-4 sm:space-y-5">
 
@@ -139,7 +138,41 @@ export default async function VendorStripePage({
       ) : null}
 
       {showDashboard ? (
-        <StripeEmbeddedDashboard publishableKey={getStripePublishableKey()} />
+        <section className="rounded-[26px] border border-border/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.94),rgba(255,255,255,1))] p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
+              <ExternalLink className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-foreground">
+                {t("hostedDashboard.title")}
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+                {t("hostedDashboard.description")}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <a
+              href="/api/vendor/stripe/dashboard"
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({
+                size: "lg",
+                className:
+                  "bg-[var(--contrazy-navy)] text-white hover:opacity-90",
+              })}
+            >
+              {t("hostedDashboard.button")}
+              <ExternalLink className="size-4" />
+            </a>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            {t("hostedDashboard.securityNote")}
+          </p>
+        </section>
       ) : null}
 
       {showDashboard ? (
