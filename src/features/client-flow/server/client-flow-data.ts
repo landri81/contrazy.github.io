@@ -1,8 +1,15 @@
 import { Prisma, SignatureStatus, TransactionLinkActor, TransactionLinkStatus, TransactionStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 
-import { renderContractContent } from "@/features/contracts/server/contract-rendering"
+import {
+  localizeCustomerDetailsSectionHeading,
+  renderContractContent,
+} from "@/features/contracts/server/contract-rendering"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
+import {
+  buildTransactionCustomFieldRenderEntries,
+  hasCompletedTransactionCustomFields,
+} from "@/features/transactions/custom-fields"
 import {
   cancelTransactionLink,
   isCancellableLinkStatus,
@@ -22,6 +29,7 @@ export const clientFlowSteps = [
   { key: "profile", label: "Profile" },
   { key: "kyc", label: "Identity" },
   { key: "documents", label: "Documents" },
+  { key: "details", label: "Details" },
   { key: "contract", label: "Agreement" },
   { key: "sign", label: "Signature" },
   { key: "payment", label: "Payment" },
@@ -34,6 +42,7 @@ const editableClientFlowSteps = new Set<ClientFlowStep>([
   "profile",
   "documents",
   "kyc",
+  "details",
   "contract",
   "sign",
 ])
@@ -53,6 +62,12 @@ export const clientFlowTransactionInclude = {
   clientProfile: true,
   requirements: {
     orderBy: { sortOrder: "asc" },
+  },
+  customFields: {
+    orderBy: { sortOrder: "asc" },
+    include: {
+      response: true,
+    },
   },
   documents: {
     orderBy: { uploadedAt: "asc" },
@@ -184,6 +199,10 @@ export function hasReviewedContract(transaction: ClientFlowTransaction) {
   )
 }
 
+export function hasCustomFieldStep(transaction: Pick<ClientFlowTransaction, "customFields">) {
+  return transaction.customFields.length > 0
+}
+
 export function hasCompletedSignature(transaction: ClientFlowTransaction) {
   if (!hasContractStep(transaction)) {
     return true
@@ -203,6 +222,7 @@ export function getClientFlowState(transaction: ClientFlowTransaction) {
     !transaction.requiresKyc ||
     transaction.kycVerification?.status === "VERIFIED" ||
     transaction.kycVerification?.status === "PENDING"
+  const hasCustomFields = hasCompletedTransactionCustomFields(transaction.customFields)
   const reviewedContract = hasReviewedContract(transaction)
   const hasSignature = hasCompletedSignature(transaction)
   const nextFinanceStage = getNextFinanceStage(transaction as FinanceTransaction)
@@ -212,6 +232,7 @@ export function getClientFlowState(transaction: ClientFlowTransaction) {
     hasProfile,
     hasDocs,
     hasKyc,
+    hasCustomFields,
     reviewedContract,
     hasSignature,
     nextFinanceStage,
@@ -266,6 +287,10 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
     return "kyc"
   }
 
+  if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
+    return "details"
+  }
+
   if (hasContractStep(transaction) && !state.reviewedContract) {
     return "contract"
   }
@@ -299,15 +324,21 @@ export function buildPopulatedContractContent(transaction: ClientFlowTransaction
   }
 
   return (
-    transaction.contractArtifact?.renderedContentBeforeSignature ??
-    renderContractContent({
-      templateContent,
-      clientProfile: transaction.clientProfile,
-      vendorName: transaction.vendor?.businessName,
-      transactionReference: transaction.reference,
-      amount: transaction.amount,
-      depositAmount: transaction.depositAmount,
-    })
+    transaction.contractArtifact?.renderedContentBeforeSignature
+      ? localizeCustomerDetailsSectionHeading(
+          transaction.contractArtifact.renderedContentBeforeSignature,
+          transaction.locale
+        )
+      : renderContractContent({
+          templateContent,
+          clientProfile: transaction.clientProfile,
+          vendorName: transaction.vendor?.businessName,
+          transactionReference: transaction.reference,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          locale: transaction.locale,
+          customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
+        })
   )
 }
 
@@ -360,7 +391,24 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
       }
+      if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
+        redirect(getClientRoute(transaction, "details"))
+      }
       if (!hasContractStep(transaction)) {
+        redirect(getClientRoute(transaction, nextStep))
+      }
+      return state
+    case "details":
+      if (!state.hasProfile) {
+        redirect(getClientRoute(transaction, "profile"))
+      }
+      if (!state.hasDocs) {
+        redirect(getClientRoute(transaction, "documents"))
+      }
+      if (!state.hasKyc) {
+        redirect(getClientRoute(transaction, "kyc"))
+      }
+      if (!hasCustomFieldStep(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
       }
       return state
@@ -373,6 +421,9 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       }
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
+      }
+      if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
+        redirect(getClientRoute(transaction, "details"))
       }
       if (!hasContractStep(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
@@ -390,6 +441,9 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       }
       if (!state.hasKyc) {
         redirect(getClientRoute(transaction, "kyc"))
+      }
+      if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
+        redirect(getClientRoute(transaction, "details"))
       }
       if (hasContractStep(transaction) && !state.reviewedContract) {
         redirect(getClientRoute(transaction, "contract"))

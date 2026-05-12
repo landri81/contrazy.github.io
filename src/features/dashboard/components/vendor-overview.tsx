@@ -599,6 +599,7 @@ function getActivityPresentation(type: VendorOverviewActivityRecord["type"]) {
       return { icon: Link2, tone: "info" as const, dotClass: "bg-sky-500" }
     case "PROFILE_SUBMITTED":
     case "DOCUMENTS_SUBMITTED":
+    case "CUSTOM_FIELDS_SUBMITTED":
       return { icon: Users, tone: "neutral" as const, dotClass: "bg-slate-400" }
     case "KYC_STARTED":
     case "KYC_VERIFIED":
@@ -836,6 +837,8 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
         return t("activity.labels.PROFILE_SUBMITTED")
       case "DOCUMENTS_SUBMITTED":
         return t("activity.labels.DOCUMENTS_SUBMITTED")
+      case "CUSTOM_FIELDS_SUBMITTED":
+        return t("activity.labels.CUSTOM_FIELDS_SUBMITTED")
       case "KYC_STARTED":
         return t("activity.labels.KYC_STARTED")
       case "KYC_VERIFIED":

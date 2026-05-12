@@ -4,13 +4,16 @@ import {
   TransactionStatus,
   type DocumentAsset,
   type KycVerification,
+  type TransactionCustomField,
   type TransactionRequirement,
 } from "@prisma/client"
 
 import type {
+  TransactionCreationInitialCustomField,
   TransactionCreationInitialRequirement,
   TransactionCreationInitialValues,
 } from "@/features/dashboard/transaction-creation"
+import { parseTransactionCustomFieldSelectOptions } from "@/features/transactions/custom-fields"
 import { prisma } from "@/lib/db/prisma"
 
 const builtInRequirementCategories = new Set([
@@ -41,6 +44,9 @@ export const recreateSourceTransactionInclude = {
   },
   kycVerification: true,
   requirements: {
+    orderBy: { sortOrder: "asc" },
+  },
+  customFields: {
     orderBy: { sortOrder: "asc" },
   },
   documents: {
@@ -80,6 +86,9 @@ type RecreateInitialValueSource = {
       | "exampleImagePublicId"
       | "exampleImageFileName"
     >
+  >
+  customFields: Array<
+    Pick<TransactionCustomField, "label" | "instructions" | "type" | "selectOptions">
   >
 }
 
@@ -146,6 +155,7 @@ export function buildTransactionCreationInitialValues(
     paymentCollectionTiming: source.paymentCollectionTiming,
     requireClientCompany: source.requireClientCompany,
     requirements: source.requirements.map((requirement) => toInitialRequirement(requirement)),
+    customFields: source.customFields.map((field) => toInitialCustomField(field)),
     missingContractTemplateName:
       source.contractTemplateId && !hasContractTemplate
         ? source.contractArtifact?.sourceTemplateName ?? source.contractTemplate?.name ?? null
@@ -311,6 +321,17 @@ function toInitialRequirement(
             fileName: requirement.exampleImageFileName ?? requirement.label,
           }
         : null,
+  }
+}
+
+function toInitialCustomField(
+  field: RecreateInitialValueSource["customFields"][number]
+): TransactionCreationInitialCustomField {
+  return {
+    label: field.label,
+    instructions: field.instructions ?? "",
+    type: field.type,
+    selectOptions: parseTransactionCustomFieldSelectOptions(field.selectOptions),
   }
 }
 

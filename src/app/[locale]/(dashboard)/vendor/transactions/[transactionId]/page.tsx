@@ -76,6 +76,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     CONTRACT_SNAPSHOT_CREATED: t("eventTitles.CONTRACT_SNAPSHOT_CREATED"),
     PROFILE_SUBMITTED: t("eventTitles.PROFILE_SUBMITTED"),
     DOCUMENTS_SUBMITTED: t("eventTitles.DOCUMENTS_SUBMITTED"),
+    CUSTOM_FIELDS_SUBMITTED: t("eventTitles.CUSTOM_FIELDS_SUBMITTED"),
     KYC_STARTED: t("eventTitles.KYC_STARTED"),
     KYC_VERIFIED: t("eventTitles.KYC_VERIFIED"),
     KYC_FAILED: t("eventTitles.KYC_FAILED"),
@@ -103,6 +104,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     COMPLETED: t("eventDetails.COMPLETED"),
     SIGNED_PDF_GENERATED: t("eventDetails.SIGNED_PDF_GENERATED"),
     CONTRACT_REVIEWED: t("eventDetails.CONTRACT_REVIEWED"),
+    CUSTOM_FIELDS_SUBMITTED: t("eventDetails.CUSTOM_FIELDS_SUBMITTED"),
     KYC_STARTED: t("eventDetails.KYC_STARTED"),
     SERVICE_PAYMENT_REQUESTED: t("eventDetails.SERVICE_PAYMENT_REQUESTED"),
   }
@@ -172,6 +174,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
       contractTemplate: true,
       link: true,
       requirements: {
+        orderBy: { sortOrder: "asc" },
+      },
+      customFields: {
         orderBy: { sortOrder: "asc" },
       },
       documents: {

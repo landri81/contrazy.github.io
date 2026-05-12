@@ -10,6 +10,7 @@ import { chromium as playwrightCoreChromium } from "playwright-core"
 import { renderContractContent } from "@/features/contracts/server/contract-rendering"
 import { htmlToDocumentBlocks } from "@/features/contracts/contract-document-model"
 import { createSignedDocumentRenderToken } from "@/features/contracts/server/signed-document-render-auth"
+import { buildTransactionCustomFieldRenderEntries } from "@/features/transactions/custom-fields"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { cloudinary } from "@/lib/integrations/cloudinary"
 import { getSiteUrl } from "@/lib/site-url"
@@ -29,6 +30,12 @@ const contractArtifactInclude = {
   contractTemplate: true,
   contractArtifact: true,
   signatureRecord: true,
+  customFields: {
+    orderBy: { sortOrder: "asc" },
+    include: {
+      response: true,
+    },
+  },
 } satisfies Prisma.TransactionInclude
 
 const PDF_RENDER_TIMEOUT_MS = Number(process.env.CONTRAZY_PDF_TIMEOUT_MS ?? 45_000)
@@ -657,6 +664,8 @@ async function prepareSignedArtifactRender(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    locale: transaction.locale,
+    customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
   })
 
   const renderedContentAfterSignature = renderContractContent({
@@ -666,6 +675,8 @@ async function prepareSignedArtifactRender(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    locale: transaction.locale,
+    customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
     signerName,
     signedAt,
     signedTimezone,
@@ -788,6 +799,8 @@ export async function persistReviewedContractSnapshot(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    locale: transaction.locale,
+    customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
   })
 
   return db.transactionContractArtifact.update({

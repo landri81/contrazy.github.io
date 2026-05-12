@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   CreditCard,
   FileText,
+  ListChecks,
   Loader2,
   LockKeyhole,
   PenLine,
@@ -27,6 +28,7 @@ type StepKey =
   | "documents"
   | "kyc"
   | "contract"
+  | "details"
   | "sign"
   | "payment"
   | "complete"
@@ -35,6 +37,7 @@ const stepOrder: StepKey[] = [
   "profile",
   "kyc",
   "documents",
+  "details",
   "contract",
   "sign",
   "payment",
@@ -45,6 +48,7 @@ const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = 
   profile: UserCircle,
   documents: Camera,
   kyc: ShieldCheck,
+  details: ListChecks,
   contract: FileText,
   sign: PenLine,
   payment: CreditCard,
@@ -83,6 +87,7 @@ export function ClientFlowShell({
     profile: tSteps("profile"),
     documents: tSteps("documents"),
     kyc: tSteps("kyc"),
+    details: tSteps("details"),
     contract: tSteps("contract"),
     sign: tSteps("sign"),
     payment: tSteps("payment"),

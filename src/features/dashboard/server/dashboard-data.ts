@@ -1100,6 +1100,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     TransactionEventType.LINK_OPENED,
     TransactionEventType.PROFILE_SUBMITTED,
     TransactionEventType.DOCUMENTS_SUBMITTED,
+    TransactionEventType.CUSTOM_FIELDS_SUBMITTED,
     TransactionEventType.KYC_STARTED,
     TransactionEventType.KYC_VERIFIED,
     TransactionEventType.KYC_FAILED,

@@ -8,6 +8,7 @@ import {
   canRevisitClientStep,
   getClientFlowState,
   getTransactionByToken,
+  hasCustomFieldStep,
   hasContractStep,
   type ClientFlowStep,
 } from "@/features/client-flow/server/client-flow-data"
@@ -40,6 +41,7 @@ export default async function TokenLayout({
   const enabledSteps: ClientFlowStep[] = ["profile"]
   if (transaction.requiresKyc) enabledSteps.push("kyc")
   enabledSteps.push("documents")
+  if (hasCustomFieldStep(transaction)) enabledSteps.push("details")
   if (hasContractStep(transaction)) {
     enabledSteps.push("contract", "sign")
   }
@@ -61,6 +63,7 @@ export default async function TokenLayout({
   if (state.hasProfile) completedSteps.push("profile")
   if (state.hasDocs) completedSteps.push("documents")
   if (state.hasKyc && transaction.requiresKyc) completedSteps.push("kyc")
+  if (state.hasCustomFields && hasCustomFieldStep(transaction)) completedSteps.push("details")
   if (state.reviewedContract && hasContractStep(transaction)) completedSteps.push("contract")
   if (state.hasSignature && hasContractStep(transaction)) completedSteps.push("sign")
   if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")

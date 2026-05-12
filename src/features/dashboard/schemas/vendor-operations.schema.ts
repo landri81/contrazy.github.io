@@ -1,4 +1,9 @@
-import { PaymentCollectionTiming, RequirementCategory, RequirementType } from "@prisma/client"
+import {
+  PaymentCollectionTiming,
+  RequirementCategory,
+  RequirementType,
+  TransactionCustomFieldType,
+} from "@prisma/client"
 import { z } from "zod"
 
 import {
@@ -58,6 +63,49 @@ const requirementItemSchema = z
         : null,
   }))
 
+const transactionCustomFieldItemSchema = z
+  .object({
+    label: requiredText("Customer field label", INPUT_LIMITS.checklistItemLabel, {
+      requiredMessage: "Customer field label is required",
+    }),
+    instructions: optionalNullableText(
+      "Customer field instructions",
+      INPUT_LIMITS.checklistItemInstructions
+    ).optional(),
+    type: z.nativeEnum(TransactionCustomFieldType),
+    selectOptions: z
+      .array(
+        requiredText("Select option", INPUT_LIMITS.checklistItemLabel, {
+          requiredMessage: "Select option is required",
+        })
+      )
+      .optional(),
+  })
+  .superRefine((item, ctx) => {
+    const optionCount = Array.isArray(item.selectOptions) ? item.selectOptions.length : 0
+
+    if (item.type === TransactionCustomFieldType.SELECT && optionCount < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selectOptions"],
+        message: "Select fields require at least two options.",
+      })
+    }
+  })
+  .transform((item) => ({
+    ...item,
+    instructions:
+      typeof item.instructions === "string" && item.instructions.length > 0
+        ? item.instructions
+        : null,
+    selectOptions:
+      item.type === TransactionCustomFieldType.SELECT
+        ? Array.isArray(item.selectOptions)
+          ? item.selectOptions
+          : []
+        : [],
+  }))
+
 export const vendorTransactionCreateSchema = z
   .object({
     title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
@@ -74,6 +122,7 @@ export const vendorTransactionCreateSchema = z
     paymentCollectionTiming: z.nativeEnum(PaymentCollectionTiming).optional(),
     requireClientCompany: z.boolean().optional(),
     requirements: z.array(requirementItemSchema).optional(),
+    customFields: z.array(transactionCustomFieldItemSchema).optional(),
   })
   .transform((data) => ({
     ...data,
@@ -89,6 +138,7 @@ export const vendorTransactionCreateSchema = z
     paymentCollectionTiming: data.paymentCollectionTiming ?? PaymentCollectionTiming.AFTER_SIGNING,
     requireClientCompany: Boolean(data.requireClientCompany),
     requirements: Array.isArray(data.requirements) ? data.requirements : [],
+    customFields: Array.isArray(data.customFields) ? data.customFields : [],
   }))
 
 export const contractTemplatePayloadSchema = z

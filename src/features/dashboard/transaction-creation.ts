@@ -3,6 +3,7 @@ import type {
   RequirementCategoryValue,
   RequirementTypeValue,
 } from "@/features/transactions/contract-flow"
+import type { TransactionCustomFieldTypeValue } from "@/features/transactions/custom-fields"
 import type { RequirementExampleDraft } from "@/features/dashboard/lib/vendor-requirement-example-images"
 
 export type TransactionCreationInitialRequirement = {
@@ -13,6 +14,13 @@ export type TransactionCreationInitialRequirement = {
   customCategoryLabel: string
   required: boolean
   exampleImage: RequirementExampleDraft | null
+}
+
+export type TransactionCreationInitialCustomField = {
+  label: string
+  instructions: string
+  type: TransactionCustomFieldTypeValue
+  selectOptions: string[]
 }
 
 export type TransactionCreationInitialValues = {
@@ -29,5 +37,6 @@ export type TransactionCreationInitialValues = {
   paymentCollectionTiming: PaymentCollectionTimingValue
   requireClientCompany: boolean
   requirements: TransactionCreationInitialRequirement[]
+  customFields: TransactionCreationInitialCustomField[]
   missingContractTemplateName: string | null
 }

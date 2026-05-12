@@ -81,6 +81,12 @@ enum RequirementType {
   TEXT
 }
 
+enum TransactionCustomFieldType {
+  TEXT
+  NUMBER
+  SELECT
+}
+
 enum RequirementCategory {
   ID
   PROOF_OF_ADDRESS
@@ -182,6 +188,7 @@ enum TransactionEventType {
   CONTRACT_SNAPSHOT_CREATED
   PROFILE_SUBMITTED
   DOCUMENTS_SUBMITTED
+  CUSTOM_FIELDS_SUBMITTED
   KYC_STARTED
   KYC_VERIFIED
   KYC_FAILED
@@ -372,6 +379,8 @@ model Transaction {
   checklistTemplate  ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id], onDelete: SetNull)
   link               TransactionLink?
   requirements       TransactionRequirement[]
+  customFields       TransactionCustomField[]
+  customFieldResponses TransactionCustomFieldResponse[]
   documents          DocumentAsset[]
   kycVerification    KycVerification?
   signatureRecord    SignatureRecord?
@@ -420,6 +429,30 @@ model TransactionRequirement {
   sortOrder     Int             @default(0)
   transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   documents     DocumentAsset[]
+}
+
+model TransactionCustomField {
+  id            String                     @id @default(cuid())
+  transactionId String
+  label         String
+  instructions  String?
+  type          TransactionCustomFieldType @default(TEXT)
+  selectOptions Json?
+  sortOrder     Int                        @default(0)
+  transaction   Transaction                @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  response      TransactionCustomFieldResponse?
+}
+
+model TransactionCustomFieldResponse {
+  id            String                 @id @default(cuid())
+  transactionId String
+  customFieldId String                 @unique
+  value         String                 @db.Text
+  answeredAt    DateTime               @default(now())
+  transaction   Transaction            @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  customField   TransactionCustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId, answeredAt])
 }
 
 model DocumentAsset {

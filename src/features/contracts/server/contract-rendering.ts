@@ -24,6 +24,11 @@ type RenderContractContentInput = {
   transactionReference: string
   amount?: number | null
   depositAmount?: number | null
+  locale?: string | null
+  customerDetails?: Array<{
+    label: string
+    value: string
+  }>
   signerName?: string | null
   signedAt?: Date | null
   signedTimezone?: string | null
@@ -120,6 +125,57 @@ export function sanitizeContractTemplateContent(content: string) {
   return sanitizeHtml(normalizeContractTemplateMarkup(content), contractSanitizeOptions).trim()
 }
 
+const customerDetailsSectionTitles = {
+  en: "Customer-provided details",
+  fr: "Détails fournis par le client",
+} as const
+
+function getCustomerDetailsSectionTitle(locale?: string | null) {
+  const normalizedLocale = locale?.trim().toLowerCase()
+
+  if (normalizedLocale === "fr") {
+    return customerDetailsSectionTitles.fr
+  }
+
+  return customerDetailsSectionTitles.en
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+export function localizeCustomerDetailsSectionHeading(
+  content: string,
+  locale?: string | null
+) {
+  const localizedTitle = getCustomerDetailsSectionTitle(locale)
+  const knownTitles = Array.from(new Set(Object.values(customerDetailsSectionTitles)))
+  const pattern = new RegExp(
+    `<h2>\\s*(?:${knownTitles.map(escapeRegExp).join("|")})\\s*<\\/h2>`,
+    "gi"
+  )
+
+  return content.replace(pattern, `<h2>${localizedTitle}</h2>`)
+}
+
+function buildCustomerDetailsSection(
+  details: RenderContractContentInput["customerDetails"],
+  locale?: string | null
+) {
+  if (!details || details.length === 0) {
+    return ""
+  }
+
+  const rows = details
+    .map(
+      (detail) =>
+        `<p><strong>${escapeContractHtml(detail.label)}:</strong> ${escapeContractHtml(detail.value)}</p>`
+    )
+    .join("")
+
+  return `<h2>${escapeContractHtml(getCustomerDetailsSectionTitle(locale))}</h2>${rows}`
+}
+
 export function renderContractContent(input: RenderContractContentInput) {
   const clientName = buildClientDisplayName(input.clientProfile)
   const signedTimestamp = input.signedAt ? input.signedAt.toISOString() : ""
@@ -167,6 +223,8 @@ export function renderContractContent(input: RenderContractContentInput) {
   for (const [token, value] of replacements.entries()) {
     renderedHtml = renderedHtml.replaceAll(token, value)
   }
+
+  renderedHtml = `${renderedHtml}${buildCustomerDetailsSection(input.customerDetails, input.locale)}`
 
   return sanitizeHtml(renderedHtml, contractSanitizeOptions).trim()
 }

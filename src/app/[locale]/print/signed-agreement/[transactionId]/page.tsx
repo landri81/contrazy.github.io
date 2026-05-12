@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation"
 
 import { SignedAgreementPreview } from "@/features/contracts/components/signed-agreement-preview"
-import { renderContractContent } from "@/features/contracts/server/contract-rendering"
+import {
+  localizeCustomerDetailsSectionHeading,
+  renderContractContent,
+} from "@/features/contracts/server/contract-rendering"
 import { verifySignedDocumentRenderToken } from "@/features/contracts/server/signed-document-render-auth"
+import { buildTransactionCustomFieldRenderEntries } from "@/features/transactions/custom-fields"
 import { prisma } from "@/lib/db/prisma"
 import { getSiteUrl } from "@/lib/site-url"
 
@@ -51,6 +55,12 @@ export default async function SignedAgreementPrintPage(props: {
       contractArtifact: true,
       contractTemplate: true,
       signatureRecord: true,
+      customFields: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          response: true,
+        },
+      },
     },
   })
 
@@ -65,18 +75,25 @@ export default async function SignedAgreementPrintPage(props: {
   const signedAt = transaction.signatureRecord.signedAt ?? new Date()
   const signedTimezone = transaction.contractArtifact?.signedTimezone ?? "UTC"
   const renderedHtml =
-    transaction.contractArtifact?.renderedContentAfterSignature ??
-    renderContractContent({
-      templateContent,
-      clientProfile: transaction.clientProfile,
-      vendorName: transaction.vendor?.businessName,
-      transactionReference: transaction.reference,
-      amount: transaction.amount,
-      depositAmount: transaction.depositAmount,
-      signerName: transaction.signatureRecord.signerName ?? transaction.clientProfile.fullName ?? "Client",
-      signedAt,
-      signedTimezone,
-    })
+    transaction.contractArtifact?.renderedContentAfterSignature
+      ? localizeCustomerDetailsSectionHeading(
+          transaction.contractArtifact.renderedContentAfterSignature,
+          transaction.locale
+        )
+      : renderContractContent({
+          templateContent,
+          clientProfile: transaction.clientProfile,
+          vendorName: transaction.vendor?.businessName,
+          transactionReference: transaction.reference,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          locale: transaction.locale,
+          customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
+          signerName:
+            transaction.signatureRecord.signerName ?? transaction.clientProfile.fullName ?? "Client",
+          signedAt,
+          signedTimezone,
+        })
 
   return (
     <main className="bg-white px-10 py-10">

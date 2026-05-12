@@ -17,6 +17,7 @@ export const INPUT_LIMITS = {
   checklistDescription: 180,
   checklistItemLabel: 120,
   checklistItemInstructions: 240,
+  transactionCustomFieldValue: 240,
   linkTitle: 140,
   linkNotes: 500,
   cancelReason: 300,

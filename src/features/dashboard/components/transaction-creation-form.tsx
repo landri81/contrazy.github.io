@@ -59,6 +59,7 @@ import {
   toRequirementExampleCleanupAsset,
 } from "@/features/dashboard/lib/vendor-requirement-example-images"
 import type {
+  TransactionCreationInitialCustomField,
   TransactionCreationInitialRequirement,
   TransactionCreationInitialValues,
 } from "@/features/dashboard/transaction-creation"
@@ -76,6 +77,10 @@ import {
   type RequirementCategoryValue,
   type RequirementTypeValue,
 } from "@/features/transactions/contract-flow"
+import {
+  transactionCustomFieldTypeOptions,
+  type TransactionCustomFieldTypeValue,
+} from "@/features/transactions/custom-fields"
 
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
@@ -100,6 +105,14 @@ type DraftRequirement = {
   customCategoryLabel: string
   required: boolean
   exampleImage: RequirementExampleDraft | null
+}
+
+type DraftCustomField = {
+  id: string
+  label: string
+  instructions: string
+  type: TransactionCustomFieldTypeValue
+  selectOptions: string[]
 }
 
 type StepDef = {
@@ -149,6 +162,14 @@ function createRequirementId() {
   return `requirement-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+function createCustomFieldId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+
+  return `custom-field-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement {
   const exampleImage =
     item?.exampleImageUrl && item.exampleImagePublicId
@@ -185,6 +206,33 @@ function createDraftRequirementFromInitialValue(
     required: item.required,
     exampleImage: item.exampleImage ? { ...item.exampleImage } : null,
   }
+}
+
+function createDraftCustomField(
+  item?: Partial<TransactionCreationInitialCustomField>
+): DraftCustomField {
+  const type = item?.type ?? "TEXT"
+
+  return {
+    id: createCustomFieldId(),
+    label: item?.label ?? "",
+    instructions: item?.instructions ?? "",
+    type,
+    selectOptions:
+      type === "SELECT" &&
+      Array.isArray(item?.selectOptions) &&
+      item.selectOptions.length > 0
+        ? item.selectOptions
+        : type === "SELECT"
+          ? ["", ""]
+          : [],
+  }
+}
+
+function createDraftCustomFieldFromInitialValue(
+  item: TransactionCreationInitialCustomField
+): DraftCustomField {
+  return createDraftCustomField(item)
 }
 
 function getTemplateLabel(
@@ -240,9 +288,13 @@ type TransactionCreationFormState = {
   paymentCollectionTiming: PaymentCollectionTimingValue
   requireClientCompany: boolean
   requirements: DraftRequirement[]
+  customFields: DraftCustomField[]
 }
 
-type TransactionCreationFormSnapshot = Omit<TransactionCreationFormState, "requirements"> & {
+type TransactionCreationFormSnapshot = Omit<
+  TransactionCreationFormState,
+  "requirements" | "customFields"
+> & {
   requirements: Array<{
     label: string
     description: string
@@ -258,6 +310,12 @@ type TransactionCreationFormSnapshot = Omit<TransactionCreationFormState, "requi
           fileName: string
         }
       | null
+  }>
+  customFields: Array<{
+    label: string
+    instructions: string
+    type: TransactionCustomFieldTypeValue
+    selectOptions: string[]
   }>
 }
 
@@ -277,6 +335,9 @@ function createInitialFormState(
     requireClientCompany: initialValues?.requireClientCompany ?? false,
     requirements: (initialValues?.requirements ?? []).map((item) =>
       createDraftRequirementFromInitialValue(item)
+    ),
+    customFields: (initialValues?.customFields ?? []).map((item) =>
+      createDraftCustomFieldFromInitialValue(item)
     ),
   }
 }
@@ -308,6 +369,12 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
             fileName: item.exampleImage.fileName,
           }
         : null,
+    })),
+    customFields: state.customFields.map((item) => ({
+      label: item.label,
+      instructions: item.instructions,
+      type: item.type,
+      selectOptions: item.type === "SELECT" ? item.selectOptions : [],
     })),
   }
 }
@@ -565,6 +632,12 @@ export function TransactionCreationForm({
     TEXT: t("reqTypeText"),
   }
 
+  const customFieldTypeLabels: Record<string, string> = {
+    TEXT: t("customFieldTypeText"),
+    NUMBER: t("customFieldTypeNumber"),
+    SELECT: t("customFieldTypeSelect"),
+  }
+
   const paymentTimingLabels: Record<string, { label: string; description: string }> = {
     AFTER_SIGNING: {
       label: t("paymentTimingAfterSigningLabel"),
@@ -634,6 +707,9 @@ export function TransactionCreationForm({
   const [requirements, setRequirements] = useState<DraftRequirement[]>(
     initialFormState.requirements
   )
+  const [customFields, setCustomFields] = useState<DraftCustomField[]>(
+    initialFormState.customFields
+  )
 
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -688,6 +764,7 @@ export function TransactionCreationForm({
     { key: "profile", label: t("clientStepProfile") },
     requirements.length > 0 && { key: "documents", label: t("clientStepDocuments") },
     requiresKyc && { key: "kyc", label: t("clientStepKyc") },
+    customFields.length > 0 && contractId !== "none" && { key: "details", label: t("clientStepDetails") },
     contractId !== "none" && { key: "contract", label: t("clientStepContract") },
     depositNum > 0 && { key: "deposit", label: t("clientStepPayment") },
     amountNum > 0 && {
@@ -715,6 +792,7 @@ export function TransactionCreationForm({
           paymentCollectionTiming,
           requireClientCompany,
           requirements,
+          customFields,
         })
       ),
     [
@@ -727,6 +805,7 @@ export function TransactionCreationForm({
       paymentCollectionTiming,
       requireClientCompany,
       requirements,
+      customFields,
       requiresKyc,
       title,
     ]
@@ -824,6 +903,10 @@ export function TransactionCreationForm({
     setRequirements((current) => [...current, createDraftRequirement()])
   }
 
+  function addCustomField() {
+    setCustomFields((current) => [...current, createDraftCustomField()])
+  }
+
   function updateRequirement(requirementId: string, patch: Partial<DraftRequirement>) {
     setRequirements((current) =>
       current.map((item) => {
@@ -844,6 +927,69 @@ export function TransactionCreationForm({
     )
   }
 
+  function updateCustomField(customFieldId: string, patch: Partial<DraftCustomField>) {
+    setCustomFields((current) =>
+      current.map((item) => {
+        if (item.id !== customFieldId) return item
+
+        const nextType = patch.type ?? item.type
+        return {
+          ...item,
+          ...patch,
+          selectOptions:
+            nextType === "SELECT"
+              ? (patch.selectOptions ?? (item.selectOptions.length > 0 ? item.selectOptions : ["", ""]))
+              : [],
+        }
+      })
+    )
+  }
+
+  function updateCustomFieldSelectOption(
+    customFieldId: string,
+    optionIndex: number,
+    nextValue: string
+  ) {
+    setCustomFields((current) =>
+      current.map((item) => {
+        if (item.id !== customFieldId || item.type !== "SELECT") return item
+
+        const nextOptions = [...item.selectOptions]
+        nextOptions[optionIndex] = nextValue
+
+        return {
+          ...item,
+          selectOptions: nextOptions,
+        }
+      })
+    )
+  }
+
+  function addCustomFieldSelectOption(customFieldId: string) {
+    setCustomFields((current) =>
+      current.map((item) =>
+        item.id === customFieldId && item.type === "SELECT"
+          ? { ...item, selectOptions: [...item.selectOptions, ""] }
+          : item
+      )
+    )
+  }
+
+  function removeCustomFieldSelectOption(customFieldId: string, optionIndex: number) {
+    setCustomFields((current) =>
+      current.map((item) => {
+        if (item.id !== customFieldId || item.type !== "SELECT") return item
+
+        const nextOptions = item.selectOptions.filter((_, index) => index !== optionIndex)
+
+        return {
+          ...item,
+          selectOptions: nextOptions.length > 0 ? nextOptions : ["", ""],
+        }
+      })
+    )
+  }
+
   function removeRequirement(requirementId: string) {
     const currentExampleImage = requirements.find((item) => item.id === requirementId)?.exampleImage
     setRequirements((current) => current.filter((item) => item.id !== requirementId))
@@ -851,6 +997,10 @@ export function TransactionCreationForm({
     if (currentExampleImage?.source === "local") {
       void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(currentExampleImage)])
     }
+  }
+
+  function removeCustomField(customFieldId: string) {
+    setCustomFields((current) => current.filter((item) => item.id !== customFieldId))
   }
 
   function handleRequirementTypeChange(requirementId: string, nextType: RequirementTypeValue) {
@@ -861,6 +1011,16 @@ export function TransactionCreationForm({
     if (nextType === "TEXT" && currentExampleImage?.source === "local") {
       void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(currentExampleImage)])
     }
+  }
+
+  function handleCustomFieldTypeChange(
+    customFieldId: string,
+    nextType: TransactionCustomFieldTypeValue
+  ) {
+    updateCustomField(customFieldId, {
+      type: nextType,
+      selectOptions: nextType === "SELECT" ? ["", ""] : [],
+    })
   }
 
   async function handleRequirementExampleUpload(requirementId: string, file: File) {
@@ -994,6 +1154,28 @@ export function TransactionCreationForm({
         setStepError(t("errorRequirements"))
         return false
       }
+
+      if (customFields.length > 0 && contractId === "none") {
+        setStepError(t("errorCustomFieldsContract"))
+        return false
+      }
+
+      const invalidCustomField = customFields.find((item) => {
+        if (!item.label.trim()) {
+          return true
+        }
+
+        if (item.type !== "SELECT") {
+          return false
+        }
+
+        return item.selectOptions.filter((option) => option.trim().length > 0).length < 2
+      })
+
+      if (invalidCustomField) {
+        setStepError(t("errorCustomFields"))
+        return false
+      }
     }
 
     return true
@@ -1020,6 +1202,12 @@ export function TransactionCreationForm({
     if (amountNum <= 0 && depositNum <= 0) {
       setError(t("errorAmountRequired"))
       navigate(2)
+      return
+    }
+
+    if (customFields.length > 0 && contractId === "none") {
+      setError(t("errorCustomFieldsContract"))
+      navigate(4)
       return
     }
 
@@ -1054,6 +1242,15 @@ export function TransactionCreationForm({
               item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
             exampleImageFileName:
               item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
+          })),
+          customFields: customFields.map((item) => ({
+            label: item.label,
+            instructions: item.instructions || null,
+            type: item.type,
+            selectOptions:
+              item.type === "SELECT"
+                ? item.selectOptions.map((option) => option.trim()).filter(Boolean)
+                : [],
           })),
         }),
       })
@@ -1114,6 +1311,7 @@ export function TransactionCreationForm({
     setPaymentCollectionTiming(nextInitialState.paymentCollectionTiming)
     setRequireClientCompany(nextInitialState.requireClientCompany)
     setRequirements(nextInitialState.requirements)
+    setCustomFields(nextInitialState.customFields)
     setStepError(null)
     setError(null)
     setStep(1)
@@ -1939,6 +2137,207 @@ export function TransactionCreationForm({
                 </Section>
 
                 <Section>
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{t("customFieldsTitle")}</p>
+                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                        {t("customFieldsDesc")}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(buttonSecondaryClass, "shrink-0 cursor-pointer")}
+                      onClick={addCustomField}
+                      disabled={contractId === "none"}
+                    >
+                      <Plus className="mr-1.5 size-3.5" />
+                      {t("addCustomField")}
+                    </Button>
+                  </div>
+
+                  {contractId === "none" ? (
+                    <div className="mb-3">
+                      <InlineNotice tone="warning" icon={AlertCircle}>
+                        {t("customFieldsContractRequired")}
+                      </InlineNotice>
+                    </div>
+                  ) : null}
+
+                  {customFields.length === 0 ? (
+                    <div className="border border-dashed border-border bg-muted/20 px-3 py-4 text-center text-sm text-muted-foreground">
+                      {t("noCustomFields")}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {customFields.map((item, index) => {
+                        const rowId = item.id
+                        const selectOptions =
+                          item.type === "SELECT"
+                            ? item.selectOptions.length > 0
+                              ? item.selectOptions
+                              : ["", ""]
+                            : []
+
+                        return (
+                          <div key={item.id} className="border border-border bg-background px-3 py-3">
+                            <div className="grid gap-3 md:grid-cols-[minmax(0,1.45fr)_minmax(220px,0.85fr)]">
+                              <div className="space-y-2">
+                                <Label htmlFor={`${rowId}-custom-label`} className={fieldLabelClass}>
+                                  {t("customFieldLabel")}
+                                </Label>
+                                <Input
+                                  id={`${rowId}-custom-label`}
+                                  value={item.label}
+                                  onChange={(event) => updateCustomField(item.id, { label: event.target.value })}
+                                  placeholder={t("customFieldLabelPlaceholder")}
+                                  maxLength={INPUT_LIMITS.checklistItemLabel}
+                                  className={controlClass}
+                                />
+
+                                <Label htmlFor={`${rowId}-custom-instructions`} className={fieldLabelClass}>
+                                  {t("customFieldInstructions")}
+                                </Label>
+                                <Textarea
+                                  id={`${rowId}-custom-instructions`}
+                                  value={item.instructions}
+                                  onChange={(event) => updateCustomField(item.id, { instructions: event.target.value })}
+                                  placeholder={t("customFieldInstructionsPlaceholder")}
+                                  maxLength={INPUT_LIMITS.checklistItemInstructions}
+                                  className="min-h-[54px] resize-none rounded-sm border-border shadow-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
+                                />
+                                <CharacterCount
+                                  current={item.instructions.length}
+                                  limit={INPUT_LIMITS.checklistItemInstructions}
+                                  className="text-right"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor={`${rowId}-custom-type`} className={fieldLabelClass}>
+                                  {t("customFieldType")}
+                                </Label>
+                                <Select
+                                  value={item.type}
+                                  onValueChange={(value) =>
+                                    void handleCustomFieldTypeChange(
+                                      item.id,
+                                      value as TransactionCustomFieldTypeValue
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger
+                                    id={`${rowId}-custom-type`}
+                                    className={cn(controlClass, "cursor-pointer")}
+                                  >
+                                    <span className="truncate text-sm">
+                                      {customFieldTypeLabels[item.type] ?? t("customFieldTypeText")}
+                                    </span>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {transactionCustomFieldTypeOptions.map((option) => (
+                                      <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                        className="cursor-pointer"
+                                      >
+                                        {customFieldTypeLabels[option.value] ?? option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <div className="flex items-center justify-between gap-3 border border-border bg-muted/20 px-3 py-2">
+                                  <div>
+                                    <p className="text-xs font-medium text-foreground">
+                                      {t("customFieldRequired")}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                                      {t("customFieldRequiredNote")}
+                                    </p>
+                                  </div>
+                                  <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-foreground">
+                                    {t("required")}
+                                  </span>
+                                </div>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-full cursor-pointer rounded-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => removeCustomField(item.id)}
+                                  aria-label={`Remove customer field ${index + 1}`}
+                                >
+                                  <Trash2 className="mr-1.5 size-3.5" />
+                                  {t("removeCustomField")}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {item.type === "SELECT" ? (
+                              <div className="mt-3 border-t border-border pt-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <Label className={fieldLabelClass}>{t("customFieldOptions")}</Label>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn(buttonSecondaryClass, "h-8 cursor-pointer")}
+                                    onClick={() => addCustomFieldSelectOption(item.id)}
+                                  >
+                                    <Plus className="mr-1.5 size-3.5" />
+                                    {t("addCustomFieldOption")}
+                                  </Button>
+                                </div>
+
+                                <div className="mt-2 space-y-2">
+                                  {selectOptions.map((option, optionIndex) => (
+                                    <div
+                                      key={`${item.id}-option-${optionIndex}`}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Input
+                                        value={option}
+                                        onChange={(event) =>
+                                          updateCustomFieldSelectOption(
+                                            item.id,
+                                            optionIndex,
+                                            event.target.value
+                                          )
+                                        }
+                                        placeholder={t("customFieldOptionPlaceholder", {
+                                          index: optionIndex + 1,
+                                        })}
+                                        maxLength={INPUT_LIMITS.checklistItemLabel}
+                                        className={controlClass}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-9 w-9 cursor-pointer rounded-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={() =>
+                                          removeCustomFieldSelectOption(item.id, optionIndex)
+                                        }
+                                        aria-label={`Remove option ${optionIndex + 1}`}
+                                      >
+                                        <Trash2 className="size-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </Section>
+
+                <Section>
                   <SwitchRow
                     id="require-client-company"
                     icon={Building2}
@@ -2027,6 +2426,17 @@ export function TransactionCreationForm({
                               : requirements.length === 1
                                 ? t("summaryRequirementsOne")
                                 : t("summaryRequirementsMany", { count: requirements.length })}
+                          </dd>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
+                          <dt className="text-muted-foreground">{t("summaryCustomFields")}</dt>
+                          <dd className="font-medium text-foreground">
+                            {customFields.length === 0
+                              ? t("noCustomFieldsShort")
+                              : customFields.length === 1
+                                ? t("summaryCustomFieldsOne")
+                                : t("summaryCustomFieldsMany", { count: customFields.length })}
                           </dd>
                         </div>
 

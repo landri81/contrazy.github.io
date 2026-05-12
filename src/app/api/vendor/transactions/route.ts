@@ -134,6 +134,7 @@ export async function POST(request: Request) {
       paymentCollectionTiming,
       requireClientCompany,
       requirements,
+      customFields,
     } = parsedBody.data
 
     const normalizedAmount = typeof amount === "number" ? amount : null
@@ -241,6 +242,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Selected checklist was not found for this account" }, { status: 422 })
     }
 
+    if (customFields.length > 0 && !contractTemplate) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Select a contract template before adding customer fields that must be completed before signing.",
+        },
+        { status: 422 }
+      )
+    }
+
     const reference = `TX-${randomBytes(4).toString("hex").toUpperCase()}`
     const token = randomBytes(16).toString("hex")
     const baseUrl = getAppBaseUrl()
@@ -299,6 +310,14 @@ export async function POST(request: Request) {
             exampleImagePublicId: item.exampleImagePublicId,
             exampleImageFileName: item.exampleImageFileName,
           }))
+
+    const customFieldDefinitions = customFields.map((item, index) => ({
+      label: item.label,
+      instructions: item.instructions,
+      type: item.type,
+      selectOptions: item.type === "SELECT" ? item.selectOptions : [],
+      sortOrder: index,
+    }))
 
     // A financial amount is mandatory
     if (!normalizedAmount && !normalizedDepositAmount) {
@@ -376,6 +395,27 @@ export async function POST(request: Request) {
               )
             )
           : []
+
+      if (customFieldDefinitions.length > 0) {
+        await Promise.all(
+          customFieldDefinitions.map((item) =>
+            tx.transactionCustomField.create({
+              data: {
+                transactionId: newTransaction.id,
+                label: item.label,
+                instructions: item.instructions,
+                type: item.type,
+                ...(item.type === "SELECT"
+                  ? {
+                      selectOptions: item.selectOptions as Prisma.InputJsonValue,
+                    }
+                  : {}),
+                sortOrder: item.sortOrder,
+              },
+            })
+          )
+        )
+      }
 
       if (contractTemplate) {
         await createTransactionContractArtifact(tx, {
