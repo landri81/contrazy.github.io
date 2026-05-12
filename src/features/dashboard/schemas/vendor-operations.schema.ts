@@ -8,6 +8,7 @@ import {
 import { optionalNullableText, optionalText, requiredText } from "@/lib/validation/text-schemas"
 
 const optionalIdSchema = z.union([z.string().trim().min(1), z.null()]).optional()
+const optionalNullableStringSchema = z.union([z.string().trim(), z.null()]).optional()
 
 const requirementItemSchema = z
   .object({
@@ -19,6 +20,9 @@ const requirementItemSchema = z
     category: z.nativeEnum(RequirementCategory),
     customCategoryLabel: optionalNullableText("Custom category label", INPUT_LIMITS.checklistItemLabel).optional(),
     required: z.boolean(),
+    exampleImageUrl: optionalNullableStringSchema,
+    exampleImagePublicId: optionalNullableStringSchema,
+    exampleImageFileName: optionalNullableStringSchema,
   })
   .superRefine((item, ctx) => {
     if (item.category === RequirementCategory.OTHER && !item.customCategoryLabel?.trim()) {
@@ -35,6 +39,22 @@ const requirementItemSchema = z
     customCategoryLabel:
       item.category === RequirementCategory.OTHER && typeof item.customCategoryLabel === "string" && item.customCategoryLabel.length > 0
         ? item.customCategoryLabel
+        : null,
+    exampleImageUrl:
+      item.type !== RequirementType.TEXT && typeof item.exampleImageUrl === "string" && item.exampleImageUrl.length > 0
+        ? item.exampleImageUrl
+        : null,
+    exampleImagePublicId:
+      item.type !== RequirementType.TEXT &&
+      typeof item.exampleImagePublicId === "string" &&
+      item.exampleImagePublicId.length > 0
+        ? item.exampleImagePublicId
+        : null,
+    exampleImageFileName:
+      item.type !== RequirementType.TEXT &&
+      typeof item.exampleImageFileName === "string" &&
+      item.exampleImageFileName.length > 0
+        ? item.exampleImageFileName
         : null,
   }))
 

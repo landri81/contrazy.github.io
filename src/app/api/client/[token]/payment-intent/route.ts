@@ -87,11 +87,11 @@ export async function POST(
         currency: transaction.currency.toLowerCase(),
         capture_method: isDeposit ? "manual" : "automatic",
         payment_method_types: ["card"],
-        payment_method_options: {
-          card: {
-            request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
-          },
-        },
+        // payment_method_options: {
+        //   card: {
+        //     request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
+        //   },
+        // },
         metadata: {
           transactionId: transaction.id,
           vendorId: transaction.vendorId,

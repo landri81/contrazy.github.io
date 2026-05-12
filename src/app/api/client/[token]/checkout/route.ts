@@ -88,11 +88,11 @@ export async function POST(
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
-      payment_method_options: {
-        card: {
-          request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
-        },
-      },
+      // payment_method_options: {
+      //   card: {
+      //     request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
+      //   },
+      // },
       line_items: [
         {
           price_data: {

@@ -7,6 +7,7 @@ import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 import { canUseKyc, remainingKycVerifications, remainingQrCodes, remainingTransactions } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
 import { vendorTransactionCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
+import { normalizeRequirementExampleImage } from "@/features/dashboard/server/requirement-example-assets"
 import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { createTransactionContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -224,15 +225,39 @@ export async function POST(request: Request) {
       generateQr === true
         ? await QRCode.toString(secureLink, { type: "svg", margin: 1 })
         : null
-    const requirementOverrides = requirements.map((item, index) => ({
-      label: item.label,
-      instructions: item.description,
-      type: item.type,
-      category: item.category,
-      customCategoryLabel: item.customCategoryLabel,
-      required: item.required,
-      sortOrder: index,
-    }))
+    let requirementOverrides: Array<{
+      label: string
+      instructions: string | null
+      type: typeof requirements[number]["type"]
+      category: typeof requirements[number]["category"]
+      customCategoryLabel: string | null
+      required: boolean
+      sortOrder: number
+      exampleImageUrl: string | null
+      exampleImagePublicId: string | null
+      exampleImageFileName: string | null
+    }>
+
+    try {
+      requirementOverrides = requirements.map((item, index) => ({
+        label: item.label,
+        instructions: item.description,
+        type: item.type,
+        category: item.category,
+        customCategoryLabel: item.customCategoryLabel,
+        required: item.required,
+        sortOrder: index,
+        ...normalizeRequirementExampleImage(item, item.type, vendorProfile.id),
+      }))
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : "Invalid example image data.",
+        },
+        { status: 400 }
+      )
+    }
 
     // A financial amount is mandatory
     if (!normalizedAmount && !normalizedDepositAmount) {
@@ -287,6 +312,9 @@ export async function POST(request: Request) {
               category: item.category,
               customCategoryLabel: item.customCategoryLabel,
               required: item.required,
+              exampleImageUrl: item.exampleImageUrl,
+              exampleImagePublicId: item.exampleImagePublicId,
+              exampleImageFileName: item.exampleImageFileName,
               sortOrder: item.sortOrder,
             })),
           })
@@ -300,6 +328,9 @@ export async function POST(request: Request) {
               category: item.category,
               customCategoryLabel: item.customCategoryLabel,
               required: item.required,
+              exampleImageUrl: item.exampleImageUrl,
+              exampleImagePublicId: item.exampleImagePublicId,
+              exampleImageFileName: item.exampleImageFileName,
               sortOrder: item.sortOrder,
             })),
           })

@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button"
 import { CharacterCount } from "@/components/ui/character-count"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "@/components/ui/toast"
 import { Link } from "@/i18n/navigation"
 import {
   Select,
@@ -46,6 +47,17 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { RequirementExampleImageField } from "@/features/dashboard/components/requirement-example-image-field"
+import {
+  cleanupVendorRequirementExampleImages,
+  uploadVendorRequirementExampleImage,
+  VendorRequirementExampleUploadError,
+} from "@/features/dashboard/lib/vendor-requirement-example-upload-client"
+import {
+  type RequirementExampleCleanupAsset,
+  type RequirementExampleDraft,
+  toRequirementExampleCleanupAsset,
+} from "@/features/dashboard/lib/vendor-requirement-example-images"
 import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type {
@@ -74,12 +86,14 @@ type TransactionCreationFormProps = {
 }
 
 type DraftRequirement = {
+  id: string
   label: string
   description: string
   type: RequirementTypeValue
   category: RequirementCategoryValue
   customCategoryLabel: string
   required: boolean
+  exampleImage: RequirementExampleDraft | null
 }
 
 type StepDef = {
@@ -121,14 +135,34 @@ const buttonPrimaryClass =
 const buttonSecondaryClass =
   "h-9 rounded-sm border-border shadow-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
 
+function createRequirementId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+
+  return `requirement-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement {
+  const exampleImage =
+    item?.exampleImageUrl && item.exampleImagePublicId
+      ? {
+          source: "template" as const,
+          assetUrl: item.exampleImageUrl,
+          publicId: item.exampleImagePublicId,
+          fileName: item.exampleImageFileName ?? item.label ?? "Example image",
+        }
+      : null
+
   return {
+    id: createRequirementId(),
     label: item?.label ?? "",
     description: item?.description ?? "",
     type: (item?.type as RequirementTypeValue | undefined) ?? "DOCUMENT",
     category: (item?.category as RequirementCategoryValue | undefined) ?? "CUSTOM",
     customCategoryLabel: item?.customCategoryLabel ?? "",
     required: item?.required ?? true,
+    exampleImage,
   }
 }
 
@@ -163,6 +197,14 @@ function depositFee(amountEur: number) {
     platformFee,
     vendorNet: Math.max(0, amountEur - stripeFee - platformFee),
   }
+}
+
+function getLocalRequirementExampleAssets(requirements: DraftRequirement[]) {
+  return requirements.flatMap((item) =>
+    item.exampleImage?.source === "local"
+      ? [toRequirementExampleCleanupAsset(item.exampleImage)]
+      : []
+  )
 }
 
 function WizardStepper({ current, steps }: { current: number; steps: StepDef[] }) {
@@ -368,6 +410,26 @@ export function TransactionCreationForm({
   onSuccessStateChange,
 }: TransactionCreationFormProps) {
   const t = useTranslations("dashboard.vendor.transactionCreation")
+  const exampleT = useTranslations("dashboard.vendor.requirementExampleImage")
+  const exampleCopy = {
+    errorTitle: exampleT.has("errorTitle") ? exampleT("errorTitle") : "Example image error",
+    invalidType: exampleT.has("errors.invalidType")
+      ? exampleT("errors.invalidType")
+      : "Only image files are allowed for requirement examples.",
+    fileTooLarge: exampleT.has("errors.fileTooLarge")
+      ? exampleT("errors.fileTooLarge")
+      : "Example images must be 10 MB or smaller.",
+    signingFailed: exampleT.has("errors.signingFailed")
+      ? exampleT("errors.signingFailed")
+      : "Upload signing is unavailable right now. Please try again.",
+    uploadFailed: exampleT.has("errors.uploadFailed")
+      ? exampleT("errors.uploadFailed")
+      : "The example image could not be uploaded. Please try again.",
+    unexpected: exampleT.has("errors.unexpected")
+      ? exampleT("errors.unexpected")
+      : "An unexpected error occurred while preparing the example image.",
+  }
+  const removeRequirementLabel = t.has("removeRequirement") ? t("removeRequirement") : "Remove"
 
   const reqCategoryLabels: Record<string, string> = {
     ID: t("reqCategoryId"),
@@ -460,7 +522,10 @@ export function TransactionCreationForm({
   const [copied, setCopied] = useState(false)
   const [isDownloadingQrImage, setIsDownloadingQrImage] = useState(false)
   const [isSharingQrImage, setIsSharingQrImage] = useState(false)
+  const [uploadingRequirementIds, setUploadingRequirementIds] = useState<string[]>([])
   const qrCanvasContainerRef = useRef<HTMLDivElement | null>(null)
+  const pendingLocalAssetsRef = useRef<RequirementExampleCleanupAsset[]>([])
+  const skipPendingCleanupRef = useRef(false)
 
   const amountNum = Number.parseFloat(amount) || 0
   const depositNum = Number.parseFloat(depositAmount) || 0
@@ -534,14 +599,67 @@ export function TransactionCreationForm({
     return reqCategoryLabels[category] ?? t("reqCategoryCustom")
   }
 
-  useEffect(() => {
-    if (checklistId === "none") {
-      setRequirements([])
+  function mapExampleError(error: unknown) {
+    if (!(error instanceof VendorRequirementExampleUploadError)) {
+      return exampleCopy.unexpected
+    }
+
+    switch (error.code) {
+      case "INVALID_TYPE":
+        return exampleCopy.invalidType
+      case "FILE_TOO_LARGE":
+        return exampleCopy.fileTooLarge
+      case "SIGNING_FAILED":
+        return exampleCopy.signingFailed
+      case "UPLOAD_FAILED":
+      default:
+        return error.message || exampleCopy.uploadFailed
+    }
+  }
+
+  async function cleanupRequirementExampleAssets(
+    assets: RequirementExampleCleanupAsset[],
+    options?: { keepalive?: boolean }
+  ) {
+    if (assets.length === 0) {
       return
     }
 
-    setRequirements((selectedChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
-  }, [checklistId, selectedChecklist])
+    await cleanupVendorRequirementExampleImages(assets, options)
+  }
+
+  function handleChecklistChange(nextChecklistId: string) {
+    const currentLocalAssets = getLocalRequirementExampleAssets(requirements)
+
+    setChecklistId(nextChecklistId)
+
+    if (nextChecklistId === "none") {
+      setRequirements([])
+    } else {
+      const nextChecklist = checklists.find((checklist) => checklist.id === nextChecklistId)
+      setRequirements((nextChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
+    }
+
+    if (currentLocalAssets.length > 0) {
+      void cleanupRequirementExampleAssets(currentLocalAssets)
+    }
+  }
+
+  useEffect(() => {
+    pendingLocalAssetsRef.current = getLocalRequirementExampleAssets(requirements)
+  }, [requirements])
+
+  useEffect(() => {
+    return () => {
+      if (skipPendingCleanupRef.current || pendingLocalAssetsRef.current.length === 0) {
+        return
+      }
+
+      void cleanupRequirementExampleAssets(pendingLocalAssetsRef.current, {
+        keepalive: true,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (amountNum <= 0 && paymentCollectionTiming === "AFTER_SERVICE") {
@@ -567,15 +685,17 @@ export function TransactionCreationForm({
     setRequirements((current) => [...current, createDraftRequirement()])
   }
 
-  function updateRequirement(index: number, patch: Partial<DraftRequirement>) {
+  function updateRequirement(requirementId: string, patch: Partial<DraftRequirement>) {
     setRequirements((current) =>
-      current.map((item, itemIndex) => {
-        if (itemIndex !== index) return item
+      current.map((item) => {
+        if (item.id !== requirementId) return item
 
         const nextCategory = patch.category ?? item.category
+        const nextType = patch.type ?? item.type
         return {
           ...item,
           ...patch,
+          exampleImage: nextType === "TEXT" ? null : (patch.exampleImage ?? item.exampleImage),
           customCategoryLabel:
             nextCategory === "OTHER"
               ? (patch.customCategoryLabel ?? item.customCategoryLabel)
@@ -585,8 +705,117 @@ export function TransactionCreationForm({
     )
   }
 
-  function removeRequirement(index: number) {
-    setRequirements((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  function removeRequirement(requirementId: string) {
+    const currentExampleImage = requirements.find((item) => item.id === requirementId)?.exampleImage
+    setRequirements((current) => current.filter((item) => item.id !== requirementId))
+
+    if (currentExampleImage?.source === "local") {
+      void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(currentExampleImage)])
+    }
+  }
+
+  function handleRequirementTypeChange(requirementId: string, nextType: RequirementTypeValue) {
+    const currentExampleImage = requirements.find((item) => item.id === requirementId)?.exampleImage
+
+    updateRequirement(requirementId, { type: nextType })
+
+    if (nextType === "TEXT" && currentExampleImage?.source === "local") {
+      void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(currentExampleImage)])
+    }
+  }
+
+  async function handleRequirementExampleUpload(requirementId: string, file: File) {
+    const currentRequirement = requirements.find((item) => item.id === requirementId)
+    const previousExampleImage = currentRequirement?.exampleImage
+
+    setError(null)
+    setUploadingRequirementIds((current) =>
+      current.includes(requirementId) ? current : [...current, requirementId]
+    )
+
+    try {
+      const uploaded = await uploadVendorRequirementExampleImage(file)
+
+      let replacedLocalAsset: RequirementExampleCleanupAsset | null = null
+      let orphanedUploadAsset: RequirementExampleCleanupAsset | null = null
+
+      setRequirements((current) => {
+        const requirementIndex = current.findIndex((item) => item.id === requirementId)
+
+        if (requirementIndex === -1) {
+          orphanedUploadAsset = toRequirementExampleCleanupAsset(uploaded)
+          return current
+        }
+
+        const target = current[requirementIndex]
+
+        if (target.type === "TEXT") {
+          orphanedUploadAsset = toRequirementExampleCleanupAsset(uploaded)
+          return current
+        }
+
+        if (
+          target.exampleImage?.source === "local" &&
+          target.exampleImage.publicId !== uploaded.publicId
+        ) {
+          replacedLocalAsset = toRequirementExampleCleanupAsset(target.exampleImage)
+        }
+
+        const next = [...current]
+        next[requirementIndex] = {
+          ...target,
+          exampleImage: {
+            source: "local",
+            ...uploaded,
+          },
+        }
+        return next
+      })
+
+      if (orphanedUploadAsset) {
+        void cleanupRequirementExampleAssets([orphanedUploadAsset])
+        return
+      }
+
+      if (replacedLocalAsset) {
+        void cleanupRequirementExampleAssets([replacedLocalAsset])
+      } else if (
+        previousExampleImage?.source === "local" &&
+        previousExampleImage.publicId !== uploaded.publicId &&
+        !requirements.some(
+          (item) =>
+            item.id === requirementId &&
+            item.exampleImage?.source === "local" &&
+            item.exampleImage.publicId === previousExampleImage.publicId
+        )
+      ) {
+        void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(previousExampleImage)])
+      }
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: exampleCopy.errorTitle,
+        description: mapExampleError(error),
+      })
+    } finally {
+      setUploadingRequirementIds((current) =>
+        current.filter((currentRequirementId) => currentRequirementId !== requirementId)
+      )
+    }
+  }
+
+  function handleRequirementExampleRemove(requirementId: string) {
+    const currentExampleImage = requirements.find((item) => item.id === requirementId)?.exampleImage
+
+    if (!currentExampleImage) {
+      return
+    }
+
+    updateRequirement(requirementId, { exampleImage: null })
+
+    if (currentExampleImage.source === "local") {
+      void cleanupRequirementExampleAssets([toRequirementExampleCleanupAsset(currentExampleImage)])
+    }
   }
 
   function validateCurrentStep() {
@@ -680,6 +909,11 @@ export function TransactionCreationForm({
             customCategoryLabel:
               item.category === "OTHER" ? item.customCategoryLabel || null : null,
             required: item.required,
+            exampleImageUrl: item.type === "TEXT" ? null : item.exampleImage?.assetUrl ?? null,
+            exampleImagePublicId:
+              item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
+            exampleImageFileName:
+              item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
           })),
         }),
       })
@@ -695,6 +929,7 @@ export function TransactionCreationForm({
       setSuccessRecord(data.linkRecord ?? null)
       setSuccessError(null)
       setSuccessLink(link)
+      skipPendingCleanupRef.current = true
 
       if (onLinkCreated && data.linkRecord) {
         onLinkCreated(data.linkRecord, data.actionUsage ?? null)
@@ -721,6 +956,8 @@ export function TransactionCreationForm({
   }
 
   function handleReset() {
+    skipPendingCleanupRef.current = false
+    pendingLocalAssetsRef.current = []
     setSuccessLink(null)
     setSuccessRecord(null)
     setSuccessError(null)
@@ -1328,7 +1565,7 @@ export function TransactionCreationForm({
                 <Section>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="checklist" label={t("requiredUploads")}>
-                      <Select value={checklistId} onValueChange={(value) => setChecklistId(value ?? "none")}>
+                      <Select value={checklistId} onValueChange={(value) => void handleChecklistChange(value ?? "none")}>
                         <SelectTrigger id="checklist" className={cn(controlClass, "cursor-pointer")}>
                           <span className={cn("truncate text-sm", checklistId === "none" && "text-muted-foreground")}>{checklistLabel}</span>
                         </SelectTrigger>
@@ -1401,11 +1638,11 @@ export function TransactionCreationForm({
 
                       <div className="divide-y divide-border">
                         {requirements.map((item, index) => {
-                          const rowId = `requirement-${index}`
+                          const rowId = item.id
                           const customCategoryDisabled = item.category !== "OTHER"
 
                           return (
-                            <div key={`${rowId}-${item.type}`} className="grid gap-3 px-3 py-3 md:grid-cols-[2fr_1fr_1fr]">
+                            <div key={item.id} className="grid gap-3 px-3 py-3 md:grid-cols-[2fr_1fr_1fr]">
                               <div className="space-y-2">
                                 <Label htmlFor={`${rowId}-label`} className={fieldLabelClass}>
                                   {t("reqLabel")}
@@ -1413,7 +1650,7 @@ export function TransactionCreationForm({
                                 <Input
                                   id={`${rowId}-label`}
                                   value={item.label}
-                                  onChange={(event) => updateRequirement(index, { label: event.target.value })}
+                                  onChange={(event) => updateRequirement(item.id, { label: event.target.value })}
                                   placeholder={t("reqLabelPlaceholder")}
                                   maxLength={INPUT_LIMITS.checklistItemLabel}
                                   className={controlClass}
@@ -1425,7 +1662,7 @@ export function TransactionCreationForm({
                                 <Textarea
                                   id={`${rowId}-description`}
                                   value={item.description}
-                                  onChange={(event) => updateRequirement(index, { description: event.target.value })}
+                                  onChange={(event) => updateRequirement(item.id, { description: event.target.value })}
                                   placeholder={item.type === "TEXT" ? t("reqTextPlaceholder") : t("reqUploadPlaceholder")}
                                   maxLength={INPUT_LIMITS.checklistItemInstructions}
                                   className="min-h-[54px] resize-none rounded-sm border-border shadow-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
@@ -1443,7 +1680,7 @@ export function TransactionCreationForm({
                                 </Label>
                                 <Select
                                   value={item.type}
-                                  onValueChange={(value) => updateRequirement(index, { type: value as RequirementTypeValue })}
+                                  onValueChange={(value) => void handleRequirementTypeChange(item.id, value as RequirementTypeValue)}
                                 >
                                   <SelectTrigger id={`${rowId}-type`} className={cn(controlClass, "cursor-pointer")}>
                                     <span className="truncate text-sm">{reqTypeLabels[item.type] ?? t("reqTypeDocument")}</span>
@@ -1464,7 +1701,7 @@ export function TransactionCreationForm({
                                   <Switch
                                     id={`${rowId}-required`}
                                     checked={item.required}
-                                    onCheckedChange={(checked) => updateRequirement(index, { required: Boolean(checked) })}
+                                    onCheckedChange={(checked) => updateRequirement(item.id, { required: Boolean(checked) })}
                                     className="cursor-pointer data-[state=checked]:bg-[var(--contrazy-teal)]"
                                   />
                                 </div>
@@ -1476,7 +1713,7 @@ export function TransactionCreationForm({
                                 </Label>
                                 <Select
                                   value={item.category}
-                                  onValueChange={(value) => updateRequirement(index, { category: value as RequirementCategoryValue })}
+                                  onValueChange={(value) => updateRequirement(item.id, { category: value as RequirementCategoryValue })}
                                 >
                                   <SelectTrigger id={`${rowId}-category`} className={cn(controlClass, "cursor-pointer")}>
                                     <span className="truncate text-sm">
@@ -1498,23 +1735,40 @@ export function TransactionCreationForm({
                                 <Input
                                   id={`${rowId}-custom-category`}
                                   value={item.customCategoryLabel}
-                                  onChange={(event) => updateRequirement(index, { customCategoryLabel: event.target.value })}
+                                  onChange={(event) => updateRequirement(item.id, { customCategoryLabel: event.target.value })}
                                   placeholder={t("reqCustomPlaceholder")}
                                   maxLength={INPUT_LIMITS.checklistItemLabel}
                                   disabled={customCategoryDisabled}
                                   className={controlClass}
                                 />
 
+                                {item.type !== "TEXT" ? (
+                                  <RequirementExampleImageField
+                                    value={
+                                      item.exampleImage
+                                        ? {
+                                            assetUrl: item.exampleImage.assetUrl,
+                                            fileName: item.exampleImage.fileName,
+                                          }
+                                        : null
+                                    }
+                                    uploading={uploadingRequirementIds.includes(item.id)}
+                                    disabled={isPending}
+                                    onFileSelected={(file) => void handleRequirementExampleUpload(item.id, file)}
+                                    onRemove={() => void handleRequirementExampleRemove(item.id)}
+                                  />
+                                ) : null}
+
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
                                   className="h-8 w-full cursor-pointer rounded-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                  onClick={() => removeRequirement(index)}
+                                  onClick={() => void removeRequirement(item.id)}
                                   aria-label={`Remove requirement ${index + 1}`}
                                 >
                                   <Trash2 className="mr-1.5 size-3.5" />
-                                  Remove
+                                  {removeRequirementLabel}
                                 </Button>
                               </div>
                             </div>

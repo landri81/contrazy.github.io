@@ -3,6 +3,7 @@
 import type { DocumentAsset, RequirementType, TransactionRequirement } from "@prisma/client"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import Image from "next/image"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
 import {
@@ -17,6 +18,13 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { CharacterCount } from "@/components/ui/character-count"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
 import { getClientDocumentUploadFolder } from "@/features/client-flow/lib/client-document-uploads"
@@ -45,6 +53,82 @@ type CleanupAssetPayload = {
   publicId: string
   assetUrl: string
   fileName: string
+}
+
+function RequirementExamplePreview({
+  assetUrl,
+  fileName,
+  label,
+}: {
+  assetUrl: string
+  fileName: string | null
+  label: string
+}) {
+  const t = useTranslations("clientFlow.uploads")
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <div className="mb-3 overflow-hidden rounded-xl border border-sky-200/80 bg-sky-50/80">
+        <div className="flex items-start gap-3 p-3">
+          <div className="relative hidden size-20 overflow-hidden rounded-xl border border-sky-200/80 bg-white sm:block">
+            <Image
+              src={assetUrl}
+              alt={fileName || label}
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 ring-1 ring-sky-200/80">
+                {t("exampleLabel")}
+              </span>
+              <span className="text-xs text-sky-700/80">{t("exampleHint")}</span>
+            </div>
+            <p className="text-sm font-medium text-sky-950">{label}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg border-sky-200 bg-white px-3 text-xs text-sky-900 hover:bg-sky-100"
+              onClick={() => setOpen(true)}
+            >
+              <Eye className="size-3.5" />
+              {t("viewExample")}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[680px] overflow-hidden rounded-2xl p-0">
+          <div className="border-b border-border/70 px-5 py-4 sm:px-6">
+            <DialogHeader className="gap-2">
+              <DialogTitle className="text-base font-semibold">
+                {t("examplePreviewTitle", { label })}
+              </DialogTitle>
+              <DialogDescription>{t("examplePreviewDescription")}</DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="px-5 py-5 sm:px-6 sm:py-6">
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-border/70 bg-muted/20 p-4">
+              <Image
+                src={assetUrl}
+                alt={fileName || label}
+                width={1200}
+                height={900}
+                className="max-h-[70vh] w-full rounded-xl object-contain"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }
 
 function buildInitialDocumentState(
@@ -496,6 +580,14 @@ export function ClientUploadsForm({
 
                   {isComplete ? <CheckCircle2 className="size-5 text-green-500" /> : null}
                 </div>
+
+                {req.type !== "TEXT" && req.exampleImageUrl ? (
+                  <RequirementExamplePreview
+                    assetUrl={req.exampleImageUrl}
+                    fileName={req.exampleImageFileName ?? req.label}
+                    label={req.label}
+                  />
+                ) : null}
 
                 {req.type === "TEXT" ? (
                   <div className="space-y-2">

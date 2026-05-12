@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { checklistTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
+import { normalizeRequirementExampleImage } from "@/features/dashboard/server/requirement-example-assets"
 import { prisma } from "@/lib/db/prisma"
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination"
 
@@ -71,19 +72,58 @@ export async function POST(request: Request) {
 
     const { name, description, items } = parsedBody.data
 
+    let normalizedItems: Array<{
+      label: string
+      description: string | null
+      type: typeof items[number]["type"]
+      category: typeof items[number]["category"]
+      customCategoryLabel: string | null
+      required: boolean
+      exampleImageUrl: string | null
+      exampleImagePublicId: string | null
+      exampleImageFileName: string | null
+    }>
+
+    try {
+      normalizedItems = items.map((item) => {
+        const normalizedExampleImage = normalizeRequirementExampleImage(item, item.type, vendorProfile.id)
+
+        return {
+          label: item.label,
+          description: item.description,
+          type: item.type,
+          category: item.category,
+          customCategoryLabel: item.customCategoryLabel,
+          required: item.required,
+          ...normalizedExampleImage,
+        }
+      })
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error instanceof Error ? error.message : "Invalid example image data.",
+        },
+        { status: 400 }
+      )
+    }
+
     const template = await prisma.checklistTemplate.create({
       data: {
         name,
         description,
         vendorId: vendorProfile.id,
         items: {
-          create: items.map((item, i: number) => ({
+          create: normalizedItems.map((item, i: number) => ({
             label: item.label,
             description: item.description,
             type: item.type,
             category: item.category,
             customCategoryLabel: item.customCategoryLabel,
             required: item.required,
+            exampleImageUrl: item.exampleImageUrl,
+            exampleImagePublicId: item.exampleImagePublicId,
+            exampleImageFileName: item.exampleImageFileName,
             sortOrder: i,
           })),
         },
