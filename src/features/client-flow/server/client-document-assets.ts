@@ -1,5 +1,6 @@
 import { cloudinary } from "@/lib/integrations/cloudinary"
 import { extractCloudinaryAssetDescriptor, isPdfAssetUrl } from "@/lib/integrations/cloudinary-assets"
+import { prisma } from "@/lib/db/prisma"
 
 export type ClientDocumentAssetCleanupInput = {
   publicId?: string | null
@@ -24,4 +25,29 @@ export async function destroyDocumentCloudinaryAsset(input: ClientDocumentAssetC
   })
 
   return true
+}
+
+export async function destroyDocumentCloudinaryAssetIfUnreferenced(
+  input: ClientDocumentAssetCleanupInput
+) {
+  const descriptor = extractCloudinaryAssetDescriptor(input.assetUrl, input.fileName)
+  const publicId = input.publicId ?? descriptor?.publicId
+
+  if (!publicId) {
+    return false
+  }
+
+  const referenceCount = await prisma.documentAsset.count({
+    where: { publicId },
+  })
+
+  if (referenceCount > 0) {
+    return false
+  }
+
+  return destroyDocumentCloudinaryAsset({
+    publicId,
+    assetUrl: input.assetUrl,
+    fileName: input.fileName,
+  })
 }

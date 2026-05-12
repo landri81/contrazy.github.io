@@ -1,7 +1,15 @@
-import { requireSubscribedVendorAccess } from "@/lib/auth/guards"
+import {
+  getVendorStatusMessage,
+  isVendorApproved,
+  requireSubscribedVendorAccess,
+} from "@/lib/auth/guards"
 import { isAdminRole } from "@/lib/auth/roles"
 import { prisma } from "@/lib/db/prisma"
-import { buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
+import {
+  buildVendorActionsUsage,
+  buildVendorLinkRecord,
+  getVendorCreateLinkDialogData,
+} from "@/features/dashboard/server/dashboard-data"
 import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
@@ -14,10 +22,12 @@ import { Badge } from "@/components/ui/badge"
 import { DepositControlCard } from "@/features/dashboard/components/deposit-control-card"
 import { KycReviewCard } from "@/features/dashboard/components/kyc-review-card"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
+import { RecreateTransactionAction } from "@/features/dashboard/components/recreate-transaction-action"
 import { ServicePaymentRequestCard } from "@/features/dashboard/components/service-payment-request-card"
 import { StatusBadge } from "@/features/dashboard/components/dashboard-ui"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
 import { ContractDocument } from "@/features/contracts/components/contract-document"
+import { buildTransactionCreationInitialValues } from "@/features/transactions/server/transaction-recreation"
 
 export const dynamic = "force-dynamic"
 
@@ -59,6 +69,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
 
   const eventTitleMap: Record<string, string> = {
     LINK_CREATED: t("eventTitles.LINK_CREATED"),
+    TRANSACTION_RECREATED: t("eventTitles.TRANSACTION_RECREATED"),
     LINK_OPENED: t("eventTitles.LINK_OPENED"),
     LINK_UPDATED: t("eventTitles.LINK_UPDATED"),
     LINK_CANCELLED: t("eventTitles.LINK_CANCELLED"),
@@ -148,7 +159,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     return { title, detail: staticDetail ?? event.detail }
   }
 
-  const { session, dbUser, subscription } = await requireSubscribedVendorAccess()
+  const { session, dbUser, subscription, vendorProfile } = await requireSubscribedVendorAccess()
   const isAdmin = isAdminRole(session.user.role)
 
   const transaction = await prisma.transaction.findUnique({
@@ -160,8 +171,12 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
       clientProfile: true,
       contractTemplate: true,
       link: true,
-      requirements: true,
-      documents: true,
+      requirements: {
+        orderBy: { sortOrder: "asc" },
+      },
+      documents: {
+        orderBy: { uploadedAt: "asc" },
+      },
       payments: true,
       depositAuthorization: true,
       signatureRecord: true,
@@ -185,6 +200,19 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
       notFound()
     }
   }
+
+  const canRecreateTransaction =
+    transaction.status === "COMPLETED" && transaction.vendorId === vendorProfile.id
+  const recreateDialogData = canRecreateTransaction
+    ? await getVendorCreateLinkDialogData(session.user.email)
+    : null
+  const recreateInitialValues =
+    canRecreateTransaction && recreateDialogData
+      ? buildTransactionCreationInitialValues(transaction, {
+          availableContractIds: recreateDialogData.contracts.map((contract) => contract.id),
+          availableChecklistIds: recreateDialogData.checklists.map((checklist) => checklist.id),
+        })
+      : null
 
   const shareLink = transaction.link ? `${getAppBaseUrl()}/${transaction.locale.toLowerCase()}/t/${transaction.link.token}` : null
   const signedPdfHref = resolveDocumentAssetUrl(transaction.contractArtifact?.signedPdfUrl, `${transaction.reference}-signed.pdf`)
@@ -216,16 +244,29 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
 
   return (
     <div className="space-y-6">
-      <div className="flex mb-4 bg-white p-4 rounded-md shadow-sm items-center justify-between">
+      <div className="flex mb-4 bg-white p-4 rounded-md shadow-sm items-center justify-between gap-4">
         <div >
           <h1 className="text-3xl font-bold tracking-tight">{transaction.title}</h1>
           <p className="text-muted-foreground mt-2">
             {t("reference")}: {transaction.reference}
           </p>
         </div>
-        <Badge variant={transaction.status === "COMPLETED" ? "default" : "secondary"}>
-          {transactionStatusMap[transaction.status] ?? transaction.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {recreateDialogData && recreateInitialValues ? (
+            <RecreateTransactionAction
+              contracts={recreateDialogData.contracts}
+              checklists={recreateDialogData.checklists}
+              initialValues={recreateInitialValues}
+              usage={buildVendorActionsUsage(subscription)}
+              hasStripe={vendorProfile.stripeConnectionStatus === "CONNECTED"}
+              canLaunch={isVendorApproved(vendorProfile)}
+              blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+            />
+          ) : null}
+          <Badge variant={transaction.status === "COMPLETED" ? "default" : "secondary"}>
+            {transactionStatusMap[transaction.status] ?? transaction.status}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4">

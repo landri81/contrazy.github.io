@@ -37,8 +37,9 @@ export default async function TokenLayout({
     )
   }
 
-  const enabledSteps: ClientFlowStep[] = ["profile", "documents"]
+  const enabledSteps: ClientFlowStep[] = ["profile"]
   if (transaction.requiresKyc) enabledSteps.push("kyc")
+  enabledSteps.push("documents")
   if (hasContractStep(transaction)) {
     enabledSteps.push("contract", "sign")
   }

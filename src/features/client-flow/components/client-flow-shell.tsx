@@ -33,8 +33,8 @@ type StepKey =
 
 const stepOrder: StepKey[] = [
   "profile",
-  "documents",
   "kyc",
+  "documents",
   "contract",
   "sign",
   "payment",

@@ -487,6 +487,7 @@
             "completed": "Terminé"
           },
           "labels": {
+            "TRANSACTION_RECREATED": "Transaction terminée recréée",
             "LINK_CREATED": "Lien sécurisé créé",
             "LINK_OPENED": "Lien sécurisé ouvert par le client",
             "PROFILE_SUBMITTED": "Profil client envoyé",
@@ -748,6 +749,9 @@
         "qrUnavailable": "Le QR n'est pas disponible pour cet état de lien.",
         "agreementArtifactTitle": "Artefact du contrat",
         "agreementArtifactDescription": "Consultez le snapshot du contrat et le PDF signé immuable de cette transaction.",
+        "recreateAction": {
+          "button": "Recréer le contrat"
+        },
         "snapshot": "Snapshot",
         "attached": "Joint",
         "created": "Créé le {date}",
@@ -792,6 +796,7 @@
         },
         "eventTitles": {
           "LINK_CREATED": "Lien sécurisé créé",
+          "TRANSACTION_RECREATED": "Transaction terminée recréée",
           "LINK_OPENED": "Lien sécurisé ouvert",
           "LINK_UPDATED": "Intégration complétée",
           "LINK_CANCELLED": "Lien sécurisé annulé",
@@ -1191,6 +1196,12 @@
         "createModal": {
           "title": "Nouvelle transaction",
           "description": "Créez le lien sécurisé, configurez le parcours client et décidez si ce flux nécessite un QR.",
+          "recreateTitle": "Recréer le contrat",
+          "recreateDescription": "Démarrez un nouveau lien sécurisé pour le même client avec les données client préremplies et les exigences précédentes correspondantes.",
+          "statusCreated": "Créée",
+          "statusDraft": "Brouillon",
+          "statusNew": "Nouveau",
+          "statusRecreate": "Recréer",
           "closeLabel": "Fermer la fenêtre de transaction",
           "closingLabel": "Fermeture",
           "closingTitle": "Fermeture de la configuration",
@@ -1524,6 +1535,8 @@
         "notesLabel": "Notes internes",
         "notesPrivate": "(privé, non visible par le client)",
         "notesPlaceholder": "Toute référence interne ou rappel…",
+        "recreateNotice": "Recréation de la transaction terminée {reference}. Le profil client, les réponses d'exigence correspondantes et la vérification d'identité réutilisable seront préremplis lorsque possible.",
+        "recreateMissingContractWarning": "Le modèle de contrat d'origine \"{template}\" n'est plus disponible. Choisissez un modèle de contrat avant de lancer cette transaction recréée.",
         "depositTitle": "Caution de sécurité",
         "depositBadge": "Prioritaire",
         "depositDesc": "La carte est uniquement bloquée. Capturez ou libérez après la fin du travail.",

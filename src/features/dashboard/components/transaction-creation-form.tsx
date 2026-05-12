@@ -58,6 +58,10 @@ import {
   type RequirementExampleDraft,
   toRequirementExampleCleanupAsset,
 } from "@/features/dashboard/lib/vendor-requirement-example-images"
+import type {
+  TransactionCreationInitialRequirement,
+  TransactionCreationInitialValues,
+} from "@/features/dashboard/transaction-creation"
 import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type {
@@ -76,6 +80,8 @@ import {
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
   checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
+  mode?: "new" | "recreate"
+  initialValues?: TransactionCreationInitialValues | null
   hasStripe: boolean
   canLaunch: boolean
   blockedMessage: string
@@ -166,6 +172,21 @@ function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement
   }
 }
 
+function createDraftRequirementFromInitialValue(
+  item: TransactionCreationInitialRequirement
+): DraftRequirement {
+  return {
+    id: createRequirementId(),
+    label: item.label,
+    description: item.description,
+    type: item.type,
+    category: item.category,
+    customCategoryLabel: item.customCategoryLabel,
+    required: item.required,
+    exampleImage: item.exampleImage ? { ...item.exampleImage } : null,
+  }
+}
+
 function getTemplateLabel(
   item: ContractTemplate | ChecklistTemplate | undefined,
   fallback: string
@@ -205,6 +226,90 @@ function getLocalRequirementExampleAssets(requirements: DraftRequirement[]) {
       ? [toRequirementExampleCleanupAsset(item.exampleImage)]
       : []
   )
+}
+
+type TransactionCreationFormState = {
+  title: string
+  notes: string
+  amount: string
+  depositAmount: string
+  contractId: string
+  checklistId: string
+  requiresKyc: boolean
+  generateQr: boolean
+  paymentCollectionTiming: PaymentCollectionTimingValue
+  requireClientCompany: boolean
+  requirements: DraftRequirement[]
+}
+
+type TransactionCreationFormSnapshot = Omit<TransactionCreationFormState, "requirements"> & {
+  requirements: Array<{
+    label: string
+    description: string
+    type: RequirementTypeValue
+    category: RequirementCategoryValue
+    customCategoryLabel: string
+    required: boolean
+    exampleImage:
+      | {
+          source: RequirementExampleDraft["source"]
+          assetUrl: string
+          publicId: string
+          fileName: string
+        }
+      | null
+  }>
+}
+
+function createInitialFormState(
+  initialValues?: TransactionCreationInitialValues | null
+): TransactionCreationFormState {
+  return {
+    title: initialValues?.title ?? "",
+    notes: initialValues?.notes ?? "",
+    amount: initialValues?.amount ?? "",
+    depositAmount: initialValues?.depositAmount ?? "",
+    contractId: initialValues?.contractTemplateId ?? "none",
+    checklistId: initialValues?.checklistTemplateId ?? "none",
+    requiresKyc: initialValues?.requiresKyc ?? false,
+    generateQr: initialValues?.generateQr ?? false,
+    paymentCollectionTiming: initialValues?.paymentCollectionTiming ?? "AFTER_SIGNING",
+    requireClientCompany: initialValues?.requireClientCompany ?? false,
+    requirements: (initialValues?.requirements ?? []).map((item) =>
+      createDraftRequirementFromInitialValue(item)
+    ),
+  }
+}
+
+function buildFormSnapshot(state: TransactionCreationFormState): TransactionCreationFormSnapshot {
+  return {
+    title: state.title,
+    notes: state.notes,
+    amount: state.amount,
+    depositAmount: state.depositAmount,
+    contractId: state.contractId,
+    checklistId: state.checklistId,
+    requiresKyc: state.requiresKyc,
+    generateQr: state.generateQr,
+    paymentCollectionTiming: state.paymentCollectionTiming,
+    requireClientCompany: state.requireClientCompany,
+    requirements: state.requirements.map((item) => ({
+      label: item.label,
+      description: item.description,
+      type: item.type,
+      category: item.category,
+      customCategoryLabel: item.customCategoryLabel,
+      required: item.required,
+      exampleImage: item.exampleImage
+        ? {
+            source: item.exampleImage.source,
+            assetUrl: item.exampleImage.assetUrl,
+            publicId: item.exampleImage.publicId,
+            fileName: item.exampleImage.fileName,
+          }
+        : null,
+    })),
+  }
 }
 
 function WizardStepper({ current, steps }: { current: number; steps: StepDef[] }) {
@@ -401,6 +506,8 @@ function ErrorBlock({ error }: { error: string | null }) {
 export function TransactionCreationForm({
   contracts,
   checklists,
+  mode = "new",
+  initialValues = null,
   hasStripe,
   canLaunch,
   blockedMessage,
@@ -430,6 +537,17 @@ export function TransactionCreationForm({
       : "An unexpected error occurred while preparing the example image.",
   }
   const removeRequirementLabel = t.has("removeRequirement") ? t("removeRequirement") : "Remove"
+  const initialFormState = useMemo(() => createInitialFormState(initialValues), [initialValues])
+  const initialSnapshot = useMemo(
+    () => JSON.stringify(buildFormSnapshot(initialFormState)),
+    [initialFormState]
+  )
+  const recreateFromTransactionId =
+    mode === "recreate" ? initialValues?.sourceTransactionId ?? null : null
+  const recreateSourceReference =
+    mode === "recreate" ? initialValues?.sourceTransactionReference ?? null : null
+  const missingSourceContractTemplateName =
+    mode === "recreate" ? initialValues?.missingContractTemplateName ?? null : null
 
   const reqCategoryLabels: Record<string, string> = {
     ID: t("reqCategoryId"),
@@ -500,18 +618,22 @@ export function TransactionCreationForm({
   )
 
   const [step, setStep] = useState(1)
-  const [title, setTitle] = useState("")
-  const [notes, setNotes] = useState("")
-  const [amount, setAmount] = useState("")
-  const [depositAmount, setDepositAmount] = useState("")
-  const [contractId, setContractId] = useState<string>("none")
-  const [checklistId, setChecklistId] = useState<string>("none")
-  const [requiresKyc, setRequiresKyc] = useState(false)
-  const [generateQr, setGenerateQr] = useState(false)
+  const [title, setTitle] = useState(initialFormState.title)
+  const [notes, setNotes] = useState(initialFormState.notes)
+  const [amount, setAmount] = useState(initialFormState.amount)
+  const [depositAmount, setDepositAmount] = useState(initialFormState.depositAmount)
+  const [contractId, setContractId] = useState<string>(initialFormState.contractId)
+  const [checklistId, setChecklistId] = useState<string>(initialFormState.checklistId)
+  const [requiresKyc, setRequiresKyc] = useState(initialFormState.requiresKyc)
+  const [generateQr, setGenerateQr] = useState(initialFormState.generateQr)
   const [paymentCollectionTiming, setPaymentCollectionTiming] =
-    useState<PaymentCollectionTimingValue>("AFTER_SIGNING")
-  const [requireClientCompany, setRequireClientCompany] = useState(false)
-  const [requirements, setRequirements] = useState<DraftRequirement[]>([])
+    useState<PaymentCollectionTimingValue>(initialFormState.paymentCollectionTiming)
+  const [requireClientCompany, setRequireClientCompany] = useState(
+    initialFormState.requireClientCompany
+  )
+  const [requirements, setRequirements] = useState<DraftRequirement[]>(
+    initialFormState.requirements
+  )
 
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -578,21 +700,38 @@ export function TransactionCreationForm({
     { key: "complete", label: t("clientStepComplete") },
   ].filter(Boolean) as { key: string; label: string }[]
 
-  const isDirty = Boolean(
-    successLink ||
-    step > 1 ||
-    title.trim() ||
-    notes.trim() ||
-    amount.trim() ||
-    depositAmount.trim() ||
-    contractId !== "none" ||
-    checklistId !== "none" ||
-    requiresKyc ||
-    generateQr ||
-    paymentCollectionTiming !== "AFTER_SIGNING" ||
-    requireClientCompany ||
-    requirements.length > 0
+  const currentSnapshot = useMemo(
+    () =>
+      JSON.stringify(
+        buildFormSnapshot({
+          title,
+          notes,
+          amount,
+          depositAmount,
+          contractId,
+          checklistId,
+          requiresKyc,
+          generateQr,
+          paymentCollectionTiming,
+          requireClientCompany,
+          requirements,
+        })
+      ),
+    [
+      amount,
+      checklistId,
+      contractId,
+      depositAmount,
+      generateQr,
+      notes,
+      paymentCollectionTiming,
+      requireClientCompany,
+      requirements,
+      requiresKyc,
+      title,
+    ]
   )
+  const isDirty = Boolean(successLink || step > 1 || currentSnapshot !== initialSnapshot)
 
   function translatedCategoryLabel(category: string, customLabel?: string | null) {
     if (category === "OTHER" && customLabel?.trim()) return customLabel.trim()
@@ -891,6 +1030,7 @@ export function TransactionCreationForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          recreateFromTransactionId,
           title,
           notes,
           contractTemplateId: contractId === "none" ? null : contractId,
@@ -956,23 +1096,24 @@ export function TransactionCreationForm({
   }
 
   function handleReset() {
+    const nextInitialState = createInitialFormState(initialValues)
     skipPendingCleanupRef.current = false
     pendingLocalAssetsRef.current = []
     setSuccessLink(null)
     setSuccessRecord(null)
     setSuccessError(null)
     setCopied(false)
-    setTitle("")
-    setNotes("")
-    setContractId("none")
-    setChecklistId("none")
-    setAmount("")
-    setDepositAmount("")
-    setRequiresKyc(false)
-    setGenerateQr(false)
-    setPaymentCollectionTiming("AFTER_SIGNING")
-    setRequireClientCompany(false)
-    setRequirements([])
+    setTitle(nextInitialState.title)
+    setNotes(nextInitialState.notes)
+    setContractId(nextInitialState.contractId)
+    setChecklistId(nextInitialState.checklistId)
+    setAmount(nextInitialState.amount)
+    setDepositAmount(nextInitialState.depositAmount)
+    setRequiresKyc(nextInitialState.requiresKyc)
+    setGenerateQr(nextInitialState.generateQr)
+    setPaymentCollectionTiming(nextInitialState.paymentCollectionTiming)
+    setRequireClientCompany(nextInitialState.requireClientCompany)
+    setRequirements(nextInitialState.requirements)
     setStepError(null)
     setError(null)
     setStep(1)
@@ -1332,6 +1473,14 @@ export function TransactionCreationForm({
 
             {step === 1 ? (
               <div>
+                {recreateSourceReference ? (
+                  <Section>
+                    <InlineNotice>
+                      {t("recreateNotice", { reference: recreateSourceReference })}
+                    </InlineNotice>
+                  </Section>
+                ) : null}
+
                 <Section>
                   <Field id="title" label={t("titleLabel")} required>
                     <Input
@@ -1562,6 +1711,16 @@ export function TransactionCreationForm({
 
             {step === 4 ? (
               <div>
+                {missingSourceContractTemplateName && contractId === "none" ? (
+                  <Section>
+                    <InlineNotice tone="warning" icon={AlertCircle}>
+                      {t("recreateMissingContractWarning", {
+                        template: missingSourceContractTemplateName,
+                      })}
+                    </InlineNotice>
+                  </Section>
+                ) : null}
+
                 <Section>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="checklist" label={t("requiredUploads")}>

@@ -6,7 +6,7 @@ import {
   clientFlowTransactionInclude,
   getNextClientStep,
 } from "@/features/client-flow/server/client-flow-data"
-import { destroyDocumentCloudinaryAsset } from "@/features/client-flow/server/client-document-assets"
+import { destroyDocumentCloudinaryAssetIfUnreferenced } from "@/features/client-flow/server/client-document-assets"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -260,7 +260,7 @@ export async function POST(
     if (assetsToCleanup.length > 0) {
       await Promise.allSettled(
         assetsToCleanup.map((asset) =>
-          destroyDocumentCloudinaryAsset({
+          destroyDocumentCloudinaryAssetIfUnreferenced({
             publicId: asset.publicId,
             assetUrl: asset.assetUrl,
             fileName: asset.fileName,

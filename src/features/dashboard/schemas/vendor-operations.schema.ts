@@ -63,6 +63,7 @@ export const vendorTransactionCreateSchema = z
     title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
       requiredMessage: "Title is required",
     }),
+    recreateFromTransactionId: optionalIdSchema,
     notes: optionalText("Internal notes", INPUT_LIMITS.transactionNotes).optional(),
     contractTemplateId: optionalIdSchema,
     checklistTemplateId: optionalIdSchema,
@@ -76,6 +77,8 @@ export const vendorTransactionCreateSchema = z
   })
   .transform((data) => ({
     ...data,
+    recreateFromTransactionId:
+      typeof data.recreateFromTransactionId === "string" ? data.recreateFromTransactionId : null,
     notes: typeof data.notes === "string" && data.notes.length > 0 ? data.notes : null,
     contractTemplateId: typeof data.contractTemplateId === "string" ? data.contractTemplateId : null,
     checklistTemplateId: typeof data.checklistTemplateId === "string" ? data.checklistTemplateId : null,

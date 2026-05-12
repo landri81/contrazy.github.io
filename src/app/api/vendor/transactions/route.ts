@@ -2,7 +2,7 @@ import { randomBytes } from "crypto"
 
 import { NextResponse } from "next/server"
 import QRCode from "qrcode"
-import { StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
+import { Prisma, StripeConnectionStatus, TransactionLinkStatus } from "@prisma/client"
 
 import { canUseKyc, remainingKycVerifications, remainingQrCodes, remainingTransactions } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
@@ -11,6 +11,13 @@ import { normalizeRequirementExampleImage } from "@/features/dashboard/server/re
 import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import { createTransactionContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
+import {
+  buildRecreatedRequirementDocumentSeeds,
+  buildReusableKycSeed,
+  canReuseVerifiedKyc,
+  deriveRecreatedTransactionStatus,
+  getCompletedTransactionRecreateSource,
+} from "@/features/transactions/server/transaction-recreation"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
@@ -116,6 +123,7 @@ export async function POST(request: Request) {
 
     const {
       title,
+      recreateFromTransactionId,
       notes,
       contractTemplateId,
       checklistTemplateId,
@@ -130,6 +138,19 @@ export async function POST(request: Request) {
 
     const normalizedAmount = typeof amount === "number" ? amount : null
     const normalizedDepositAmount = typeof depositAmount === "number" ? depositAmount : null
+    const recreateSource = recreateFromTransactionId
+      ? await getCompletedTransactionRecreateSource(vendorProfile.id, recreateFromTransactionId)
+      : null
+
+    if (recreateFromTransactionId && !recreateSource) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "The completed transaction selected for recreation could not be found.",
+        },
+        { status: 422 }
+      )
+    }
 
     if (normalizedAmount !== null && (!Number.isInteger(normalizedAmount) || normalizedAmount < 0)) {
       return NextResponse.json({ success: false, message: "Service payment amount must be a positive whole-cent value" }, { status: 422 })
@@ -176,7 +197,11 @@ export async function POST(request: Request) {
 
       const remainingKyc = remainingKycVerifications(subscription)
 
-      if (remainingKyc !== null && remainingKyc <= 0) {
+      if (
+        remainingKyc !== null &&
+        remainingKyc <= 0 &&
+        !canReuseVerifiedKyc(recreateSource, Boolean(requiresKyc))
+      ) {
         return NextResponse.json(
           { success: false, message: "Your included KYC verification quota has been reached for this billing period." },
           { status: 422 }
@@ -259,6 +284,22 @@ export async function POST(request: Request) {
       )
     }
 
+    const requirementDefinitions =
+      requirementOverrides.length > 0
+        ? requirementOverrides
+        : (checklistTemplate?.items ?? []).map((item) => ({
+            label: item.label,
+            instructions: item.description,
+            type: item.type,
+            category: item.category,
+            customCategoryLabel: item.customCategoryLabel,
+            required: item.required,
+            sortOrder: item.sortOrder,
+            exampleImageUrl: item.exampleImageUrl,
+            exampleImagePublicId: item.exampleImagePublicId,
+            exampleImageFileName: item.exampleImageFileName,
+          }))
+
     // A financial amount is mandatory
     if (!normalizedAmount && !normalizedDepositAmount) {
       return NextResponse.json(
@@ -273,9 +314,30 @@ export async function POST(request: Request) {
     else kind = "PAYMENT" // covers service-payment-only and doc-only flows
 
     const transaction = await prisma.$transaction(async (tx) => {
+      const clonedClientProfile = recreateSource?.clientProfile
+        ? await tx.clientProfile.create({
+            data: {
+              userId: recreateSource.clientProfile.userId,
+              vendorId: recreateSource.clientProfile.vendorId ?? vendorProfile.id,
+              fullName: recreateSource.clientProfile.fullName,
+              firstName: recreateSource.clientProfile.firstName,
+              lastName: recreateSource.clientProfile.lastName,
+              email: recreateSource.clientProfile.email,
+              phone: recreateSource.clientProfile.phone,
+              companyName: recreateSource.clientProfile.companyName,
+              address: recreateSource.clientProfile.address,
+              country: recreateSource.clientProfile.country,
+              ...(recreateSource.clientProfile.metadata
+                ? { metadata: recreateSource.clientProfile.metadata as Prisma.InputJsonValue }
+                : {}),
+            },
+          })
+        : null
+
       const newTransaction = await tx.transaction.create({
         data: {
           vendorId: vendorProfile.id,
+          clientProfileId: clonedClientProfile?.id ?? null,
           reference,
           title,
           notes,
@@ -292,6 +354,97 @@ export async function POST(request: Request) {
         },
       })
 
+      const createdRequirements =
+        requirementDefinitions.length > 0
+          ? await Promise.all(
+              requirementDefinitions.map((item) =>
+                tx.transactionRequirement.create({
+                  data: {
+                    transactionId: newTransaction.id,
+                    label: item.label,
+                    instructions: item.instructions,
+                    type: item.type,
+                    category: item.category,
+                    customCategoryLabel: item.customCategoryLabel,
+                    required: item.required,
+                    exampleImageUrl: item.exampleImageUrl,
+                    exampleImagePublicId: item.exampleImagePublicId,
+                    exampleImageFileName: item.exampleImageFileName,
+                    sortOrder: item.sortOrder,
+                  },
+                })
+              )
+            )
+          : []
+
+      if (contractTemplate) {
+        await createTransactionContractArtifact(tx, {
+          transactionId: newTransaction.id,
+          contractTemplate: {
+            id: contractTemplate.id,
+            name: contractTemplate.name,
+            description: contractTemplate.description,
+            content: contractTemplate.content,
+          },
+        })
+      }
+
+      const recreatedDocuments = recreateSource
+        ? buildRecreatedRequirementDocumentSeeds(recreateSource, createdRequirements)
+        : {
+            documents: [],
+            reusedFileCount: 0,
+            reusedTextCount: 0,
+            allRequiredDocumentsPresent: createdRequirements
+              .filter((requirement) => requirement.required)
+              .length === 0,
+          }
+
+      if (recreatedDocuments.documents.length > 0) {
+        await tx.documentAsset.createMany({
+          data: recreatedDocuments.documents.map((document) => ({
+            transactionId: newTransaction.id,
+            clientProfileId: clonedClientProfile?.id ?? null,
+            requirementId: document.requirementId,
+            label: document.label,
+            type: document.type,
+            assetUrl: document.assetUrl,
+            publicId: document.publicId,
+            fileName: document.fileName,
+            textValue: document.textValue,
+          })),
+        })
+      }
+
+      const reusableKyc = buildReusableKycSeed(recreateSource, Boolean(requiresKyc))
+
+      if (reusableKyc) {
+        await tx.kycVerification.create({
+          data: {
+            transactionId: newTransaction.id,
+            provider: reusableKyc.provider,
+            status: reusableKyc.status,
+            providerReference: reusableKyc.providerReference,
+            summary: reusableKyc.summary,
+            verifiedAt: reusableKyc.verifiedAt,
+          },
+        })
+      }
+
+      const nextStatus = deriveRecreatedTransactionStatus({
+        hasClientProfile: Boolean(clonedClientProfile),
+        hasRequiredDocuments: recreatedDocuments.allRequiredDocumentsPresent,
+        requiresKyc: Boolean(requiresKyc),
+        hasVerifiedKyc: Boolean(reusableKyc),
+      })
+
+      if (nextStatus !== "LINK_SENT") {
+        await tx.transaction.update({
+          where: { id: newTransaction.id },
+          data: { status: nextStatus },
+        })
+      }
+
       const link = await tx.transactionLink.create({
         data: {
           transactionId: newTransaction.id,
@@ -302,48 +455,19 @@ export async function POST(request: Request) {
         },
       })
 
-      if (requirementOverrides.length > 0) {
-          await tx.transactionRequirement.createMany({
-            data: requirementOverrides.map((item) => ({
-              transactionId: newTransaction.id,
-              label: item.label,
-              instructions: item.instructions,
-              type: item.type,
-              category: item.category,
-              customCategoryLabel: item.customCategoryLabel,
-              required: item.required,
-              exampleImageUrl: item.exampleImageUrl,
-              exampleImagePublicId: item.exampleImagePublicId,
-              exampleImageFileName: item.exampleImageFileName,
-              sortOrder: item.sortOrder,
-            })),
-          })
-      } else if (checklistTemplate?.items.length) {
-          await tx.transactionRequirement.createMany({
-            data: checklistTemplate.items.map((item) => ({
-              transactionId: newTransaction.id,
-              label: item.label,
-              instructions: item.description,
-              type: item.type,
-              category: item.category,
-              customCategoryLabel: item.customCategoryLabel,
-              required: item.required,
-              exampleImageUrl: item.exampleImageUrl,
-              exampleImagePublicId: item.exampleImagePublicId,
-              exampleImageFileName: item.exampleImageFileName,
-              sortOrder: item.sortOrder,
-            })),
-          })
-      }
-
-      if (contractTemplate) {
-        await createTransactionContractArtifact(tx, {
+      if (recreateSource) {
+        await recordTransactionEvent(tx, {
           transactionId: newTransaction.id,
-          contractTemplate: {
-            id: contractTemplate.id,
-            name: contractTemplate.name,
-            description: contractTemplate.description,
-            content: contractTemplate.content,
+          type: "TRANSACTION_RECREATED",
+          title: "Completed transaction recreated",
+          detail: `This workflow was recreated from completed transaction ${recreateSource.reference}.`,
+          dedupeKey: `event:transaction-recreated:${newTransaction.id}`,
+          metadata: {
+            sourceTransactionId: recreateSource.id,
+            sourceTransactionReference: recreateSource.reference,
+            reusedDocumentCount: recreatedDocuments.reusedFileCount,
+            reusedTextCount: recreatedDocuments.reusedTextCount,
+            reusedKyc: Boolean(reusableKyc),
           },
         })
       }
@@ -361,7 +485,17 @@ export async function POST(request: Request) {
         qrCodesUsed: generateQr === true ? 1 : 0,
       })
 
-      return { ...newTransaction, link }
+      return {
+        ...newTransaction,
+        status: nextStatus,
+        clientProfile: clonedClientProfile
+          ? {
+              fullName: clonedClientProfile.fullName,
+              email: clonedClientProfile.email,
+            }
+          : null,
+        link,
+      }
     }, {
       maxWait: 10_000,
       timeout: 15_000,
@@ -385,7 +519,7 @@ export async function POST(request: Request) {
           locale: transaction.locale,
           notes: transaction.notes,
           updatedAt: transaction.updatedAt,
-          clientProfile: null,
+          clientProfile: transaction.clientProfile,
           link: transaction.link,
         }, { qrRemaining: remainingQrCodes(updatedSubscription) }),
         actionUsage: buildVendorActionsUsage(updatedSubscription),

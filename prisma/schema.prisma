@@ -175,6 +175,7 @@ enum ContactMessageStatus {
 
 enum TransactionEventType {
   LINK_CREATED
+  TRANSACTION_RECREATED
   LINK_OPENED
   LINK_UPDATED
   LINK_CANCELLED

@@ -20,8 +20,8 @@ const reviewedContractStatuses = new Set<TransactionStatus>([
 
 export const clientFlowSteps = [
   { key: "profile", label: "Profile" },
-  { key: "documents", label: "Documents" },
   { key: "kyc", label: "Identity" },
+  { key: "documents", label: "Documents" },
   { key: "contract", label: "Agreement" },
   { key: "sign", label: "Signature" },
   { key: "payment", label: "Payment" },

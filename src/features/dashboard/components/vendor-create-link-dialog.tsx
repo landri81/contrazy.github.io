@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { TransactionCreationForm } from "@/features/dashboard/components/transaction-creation-form"
+import type { TransactionCreationInitialValues } from "@/features/dashboard/transaction-creation"
 import type {
   VendorActionsUsageRecord,
   VendorLinkRecord,
@@ -25,6 +26,8 @@ import { cn } from "@/lib/utils"
 type VendorCreateLinkDialogProps = {
   contracts: ContractTemplate[]
   checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
+  mode?: "new" | "recreate"
+  initialValues?: TransactionCreationInitialValues | null
   usage: VendorActionsUsageRecord | null
   hasStripe: boolean
   canLaunch: boolean
@@ -52,6 +55,8 @@ const footerButtonClass =
 export function VendorCreateLinkDialog({
   contracts,
   checklists,
+  mode = "new",
+  initialValues = null,
   usage,
   hasStripe,
   canLaunch,
@@ -84,6 +89,19 @@ export function VendorCreateLinkDialog({
       : transactionLimitReached
         ? t("blockedMessages.quotaFull")
         : null
+  const createBadge = createSuccess
+    ? t("createModal.statusCreated")
+    : createDirty
+      ? t("createModal.statusDraft")
+      : mode === "recreate"
+        ? t("createModal.statusRecreate")
+        : t("createModal.statusNew")
+  const modalTitle =
+    mode === "recreate" ? t("createModal.recreateTitle") : t("createModal.title")
+  const modalDescription =
+    mode === "recreate"
+      ? t("createModal.recreateDescription")
+      : t("createModal.description")
 
   function resetCreateState() {
     setDiscardOpen(false)
@@ -146,15 +164,15 @@ export function VendorCreateLinkDialog({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {createSuccess ? "Created" : createDirty ? "Draft" : "New"}
+                      {createBadge}
                     </span>
                     <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
-                      {t("createModal.title")}
+                      {modalTitle}
                     </DialogTitle>
                   </div>
 
                   <DialogDescription className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
-                    {t("createModal.description")}
+                    {modalDescription}
                   </DialogDescription>
                 </div>
 
@@ -177,6 +195,8 @@ export function VendorCreateLinkDialog({
                   key={formInstance}
                   contracts={contracts}
                   checklists={checklists}
+                  mode={mode}
+                  initialValues={initialValues}
                   usage={usageState}
                   hasStripe={hasStripe}
                   canLaunch={canLaunch}

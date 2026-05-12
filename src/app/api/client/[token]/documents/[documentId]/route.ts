@@ -1,7 +1,7 @@
 import { TransactionStatus } from "@prisma/client"
 import { NextResponse } from "next/server"
 
-import { destroyDocumentCloudinaryAsset } from "@/features/client-flow/server/client-document-assets"
+import { destroyDocumentCloudinaryAssetIfUnreferenced } from "@/features/client-flow/server/client-document-assets"
 import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
@@ -97,7 +97,7 @@ export async function DELETE(
 
     if (document.publicId || document.assetUrl) {
       try {
-        await destroyDocumentCloudinaryAsset({
+        await destroyDocumentCloudinaryAssetIfUnreferenced({
           publicId: document.publicId,
           assetUrl: document.assetUrl,
           fileName: document.fileName,

@@ -487,6 +487,7 @@
             "completed": "Completed"
           },
           "labels": {
+            "TRANSACTION_RECREATED": "Completed transaction recreated",
             "LINK_CREATED": "Secure link created",
             "LINK_OPENED": "Client opened secure link",
             "PROFILE_SUBMITTED": "Client profile submitted",
@@ -748,6 +749,9 @@
         "qrUnavailable": "QR is not available for this link state.",
         "agreementArtifactTitle": "Agreement artifact",
         "agreementArtifactDescription": "Review the snapshotted agreement and the immutable signed PDF for this transaction.",
+        "recreateAction": {
+          "button": "Recreate Contract"
+        },
         "snapshot": "Snapshot",
         "attached": "Attached",
         "created": "Created {date}",
@@ -792,6 +796,7 @@
         },
         "eventTitles": {
           "LINK_CREATED": "Secure link created",
+          "TRANSACTION_RECREATED": "Completed transaction recreated",
           "LINK_OPENED": "Secure link opened",
           "LINK_UPDATED": "Onboarding completed",
           "LINK_CANCELLED": "Secure link cancelled",
@@ -1191,6 +1196,12 @@
         "createModal": {
           "title": "New transaction",
           "description": "Create the secure link, configure the client journey, and decide whether this workflow needs a QR.",
+          "recreateTitle": "Recreate contract",
+          "recreateDescription": "Start a fresh secure link for the same client with prefilled customer data and matching previous requirements.",
+          "statusCreated": "Created",
+          "statusDraft": "Draft",
+          "statusNew": "New",
+          "statusRecreate": "Recreate",
           "closeLabel": "Close transaction modal",
           "closingLabel": "Closing",
           "closingTitle": "Closing transaction setup",
@@ -1524,6 +1535,8 @@
         "notesLabel": "Internal notes",
         "notesPrivate": "(private, not shown to client)",
         "notesPlaceholder": "Any internal reference or reminders…",
+        "recreateNotice": "Recreating completed transaction {reference}. Customer profile, matching requirement responses, and reusable identity verification will be prefilled where possible.",
+        "recreateMissingContractWarning": "The original contract template \"{template}\" is no longer available. Choose a contract template before launching this recreated transaction.",
         "depositTitle": "Security Deposit",
         "depositBadge": "Primary",
         "depositDesc": "The card is held only. Capture or release it after the work is complete.",

@@ -593,6 +593,7 @@ function ReadinessItem({
 
 function getActivityPresentation(type: VendorOverviewActivityRecord["type"]) {
   switch (type) {
+    case "TRANSACTION_RECREATED":
     case "LINK_CREATED":
     case "LINK_OPENED":
       return { icon: Link2, tone: "info" as const, dotClass: "bg-sky-500" }
@@ -825,6 +826,8 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
 
   function getActivityLabel(type: VendorOverviewActivityRecord["type"]) {
     switch (type) {
+      case "TRANSACTION_RECREATED":
+        return t("activity.labels.TRANSACTION_RECREATED")
       case "LINK_CREATED":
         return t("activity.labels.LINK_CREATED")
       case "LINK_OPENED":
