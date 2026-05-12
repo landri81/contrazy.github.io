@@ -46,6 +46,9 @@
       "signedIn": "Connecté",
       "hidePassword": "Masquer le mot de passe",
       "showPassword": "Afficher le mot de passe"
+    },
+    "scrollToTop": {
+      "label": "Revenir en haut"
     }
   },
   "auth": {

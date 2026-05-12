@@ -46,6 +46,9 @@
       "signedIn": "Signed in",
       "hidePassword": "Hide password",
       "showPassword": "Show password"
+    },
+    "scrollToTop": {
+      "label": "Scroll back to top"
     }
   },
   "auth": {
