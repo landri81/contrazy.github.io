@@ -38,7 +38,7 @@ export async function GET() {
       return NextResponse.redirect(loginLink.url)
     }
 
-    const dashboardUrl = getStripeDashboardUrl(account.livemode)
+    const dashboardUrl = getStripeDashboardUrl()
 
     return NextResponse.redirect(dashboardUrl)
   } catch (error) {
