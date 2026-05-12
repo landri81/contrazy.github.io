@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  Users,
   WalletCards,
 } from "lucide-react"
 
@@ -476,6 +477,28 @@ export function VendorLinkWorkspace({
                   >
                     <Plus className="size-4" />
                     {t("header.newTransaction")}
+                  </Button>
+                )}
+              />
+              <VendorCreateLinkDialog
+                contracts={contracts}
+                checklists={checklists}
+                mode="bulk"
+                usage={usageState}
+                hasStripe={hasStripe}
+                canLaunch={canLaunch}
+                blockedMessage={blockedMessage}
+                renderTrigger={({ openDialog, disabled, blockedReason }) => (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-border bg-background px-3 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0 disabled:bg-muted disabled:text-muted-foreground"
+                    onClick={openDialog}
+                    disabled={disabled}
+                    title={blockedReason ?? undefined}
+                  >
+                    <Users className="size-4" />
+                    {t("header.bulkCsv")}
                   </Button>
                 )}
               />

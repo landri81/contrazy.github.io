@@ -33,7 +33,7 @@ export default async function ClientProfilePage(props: { params: Promise<{ local
 
       <ClientProfileForm
         token={token}
-        initialData={transaction.clientProfile}
+        initialData={transaction.clientProfile ?? (transaction.bulkRecipient ? { email: transaction.bulkRecipient.email } : null)}
         requireCompany={transaction.requireClientCompany}
       />
     </div>

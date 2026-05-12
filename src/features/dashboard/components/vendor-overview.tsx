@@ -907,25 +907,49 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
 
             <div className="flex flex-wrap items-center gap-3">
               {heroState.primaryAction === "create-link" ? (
-                <VendorCreateLinkDialog
-                  contracts={createLinkDialog.contracts}
-                  checklists={createLinkDialog.checklists}
-                  usage={createLinkDialog.usage}
-                  hasStripe={createLinkDialog.hasStripe}
-                  canLaunch={createLinkDialog.canLaunch}
-                  blockedMessage={createLinkDialog.blockedMessage}
-                  renderTrigger={({ openDialog, disabled, blockedReason }) => (
-                    <Button
-                      type="button"
-                      className="h-10 rounded-xl bg-[var(--contrazy-teal)] px-4 text-white shadow-[0_12px_26px_-16px_rgba(17,201,176,0.5)] hover:bg-[#0eb8a0] disabled:bg-muted disabled:text-muted-foreground"
-                      onClick={openDialog}
-                      disabled={disabled}
-                      title={blockedReason ?? undefined}
-                    >
-                      {heroState.primaryLabel}
-                    </Button>
-                  )}
-                />
+                <>
+                  <VendorCreateLinkDialog
+                    contracts={createLinkDialog.contracts}
+                    checklists={createLinkDialog.checklists}
+                    usage={createLinkDialog.usage}
+                    hasStripe={createLinkDialog.hasStripe}
+                    canLaunch={createLinkDialog.canLaunch}
+                    blockedMessage={createLinkDialog.blockedMessage}
+                    renderTrigger={({ openDialog, disabled, blockedReason }) => (
+                      <Button
+                        type="button"
+                        className="h-10 cursor-pointer rounded-xl bg-[var(--contrazy-teal)] px-4 text-white shadow-[0_12px_26px_-16px_rgba(17,201,176,0.5)] hover:bg-[#0eb8a0] disabled:bg-muted disabled:text-muted-foreground"
+                        onClick={openDialog}
+                        disabled={disabled}
+                        title={blockedReason ?? undefined}
+                      >
+                        {heroState.primaryLabel}
+                      </Button>
+                    )}
+                  />
+                  <VendorCreateLinkDialog
+                    contracts={createLinkDialog.contracts}
+                    checklists={createLinkDialog.checklists}
+                    mode="bulk"
+                    usage={createLinkDialog.usage}
+                    hasStripe={createLinkDialog.hasStripe}
+                    canLaunch={createLinkDialog.canLaunch}
+                    blockedMessage={createLinkDialog.blockedMessage}
+                    renderTrigger={({ openDialog, disabled, blockedReason }) => (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-10 cursor-pointer rounded-xl border-border bg-white/80 px-4 text-foreground shadow-sm hover:bg-white disabled:bg-muted disabled:text-muted-foreground"
+                        onClick={openDialog}
+                        disabled={disabled}
+                        title={blockedReason ?? undefined}
+                      >
+                        <Users className="mr-2 size-4" />
+                        {t("hero.bulkCsv")}
+                      </Button>
+                    )}
+                  />
+                </>
               ) : (
                 <DashboardRouteLink
                   href={heroState.primaryHref}

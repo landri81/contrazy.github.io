@@ -27,6 +27,8 @@ import {
   Share2,
   ShieldCheck,
   Trash2,
+  Upload,
+  Users,
   Wallet,
 } from "lucide-react"
 import { QRCodeCanvas } from "qrcode.react"
@@ -85,13 +87,14 @@ import {
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
   checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
-  mode?: "new" | "recreate"
+  mode?: "new" | "recreate" | "bulk"
   initialValues?: TransactionCreationInitialValues | null
   hasStripe: boolean
   canLaunch: boolean
   blockedMessage: string
   usage: VendorActionsUsageRecord | null
   onLinkCreated?: (record: VendorLinkRecord, usage: VendorActionsUsageRecord | null) => void
+  onUsageUpdated?: (usage: VendorActionsUsageRecord | null) => void
   onDirtyChange?: (dirty: boolean) => void
   onSuccessStateChange?: (success: boolean) => void
 }
@@ -121,6 +124,31 @@ type StepDef = {
   title: string
   description: string
   icon: React.ComponentType<{ className?: string }>
+}
+
+type BulkCsvPreview = {
+  fileName: string
+  totalRows: number
+  validEmails: string[]
+  duplicateCount: number
+  rowsWithoutEmail: number
+}
+
+type BulkCreateResult = {
+  batch: {
+    id: string
+    status: string
+    recipientCount: number
+    sentCount: number
+    failedCount: number
+  }
+  rows: Array<{
+    email: string
+    reference: string
+    transactionId: string
+    secureLink: string
+    deliveryStatus: string
+  }>
 }
 
 const motionEase = [0.25, 0.46, 0.45, 0.94] as const
@@ -168,6 +196,47 @@ function createCustomFieldId() {
   }
 
   return `custom-field-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function parseBulkCsvPreview(fileName: string, text: string): BulkCsvPreview {
+  const emailPattern = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+/g
+  const rows = text
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter(Boolean)
+  const seen = new Set<string>()
+  const validEmails: string[] = []
+  let duplicateCount = 0
+  let rowsWithoutEmail = 0
+
+  for (const row of rows) {
+    const matches = row.match(emailPattern) ?? []
+
+    if (matches.length === 0) {
+      rowsWithoutEmail += 1
+      continue
+    }
+
+    for (const match of matches) {
+      const email = match.toLowerCase()
+
+      if (seen.has(email)) {
+        duplicateCount += 1
+        continue
+      }
+
+      seen.add(email)
+      validEmails.push(email)
+    }
+  }
+
+  return {
+    fileName,
+    totalRows: rows.length,
+    validEmails,
+    duplicateCount,
+    rowsWithoutEmail,
+  }
 }
 
 function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement {
@@ -580,6 +649,7 @@ export function TransactionCreationForm({
   blockedMessage,
   usage,
   onLinkCreated,
+  onUsageUpdated,
   onDirtyChange,
   onSuccessStateChange,
 }: TransactionCreationFormProps) {
@@ -604,10 +674,15 @@ export function TransactionCreationForm({
       : "An unexpected error occurred while preparing the example image.",
   }
   const removeRequirementLabel = t.has("removeRequirement") ? t("removeRequirement") : "Remove"
+  const isBulkMode = mode === "bulk"
   const initialFormState = useMemo(() => createInitialFormState(initialValues), [initialValues])
   const initialSnapshot = useMemo(
-    () => JSON.stringify(buildFormSnapshot(initialFormState)),
-    [initialFormState]
+    () =>
+      JSON.stringify({
+        form: buildFormSnapshot(initialFormState),
+        bulk: isBulkMode ? { fileName: "", recipients: [] as string[] } : null,
+      }),
+    [initialFormState, isBulkMode]
   )
   const recreateFromTransactionId =
     mode === "recreate" ? initialValues?.sourceTransactionId ?? null : null
@@ -716,11 +791,13 @@ export function TransactionCreationForm({
   const [stepError, setStepError] = useState<string | null>(null)
   const [successLink, setSuccessLink] = useState<string | null>(null)
   const [successRecord, setSuccessRecord] = useState<VendorLinkRecord | null>(null)
+  const [bulkSuccess, setBulkSuccess] = useState<BulkCreateResult | null>(null)
   const [successError, setSuccessError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isDownloadingQrImage, setIsDownloadingQrImage] = useState(false)
   const [isSharingQrImage, setIsSharingQrImage] = useState(false)
   const [uploadingRequirementIds, setUploadingRequirementIds] = useState<string[]>([])
+  const [bulkCsvPreview, setBulkCsvPreview] = useState<BulkCsvPreview | null>(null)
   const qrCanvasContainerRef = useRef<HTMLDivElement | null>(null)
   const pendingLocalAssetsRef = useRef<RequirementExampleCleanupAsset[]>([])
   const skipPendingCleanupRef = useRef(false)
@@ -732,7 +809,7 @@ export function TransactionCreationForm({
   const qrRemaining = usage?.qrCodes.remaining ?? null
   const canUseKycInPlan = usage?.kyc.allowed ?? false
   const remainingKyc = usage?.kyc.remaining ?? null
-  const qrToggleDisabled = financeDisabled || (qrRemaining !== null && qrRemaining <= 0)
+  const qrToggleDisabled = isBulkMode || financeDisabled || (qrRemaining !== null && qrRemaining <= 0)
   const kycDisabled =
     financeDisabled || !canUseKycInPlan || (remainingKyc !== null && remainingKyc <= 0)
 
@@ -780,27 +857,37 @@ export function TransactionCreationForm({
   const currentSnapshot = useMemo(
     () =>
       JSON.stringify(
-        buildFormSnapshot({
-          title,
-          notes,
-          amount,
-          depositAmount,
-          contractId,
-          checklistId,
-          requiresKyc,
-          generateQr,
-          paymentCollectionTiming,
-          requireClientCompany,
-          requirements,
-          customFields,
-        })
+        {
+          form: buildFormSnapshot({
+            title,
+            notes,
+            amount,
+            depositAmount,
+            contractId,
+            checklistId,
+            requiresKyc,
+            generateQr: isBulkMode ? false : generateQr,
+            paymentCollectionTiming,
+            requireClientCompany,
+            requirements,
+            customFields,
+          }),
+          bulk: isBulkMode
+            ? {
+                fileName: bulkCsvPreview?.fileName ?? "",
+                recipients: bulkCsvPreview?.validEmails ?? [],
+              }
+            : null,
+        }
       ),
     [
       amount,
+      bulkCsvPreview,
       checklistId,
       contractId,
       depositAmount,
       generateQr,
+      isBulkMode,
       notes,
       paymentCollectionTiming,
       requireClientCompany,
@@ -810,7 +897,7 @@ export function TransactionCreationForm({
       title,
     ]
   )
-  const isDirty = Boolean(successLink || step > 1 || currentSnapshot !== initialSnapshot)
+  const isDirty = Boolean(successLink || bulkSuccess || step > 1 || currentSnapshot !== initialSnapshot)
 
   function translatedCategoryLabel(category: string, customLabel?: string | null) {
     if (category === "OTHER" && customLabel?.trim()) return customLabel.trim()
@@ -886,17 +973,64 @@ export function TransactionCreationForm({
   }, [amountNum, paymentCollectionTiming])
 
   useEffect(() => {
+    if (isBulkMode && generateQr) {
+      setGenerateQr(false)
+    }
+  }, [generateQr, isBulkMode])
+
+  useEffect(() => {
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
 
   useEffect(() => {
-    onSuccessStateChange?.(Boolean(successLink))
-  }, [onSuccessStateChange, successLink])
+    onSuccessStateChange?.(Boolean(successLink || bulkSuccess))
+  }, [bulkSuccess, onSuccessStateChange, successLink])
 
   function navigate(nextStep: number) {
     setStepError(null)
     setError(null)
     setStep(Math.min(Math.max(nextStep, 1), steps.length))
+  }
+
+  async function handleBulkCsvFile(file: File | null) {
+    setStepError(null)
+    setError(null)
+
+    if (!file) {
+      return
+    }
+
+    const isCsv =
+      file.name.toLowerCase().endsWith(".csv") ||
+      file.type === "text/csv" ||
+      file.type === "application/vnd.ms-excel"
+
+    if (!isCsv) {
+      setStepError(t("bulkCsvInvalidType"))
+      return
+    }
+
+    const text = await file.text()
+    const preview = parseBulkCsvPreview(file.name, text)
+
+    if (preview.validEmails.length === 0) {
+      setBulkCsvPreview(preview)
+      setStepError(t("bulkCsvNoEmails"))
+      return
+    }
+
+    if (preview.validEmails.length > 100) {
+      setBulkCsvPreview(preview)
+      setStepError(t("bulkCsvTooMany", { count: preview.validEmails.length }))
+      return
+    }
+
+    setBulkCsvPreview(preview)
+  }
+
+  function clearBulkCsv() {
+    setBulkCsvPreview(null)
+    setStepError(null)
   }
 
   function addRequirement() {
@@ -1125,6 +1259,18 @@ export function TransactionCreationForm({
       return false
     }
 
+    if (step === 1 && isBulkMode) {
+      if (!bulkCsvPreview || bulkCsvPreview.validEmails.length === 0) {
+        setStepError(t("bulkCsvRequired"))
+        return false
+      }
+
+      if (bulkCsvPreview.validEmails.length > 100) {
+        setStepError(t("bulkCsvTooMany", { count: bulkCsvPreview.validEmails.length }))
+        return false
+      }
+    }
+
     if (step === 2) {
       if (hasStripe && canLaunch && amountNum <= 0 && depositNum <= 0) {
         setStepError(t("errorAmount"))
@@ -1211,54 +1357,77 @@ export function TransactionCreationForm({
       return
     }
 
+    if (isBulkMode && (!bulkCsvPreview || bulkCsvPreview.validEmails.length === 0)) {
+      setError(t("bulkCsvRequired"))
+      navigate(1)
+      return
+    }
+
     setIsPending(true)
 
     try {
-      const response = await fetch("/api/vendor/transactions", {
+      const payload = {
+        recreateFromTransactionId,
+        title,
+        notes,
+        contractTemplateId: contractId === "none" ? null : contractId,
+        checklistTemplateId: checklistId === "none" ? null : checklistId,
+        amount: amount ? parseEur(amount) : null,
+        depositAmount: depositAmount ? parseEur(depositAmount) : null,
+        requiresKyc,
+        generateQr: isBulkMode ? false : generateQr,
+        paymentCollectionTiming,
+        requireClientCompany,
+        requirements: requirements.map((item) => ({
+          label: item.label,
+          description: item.description || null,
+          type: item.type,
+          category: item.category,
+          customCategoryLabel:
+            item.category === "OTHER" ? item.customCategoryLabel || null : null,
+          required: item.required,
+          exampleImageUrl: item.type === "TEXT" ? null : item.exampleImage?.assetUrl ?? null,
+          exampleImagePublicId:
+            item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
+          exampleImageFileName:
+            item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
+        })),
+        customFields: customFields.map((item) => ({
+          label: item.label,
+          instructions: item.instructions || null,
+          type: item.type,
+          selectOptions:
+            item.type === "SELECT"
+              ? item.selectOptions.map((option) => option.trim()).filter(Boolean)
+              : [],
+        })),
+        ...(isBulkMode
+          ? {
+              recipientEmails: bulkCsvPreview?.validEmails ?? [],
+              sourceFileName: bulkCsvPreview?.fileName ?? null,
+            }
+          : {}),
+      }
+      const response = await fetch(isBulkMode ? "/api/vendor/transactions/bulk" : "/api/vendor/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recreateFromTransactionId,
-          title,
-          notes,
-          contractTemplateId: contractId === "none" ? null : contractId,
-          checklistTemplateId: checklistId === "none" ? null : checklistId,
-          amount: amount ? parseEur(amount) : null,
-          depositAmount: depositAmount ? parseEur(depositAmount) : null,
-          requiresKyc,
-          generateQr,
-          paymentCollectionTiming,
-          requireClientCompany,
-          requirements: requirements.map((item) => ({
-            label: item.label,
-            description: item.description || null,
-            type: item.type,
-            category: item.category,
-            customCategoryLabel:
-              item.category === "OTHER" ? item.customCategoryLabel || null : null,
-            required: item.required,
-            exampleImageUrl: item.type === "TEXT" ? null : item.exampleImage?.assetUrl ?? null,
-            exampleImagePublicId:
-              item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
-            exampleImageFileName:
-              item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
-          })),
-          customFields: customFields.map((item) => ({
-            label: item.label,
-            instructions: item.instructions || null,
-            type: item.type,
-            selectOptions:
-              item.type === "SELECT"
-                ? item.selectOptions.map((option) => option.trim()).filter(Boolean)
-                : [],
-          })),
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
         setError(data.message || t("errorCreate"))
+        return
+      }
+
+      if (isBulkMode) {
+        setBulkSuccess({ batch: data.batch, rows: data.rows ?? [] })
+        setSuccessRecord(null)
+        setSuccessError(null)
+        setSuccessLink(null)
+        skipPendingCleanupRef.current = true
+        onUsageUpdated?.(data.actionUsage ?? null)
         return
       }
 
@@ -1271,6 +1440,7 @@ export function TransactionCreationForm({
       if (onLinkCreated && data.linkRecord) {
         onLinkCreated(data.linkRecord, data.actionUsage ?? null)
       }
+      onUsageUpdated?.(data.actionUsage ?? null)
     } catch {
       setError(t("errorUnexpected"))
     } finally {
@@ -1298,8 +1468,10 @@ export function TransactionCreationForm({
     pendingLocalAssetsRef.current = []
     setSuccessLink(null)
     setSuccessRecord(null)
+    setBulkSuccess(null)
     setSuccessError(null)
     setCopied(false)
+    setBulkCsvPreview(null)
     setTitle(nextInitialState.title)
     setNotes(nextInitialState.notes)
     setContractId(nextInitialState.contractId)
@@ -1372,6 +1544,25 @@ export function TransactionCreationForm({
 
     setSuccessError(null)
     window.open(link, "_blank", "noopener,noreferrer")
+  }
+
+  function handleCopyBulkLinks() {
+    if (!bulkSuccess || bulkSuccess.rows.length === 0) return
+
+    const text = bulkSuccess.rows
+      .map((row) => `${row.email}, ${row.reference}, ${row.secureLink}`)
+      .join("\n")
+
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setSuccessError(null)
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 2000)
+      })
+      .catch(() => {
+        setSuccessError(t("shareCopyError"))
+      })
   }
 
   function getQrCanvasElement() {
@@ -1466,6 +1657,96 @@ export function TransactionCreationForm({
     } finally {
       setIsSharingQrImage(false)
     }
+  }
+
+  if (bulkSuccess) {
+    const previewRows = bulkSuccess.rows.slice(0, 12)
+
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-background">
+        <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-8">
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="text-center">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-sm border border-[var(--contrazy-teal)]/35 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
+                <CheckCircle2 className="size-6" />
+              </div>
+              <h1 className="mt-5 text-xl font-semibold tracking-tight text-foreground">{t("bulkSuccessTitle")}</h1>
+              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                {t("bulkSuccessDesc", {
+                  sent: bulkSuccess.batch.sentCount,
+                  failed: bulkSuccess.batch.failedCount,
+                  total: bulkSuccess.batch.recipientCount,
+                })}
+              </p>
+            </div>
+
+            <section className="mt-8 rounded-sm border border-border bg-muted/10 p-4 text-left">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t("bulkResultTitle")}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("bulkResultDesc")}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(buttonSecondaryClass, "cursor-pointer")}
+                  onClick={handleCopyBulkLinks}
+                >
+                  <Copy className="mr-2 size-4" />
+                  {copied ? t("copied") : t("bulkCopyAll")}
+                </Button>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-sm border border-border bg-background">
+                <div className="grid grid-cols-[minmax(0,1fr)_130px_120px] gap-3 border-b border-border px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>{t("bulkColumnEmail")}</span>
+                  <span>{t("bulkColumnReference")}</span>
+                  <span>{t("bulkColumnStatus")}</span>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {previewRows.map((row) => (
+                    <div
+                      key={`${row.reference}-${row.email}`}
+                      className="grid grid-cols-[minmax(0,1fr)_130px_120px] gap-3 border-b border-border px-3 py-2 text-xs last:border-b-0"
+                    >
+                      <span className="truncate text-foreground" title={row.email}>{row.email}</span>
+                      <span className="font-medium text-foreground">{row.reference}</span>
+                      <span className={row.deliveryStatus === "EMAIL_SENT" ? "text-emerald-700" : "text-amber-700"}>
+                        {row.deliveryStatus === "EMAIL_SENT" ? t("bulkStatusSent") : t("bulkStatusFailed")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {bulkSuccess.rows.length > previewRows.length ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {t("bulkRowsHidden", { count: bulkSuccess.rows.length - previewRows.length })}
+                </p>
+              ) : null}
+
+              {successError ? (
+                <div className="mt-4 flex items-start gap-2 rounded-sm border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                  <p>{successError}</p>
+                </div>
+              ) : null}
+            </section>
+
+            <div className="mt-6 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(buttonSecondaryClass, "cursor-pointer")}
+                onClick={handleReset}
+              >
+                {t("createAnother")}
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   if (successLink) {
@@ -1720,6 +2001,84 @@ export function TransactionCreationForm({
                     />
                   </Field>
                 </Section>
+
+                {isBulkMode ? (
+                  <Section>
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-[var(--contrazy-teal)]/25 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
+                        <Users className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">{t("bulkCsvTitle")}</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("bulkCsvDesc")}</p>
+
+                        <div className="mt-4 rounded-sm border border-dashed border-border bg-muted/20 p-4">
+                          <Label
+                            htmlFor="bulk-csv-file"
+                            className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border bg-background px-3 text-sm font-medium text-foreground shadow-none transition hover:bg-muted"
+                          >
+                            <Upload className="size-4" />
+                            {t("bulkCsvChoose")}
+                          </Label>
+                          <Input
+                            id="bulk-csv-file"
+                            type="file"
+                            accept=".csv,text/csv"
+                            className="sr-only"
+                            onChange={(event) => {
+                              void handleBulkCsvFile(event.target.files?.[0] ?? null)
+                              event.target.value = ""
+                            }}
+                          />
+
+                          {bulkCsvPreview ? (
+                            <div className="mt-4 rounded-sm border border-border bg-background p-3">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{bulkCsvPreview.fileName}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {t("bulkCsvStats", {
+                                      count: bulkCsvPreview.validEmails.length,
+                                      duplicates: bulkCsvPreview.duplicateCount,
+                                      skipped: bulkCsvPreview.rowsWithoutEmail,
+                                    })}
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 cursor-pointer rounded-sm text-muted-foreground hover:text-foreground"
+                                  onClick={clearBulkCsv}
+                                >
+                                  {t("bulkCsvClear")}
+                                </Button>
+                              </div>
+
+                              {bulkCsvPreview.validEmails.length > 0 ? (
+                                <div className="mt-3 max-h-28 overflow-y-auto rounded-sm border border-border bg-muted/20 p-2 text-xs text-muted-foreground">
+                                  {bulkCsvPreview.validEmails.slice(0, 20).map((email) => (
+                                    <span
+                                      key={email}
+                                      className="mr-1.5 mb-1.5 inline-flex rounded-full border border-border bg-background px-2 py-0.5"
+                                    >
+                                      {email}
+                                    </span>
+                                  ))}
+                                  {bulkCsvPreview.validEmails.length > 20 ? (
+                                    <span className="inline-flex rounded-full border border-border bg-background px-2 py-0.5">
+                                      {t("bulkCsvMore", { count: bulkCsvPreview.validEmails.length - 20 })}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </Section>
+                ) : null}
               </div>
             ) : null}
 
@@ -2386,6 +2745,17 @@ export function TransactionCreationForm({
                           <dd className="max-w-[240px] truncate text-right font-medium text-foreground">{title || "—"}</dd>
                         </div>
 
+                        {isBulkMode ? (
+                          <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
+                            <dt className="text-muted-foreground">{t("summaryRecipients")}</dt>
+                            <dd className="font-medium text-foreground">
+                              {bulkCsvPreview
+                                ? t("summaryRecipientsCount", { count: bulkCsvPreview.validEmails.length })
+                                : "—"}
+                            </dd>
+                          </div>
+                        ) : null}
+
                         <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
                           <dt className="text-muted-foreground">{t("summaryType")}</dt>
                           <dd className="font-medium text-foreground">{txKind ? kindLabels[txKind] : "—"}</dd>
@@ -2477,31 +2847,39 @@ export function TransactionCreationForm({
                   </div>
                 </Section>
 
-                <Section>
-                  <SwitchRow
-                    id="generate-qr"
-                    icon={QrCode}
-                    title={t("generateQrTitle")}
-                    description={t("generateQrDesc")}
-                    checked={generateQr}
-                    onCheckedChange={setGenerateQr}
-                    disabled={qrToggleDisabled}
-                  >
-                    {qrRemaining !== null ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {qrRemaining === 1 ? t("qrRemainingOne") : t("qrRemainingMany", { count: qrRemaining })}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-muted-foreground">{t("qrUnlimited")}</p>
-                    )}
+                {isBulkMode ? (
+                  <Section>
+                    <InlineNotice icon={Mail}>
+                      {t("bulkEmailOnlyNotice")}
+                    </InlineNotice>
+                  </Section>
+                ) : (
+                  <Section>
+                    <SwitchRow
+                      id="generate-qr"
+                      icon={QrCode}
+                      title={t("generateQrTitle")}
+                      description={t("generateQrDesc")}
+                      checked={generateQr}
+                      onCheckedChange={setGenerateQr}
+                      disabled={qrToggleDisabled}
+                    >
+                      {qrRemaining !== null ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {qrRemaining === 1 ? t("qrRemainingOne") : t("qrRemainingMany", { count: qrRemaining })}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs text-muted-foreground">{t("qrUnlimited")}</p>
+                      )}
 
-                    {qrToggleDisabled ? (
-                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                        {hasStripe && canLaunch ? t("qrDisabledQuota") : t("qrDisabledReadiness")}
-                      </p>
-                    ) : null}
-                  </SwitchRow>
-                </Section>
+                      {qrToggleDisabled ? (
+                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                          {hasStripe && canLaunch ? t("qrDisabledQuota") : t("qrDisabledReadiness")}
+                        </p>
+                      ) : null}
+                    </SwitchRow>
+                  </Section>
+                )}
 
                 <AnimatePresence initial={false}>
                   {error ? (
@@ -2557,11 +2935,17 @@ export function TransactionCreationForm({
               <Button
                 type="button"
                 className={cn(buttonPrimaryClass, "cursor-pointer")}
-                disabled={isPending || !title.trim() || !canLaunch}
+                disabled={isPending || !title.trim() || !canLaunch || (isBulkMode && !bulkCsvPreview)}
                 onClick={handleSubmit}
               >
-                {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <LinkIcon className="mr-2 size-4" />}
-                {isPending ? t("creating") : t("createTransaction")}
+                {isPending ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : isBulkMode ? (
+                  <Mail className="mr-2 size-4" />
+                ) : (
+                  <LinkIcon className="mr-2 size-4" />
+                )}
+                {isPending ? t("creating") : isBulkMode ? t("bulkCreateTransaction") : t("createTransaction")}
               </Button>
             )}
           </div>

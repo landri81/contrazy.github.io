@@ -12,6 +12,15 @@ function formatEmailMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount / 100)
 }
 
+function escapeEmailHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
 async function deliverEmail({
   to,
   subject,
@@ -38,6 +47,47 @@ async function deliverEmail({
     console.error("Failed to send email", error)
     return false
   }
+}
+
+export async function sendBulkTransactionLinkEmail(
+  to: string,
+  vendorName: string,
+  transactionTitle: string,
+  transactionReference: string,
+  secureLink: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  const safeVendorName = escapeEmailHtml(vendorName)
+  const safeTitle = escapeEmailHtml(transactionTitle)
+  const safeReference = escapeEmailHtml(transactionReference)
+  const safeLink = escapeEmailHtml(secureLink)
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Lien sécurisé — ${vendorName}` : `Secure client link - ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour,</h2>
+        <p><strong>${safeVendorName}</strong> vous a envoyé un flux sécurisé à compléter.</p>
+        <p>Transaction : <strong>${safeTitle}</strong></p>
+        <p>Référence : <strong>${safeReference}</strong></p>
+        <p><a href="${safeLink}" target="_blank" rel="noreferrer">Ouvrir le lien sécurisé</a></p>
+        <p>Vous pourrez renseigner votre profil, fournir les documents demandés, vérifier votre identité si nécessaire, signer le contrat et finaliser le paiement depuis ce lien unique.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hello,</h2>
+        <p><strong>${safeVendorName}</strong> sent you a secure client flow to complete.</p>
+        <p>Transaction: <strong>${safeTitle}</strong></p>
+        <p>Reference: <strong>${safeReference}</strong></p>
+        <p><a href="${safeLink}" target="_blank" rel="noreferrer">Open the secure link</a></p>
+        <p>You can complete your profile, provide requested documents, verify identity if needed, sign the agreement, and finish payment from this single link.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
+  })
 }
 
 export async function sendTransactionCompletedEmail(

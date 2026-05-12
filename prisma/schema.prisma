@@ -141,6 +141,19 @@ enum TransactionLinkActor {
   SYSTEM
 }
 
+enum BulkShareBatchStatus {
+  CREATING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum BulkShareRecipientStatus {
+  PENDING
+  EMAIL_SENT
+  EMAIL_FAILED
+}
+
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
@@ -252,6 +265,7 @@ model VendorProfile {
   contractTemplates      ContractTemplate[]
   checklistTemplates     ChecklistTemplate[]
   transactions           Transaction[]
+  bulkShareBatches       BulkShareBatch[]
   invitations            Invitation[]
   webhookEvents          WebhookEvent[]
   subscription           VendorSubscription?
@@ -354,6 +368,7 @@ model Transaction {
   id                 String             @id @default(cuid())
   vendorId           String
   clientProfileId    String?
+  bulkBatchId         String?
   contractTemplateId String?
   checklistTemplateId String?
   reference          String             @unique
@@ -375,6 +390,8 @@ model Transaction {
   updatedAt          DateTime           @updatedAt
   vendor             VendorProfile      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   clientProfile      ClientProfile?     @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  bulkBatch          BulkShareBatch?    @relation(fields: [bulkBatchId], references: [id], onDelete: SetNull)
+  bulkRecipient      BulkShareRecipient?
   contractTemplate   ContractTemplate?  @relation(fields: [contractTemplateId], references: [id], onDelete: SetNull)
   checklistTemplate  ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id], onDelete: SetNull)
   link               TransactionLink?
@@ -392,7 +409,47 @@ model Transaction {
   webhookEvents      WebhookEvent[]
 
   @@index([vendorId, createdAt])
+  @@index([bulkBatchId])
   @@index([status])
+}
+
+model BulkShareBatch {
+  id              String               @id @default(cuid())
+  vendorId        String
+  sourceFileName  String?
+  configSnapshot  Json?
+  recipientCount  Int                  @default(0)
+  sentCount       Int                  @default(0)
+  failedCount     Int                  @default(0)
+  status          BulkShareBatchStatus @default(CREATING)
+  completedAt     DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  vendor          VendorProfile        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  recipients      BulkShareRecipient[]
+
+  @@index([vendorId, createdAt])
+  @@index([status, createdAt])
+}
+
+model BulkShareRecipient {
+  id              String                   @id @default(cuid())
+  batchId         String
+  transactionId   String?                  @unique
+  email           String
+  normalizedEmail String
+  status          BulkShareRecipientStatus @default(PENDING)
+  errorMessage    String?                  @db.Text
+  sentAt          DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  batch           BulkShareBatch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  transaction     Transaction?             @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([batchId, normalizedEmail])
+  @@index([normalizedEmail])
+  @@index([status, createdAt])
 }
 
 model TransactionLink {

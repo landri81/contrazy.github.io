@@ -85,6 +85,16 @@ function buildVendorTransactionsWhere(
                 },
               },
             },
+            {
+              bulkRecipient: {
+                is: {
+                  OR: [
+                    { email: containsInsensitive(search) },
+                    { normalizedEmail: containsInsensitive(search.toLowerCase()) },
+                  ],
+                },
+              },
+            },
           ],
         }
       : {}),
@@ -138,6 +148,7 @@ export async function getVendorTransactionsCsvRows(
       where,
       include: {
         clientProfile: { select: { fullName: true, email: true } },
+        bulkRecipient: { select: { email: true } },
         kycVerification: { select: { status: true } },
         signatureRecord: { select: { status: true } },
       },
@@ -159,7 +170,7 @@ export async function getVendorTransactionsCsvRows(
       rows.push({
         createdAt: formatExportDateTime(transaction.createdAt),
         clientName: transaction.clientProfile?.fullName ?? "Client pending",
-        clientEmail: transaction.clientProfile?.email ?? "No email",
+        clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
         reference: transaction.reference,
         type: formatDisplayLabel(transaction.kind),
         amount: formatMoney(

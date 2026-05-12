@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils"
 type VendorCreateLinkDialogProps = {
   contracts: ContractTemplate[]
   checklists: Array<ChecklistTemplate & { items: ChecklistItem[] }>
-  mode?: "new" | "recreate"
+  mode?: "new" | "recreate" | "bulk"
   initialValues?: TransactionCreationInitialValues | null
   usage: VendorActionsUsageRecord | null
   hasStripe: boolean
@@ -95,12 +95,20 @@ export function VendorCreateLinkDialog({
       ? t("createModal.statusDraft")
       : mode === "recreate"
         ? t("createModal.statusRecreate")
+        : mode === "bulk"
+          ? t("createModal.statusBulk")
         : t("createModal.statusNew")
   const modalTitle =
-    mode === "recreate" ? t("createModal.recreateTitle") : t("createModal.title")
+    mode === "recreate"
+      ? t("createModal.recreateTitle")
+      : mode === "bulk"
+        ? t("createModal.bulkTitle")
+        : t("createModal.title")
   const modalDescription =
     mode === "recreate"
       ? t("createModal.recreateDescription")
+      : mode === "bulk"
+        ? t("createModal.bulkDescription")
       : t("createModal.description")
 
   function resetCreateState() {
@@ -146,6 +154,10 @@ export function VendorCreateLinkDialog({
   ) {
     setUsageState(nextUsage)
     onLinkCreated?.(nextRecord, nextUsage)
+  }
+
+  function handleUsageUpdated(nextUsage: VendorActionsUsageRecord | null) {
+    setUsageState(nextUsage)
   }
 
   return (
@@ -202,6 +214,7 @@ export function VendorCreateLinkDialog({
                   canLaunch={canLaunch}
                   blockedMessage={blockedMessage}
                   onLinkCreated={handleCreatedLink}
+                  onUsageUpdated={handleUsageUpdated}
                   onDirtyChange={setCreateDirty}
                   onSuccessStateChange={setCreateSuccess}
                 />

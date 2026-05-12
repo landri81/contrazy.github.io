@@ -106,25 +106,26 @@ const transactionCustomFieldItemSchema = z
         : [],
   }))
 
-export const vendorTransactionCreateSchema = z
-  .object({
-    title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
-      requiredMessage: "Title is required",
-    }),
-    recreateFromTransactionId: optionalIdSchema,
-    notes: optionalText("Internal notes", INPUT_LIMITS.transactionNotes).optional(),
-    contractTemplateId: optionalIdSchema,
-    checklistTemplateId: optionalIdSchema,
-    amount: z.number().int().nullable().optional(),
-    depositAmount: z.number().int().nullable().optional(),
-    requiresKyc: z.boolean().optional(),
-    generateQr: z.boolean().optional(),
-    paymentCollectionTiming: z.nativeEnum(PaymentCollectionTiming).optional(),
-    requireClientCompany: z.boolean().optional(),
-    requirements: z.array(requirementItemSchema).optional(),
-    customFields: z.array(transactionCustomFieldItemSchema).optional(),
-  })
-  .transform((data) => ({
+const vendorTransactionCreateBaseSchema = z.object({
+  title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
+    requiredMessage: "Title is required",
+  }),
+  recreateFromTransactionId: optionalIdSchema,
+  notes: optionalText("Internal notes", INPUT_LIMITS.transactionNotes).optional(),
+  contractTemplateId: optionalIdSchema,
+  checklistTemplateId: optionalIdSchema,
+  amount: z.number().int().nullable().optional(),
+  depositAmount: z.number().int().nullable().optional(),
+  requiresKyc: z.boolean().optional(),
+  generateQr: z.boolean().optional(),
+  paymentCollectionTiming: z.nativeEnum(PaymentCollectionTiming).optional(),
+  requireClientCompany: z.boolean().optional(),
+  requirements: z.array(requirementItemSchema).optional(),
+  customFields: z.array(transactionCustomFieldItemSchema).optional(),
+})
+
+function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransactionCreateBaseSchema>) {
+  return {
     ...data,
     recreateFromTransactionId:
       typeof data.recreateFromTransactionId === "string" ? data.recreateFromTransactionId : null,
@@ -139,7 +140,40 @@ export const vendorTransactionCreateSchema = z
     requireClientCompany: Boolean(data.requireClientCompany),
     requirements: Array.isArray(data.requirements) ? data.requirements : [],
     customFields: Array.isArray(data.customFields) ? data.customFields : [],
+  }
+}
+
+export const vendorTransactionCreateSchema = vendorTransactionCreateBaseSchema.transform(
+  normalizeVendorTransactionCreateData
+)
+
+export type VendorTransactionCreateInput = z.infer<typeof vendorTransactionCreateSchema>
+
+export const vendorBulkTransactionCreateSchema = vendorTransactionCreateBaseSchema
+  .extend({
+    recipientEmails: z
+      .array(
+        z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email("Recipient email must be valid")
+      )
+      .min(1, "Add at least one recipient email"),
+    sourceFileName: optionalNullableText("CSV filename", 180).optional(),
+  })
+  .transform((data) => ({
+    ...normalizeVendorTransactionCreateData(data),
+    generateQr: false,
+    recreateFromTransactionId: null,
+    recipientEmails: Array.from(new Set(data.recipientEmails.map((email) => email.trim().toLowerCase()))),
+    sourceFileName:
+      typeof data.sourceFileName === "string" && data.sourceFileName.length > 0
+        ? data.sourceFileName
+        : null,
   }))
+
+export type VendorBulkTransactionCreateInput = z.infer<typeof vendorBulkTransactionCreateSchema>
 
 export const contractTemplatePayloadSchema = z
   .object({

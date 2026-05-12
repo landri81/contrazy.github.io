@@ -520,6 +520,9 @@ type VendorLinkSource = {
     fullName: string
     email: string
   } | null
+  bulkRecipient?: {
+    email: string
+  } | null
   link?: {
     id: string
     token: string
@@ -664,7 +667,7 @@ export function buildVendorLinkRecord(
     transactionId: transaction.id,
     reference: transaction.reference,
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
-    clientEmail: transaction.clientProfile?.email ?? "No email",
+    clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
     title: transaction.title,
     kind: String(transaction.kind),
     serviceAmount: formatMoney(transaction.amount, transaction.currency),
@@ -974,6 +977,7 @@ function mapTransactionListRecord(transaction: {
   status: string
   createdAt: Date
   clientProfile: { fullName: string; email: string } | null
+  bulkRecipient?: { email: string } | null
   requiresKyc: boolean
   kycVerification?: { status: string } | null
   contractTemplateId?: string | null
@@ -983,7 +987,7 @@ function mapTransactionListRecord(transaction: {
     id: transaction.id,
     reference: transaction.reference,
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
-    clientEmail: transaction.clientProfile?.email ?? "No email",
+    clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
     kind: formatDisplayLabel(transaction.kind),
     amount: formatMoney(
       transaction.amount != null && transaction.amount > 0 ? transaction.amount : transaction.depositAmount,
@@ -1127,6 +1131,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
           where: { vendorId },
           include: {
             clientProfile: true,
+            bulkRecipient: { select: { email: true } },
             contractTemplate: true,
             kycVerification: true,
             signatureRecord: true,
@@ -1239,7 +1244,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     id: transaction.id,
     reference: transaction.reference,
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
-    clientEmail: transaction.clientProfile?.email ?? "No email",
+    clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
     kind: transaction.kind.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()),
     amount: formatMoney(
       transaction.amount != null && transaction.amount > 0 ? transaction.amount : transaction.depositAmount,
@@ -1511,6 +1516,16 @@ export async function getVendorTransactionsPageData(
                 },
               },
             },
+            {
+              bulkRecipient: {
+                is: {
+                  OR: [
+                    { email: containsInsensitive(search) },
+                    { normalizedEmail: containsInsensitive(search.toLowerCase()) },
+                  ],
+                },
+              },
+            },
           ],
         }
       : {}),
@@ -1523,6 +1538,7 @@ export async function getVendorTransactionsPageData(
           where,
           include: {
             clientProfile: { select: { fullName: true, email: true } },
+            bulkRecipient: { select: { email: true } },
             kycVerification: { select: { status: true } },
             signatureRecord: { select: { status: true } },
           },
@@ -2025,6 +2041,16 @@ export async function getVendorLinksPageData(
                 },
               },
             },
+            {
+              bulkRecipient: {
+                is: {
+                  OR: [
+                    { email: containsInsensitive(search) },
+                    { normalizedEmail: containsInsensitive(search.toLowerCase()) },
+                  ],
+                },
+              },
+            },
             { link: { is: { shortCode: containsInsensitive(search) } } },
           ],
         }
@@ -2038,6 +2064,7 @@ export async function getVendorLinksPageData(
           where,
           include: {
             clientProfile: { select: { fullName: true, email: true } },
+            bulkRecipient: { select: { email: true } },
             link: {
               select: {
                 id: true,
@@ -2079,6 +2106,7 @@ export async function getVendorLinksPageData(
         notes: transaction.notes,
         updatedAt: transaction.updatedAt,
         clientProfile: transaction.clientProfile,
+        bulkRecipient: transaction.bulkRecipient,
         link: transaction.link,
       }, { qrRemaining })
     ),
@@ -2113,6 +2141,7 @@ export async function getVendorRecentLinksData(
         },
         include: {
           clientProfile: { select: { fullName: true, email: true } },
+          bulkRecipient: { select: { email: true } },
           link: {
             select: {
               id: true,
@@ -2150,6 +2179,7 @@ export async function getVendorRecentLinksData(
       notes: transaction.notes,
       updatedAt: transaction.updatedAt,
       clientProfile: transaction.clientProfile,
+      bulkRecipient: transaction.bulkRecipient,
       link: transaction.link,
     }, { qrRemaining })
   )
@@ -3195,6 +3225,16 @@ export async function getAdminVendorLinksPage(
                 },
               },
             },
+            {
+              bulkRecipient: {
+                is: {
+                  OR: [
+                    { email: containsInsensitive(search) },
+                    { normalizedEmail: containsInsensitive(search.toLowerCase()) },
+                  ],
+                },
+              },
+            },
           ],
         }
       : {}),
@@ -3216,6 +3256,11 @@ export async function getAdminVendorLinksPage(
                 clientProfile: {
                   select: {
                     fullName: true,
+                    email: true,
+                  },
+                },
+                bulkRecipient: {
+                  select: {
                     email: true,
                   },
                 },
@@ -3265,7 +3310,7 @@ export async function getAdminVendorLinksPage(
         shortCode: transaction.link.shortCode ?? null,
         locale: transaction.locale,
         clientName: transaction.clientProfile?.fullName ?? null,
-        clientEmail: transaction.clientProfile?.email ?? null,
+        clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? null,
         amount: transaction.amount ?? null,
         depositAmount: transaction.depositAmount ?? null,
         currency: transaction.currency,

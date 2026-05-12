@@ -60,6 +60,7 @@ export const clientFlowTransactionInclude = {
   link: true,
   vendor: true,
   clientProfile: true,
+  bulkRecipient: true,
   requirements: {
     orderBy: { sortOrder: "asc" },
   },

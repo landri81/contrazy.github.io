@@ -171,6 +171,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     include: {
       vendor: true,
       clientProfile: true,
+      bulkRecipient: true,
       contractTemplate: true,
       link: true,
       requirements: {
@@ -243,6 +244,11 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
               email: transaction.clientProfile.email,
             }
           : null,
+        bulkRecipient: transaction.bulkRecipient
+          ? {
+              email: transaction.bulkRecipient.email,
+            }
+          : null,
         link: transaction.link,
       }, { qrRemaining: remainingQrCodes(subscription) })
     : null
@@ -283,9 +289,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
             <div className="text-lg font-bold truncate">
               {transaction.clientProfile?.fullName || t("pending")}
             </div>
-            {transaction.clientProfile?.email && (
+            {(transaction.clientProfile?.email || transaction.bulkRecipient?.email) && (
               <div className="text-xs text-muted-foreground truncate">
-                {transaction.clientProfile.email}
+                {transaction.clientProfile?.email ?? transaction.bulkRecipient?.email}
               </div>
             )}
           </CardContent>
