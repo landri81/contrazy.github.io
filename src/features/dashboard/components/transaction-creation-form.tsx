@@ -2437,19 +2437,17 @@ export function TransactionCreationForm({
                           )}
 
                           {isLongDeposit && depositPricing ? (
-                            <div className="space-y-2 rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
+                            <div className="space-y-3 rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
                               <div className="flex items-start gap-2">
                                 <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
-                                <p className="leading-5">
+                                <p className="leading-5 font-medium">
                                   {t("longDepositWarning", {
                                     days: depositHoldDaysNum,
-                                    stripeFee: `€${depositPricing.stripeFee.toFixed(2)}`,
-                                    platformFee: `€${depositPricing.platformFee.toFixed(2)}`,
                                     totalFee: `€${depositPricing.total.toFixed(2)}`,
                                   })}
                                 </p>
                               </div>
-                              <label className="flex cursor-pointer items-start gap-2 text-xs font-medium leading-5 text-destructive">
+                              <label className="flex cursor-pointer items-start gap-2 text-xs font-medium leading-5 text-destructive pl-5">
                                 <input
                                   type="checkbox"
                                   checked={longDepositFeeAccepted}
