@@ -23,6 +23,18 @@ export type TransactionCreationInitialCustomField = {
   selectOptions: string[]
 }
 
+export type TransactionReportFieldPhase = "CHECK_IN" | "CHECK_OUT"
+
+export type TransactionCreationInitialReportField = {
+  label: string
+  instructions: string
+  fieldType: TransactionCustomFieldTypeValue
+  reportType: TransactionReportFieldPhase
+  selectOptions: string[]
+}
+
+export type TransactionFlowTypeValue = "STANDARD" | "CHECK_IN_OUT"
+
 export type TransactionCreationInitialValues = {
   sourceTransactionId: string
   sourceTransactionReference: string
@@ -38,5 +50,7 @@ export type TransactionCreationInitialValues = {
   requireClientCompany: boolean
   requirements: TransactionCreationInitialRequirement[]
   customFields: TransactionCreationInitialCustomField[]
+  reportFields: TransactionCreationInitialReportField[]
+  flowType: TransactionFlowTypeValue
   missingContractTemplateName: string | null
 }

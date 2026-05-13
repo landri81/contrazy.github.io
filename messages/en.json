@@ -825,7 +825,10 @@
           "TRANSACTION_CANCELLED": "Transaction cancelled",
           "COMPLETED": "Transaction completed",
           "EMAIL_SENT": "Notification sent",
-          "WEBHOOK_PROCESSED": "Webhook received"
+          "WEBHOOK_PROCESSED": "Webhook received",
+          "CHECK_IN_SUBMITTED": "Check-in submitted",
+          "CHECK_OUT_REQUESTED": "Check-out requested",
+          "CHECK_OUT_SUBMITTED": "Check-out submitted"
         },
         "eventDetails": {
           "LINK_CREATED": "The secure link is ready to share with the client.",
@@ -1757,7 +1760,26 @@
         "reqCategoryCompanyRegistration": "Company registration",
         "reqCategoryContractAttachment": "Contract attachment",
         "reqCategoryCustom": "Custom document",
-        "reqCategoryOther": "Other"
+        "reqCategoryOther": "Other",
+        "checkInOutTitle": "Enable Check-In / Check-Out",
+        "checkInOutDesc": "Capture service-lifecycle reports from the customer after onboarding — a check-in at the start and a check-out at the end.",
+        "checkInOutBulkDisabled": "Check-In / Check-Out is not available for bulk CSV launches.",
+        "checkInPhaseLabel": "Check-In fields",
+        "checkOutPhaseLabel": "Check-Out fields",
+        "addReportField": "Add field",
+        "noReportFields": "No fields added yet.",
+        "reportFieldLabel": "Field label",
+        "reportFieldLabelPlaceholder": "e.g. Current mileage",
+        "reportFieldInstructions": "Instructions (optional)",
+        "reportFieldInstructionsPlaceholder": "What should the customer enter or photograph?",
+        "reportFieldType": "Field type",
+        "removeReportField": "Remove field",
+        "summaryFlowType": "Service flow",
+        "summaryFlowTypeStandard": "Standard",
+        "summaryFlowTypeCheckInOut": "Check-In / Check-Out ({count} fields)",
+        "clientStepCheckIn": "Check-In",
+        "clientStepCheckOut": "Check-Out",
+        "errorReportFields": "Complete every report field label and add at least two options for each select field."
       },
       "servicePaymentRequest": {
         "title": "Deferred service payment",
@@ -2380,7 +2402,9 @@
       "contract": "Contract",
       "sign": "Signature",
       "payment": "Payment",
-      "complete": "Complete"
+      "complete": "Complete",
+      "checkIn": "Check-In",
+      "checkOut": "Check-Out"
     },
     "cancel": "Cancel",
     "cancelled": {

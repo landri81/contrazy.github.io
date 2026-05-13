@@ -5,11 +5,13 @@ import {
   type DocumentAsset,
   type KycVerification,
   type TransactionCustomField,
+  type TransactionReportField,
   type TransactionRequirement,
 } from "@prisma/client"
 
 import type {
   TransactionCreationInitialCustomField,
+  TransactionCreationInitialReportField,
   TransactionCreationInitialRequirement,
   TransactionCreationInitialValues,
 } from "@/features/dashboard/transaction-creation"
@@ -49,6 +51,9 @@ export const recreateSourceTransactionInclude = {
   customFields: {
     orderBy: { sortOrder: "asc" },
   },
+  reportFields: {
+    orderBy: { sortOrder: "asc" },
+  },
   documents: {
     orderBy: { uploadedAt: "asc" },
   },
@@ -70,6 +75,7 @@ type RecreateInitialValueSource = {
   requiresKyc: boolean
   requireClientCompany: boolean
   paymentCollectionTiming: TransactionCreationInitialValues["paymentCollectionTiming"]
+  flowType: TransactionCreationInitialValues["flowType"]
   contractTemplate?: { id: string; name: string } | null
   contractArtifact?: { sourceTemplateName: string | null } | null
   link?: { qrCodeSvg: string | null } | null
@@ -89,6 +95,9 @@ type RecreateInitialValueSource = {
   >
   customFields: Array<
     Pick<TransactionCustomField, "label" | "instructions" | "type" | "selectOptions">
+  >
+  reportFields: Array<
+    Pick<TransactionReportField, "label" | "instructions" | "fieldType" | "reportType" | "selectOptions">
   >
 }
 
@@ -156,6 +165,8 @@ export function buildTransactionCreationInitialValues(
     requireClientCompany: source.requireClientCompany,
     requirements: source.requirements.map((requirement) => toInitialRequirement(requirement)),
     customFields: source.customFields.map((field) => toInitialCustomField(field)),
+    flowType: source.flowType as TransactionCreationInitialValues["flowType"],
+    reportFields: source.reportFields.map((field) => toInitialReportField(field)),
     missingContractTemplateName:
       source.contractTemplateId && !hasContractTemplate
         ? source.contractArtifact?.sourceTemplateName ?? source.contractTemplate?.name ?? null
@@ -331,6 +342,18 @@ function toInitialCustomField(
     label: field.label,
     instructions: field.instructions ?? "",
     type: field.type,
+    selectOptions: parseTransactionCustomFieldSelectOptions(field.selectOptions),
+  }
+}
+
+function toInitialReportField(
+  field: RecreateInitialValueSource["reportFields"][number]
+): TransactionCreationInitialReportField {
+  return {
+    label: field.label,
+    instructions: field.instructions ?? "",
+    fieldType: field.fieldType as TransactionCreationInitialReportField["fieldType"],
+    reportType: field.reportType as TransactionCreationInitialReportField["reportType"],
     selectOptions: parseTransactionCustomFieldSelectOptions(field.selectOptions),
   }
 }

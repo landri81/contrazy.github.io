@@ -8,8 +8,10 @@ import {
   canRevisitClientStep,
   getClientFlowState,
   getTransactionByToken,
+  hasCheckInStep,
   hasCustomFieldStep,
   hasContractStep,
+  isCheckInOutFlow,
   type ClientFlowStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
@@ -38,12 +40,17 @@ export default async function TokenLayout({
     )
   }
 
+  const isCheckInOut = isCheckInOutFlow(transaction)
+
   const enabledSteps: ClientFlowStep[] = ["profile"]
   if (transaction.requiresKyc) enabledSteps.push("kyc")
   enabledSteps.push("documents")
   if (hasCustomFieldStep(transaction)) enabledSteps.push("details")
   if (hasContractStep(transaction)) {
     enabledSteps.push("contract", "sign")
+  }
+  if (isCheckInOut && hasCheckInStep(transaction)) {
+    enabledSteps.push("check-in")
   }
   const shouldShowPaymentStep =
     Boolean(transaction.depositAmount && transaction.depositAmount > 0) ||
@@ -58,6 +65,11 @@ export default async function TokenLayout({
   }
   enabledSteps.push("complete")
 
+  // check-out appears dynamically after vendor triggers it
+  if (isCheckInOut && transaction.checkOutRequestedAt) {
+    enabledSteps.push("check-out")
+  }
+
   const state = getClientFlowState(transaction)
   const completedSteps: ClientFlowStep[] = []
   if (state.hasProfile) completedSteps.push("profile")
@@ -66,8 +78,11 @@ export default async function TokenLayout({
   if (state.hasCustomFields && hasCustomFieldStep(transaction)) completedSteps.push("details")
   if (state.reviewedContract && hasContractStep(transaction)) completedSteps.push("contract")
   if (state.hasSignature && hasContractStep(transaction)) completedSteps.push("sign")
+  if (isCheckInOut && state.hasCheckIn && hasCheckInStep(transaction)) completedSteps.push("check-in")
   if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")
   if (transaction.status === "COMPLETED" || state.financeComplete) completedSteps.push("complete")
+  if (isCheckInOut && state.hasCheckOut) completedSteps.push("check-out")
+
   const revisitableSteps = completedSteps.filter((step) => canRevisitClientStep(transaction, step))
 
   return (

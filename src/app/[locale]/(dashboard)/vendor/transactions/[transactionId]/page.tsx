@@ -23,6 +23,7 @@ import { DepositControlCard } from "@/features/dashboard/components/deposit-cont
 import { KycReviewCard } from "@/features/dashboard/components/kyc-review-card"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { RecreateTransactionAction } from "@/features/dashboard/components/recreate-transaction-action"
+import { RequestCheckoutCard } from "@/features/dashboard/components/request-checkout-card"
 import { ServicePaymentRequestCard } from "@/features/dashboard/components/service-payment-request-card"
 import { StatusBadge } from "@/features/dashboard/components/dashboard-ui"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
@@ -94,6 +95,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     COMPLETED: t("eventTitles.COMPLETED"),
     EMAIL_SENT: t("eventTitles.EMAIL_SENT"),
     WEBHOOK_PROCESSED: t("eventTitles.WEBHOOK_PROCESSED"),
+    CHECK_IN_SUBMITTED: t("eventTitles.CHECK_IN_SUBMITTED"),
+    CHECK_OUT_REQUESTED: t("eventTitles.CHECK_OUT_REQUESTED"),
+    CHECK_OUT_SUBMITTED: t("eventTitles.CHECK_OUT_SUBMITTED"),
   }
 
   const staticDetailMap: Record<string, string> = {
@@ -179,6 +183,12 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
       },
       customFields: {
         orderBy: { sortOrder: "asc" },
+      },
+      reportFields: {
+        orderBy: { sortOrder: "asc" },
+      },
+      reports: {
+        include: { assets: { orderBy: { sortOrder: "asc" } }, responses: true },
       },
       documents: {
         orderBy: { uploadedAt: "asc" },
@@ -363,6 +373,165 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           paymentAlreadyCollected={servicePaymentAlreadyCollected}
         />
       ) : null}
+
+      {transaction.flowType === "CHECK_IN_OUT" ? (() => {
+        const checkInReport = transaction.reports.find((r) => r.type === "CHECK_IN") ?? null
+        const checkOutReport = transaction.reports.find((r) => r.type === "CHECK_OUT") ?? null
+        const checkInFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_IN")
+        const checkOutFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_OUT")
+        const checkInResponseMap = new Map(
+          (checkInReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
+        )
+        const checkOutResponseMap = new Map(
+          (checkOutReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
+        )
+        const hasCheckInData = Boolean(checkInReport?.submittedAt)
+        const hasCheckOutData = Boolean(checkOutReport?.submittedAt)
+
+        function toThumb(url: string) {
+          if (!url.includes("/upload/")) return url
+          return url.replace("/upload/", "/upload/w_600,h_450,c_fill,q_auto,f_auto/")
+        }
+
+        function ReportPanel({
+          label,
+          accent,
+          submittedAt,
+          fields,
+          responseMap,
+          assets,
+        }: {
+          label: string
+          accent: "amber" | "rose"
+          submittedAt: Date | null
+          fields: typeof checkInFields
+          responseMap: Map<string, string>
+          assets: Array<{ assetUrl: string; fileName: string; publicId: string }>
+        }) {
+          const borderCls = accent === "amber" ? "border-amber-200" : "border-rose-200"
+          const badgeCls = accent === "amber"
+            ? "border-amber-300 bg-amber-50 text-amber-800"
+            : "border-rose-300 bg-rose-50 text-rose-800"
+          const headingCls = accent === "amber" ? "text-amber-700" : "text-rose-700"
+          const ringCls = accent === "amber" ? "ring-amber-100" : "ring-rose-100"
+
+          return (
+            <div className={`flex flex-col gap-4 rounded-xl border ${borderCls} bg-white p-5 shadow-sm`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${badgeCls}`}>
+                  {label}
+                </span>
+                {submittedAt ? (
+                  <span className="text-xs text-muted-foreground">
+                    {submittedAt.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Pending</span>
+                )}
+              </div>
+
+              {fields.length > 0 && submittedAt ? (
+                <div className="overflow-hidden rounded-lg border">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground w-1/2">Field</th>
+                        <th className={`px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] ${headingCls} w-1/2`}>Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fields.map((field, i) => (
+                        <tr key={field.id} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
+                          <td className="px-3 py-2.5 text-sm font-medium text-foreground">{field.label}</td>
+                          <td className="px-3 py-2.5 text-sm text-foreground">{responseMap.get(field.id) ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : fields.length === 0 ? null : (
+                <p className="text-sm text-muted-foreground italic">Not yet submitted.</p>
+              )}
+
+              <div>
+                <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
+                  Photos {assets?.length ? `(${assets.length})` : ""}
+                </p>
+                {assets?.length ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {assets.map((asset, i) => (
+                      <a
+                        key={i}
+                        href={asset.assetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={asset.fileName}
+                        className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={toThumb(asset.assetUrl)}
+                          alt={asset.fileName}
+                          className="aspect-square w-full object-cover"
+                          loading="lazy"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                ) : submittedAt ? (
+                  <p className="text-sm text-muted-foreground">No photos uploaded.</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Pending submission.</p>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <>
+            <RequestCheckoutCard
+              transactionId={transaction.id}
+              checkInSubmittedAt={checkInReport?.submittedAt?.toISOString() ?? null}
+              checkOutRequestedAt={transaction.checkOutRequestedAt?.toISOString() ?? null}
+              checkOutSubmittedAt={checkOutReport?.submittedAt?.toISOString() ?? null}
+            />
+
+            {hasCheckInData || hasCheckOutData ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Condition Reports</CardTitle>
+                  <CardDescription>
+                    Customer-submitted readings and photos for each phase of this service.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className={`grid gap-4 ${hasCheckOutData ? "md:grid-cols-2" : ""}`}>
+                    <ReportPanel
+                      label="Check-In"
+                      accent="amber"
+                      submittedAt={checkInReport?.submittedAt ?? null}
+                      fields={checkInFields}
+                      responseMap={checkInResponseMap}
+                      assets={checkInReport?.assets ?? []}
+                    />
+                    {hasCheckOutData ? (
+                      <ReportPanel
+                        label="Check-Out"
+                        accent="rose"
+                        submittedAt={checkOutReport?.submittedAt ?? null}
+                        fields={checkOutFields}
+                        responseMap={checkOutResponseMap}
+                        assets={checkOutReport?.assets ?? []}
+                      />
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        )
+      })() : null}
 
       {transaction.link ? (
         <Card>

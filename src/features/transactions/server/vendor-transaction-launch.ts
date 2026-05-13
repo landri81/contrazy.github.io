@@ -6,6 +6,7 @@ import {
   Prisma,
   LocaleCode,
   StripeConnectionStatus,
+  TransactionFlowType,
   TransactionLinkStatus,
   TransactionStatus,
   type ChecklistItem,
@@ -60,6 +61,15 @@ type CustomFieldDefinition = {
   sortOrder: number
 }
 
+type ReportFieldDefinition = {
+  label: string
+  instructions: string | null
+  fieldType: VendorTransactionCreateInput["reportFields"][number]["fieldType"]
+  reportType: VendorTransactionCreateInput["reportFields"][number]["reportType"]
+  selectOptions: string[]
+  sortOrder: number
+}
+
 export type PreparedVendorTransactionLaunch = {
   title: string
   notes: string | null
@@ -73,6 +83,8 @@ export type PreparedVendorTransactionLaunch = {
   checklistTemplate: ChecklistWithItems | null
   requirementDefinitions: RequirementDefinition[]
   customFieldDefinitions: CustomFieldDefinition[]
+  reportFieldDefinitions: ReportFieldDefinition[]
+  flowType: TransactionFlowType
   kind: "PAYMENT" | "DEPOSIT" | "HYBRID"
   locale: LocaleCode
   baseUrl: string
@@ -177,6 +189,8 @@ export async function prepareVendorTransactionLaunch({
     requireClientCompany,
     requirements,
     customFields,
+    flowType,
+    reportFields,
   } = data
 
   if (recreateFromTransactionId && !allowRecreate) {
@@ -383,6 +397,20 @@ export async function prepareVendorTransactionLaunch({
     sortOrder: index,
   }))
 
+  const reportFieldDefinitions = reportFields.map((item, index) => ({
+    label: item.label,
+    instructions: item.instructions,
+    fieldType: item.fieldType,
+    reportType: item.reportType,
+    selectOptions: item.fieldType === "SELECT" ? item.selectOptions : [],
+    sortOrder: index,
+  }))
+
+  const effectiveFlowType =
+    reportFieldDefinitions.length > 0
+      ? TransactionFlowType.CHECK_IN_OUT
+      : (flowType ?? TransactionFlowType.STANDARD)
+
   if (!normalizedAmount && !normalizedDepositAmount) {
     return {
       ok: false,
@@ -413,6 +441,8 @@ export async function prepareVendorTransactionLaunch({
       checklistTemplate,
       requirementDefinitions,
       customFieldDefinitions,
+      reportFieldDefinitions,
+      flowType: effectiveFlowType,
       kind,
       locale: resolveRequestLocale(request, vendorProfile.preferredLocale),
       baseUrl: getAppBaseUrl(),
@@ -469,6 +499,7 @@ export async function createPreparedVendorTransaction(
       title: prepared.title,
       notes: prepared.notes,
       kind: prepared.kind,
+      flowType: prepared.flowType,
       amount: prepared.amount,
       depositAmount: prepared.depositAmount,
       requiresKyc: prepared.requiresKyc,
@@ -514,6 +545,26 @@ export async function createPreparedVendorTransaction(
             instructions: item.instructions,
             type: item.type,
             ...(item.type === "SELECT"
+              ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
+              : {}),
+            sortOrder: item.sortOrder,
+          },
+        })
+      )
+    )
+  }
+
+  if (prepared.reportFieldDefinitions.length > 0) {
+    await Promise.all(
+      prepared.reportFieldDefinitions.map((item) =>
+        tx.transactionReportField.create({
+          data: {
+            transactionId: newTransaction.id,
+            label: item.label,
+            instructions: item.instructions,
+            fieldType: item.fieldType,
+            reportType: item.reportType,
+            ...(item.fieldType === "SELECT"
               ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
               : {}),
             sortOrder: item.sortOrder,

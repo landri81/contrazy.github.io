@@ -455,6 +455,38 @@ export async function sendContactReply(
   })
 }
 
+export async function sendCheckOutRequestEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionReference: string,
+  checkOutUrl: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  return deliverEmail({
+    to,
+    subject: isFr ? `Check-out demandé — ${vendorName}` : `Check-out requested — ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>${vendorName} vous invite à effectuer le check-out pour la transaction <strong>${transactionReference}</strong>.</p>
+        <p>Ouvrez le lien sécurisé ci-dessous pour compléter le rapport de fin de service.</p>
+        <p><a href="${checkOutUrl}" target="_blank" rel="noreferrer">Accéder au check-out sécurisé</a></p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>${vendorName} has requested the service check-out for transaction <strong>${transactionReference}</strong>.</p>
+        <p>Open the secure link below to complete your end-of-service report.</p>
+        <p><a href="${checkOutUrl}" target="_blank" rel="noreferrer">Open the secure check-out link</a></p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
+  })
+}
+
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,

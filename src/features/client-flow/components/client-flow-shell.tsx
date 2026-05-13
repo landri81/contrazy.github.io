@@ -7,6 +7,8 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ClipboardCheck,
+  ClipboardList,
   CreditCard,
   FileText,
   ListChecks,
@@ -32,6 +34,8 @@ type StepKey =
   | "sign"
   | "payment"
   | "complete"
+  | "check-in"
+  | "check-out"
 
 const stepOrder: StepKey[] = [
   "profile",
@@ -40,8 +44,10 @@ const stepOrder: StepKey[] = [
   "details",
   "contract",
   "sign",
+  "check-in",
   "payment",
   "complete",
+  "check-out",
 ]
 
 const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = {
@@ -53,6 +59,8 @@ const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = 
   sign: PenLine,
   payment: CreditCard,
   complete: CheckCircle2,
+  "check-in": ClipboardList,
+  "check-out": ClipboardCheck,
 }
 
 type ClientFlowShellProps = {
@@ -92,6 +100,8 @@ export function ClientFlowShell({
     sign: tSteps("sign"),
     payment: tSteps("payment"),
     complete: tSteps("complete"),
+    "check-in": tSteps("checkIn"),
+    "check-out": tSteps("checkOut"),
   }
 
   const visibleSteps = stepOrder.filter((step) => enabledSteps.includes(step))

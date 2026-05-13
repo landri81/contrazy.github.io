@@ -3,6 +3,9 @@ import {
   RequirementCategory,
   RequirementType,
   TransactionCustomFieldType,
+  TransactionFlowType,
+  TransactionReportFieldType,
+  TransactionReportType,
 } from "@prisma/client"
 import { z } from "zod"
 
@@ -106,6 +109,49 @@ const transactionCustomFieldItemSchema = z
         : [],
   }))
 
+const transactionReportFieldItemSchema = z
+  .object({
+    label: requiredText("Report field label", INPUT_LIMITS.checklistItemLabel, {
+      requiredMessage: "Report field label is required",
+    }),
+    instructions: optionalNullableText(
+      "Report field instructions",
+      INPUT_LIMITS.checklistItemInstructions
+    ).optional(),
+    fieldType: z.nativeEnum(TransactionReportFieldType),
+    reportType: z.nativeEnum(TransactionReportType),
+    selectOptions: z
+      .array(
+        requiredText("Select option", INPUT_LIMITS.checklistItemLabel, {
+          requiredMessage: "Select option is required",
+        })
+      )
+      .optional(),
+  })
+  .superRefine((item, ctx) => {
+    const optionCount = Array.isArray(item.selectOptions) ? item.selectOptions.length : 0
+    if (item.fieldType === TransactionReportFieldType.SELECT && optionCount < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selectOptions"],
+        message: "Select fields require at least two options.",
+      })
+    }
+  })
+  .transform((item) => ({
+    ...item,
+    instructions:
+      typeof item.instructions === "string" && item.instructions.length > 0
+        ? item.instructions
+        : null,
+    selectOptions:
+      item.fieldType === TransactionReportFieldType.SELECT
+        ? Array.isArray(item.selectOptions)
+          ? item.selectOptions
+          : []
+        : [],
+  }))
+
 const vendorTransactionCreateBaseSchema = z.object({
   title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
     requiredMessage: "Title is required",
@@ -122,6 +168,8 @@ const vendorTransactionCreateBaseSchema = z.object({
   requireClientCompany: z.boolean().optional(),
   requirements: z.array(requirementItemSchema).optional(),
   customFields: z.array(transactionCustomFieldItemSchema).optional(),
+  flowType: z.nativeEnum(TransactionFlowType).optional(),
+  reportFields: z.array(transactionReportFieldItemSchema).optional(),
 })
 
 function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransactionCreateBaseSchema>) {
@@ -140,6 +188,8 @@ function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransac
     requireClientCompany: Boolean(data.requireClientCompany),
     requirements: Array.isArray(data.requirements) ? data.requirements : [],
     customFields: Array.isArray(data.customFields) ? data.customFields : [],
+    flowType: data.flowType ?? TransactionFlowType.STANDARD,
+    reportFields: Array.isArray(data.reportFields) ? data.reportFields : [],
   }
 }
 

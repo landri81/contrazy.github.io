@@ -11,6 +11,7 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  ClipboardList,
   Copy,
   CreditCard,
   Download,
@@ -62,8 +63,10 @@ import {
 } from "@/features/dashboard/lib/vendor-requirement-example-images"
 import type {
   TransactionCreationInitialCustomField,
+  TransactionCreationInitialReportField,
   TransactionCreationInitialRequirement,
   TransactionCreationInitialValues,
+  TransactionFlowTypeValue,
 } from "@/features/dashboard/transaction-creation"
 import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
@@ -115,6 +118,15 @@ type DraftCustomField = {
   label: string
   instructions: string
   type: TransactionCustomFieldTypeValue
+  selectOptions: string[]
+}
+
+type DraftReportField = {
+  id: string
+  label: string
+  instructions: string
+  fieldType: TransactionCustomFieldTypeValue
+  reportType: "CHECK_IN" | "CHECK_OUT"
   selectOptions: string[]
 }
 
@@ -196,6 +208,34 @@ function createCustomFieldId() {
   }
 
   return `custom-field-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function createReportFieldId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID()
+  }
+
+  return `report-field-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function createDraftReportField(
+  reportType: "CHECK_IN" | "CHECK_OUT",
+  item?: Partial<DraftReportField>
+): DraftReportField {
+  const fieldType = item?.fieldType ?? "TEXT"
+  return {
+    id: createReportFieldId(),
+    label: item?.label ?? "",
+    instructions: item?.instructions ?? "",
+    fieldType,
+    reportType,
+    selectOptions:
+      fieldType === "SELECT" && Array.isArray(item?.selectOptions) && item!.selectOptions.length > 0
+        ? item!.selectOptions
+        : fieldType === "SELECT"
+          ? ["", ""]
+          : [],
+  }
 }
 
 function parseBulkCsvPreview(fileName: string, text: string): BulkCsvPreview {
@@ -358,11 +398,13 @@ type TransactionCreationFormState = {
   requireClientCompany: boolean
   requirements: DraftRequirement[]
   customFields: DraftCustomField[]
+  flowType: TransactionFlowTypeValue
+  reportFields: DraftReportField[]
 }
 
 type TransactionCreationFormSnapshot = Omit<
   TransactionCreationFormState,
-  "requirements" | "customFields"
+  "requirements" | "customFields" | "reportFields"
 > & {
   requirements: Array<{
     label: string
@@ -386,6 +428,24 @@ type TransactionCreationFormSnapshot = Omit<
     type: TransactionCustomFieldTypeValue
     selectOptions: string[]
   }>
+  reportFields: Array<{
+    label: string
+    instructions: string
+    fieldType: TransactionCustomFieldTypeValue
+    reportType: "CHECK_IN" | "CHECK_OUT"
+    selectOptions: string[]
+  }>
+}
+
+function createDraftReportFieldFromInitialValue(
+  item: TransactionCreationInitialReportField
+): DraftReportField {
+  return createDraftReportField(item.reportType as "CHECK_IN" | "CHECK_OUT", {
+    label: item.label,
+    instructions: item.instructions,
+    fieldType: item.fieldType,
+    selectOptions: item.selectOptions,
+  })
 }
 
 function createInitialFormState(
@@ -408,6 +468,10 @@ function createInitialFormState(
     customFields: (initialValues?.customFields ?? []).map((item) =>
       createDraftCustomFieldFromInitialValue(item)
     ),
+    flowType: initialValues?.flowType ?? "STANDARD",
+    reportFields: (initialValues?.reportFields ?? []).map((item) =>
+      createDraftReportFieldFromInitialValue(item)
+    ),
   }
 }
 
@@ -423,6 +487,7 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
     generateQr: state.generateQr,
     paymentCollectionTiming: state.paymentCollectionTiming,
     requireClientCompany: state.requireClientCompany,
+    flowType: state.flowType,
     requirements: state.requirements.map((item) => ({
       label: item.label,
       description: item.description,
@@ -444,6 +509,13 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
       instructions: item.instructions,
       type: item.type,
       selectOptions: item.type === "SELECT" ? item.selectOptions : [],
+    })),
+    reportFields: state.reportFields.map((item) => ({
+      label: item.label,
+      instructions: item.instructions,
+      fieldType: item.fieldType,
+      reportType: item.reportType,
+      selectOptions: item.fieldType === "SELECT" ? item.selectOptions : [],
     })),
   }
 }
@@ -785,6 +857,12 @@ export function TransactionCreationForm({
   const [customFields, setCustomFields] = useState<DraftCustomField[]>(
     initialFormState.customFields
   )
+  const [enableCheckInOut, setEnableCheckInOut] = useState(
+    initialFormState.flowType === "CHECK_IN_OUT"
+  )
+  const [reportFields, setReportFields] = useState<DraftReportField[]>(
+    initialFormState.reportFields
+  )
 
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -852,6 +930,8 @@ export function TransactionCreationForm({
           : t("clientStepServicePaymentOnly"),
     },
     { key: "complete", label: t("clientStepComplete") },
+    enableCheckInOut && { key: "check-in", label: t("clientStepCheckIn") },
+    enableCheckInOut && { key: "check-out", label: t("clientStepCheckOut") },
   ].filter(Boolean) as { key: string; label: string }[]
 
   const currentSnapshot = useMemo(
@@ -871,6 +951,8 @@ export function TransactionCreationForm({
             requireClientCompany,
             requirements,
             customFields,
+            flowType: enableCheckInOut ? "CHECK_IN_OUT" : "STANDARD",
+            reportFields: enableCheckInOut ? reportFields : [],
           }),
           bulk: isBulkMode
             ? {
@@ -886,6 +968,7 @@ export function TransactionCreationForm({
       checklistId,
       contractId,
       depositAmount,
+      enableCheckInOut,
       generateQr,
       isBulkMode,
       notes,
@@ -893,6 +976,7 @@ export function TransactionCreationForm({
       requireClientCompany,
       requirements,
       customFields,
+      reportFields,
       requiresKyc,
       title,
     ]
@@ -1137,6 +1221,69 @@ export function TransactionCreationForm({
     setCustomFields((current) => current.filter((item) => item.id !== customFieldId))
   }
 
+  function addReportField(reportType: "CHECK_IN" | "CHECK_OUT") {
+    setReportFields((current) => [...current, createDraftReportField(reportType)])
+  }
+
+  function updateReportField(reportFieldId: string, patch: Partial<DraftReportField>) {
+    setReportFields((current) =>
+      current.map((item) => {
+        if (item.id !== reportFieldId) return item
+        const nextFieldType = patch.fieldType ?? item.fieldType
+        return {
+          ...item,
+          ...patch,
+          selectOptions:
+            nextFieldType === "SELECT"
+              ? (patch.selectOptions ?? (item.selectOptions.length > 0 ? item.selectOptions : ["", ""]))
+              : [],
+        }
+      })
+    )
+  }
+
+  function updateReportFieldSelectOption(reportFieldId: string, optionIndex: number, nextValue: string) {
+    setReportFields((current) =>
+      current.map((item) => {
+        if (item.id !== reportFieldId || item.fieldType !== "SELECT") return item
+        const nextOptions = [...item.selectOptions]
+        nextOptions[optionIndex] = nextValue
+        return { ...item, selectOptions: nextOptions }
+      })
+    )
+  }
+
+  function addReportFieldSelectOption(reportFieldId: string) {
+    setReportFields((current) =>
+      current.map((item) =>
+        item.id === reportFieldId && item.fieldType === "SELECT"
+          ? { ...item, selectOptions: [...item.selectOptions, ""] }
+          : item
+      )
+    )
+  }
+
+  function removeReportFieldSelectOption(reportFieldId: string, optionIndex: number) {
+    setReportFields((current) =>
+      current.map((item) => {
+        if (item.id !== reportFieldId || item.fieldType !== "SELECT") return item
+        const nextOptions = item.selectOptions.filter((_, index) => index !== optionIndex)
+        return { ...item, selectOptions: nextOptions.length > 0 ? nextOptions : ["", ""] }
+      })
+    )
+  }
+
+  function removeReportField(reportFieldId: string) {
+    setReportFields((current) => current.filter((item) => item.id !== reportFieldId))
+  }
+
+  function handleReportFieldTypeChange(reportFieldId: string, nextType: TransactionCustomFieldTypeValue) {
+    updateReportField(reportFieldId, {
+      fieldType: nextType,
+      selectOptions: nextType === "SELECT" ? ["", ""] : [],
+    })
+  }
+
   function handleRequirementTypeChange(requirementId: string, nextType: RequirementTypeValue) {
     const currentExampleImage = requirements.find((item) => item.id === requirementId)?.exampleImage
 
@@ -1322,6 +1469,19 @@ export function TransactionCreationForm({
         setStepError(t("errorCustomFields"))
         return false
       }
+
+      if (enableCheckInOut) {
+        const invalidReportField = reportFields.find((item) => {
+          if (!item.label.trim()) return true
+          if (item.fieldType !== "SELECT") return false
+          return item.selectOptions.filter((opt) => opt.trim().length > 0).length < 2
+        })
+
+        if (invalidReportField) {
+          setStepError(t("errorReportFields"))
+          return false
+        }
+      }
     }
 
     return true
@@ -1401,6 +1561,19 @@ export function TransactionCreationForm({
               ? item.selectOptions.map((option) => option.trim()).filter(Boolean)
               : [],
         })),
+        flowType: enableCheckInOut ? "CHECK_IN_OUT" : "STANDARD",
+        reportFields: enableCheckInOut
+          ? reportFields.map((item) => ({
+              label: item.label,
+              instructions: item.instructions || null,
+              fieldType: item.fieldType,
+              reportType: item.reportType,
+              selectOptions:
+                item.fieldType === "SELECT"
+                  ? item.selectOptions.map((opt) => opt.trim()).filter(Boolean)
+                  : [],
+            }))
+          : [],
         ...(isBulkMode
           ? {
               recipientEmails: bulkCsvPreview?.validEmails ?? [],
@@ -1484,6 +1657,8 @@ export function TransactionCreationForm({
     setRequireClientCompany(nextInitialState.requireClientCompany)
     setRequirements(nextInitialState.requirements)
     setCustomFields(nextInitialState.customFields)
+    setEnableCheckInOut(nextInitialState.flowType === "CHECK_IN_OUT")
+    setReportFields(nextInitialState.reportFields)
     setStepError(null)
     setError(null)
     setStep(1)
@@ -2698,6 +2873,187 @@ export function TransactionCreationForm({
 
                 <Section>
                   <SwitchRow
+                    id="check-in-out"
+                    icon={ClipboardList}
+                    title={t("checkInOutTitle")}
+                    description={t("checkInOutDesc")}
+                    checked={enableCheckInOut}
+                    onCheckedChange={(checked) => {
+                      setEnableCheckInOut(Boolean(checked))
+                      if (!checked) setReportFields([])
+                    }}
+                    disabled={isBulkMode}
+                  >
+                    {isBulkMode ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{t("checkInOutBulkDisabled")}</p>
+                    ) : null}
+                  </SwitchRow>
+
+                  {enableCheckInOut ? (
+                    <div className="mt-4 space-y-4">
+                      {(["CHECK_IN", "CHECK_OUT"] as const).map((phase) => {
+                        const phaseFields = reportFields.filter((f) => f.reportType === phase)
+                        const phaseLabel = phase === "CHECK_IN" ? t("checkInPhaseLabel") : t("checkOutPhaseLabel")
+
+                        return (
+                          <div key={phase} className="rounded-sm border border-border">
+                            <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-3 py-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {phaseLabel}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={cn(buttonSecondaryClass, "h-7 cursor-pointer")}
+                                onClick={() => addReportField(phase)}
+                              >
+                                <Plus className="mr-1.5 size-3" />
+                                {t("addReportField")}
+                              </Button>
+                            </div>
+
+                            {phaseFields.length === 0 ? (
+                              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                                {t("noReportFields")}
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-border">
+                                {phaseFields.map((item, index) => {
+                                  const rowId = item.id
+                                  const selectOptions =
+                                    item.fieldType === "SELECT"
+                                      ? item.selectOptions.length > 0
+                                        ? item.selectOptions
+                                        : ["", ""]
+                                      : []
+
+                                  return (
+                                    <div key={item.id} className="grid gap-3 px-3 py-3 md:grid-cols-[minmax(0,1.45fr)_minmax(200px,0.75fr)]">
+                                      <div className="space-y-2">
+                                        <Label htmlFor={`${rowId}-rf-label`} className={fieldLabelClass}>
+                                          {t("reportFieldLabel")}
+                                        </Label>
+                                        <Input
+                                          id={`${rowId}-rf-label`}
+                                          value={item.label}
+                                          onChange={(event) => updateReportField(item.id, { label: event.target.value })}
+                                          placeholder={t("reportFieldLabelPlaceholder")}
+                                          maxLength={INPUT_LIMITS.checklistItemLabel}
+                                          className={controlClass}
+                                        />
+
+                                        <Label htmlFor={`${rowId}-rf-instructions`} className={fieldLabelClass}>
+                                          {t("reportFieldInstructions")}
+                                        </Label>
+                                        <Textarea
+                                          id={`${rowId}-rf-instructions`}
+                                          value={item.instructions}
+                                          onChange={(event) => updateReportField(item.id, { instructions: event.target.value })}
+                                          placeholder={t("reportFieldInstructionsPlaceholder")}
+                                          maxLength={INPUT_LIMITS.checklistItemInstructions}
+                                          className="min-h-[54px] resize-none rounded-sm border-border shadow-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0"
+                                        />
+                                        <CharacterCount
+                                          current={item.instructions.length}
+                                          limit={INPUT_LIMITS.checklistItemInstructions}
+                                          className="text-right"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label htmlFor={`${rowId}-rf-type`} className={fieldLabelClass}>
+                                          {t("reportFieldType")}
+                                        </Label>
+                                        <Select
+                                          value={item.fieldType}
+                                          onValueChange={(value) =>
+                                            handleReportFieldTypeChange(item.id, value as TransactionCustomFieldTypeValue)
+                                          }
+                                        >
+                                          <SelectTrigger id={`${rowId}-rf-type`} className={cn(controlClass, "cursor-pointer")}>
+                                            <span className="truncate text-sm">
+                                              {customFieldTypeLabels[item.fieldType] ?? t("customFieldTypeText")}
+                                            </span>
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {transactionCustomFieldTypeOptions.map((option) => (
+                                              <SelectItem key={option.value} value={option.value} className="cursor-pointer">
+                                                {customFieldTypeLabels[option.value] ?? option.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-full cursor-pointer rounded-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                          onClick={() => removeReportField(item.id)}
+                                          aria-label={`Remove report field ${index + 1}`}
+                                        >
+                                          <Trash2 className="mr-1.5 size-3.5" />
+                                          {t("removeReportField")}
+                                        </Button>
+                                      </div>
+
+                                      {item.fieldType === "SELECT" ? (
+                                        <div className="col-span-full mt-1 border-t border-border pt-3">
+                                          <div className="flex items-center justify-between gap-3">
+                                            <Label className={fieldLabelClass}>{t("customFieldOptions")}</Label>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="sm"
+                                              className={cn(buttonSecondaryClass, "h-8 cursor-pointer")}
+                                              onClick={() => addReportFieldSelectOption(item.id)}
+                                            >
+                                              <Plus className="mr-1.5 size-3.5" />
+                                              {t("addCustomFieldOption")}
+                                            </Button>
+                                          </div>
+                                          <div className="mt-2 space-y-2">
+                                            {selectOptions.map((option, optionIndex) => (
+                                              <div key={`${item.id}-opt-${optionIndex}`} className="flex items-center gap-2">
+                                                <Input
+                                                  value={option}
+                                                  onChange={(event) =>
+                                                    updateReportFieldSelectOption(item.id, optionIndex, event.target.value)
+                                                  }
+                                                  placeholder={t("customFieldOptionPlaceholder", { index: optionIndex + 1 })}
+                                                  maxLength={INPUT_LIMITS.checklistItemLabel}
+                                                  className={controlClass}
+                                                />
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-9 w-9 cursor-pointer rounded-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                  onClick={() => removeReportFieldSelectOption(item.id, optionIndex)}
+                                                  aria-label={`Remove option ${optionIndex + 1}`}
+                                                >
+                                                  <Trash2 className="size-4" />
+                                                </Button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </Section>
+
+                <Section>
+                  <SwitchRow
                     id="require-client-company"
                     icon={Building2}
                     title={t("requireCompanyTitle")}
@@ -2821,6 +3177,17 @@ export function TransactionCreationForm({
                           <dt className="text-muted-foreground">{t("summaryCompanyName")}</dt>
                           <dd className={cn("font-medium", requireClientCompany ? "text-foreground" : "text-muted-foreground")}>
                             {requireClientCompany ? t("required") : t("optional")}
+                          </dd>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
+                          <dt className="text-muted-foreground">{t("summaryFlowType")}</dt>
+                          <dd className={cn("font-medium", enableCheckInOut ? "text-foreground" : "text-muted-foreground")}>
+                            {enableCheckInOut
+                              ? t("summaryFlowTypeCheckInOut", {
+                                  count: reportFields.length,
+                                })
+                              : t("summaryFlowTypeStandard")}
                           </dd>
                         </div>
                       </dl>

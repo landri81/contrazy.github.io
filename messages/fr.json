@@ -825,7 +825,10 @@
           "TRANSACTION_CANCELLED": "Transaction annulée",
           "COMPLETED": "Transaction complétée",
           "EMAIL_SENT": "Notification envoyée",
-          "WEBHOOK_PROCESSED": "Webhook reçu"
+          "WEBHOOK_PROCESSED": "Webhook reçu",
+          "CHECK_IN_SUBMITTED": "Check-in soumis",
+          "CHECK_OUT_REQUESTED": "Check-out demandé",
+          "CHECK_OUT_SUBMITTED": "Check-out soumis"
         },
         "eventDetails": {
           "LINK_CREATED": "Le lien sécurisé est prêt à être partagé avec le client.",
@@ -1757,7 +1760,26 @@
         "reqCategoryCompanyRegistration": "Immatriculation de société",
         "reqCategoryContractAttachment": "Annexe contractuelle",
         "reqCategoryCustom": "Document personnalisé",
-        "reqCategoryOther": "Autre"
+        "reqCategoryOther": "Autre",
+        "checkInOutTitle": "Activer Check-In / Check-Out",
+        "checkInOutDesc": "Recueillez des rapports de cycle de service auprès du client après l'onboarding — un check-in au début et un check-out à la fin.",
+        "checkInOutBulkDisabled": "Le Check-In / Check-Out n'est pas disponible pour les envois CSV groupés.",
+        "checkInPhaseLabel": "Champs check-in",
+        "checkOutPhaseLabel": "Champs check-out",
+        "addReportField": "Ajouter un champ",
+        "noReportFields": "Aucun champ ajouté pour l'instant.",
+        "reportFieldLabel": "Libellé du champ",
+        "reportFieldLabelPlaceholder": "ex. Kilométrage actuel",
+        "reportFieldInstructions": "Instructions (facultatif)",
+        "reportFieldInstructionsPlaceholder": "Que doit saisir ou photographier le client ?",
+        "reportFieldType": "Type de champ",
+        "removeReportField": "Supprimer le champ",
+        "summaryFlowType": "Type de flux",
+        "summaryFlowTypeStandard": "Standard",
+        "summaryFlowTypeCheckInOut": "Check-In / Check-Out ({count} champs)",
+        "clientStepCheckIn": "Check-In",
+        "clientStepCheckOut": "Check-Out",
+        "errorReportFields": "Complétez chaque libellé de champ de rapport et ajoutez au moins deux options pour chaque champ de sélection."
       },
       "servicePaymentRequest": {
         "title": "Paiement de service différé",
@@ -2380,7 +2402,9 @@
       "contract": "Contrat",
       "sign": "Signature",
       "payment": "Paiement",
-      "complete": "Terminé"
+      "complete": "Terminé",
+      "checkIn": "Check-In",
+      "checkOut": "Check-Out"
     },
     "cancel": "Annuler",
     "cancelled": {

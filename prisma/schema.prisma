@@ -192,6 +192,28 @@ enum ContactMessageStatus {
   ARCHIVED
 }
 
+enum TransactionFlowType {
+  STANDARD
+  CHECK_IN_OUT
+}
+
+enum TransactionReportType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum TransactionReportStatus {
+  PENDING
+  SUBMITTED
+  SIGNED
+}
+
+enum TransactionReportFieldType {
+  TEXT
+  NUMBER
+  SELECT
+}
+
 enum TransactionEventType {
   LINK_CREATED
   TRANSACTION_RECREATED
@@ -219,6 +241,9 @@ enum TransactionEventType {
   COMPLETED
   EMAIL_SENT
   WEBHOOK_PROCESSED
+  CHECK_IN_SUBMITTED
+  CHECK_OUT_REQUESTED
+  CHECK_OUT_SUBMITTED
 }
 
 model User {
@@ -375,6 +400,7 @@ model Transaction {
   title              String
   kind               TransactionKind    @default(HYBRID)
   status             TransactionStatus  @default(DRAFT)
+  flowType           TransactionFlowType @default(STANDARD)
   paymentCollectionTiming PaymentCollectionTiming @default(AFTER_SIGNING)
   currency           String             @default("EUR")
   amount             Int?
@@ -383,6 +409,7 @@ model Transaction {
   requireClientCompany Boolean          @default(false)
   stripePaymentIntentId String?
   servicePaymentRequestedAt DateTime?
+  checkOutRequestedAt DateTime?
   customerCompletedAt DateTime?
   notes              String?            @db.Text
   locale             LocaleCode         @default(en)
@@ -407,10 +434,68 @@ model Transaction {
   dispute            Dispute?
   events             TransactionEvent[]
   webhookEvents      WebhookEvent[]
+  reportFields       TransactionReportField[]
+  reports            TransactionReport[]
 
   @@index([vendorId, createdAt])
   @@index([bulkBatchId])
   @@index([status])
+}
+
+model TransactionReportField {
+  id            String                    @id @default(cuid())
+  transactionId String
+  reportType    TransactionReportType
+  label         String
+  instructions  String?
+  fieldType     TransactionReportFieldType @default(TEXT)
+  selectOptions Json?
+  sortOrder     Int                        @default(0)
+  transaction   Transaction               @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  responses     TransactionReportResponse[]
+
+  @@index([transactionId, reportType])
+}
+
+model TransactionReport {
+  id            String                  @id @default(cuid())
+  transactionId String
+  type          TransactionReportType
+  status        TransactionReportStatus @default(PENDING)
+  submittedAt   DateTime?
+  artifactHtml  String?                 @db.Text
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  transaction   Transaction             @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  responses     TransactionReportResponse[]
+  assets        TransactionReportAsset[]
+
+  @@unique([transactionId, type])
+  @@index([transactionId])
+}
+
+model TransactionReportResponse {
+  id        String                 @id @default(cuid())
+  reportId  String
+  fieldId   String
+  value     String                 @db.Text
+  report    TransactionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  field     TransactionReportField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, fieldId])
+}
+
+model TransactionReportAsset {
+  id        String            @id @default(cuid())
+  reportId  String
+  assetUrl  String
+  publicId  String
+  fileName  String
+  mimeType  String?
+  sortOrder Int               @default(0)
+  report    TransactionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
 }
 
 model BulkShareBatch {

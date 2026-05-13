@@ -1,4 +1,4 @@
-import { Prisma, SignatureStatus, TransactionLinkActor, TransactionLinkStatus, TransactionStatus } from "@prisma/client"
+import { Prisma, SignatureStatus, TransactionFlowType, TransactionLinkActor, TransactionLinkStatus, TransactionReportType, TransactionStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 
 import {
@@ -32,8 +32,10 @@ export const clientFlowSteps = [
   { key: "details", label: "Details" },
   { key: "contract", label: "Agreement" },
   { key: "sign", label: "Signature" },
+  { key: "check-in", label: "Check-In" },
   { key: "payment", label: "Payment" },
   { key: "complete", label: "Complete" },
+  { key: "check-out", label: "Check-Out" },
 ] as const
 
 export type ClientFlowStep = (typeof clientFlowSteps)[number]["key"]
@@ -82,6 +84,17 @@ export const clientFlowTransactionInclude = {
   events: {
     orderBy: { occurredAt: "asc" },
   },
+  reportFields: {
+    orderBy: { sortOrder: "asc" },
+  },
+  reports: {
+    include: {
+      responses: true,
+      assets: {
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  },
 } satisfies Prisma.TransactionInclude
 
 export type ClientFlowTransaction = Prisma.TransactionGetPayload<{
@@ -94,6 +107,10 @@ export function hasContractStep(transaction: Pick<ClientFlowTransaction, "contra
       transaction.contractTemplateId ||
       transaction.contractTemplate
   )
+}
+
+export function isCheckInOutFlow(transaction: Pick<ClientFlowTransaction, "flowType">) {
+  return transaction.flowType === TransactionFlowType.CHECK_IN_OUT
 }
 
 function getClientRoute(transaction: ClientFlowTransaction, step: ClientFlowStep) {
@@ -215,6 +232,25 @@ export function hasCompletedSignature(transaction: ClientFlowTransaction) {
   )
 }
 
+export function hasCheckInStep(transaction: Pick<ClientFlowTransaction, "flowType" | "reportFields">) {
+  return (
+    isCheckInOutFlow(transaction) &&
+    transaction.reportFields.some((f) => f.reportType === TransactionReportType.CHECK_IN)
+  )
+}
+
+export function hasSubmittedCheckIn(transaction: Pick<ClientFlowTransaction, "reports">) {
+  return transaction.reports.some(
+    (r) => r.type === TransactionReportType.CHECK_IN && r.status !== "PENDING"
+  )
+}
+
+export function hasSubmittedCheckOut(transaction: Pick<ClientFlowTransaction, "reports">) {
+  return transaction.reports.some(
+    (r) => r.type === TransactionReportType.CHECK_OUT && r.status !== "PENDING"
+  )
+}
+
 export function getClientFlowState(transaction: ClientFlowTransaction) {
   const hasProfile = Boolean(transaction.clientProfileId && transaction.clientProfile)
   const hasDocs = hasRequiredDocuments(transaction)
@@ -228,6 +264,8 @@ export function getClientFlowState(transaction: ClientFlowTransaction) {
   const hasSignature = hasCompletedSignature(transaction)
   const nextFinanceStage = getNextFinanceStage(transaction as FinanceTransaction)
   const financeComplete = nextFinanceStage === "complete"
+  const hasCheckIn = !hasCheckInStep(transaction) || hasSubmittedCheckIn(transaction)
+  const hasCheckOut = hasSubmittedCheckOut(transaction)
 
   return {
     hasProfile,
@@ -238,6 +276,8 @@ export function getClientFlowState(transaction: ClientFlowTransaction) {
     hasSignature,
     nextFinanceStage,
     financeComplete,
+    hasCheckIn,
+    hasCheckOut,
   }
 }
 
@@ -272,6 +312,15 @@ function getClientEditLockRedirectStep(transaction: ClientFlowTransaction): Clie
 export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlowStep {
   const state = getClientFlowState(transaction)
 
+  // CHECK_IN_OUT: if checkout was requested and not yet submitted, route to check-out regardless of transaction status
+  if (
+    isCheckInOutFlow(transaction) &&
+    transaction.checkOutRequestedAt &&
+    !state.hasCheckOut
+  ) {
+    return "check-out"
+  }
+
   if (transaction.status === TransactionStatus.COMPLETED && state.financeComplete) {
     return "complete"
   }
@@ -298,6 +347,11 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
 
   if (hasContractStep(transaction) && !state.hasSignature) {
     return "sign"
+  }
+
+  // CHECK_IN_OUT: check-in after signing (or after details if no contract)
+  if (hasCheckInStep(transaction) && !state.hasCheckIn) {
+    return "check-in"
   }
 
   if (!state.financeComplete) {
@@ -355,8 +409,17 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
     redirect(withLocalePath(normalizeLocale(transaction.locale), `/t/${transaction.link.token}/cancelled`))
   }
 
-  if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {
-    redirect(getClientRoute(transaction, "complete"))
+  // CHECK_IN_OUT: allow check-out step even when transaction is COMPLETED
+  const isCheckOutOverride =
+    currentStep === "check-out" &&
+    isCheckInOutFlow(transaction) &&
+    Boolean(transaction.checkOutRequestedAt) &&
+    !state.hasCheckOut
+
+  if (!isCheckOutOverride) {
+    if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {
+      redirect(getClientRoute(transaction, "complete"))
+    }
   }
 
   if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction)) {
@@ -433,6 +496,26 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
         redirect(getClientRoute(transaction, "contract"))
       }
       return state
+    case "check-in":
+      if (!isCheckInOutFlow(transaction)) {
+        redirect(getClientRoute(transaction, nextStep))
+      }
+      if (!hasCheckInStep(transaction)) {
+        redirect(getClientRoute(transaction, nextStep))
+      }
+      if (!state.hasProfile) {
+        redirect(getClientRoute(transaction, "profile"))
+      }
+      if (!state.hasDocs) {
+        redirect(getClientRoute(transaction, "documents"))
+      }
+      if (hasContractStep(transaction) && !state.hasSignature) {
+        redirect(getClientRoute(transaction, "sign"))
+      }
+      if (state.hasCheckIn) {
+        redirect(getClientRoute(transaction, nextStep))
+      }
+      return state
     case "payment":
       if (!state.hasProfile) {
         redirect(getClientRoute(transaction, "profile"))
@@ -453,6 +536,17 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
         redirect(getClientRoute(transaction, "sign"))
       }
       if (state.financeComplete) {
+        redirect(getClientRoute(transaction, "complete"))
+      }
+      return state
+    case "check-out":
+      if (!isCheckInOutFlow(transaction)) {
+        redirect(getClientRoute(transaction, nextStep))
+      }
+      if (!transaction.checkOutRequestedAt) {
+        redirect(getClientRoute(transaction, "complete"))
+      }
+      if (state.hasCheckOut) {
         redirect(getClientRoute(transaction, "complete"))
       }
       return state
