@@ -60,11 +60,14 @@ export async function POST(
       )
     }
 
-    if (transaction.depositAuthorization?.status !== "AUTHORIZED") {
+    const depositStatus = transaction.depositAuthorization?.status
+    const depositIsActive = depositStatus === "AUTHORIZED" || depositStatus === "SUCCEEDED"
+
+    if (!depositIsActive) {
       return NextResponse.json(
         {
           success: false,
-          message: "A dispute can only be opened while the deposit hold is still active.",
+          message: "A dispute can only be opened while the deposit is still active.",
         },
         { status: 400 }
       )

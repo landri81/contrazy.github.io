@@ -195,7 +195,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Auto-generated contracts",
       "Unlimited QR codes",
       "Persistent client profiles",
-      "Up to 30-day card authorization",
+      "14-day deposit refund window",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -225,7 +225,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Unlimited contracts",
       "Dispute management workflow",
       "3 users",
-      "Up to 30-day card authorization",
+      "30-day deposit refund window",
     ],
     features: {
       transactionsPerPeriod: null,

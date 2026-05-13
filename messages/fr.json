@@ -985,22 +985,33 @@
         "statuses": {
           "disputeTitle": "Litige en cours",
           "disputeDesc": "Le blocage de la caution est gelé pendant l'examen du litige par la plateforme. La capture et la libération sont désactivées jusqu'à ce qu'une décision soit prise.",
+          "disputeDescChargeRefund": "Le prélèvement du dépôt est gelé pendant l'examen du litige par la plateforme. Les actions de conservation et de remboursement sont désactivées jusqu'à ce qu'une décision soit prise.",
           "releasedTitle": "Caution libérée",
           "releasedDesc": "{amount} restitué au client.",
           "capturedTitle": "Caution capturée",
           "capturedDesc": "Le blocage a été converti en débit sur la carte.",
+          "capturedDescChargeRefund": "Le prestataire a conservé le dépôt. Le remboursement automatique prévu a été annulé.",
           "cancelledTitle": "Caution annulée",
-          "cancelledDesc": "La transaction a été annulée et le blocage a été libéré."
+          "cancelledDesc": "La transaction a été annulée et le blocage a été libéré.",
+          "cancelledDescChargeRefund": "La transaction a été annulée et le prélèvement du dépôt a été remboursé."
         },
         "card": {
           "title": "Caution active",
-          "description": "Le montant est bloqué sur la carte du client. Choisissez l'action suivante pour cette transaction."
+          "description": "Le montant est bloqué sur la carte du client. Choisissez l'action suivante pour cette transaction.",
+          "descriptionChargeRefund": "Le dépôt a été prélevé sur la carte du client. Un remboursement automatique sera effectué sauf si vous le conservez."
+        },
+        "chargeRefundBanner": {
+          "autoRefundOn": "Remboursement automatique prévu le {date} sauf si vous conservez le dépôt."
         },
         "actions": {
           "capture": "Capturer la caution",
           "captureDetail": "Débiter tout ou partie du montant",
+          "captureChargeRefund": "Conserver le dépôt",
+          "captureChargeRefundDetail": "Annuler le remboursement automatique prévu",
           "release": "Libérer la caution",
           "releaseDetail": "Restituer le blocage au client",
+          "releaseChargeRefund": "Rembourser maintenant",
+          "releaseChargeRefundDetail": "Émettre un remboursement immédiat au client",
           "dispute": "Ouvrir un litige",
           "disputeDetail": "Signaler un problème sur cette transaction",
           "cancel": "Annuler la transaction",
@@ -1009,6 +1020,7 @@
         "captureModal": {
           "title": "Capturer la caution",
           "description": "Montant autorisé : {amount}. Choisissez le montant à débiter.",
+          "descriptionChargeRefund": "Conserver le dépôt ({amount}) annulera le remboursement automatique prévu. Le client ne sera pas remboursé.",
           "fullAmount": "Montant total",
           "partialAmount": "Montant partiel",
           "setAmount": "Définir le montant",
@@ -1022,6 +1034,7 @@
         "disputeModal": {
           "title": "Ouvrir un litige",
           "description": "Décrivez le motif du litige. La transaction sera marquée comme disputée et la caution restera bloquée pendant la résolution.",
+          "descriptionChargeRefund": "Décrivez le motif du litige. La transaction sera marquée comme disputée et le prélèvement du dépôt restera gelé pendant la résolution.",
           "reasonLabel": "Motif du litige",
           "placeholder": "Exemple : l'article retourné présente des dommages non signalés...",
           "minChars": "{min} caractères minimum",
@@ -1032,10 +1045,13 @@
         "toast": {
           "captured": "Caution capturée",
           "capturedDesc": "{amount} a été débité avec succès.",
+          "capturedDescChargeRefund": "Dépôt de {amount} conservé — remboursement automatique annulé.",
           "released": "Caution libérée",
           "releasedDesc": "Le blocage a été libéré sur la carte du client.",
+          "releasedDescChargeRefund": "Le prélèvement du dépôt a été remboursé au client.",
           "cancelled": "Transaction annulée",
           "cancelledDesc": "Le blocage de caution a été libéré automatiquement.",
+          "cancelledDescChargeRefund": "La transaction a été annulée et le prélèvement du dépôt a été remboursé.",
           "disputeOpened": "Litige ouvert",
           "disputeOpenedDesc": "La transaction est maintenant marquée comme disputée.",
           "failed": "Échec",
@@ -3447,7 +3463,7 @@
           "4": "Contrats générés automatiquement",
           "5": "QR codes illimités",
           "6": "Profils clients persistants",
-          "7": "Autorisation carte jusqu'à 30 jours"
+          "7": "Fenêtre de remboursement dépôt 14 jours"
         }
       },
       "business": {
@@ -3462,7 +3478,7 @@
           "2": "Contrats illimités",
           "3": "Workflow de gestion des litiges",
           "4": "3 utilisateurs",
-          "5": "Autorisation carte jusqu'à 30 jours"
+          "5": "Fenêtre de remboursement dépôt 30 jours"
         }
       },
       "enterprise": {

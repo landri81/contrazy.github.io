@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Banknote,
   CheckCircle2,
+  Clock,
   Flag,
   Loader2,
   ShieldAlert,
@@ -44,12 +45,16 @@ export function DepositControlCard({
   transactionId,
   depositStatus,
   transactionStatus,
+  depositStrategy,
+  depositAutoRefundAt,
   amount,
   currency,
 }: {
   transactionId: string
   depositStatus: string
   transactionStatus?: string
+  depositStrategy?: string | null
+  depositAutoRefundAt?: Date | string | null
   amount: number
   currency: string
 }) {
@@ -67,6 +72,11 @@ export function DepositControlCard({
   const [disputeError, setDisputeError] = useState<string | null>(null)
 
   const maxEuros = amount / 100
+  const isChargeRefund = depositStrategy === "CHARGE_REFUND"
+
+  const autoRefundDate = depositAutoRefundAt
+    ? new Date(depositAutoRefundAt).toLocaleDateString("en-US", { dateStyle: "medium" })
+    : null
 
   async function callApi(path: string, body: Record<string, unknown>) {
     const res = await fetch(`/api/vendor/transactions/${transactionId}/${path}`, {
@@ -81,7 +91,7 @@ export function DepositControlCard({
     setCaptureError(null)
     let captureAmountCents: number | undefined
 
-    if (captureMode === "partial") {
+    if (!isChargeRefund && captureMode === "partial") {
       const val = parseFloat(partialInput.replace(",", "."))
       if (isNaN(val) || val <= 0) {
         setCaptureError(t("errors.invalidAmount"))
@@ -102,12 +112,13 @@ export function DepositControlCard({
       })
       if (ok) {
         setCaptureOpen(false)
+        const displayAmount = captureAmountCents ? fmt(captureAmountCents, currency) : fmt(amount, currency)
         toast({
           variant: "success",
           title: t("toast.captured"),
-          description: t("toast.capturedDesc", {
-            amount: captureAmountCents ? fmt(captureAmountCents, currency) : fmt(amount, currency),
-          }),
+          description: isChargeRefund
+            ? t("toast.capturedDescChargeRefund", { amount: displayAmount })
+            : t("toast.capturedDesc", { amount: displayAmount }),
         })
         router.refresh()
       } else {
@@ -125,7 +136,7 @@ export function DepositControlCard({
     try {
       const { ok, data } = await callApi("deposit", { action: "release" })
       if (ok) {
-        toast({ variant: "success", title: t("toast.released"), description: t("toast.releasedDesc") })
+        toast({ variant: "success", title: t("toast.released"), description: isChargeRefund ? t("toast.releasedDescChargeRefund") : t("toast.releasedDesc") })
         router.refresh()
       } else {
         toast({ variant: "error", title: t("toast.failed"), description: data.message ?? t("toast.unexpectedError") })
@@ -165,7 +176,7 @@ export function DepositControlCard({
     try {
       const { ok, data } = await callApi("cancel", {})
       if (ok) {
-        toast({ variant: "info", title: t("toast.cancelled"), description: t("toast.cancelledDesc") })
+        toast({ variant: "info", title: t("toast.cancelled"), description: isChargeRefund ? t("toast.cancelledDescChargeRefund") : t("toast.cancelledDesc") })
         router.refresh()
       } else {
         toast({ variant: "error", title: t("toast.failed"), description: data.message ?? t("toast.unexpectedError") })
@@ -186,7 +197,7 @@ export function DepositControlCard({
           <Flag className="size-5 shrink-0 text-amber-600" />
           <div>
             <p className="font-semibold text-amber-900 dark:text-amber-300">{t("statuses.disputeTitle")}</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400">{t("statuses.disputeDesc")}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{isChargeRefund ? t("statuses.disputeDescChargeRefund") : t("statuses.disputeDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -214,7 +225,7 @@ export function DepositControlCard({
           <ShieldAlert className="size-5 shrink-0 text-amber-600" />
           <div>
             <p className="font-semibold text-amber-900 dark:text-amber-300">{t("statuses.capturedTitle")}</p>
-            <p className="text-sm text-amber-700 dark:text-amber-400">{t("statuses.capturedDesc")}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{isChargeRefund ? t("statuses.capturedDescChargeRefund") : t("statuses.capturedDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -228,31 +239,34 @@ export function DepositControlCard({
           <XCircle className="size-5 shrink-0 text-muted-foreground" />
           <div>
             <p className="font-semibold text-foreground">{t("statuses.cancelledTitle")}</p>
-            <p className="text-sm text-muted-foreground">{t("statuses.cancelledDesc")}</p>
+            <p className="text-sm text-muted-foreground">{isChargeRefund ? t("statuses.cancelledDescChargeRefund") : t("statuses.cancelledDesc")}</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  // ── Active / AUTHORIZED state ────────────────────────────────────────────────
+  // ── Active state: AUTHORIZED (auth-hold) or SUCCEEDED (charge-refund) ────────
 
-  if (depositStatus !== "AUTHORIZED") return null
+  const isActive = depositStatus === "AUTHORIZED" || depositStatus === "SUCCEEDED"
+  if (!isActive) return null
 
   const partialEuros = parseFloat(partialInput.replace(",", "."))
   const partialValid = !isNaN(partialEuros) && partialEuros > 0 && partialEuros <= maxEuros
   const partialAmountCents = partialValid ? Math.round(partialEuros * 100) : null
   const partialCaptureWarning =
-    partialAmountCents !== null && partialAmountCents < amount
+    !isChargeRefund && partialAmountCents !== null && partialAmountCents < amount
       ? {
           captureAmountCents: partialAmountCents,
           releaseAmountCents: amount - partialAmountCents,
         }
       : null
   const captureLabel =
-    captureMode === "partial" && partialAmountCents !== null
-      ? `${t("captureModal.title")} ${fmt(partialAmountCents, currency)}`
-      : `${t("captureModal.title")} ${fmt(amount, currency)}`
+    isChargeRefund
+      ? t("actions.captureChargeRefund")
+      : captureMode === "partial" && partialAmountCents !== null
+        ? `${t("captureModal.title")} ${fmt(partialAmountCents, currency)}`
+        : `${t("captureModal.title")} ${fmt(amount, currency)}`
 
   return (
     <>
@@ -262,9 +276,19 @@ export function DepositControlCard({
             <ShieldCheck className="size-5 text-(--contrazy-teal)" />
             {t("card.title")} - {fmt(amount, currency)}
           </CardTitle>
-          <CardDescription>{t("card.description")}</CardDescription>
+          <CardDescription>
+            {isChargeRefund ? t("card.descriptionChargeRefund") : t("card.description")}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* CHARGE_REFUND info banner */}
+          {isChargeRefund && autoRefundDate && (
+            <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-900/20 dark:text-blue-200">
+              <Clock className="mt-0.5 size-4 shrink-0" />
+              <span>{t("chargeRefundBanner.autoRefundOn", { date: autoRefundDate })}</span>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2">
 
             {/* Capture */}
@@ -273,8 +297,8 @@ export function DepositControlCard({
               iconBg="bg-(--contrazy-teal)/10 text-(--contrazy-teal)"
               iconHoverBg="group-hover:bg-(--contrazy-teal)/20"
               borderHover="hover:border-(--contrazy-teal)/40"
-              label={t("actions.capture")}
-              sublabel={t("actions.captureDetail")}
+              label={isChargeRefund ? t("actions.captureChargeRefund") : t("actions.capture")}
+              sublabel={isChargeRefund ? t("actions.captureChargeRefundDetail") : t("actions.captureDetail")}
               loading={pendingAction === "capture"}
               disabled={!!pendingAction}
               onClick={() => {
@@ -291,8 +315,8 @@ export function DepositControlCard({
               iconBg="bg-emerald-500/10 text-emerald-600"
               iconHoverBg="group-hover:bg-emerald-500/20"
               borderHover="hover:border-emerald-300"
-              label={t("actions.release")}
-              sublabel={t("actions.releaseDetail")}
+              label={isChargeRefund ? t("actions.releaseChargeRefund") : t("actions.release")}
+              sublabel={isChargeRefund ? t("actions.releaseChargeRefundDetail") : t("actions.releaseDetail")}
               loading={pendingAction === "release"}
               disabled={!!pendingAction}
               onClick={handleRelease}
@@ -341,85 +365,89 @@ export function DepositControlCard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Banknote className="size-5 text-(--contrazy-teal)" />
-              {t("captureModal.title")}
+              {isChargeRefund ? t("actions.captureChargeRefund") : t("captureModal.title")}
             </DialogTitle>
             <DialogDescription>
-              {t("captureModal.description", { amount: fmt(amount, currency) })}
+              {isChargeRefund
+                ? t("captureModal.descriptionChargeRefund", { amount: fmt(amount, currency) })
+                : t("captureModal.description", { amount: fmt(amount, currency) })}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              {(["full", "partial"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => { setCaptureMode(mode); setCaptureError(null) }}
-                  className={`cursor-pointer rounded-xl border p-3 text-center text-[13px] font-semibold transition-all ${
-                    captureMode === mode
-                      ? "border-(--contrazy-teal) bg-(--contrazy-teal)/10 text-(--contrazy-teal)"
-                      : "border-border text-muted-foreground hover:border-(--contrazy-teal)/40"
-                  }`}
-                >
-                  {mode === "full" ? t("captureModal.fullAmount") : t("captureModal.partialAmount")}
-                  <p className="mt-0.5 text-[12px] font-normal opacity-70">
-                    {mode === "full" ? fmt(amount, currency) : t("captureModal.setAmount")}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            <AnimatePresence initial={false}>
-              {captureMode === "partial" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="capture-amount">{t("captureModal.amountLabel", { currency })}</Label>
-                    <div className="relative">
-                      <Input
-                        id="capture-amount"
-                        type="number"
-                        min="0.01"
-                        max={maxEuros}
-                        step="0.01"
-                        placeholder={`e.g. ${(maxEuros / 2).toFixed(2)}`}
-                        value={partialInput}
-                        onChange={(e) => { setPartialInput(e.target.value); setCaptureError(null) }}
-                        className="pr-14"
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-muted-foreground">
-                        {currency}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-muted-foreground">
-                      {t("captureModal.maximum", { amount: fmt(amount, currency) })}
+          {!isChargeRefund && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                {(["full", "partial"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setCaptureMode(mode); setCaptureError(null) }}
+                    className={`cursor-pointer rounded-xl border p-3 text-center text-[13px] font-semibold transition-all ${
+                      captureMode === mode
+                        ? "border-(--contrazy-teal) bg-(--contrazy-teal)/10 text-(--contrazy-teal)"
+                        : "border-border text-muted-foreground hover:border-(--contrazy-teal)/40"
+                    }`}
+                  >
+                    {mode === "full" ? t("captureModal.fullAmount") : t("captureModal.partialAmount")}
+                    <p className="mt-0.5 text-[12px] font-normal opacity-70">
+                      {mode === "full" ? fmt(amount, currency) : t("captureModal.setAmount")}
                     </p>
-                    {partialCaptureWarning ? (
-                      <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-                        <AlertTriangle className="size-4" />
-                        <AlertTitle>{t("captureModal.warningTitle")}</AlertTitle>
-                        <AlertDescription className="text-amber-800 dark:text-amber-200">
-                          {t("captureModal.warningDesc", {
-                            captureAmount: fmt(partialCaptureWarning.captureAmountCents, currency),
-                            releaseAmount: fmt(partialCaptureWarning.releaseAmountCents, currency),
-                          })}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </button>
+                ))}
+              </div>
 
-            {captureError && (
-              <p className="text-[13px] text-destructive">{captureError}</p>
-            )}
-          </div>
+              <AnimatePresence initial={false}>
+                {captureMode === "partial" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-1.5 pt-1">
+                      <Label htmlFor="capture-amount">{t("captureModal.amountLabel", { currency })}</Label>
+                      <div className="relative">
+                        <Input
+                          id="capture-amount"
+                          type="number"
+                          min="0.01"
+                          max={maxEuros}
+                          step="0.01"
+                          placeholder={`e.g. ${(maxEuros / 2).toFixed(2)}`}
+                          value={partialInput}
+                          onChange={(e) => { setPartialInput(e.target.value); setCaptureError(null) }}
+                          className="pr-14"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-muted-foreground">
+                          {currency}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-muted-foreground">
+                        {t("captureModal.maximum", { amount: fmt(amount, currency) })}
+                      </p>
+                      {partialCaptureWarning ? (
+                        <Alert className="mt-3 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                          <AlertTriangle className="size-4" />
+                          <AlertTitle>{t("captureModal.warningTitle")}</AlertTitle>
+                          <AlertDescription className="text-amber-800 dark:text-amber-200">
+                            {t("captureModal.warningDesc", {
+                              captureAmount: fmt(partialCaptureWarning.captureAmountCents, currency),
+                              releaseAmount: fmt(partialCaptureWarning.releaseAmountCents, currency),
+                            })}
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {captureError && (
+            <p className="text-[13px] text-destructive">{captureError}</p>
+          )}
 
           <DialogFooter>
             <Button
@@ -431,7 +459,7 @@ export function DepositControlCard({
             </Button>
             <Button
               onClick={handleCapture}
-              disabled={pendingAction === "capture" || (captureMode === "partial" && !partialInput)}
+              disabled={pendingAction === "capture" || (!isChargeRefund && captureMode === "partial" && !partialInput)}
               className="bg-(--contrazy-teal) text-white hover:bg-[#0eb8a0]"
             >
               {pendingAction === "capture" ? (
@@ -453,7 +481,7 @@ export function DepositControlCard({
               <AlertTriangle className="size-5 text-amber-500" />
               {t("disputeModal.title")}
             </DialogTitle>
-            <DialogDescription>{t("disputeModal.description")}</DialogDescription>
+            <DialogDescription>{isChargeRefund ? t("disputeModal.descriptionChargeRefund") : t("disputeModal.description")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">

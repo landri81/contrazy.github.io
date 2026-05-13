@@ -16,8 +16,8 @@ system overview meeting.
 Since the initial MVP completion, the live product has also been strengthened
 with key production updates around shareable link and QR delivery, revisitable
 pre-payment onboarding steps, safer document lifecycle cleanup, vendor export
-tools, secure signature image preview, and plan-based card authorization
-windows.
+tools, secure signature image preview, plan-based deposit strategies, automatic
+deposit refund scheduling, and a fully integrated dispute resolution flow.
 
 The delivered product gives vendors one connected workflow to:
 
@@ -270,28 +270,49 @@ Vendors can complete service-side collection through the same connected journey.
 
 This part is complete.
 
-Delivered:
+Conntrazy now supports two deposit models, assigned automatically based on the
+vendor's plan. Each model has been designed to give both vendors and clients a
+clear, professional experience.
 
-- deposit authorization
-- plan-based authorization windows for card holds:
-  - Starter uses the standard 7-day authorization window
-  - Pro can request up to 30-day extended authorization where Stripe and the card network allow it
-  - Business can request up to 30-day extended authorization where Stripe and the card network allow it
-- vendor-controlled deposit decisions
-- full capture
-- partial capture with vendor-defined amount
-- release
-- captured deposit fee logic of **2% + 0.25 EUR**
-- fee split already aligned in the delivered workflow:
+**Starter — card hold model (7 days)**
+
+The customer's card is pre-authorised. No money is moved until the vendor
+decides to keep or release the deposit. The vendor has 7 days to make that
+decision. If no action is taken, the hold expires automatically on the card
+network.
+
+**Pro — charge and scheduled refund model (14 days)**
+
+The deposit is charged to the customer's card immediately when they complete
+the payment step. A full automatic refund is scheduled for day 14. The vendor
+can keep the deposit before that date, or refund it early. If the vendor takes
+no action, the platform issues the refund automatically on schedule.
+
+**Business — charge and scheduled refund model (30 days)**
+
+The same model as Pro, with a 30-day window instead of 14.
+
+Delivered across both models:
+
+- vendor-controlled deposit decisions: keep or refund
+- partial capture option for Starter plan vendors
+- automatic refund scheduling and execution for Pro and Business plans
+- dispute flow that works correctly for both deposit models
+- deposit fee logic of **2% + 0.25 EUR** on kept deposits only
+- fee split aligned in the delivered workflow:
   - **1.5% + 0.25 EUR** goes directly to Stripe
-  - **0.5%** is the Conntrazy margin on each captured deposit
+  - **0.5%** is the Conntrazy margin on each kept deposit
+- no fee applied on released or refunded deposits
 - tracking of deposit state and outcomes
-- full audit trail across deposit actions
+- full audit trail across all deposit actions
+- email notifications at every key stage for both vendor and client
 
 Business result:
 
-This is one of Conntrazy's strongest commercial features because contract,
-verification, and deposit logic now live inside one operational flow.
+This is one of Conntrazy's strongest commercial features. The platform now
+handles both the simple hold model and the more powerful charge-and-refund
+model within the same operational flow, giving vendors real commercial
+flexibility without added complexity.
 
 ## Finance decision rules
 
@@ -301,16 +322,16 @@ Delivered operational rules:
 
 - before any payment or deposit starts, earlier onboarding steps can be revisited and corrected
 - once service payment or deposit flow begins, earlier onboarding routes are locked
-- deposit decisions are manual and controlled by the vendor
+- deposit decisions are controlled by the vendor
 - the vendor can choose between:
-  - full capture
-  - partial capture
-  - release
+  - keep the deposit (full or partial for Starter; full for Pro and Business)
+  - refund the deposit early
+  - let the platform auto-refund on schedule (Pro and Business only)
 - service payment can be triggered by the vendor:
   - just after signing the contract
   - after the service
 - the contract must be signed before finance progression continues
-- the relevant payment or authorization state must already exist before follow-up finance actions are allowed
+- disputed transactions are protected — deposit decisions are suspended until the dispute is resolved
 - all key payment and deposit events are recorded in the audit trail
 
 ```mermaid
@@ -318,17 +339,20 @@ flowchart TD
     A[Contract signed] --> B{Vendor chooses payment timing}
     B --> C[Trigger service payment now]
     B --> D[Trigger service payment after service]
-    A --> E[Deposit authorized]
+    A --> E[Deposit collected based on plan]
     E --> F{Vendor deposit decision}
-    F --> G[Release deposit]
-    F --> H[Capture full deposit]
-    F --> I[Capture partial deposit]
-    H --> J[Captured deposit fee applied]
-    I --> J
-    C --> K[Audit trail recorded]
-    D --> K
-    G --> K
-    J --> K
+    F --> G[Refund deposit to client]
+    F --> H[Keep deposit]
+    F --> I[Open dispute if issue arises]
+    F --> J[Auto-refund runs on schedule if no action taken]
+    H --> K[Kept deposit fee applied]
+    I --> L[Admin reviews and resolves]
+    C --> M[Audit trail recorded]
+    D --> M
+    G --> M
+    K --> M
+    J --> M
+    L --> M
 ```
 
 ## Dashboard visibility and control
@@ -399,7 +423,9 @@ product:
 - contract review is complete
 - signature is complete
 - payment flow is complete
-- deposit authorization, release, and capture are complete
+- deposit workflow with two plan-based models is complete
+- automatic deposit refund scheduling is complete
+- dispute flow for both deposit models is complete
 - status tracking is complete
 
 This means the platform now proves the full intended business model of the MVP:
@@ -442,18 +468,43 @@ workflow structure:
 - the current live payment experience is standardized on card payments
 - normal service payment can be processed through the platform flow
 - standard service payments do not carry a Conntrazy platform fee
-- deposit authorization is handled as a separate operational step
-- deposit release and capture are managed after the transaction when required
-- Starter uses the standard 7-day card authorization window
-- Pro can request up to 30-day extended card authorization for eligible deposit holds
-- Business can request up to 30-day extended card authorization for eligible deposit holds
-- deposit capture follows the confirmed fee structure of **2% + 0.25 EUR**
-- within that captured deposit fee:
+- deposit is handled as a separate step tied to the vendor's plan
+
+**Plan-based deposit models:**
+
+- **Starter** — 7-day card hold. The customer's card is pre-authorised and no
+  money is moved until the vendor acts. The vendor can keep (full or partial)
+  or release the deposit within 7 days.
+
+- **Pro** — 14-day charge and refund. The deposit is charged to the customer
+  immediately and automatically refunded after 14 days unless the vendor
+  keeps it first.
+
+- **Business** — 30-day charge and refund. Same model as Pro with a 30-day
+  window.
+
+**Fee structure:**
+
+- keeping a deposit follows the confirmed fee structure of **2% + 0.25 EUR**
+- within that fee:
   - **1.5% + 0.25 EUR** goes directly to Stripe
   - **0.5%** is retained as Conntrazy margin
+- no fee is applied when a deposit is released or refunded
+- for Pro and Business plans, the platform fee is returned automatically if
+  the deposit is refunded
+
+**Dispute handling:**
+
+- vendors can open a dispute on any active transaction with an active deposit
+- this works correctly for both deposit models
+- the admin reviews the case and either returns deposit control to the vendor
+  or releases the deposit to the client
+- disputed transactions are fully protected — no automatic refund or deposit
+  action runs while a dispute is open
+
 - the platform is structured around the commercial value of combining contract,
-  verification, payment, and deposit logic in one place
-- the delivered workflow includes a full audit trail for those finance events
+  verification, payment, and deposit logic in one connected place
+- the delivered workflow includes a full audit trail for all finance events
 
 For KYC packaging, the confirmed position is:
 

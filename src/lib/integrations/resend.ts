@@ -487,6 +487,77 @@ export async function sendCheckOutRequestEmail(
   })
 }
 
+export async function sendDepositChargedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  autoRefundAt: Date | null,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  const autoRefundDateStr = autoRefundAt
+    ? autoRefundAt.toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
+    : null
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Dépôt de garantie débité — ${vendorName}`
+      : `Security deposit charged — ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>Un dépôt de garantie de <strong>${formatEmailMoney(amount, currency)}</strong> a été prélevé pour votre transaction avec <strong>${vendorName}</strong>.</p>
+        ${autoRefundDateStr ? `<p>Un remboursement automatique sera effectué le <strong>${autoRefundDateStr}</strong> si le prestataire ne décide pas de conserver le dépôt.</p>` : ""}
+        <p>Pour toute question, contactez le prestataire directement.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>A security deposit of <strong>${formatEmailMoney(amount, currency)}</strong> has been charged for your transaction with <strong>${vendorName}</strong>.</p>
+        ${autoRefundDateStr ? `<p>An automatic refund will be issued on <strong>${autoRefundDateStr}</strong> unless the vendor decides to keep the deposit.</p>` : ""}
+        <p>If you have any questions, please contact the vendor directly.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
+  })
+}
+
+export async function sendDepositAutoRefundedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Dépôt de garantie remboursé — ${vendorName}`
+      : `Security deposit refunded — ${vendorName}`,
+    html: isFr
+      ? `
+        <h2>Bonjour ${clientName},</h2>
+        <p>Votre dépôt de garantie de <strong>${formatEmailMoney(amount, currency)}</strong> avec <strong>${vendorName}</strong> a été remboursé automatiquement.</p>
+        <p>Le remboursement devrait apparaître sur votre relevé bancaire dans les prochains jours.</p>
+        <br />
+        <p>Merci,<br />L'équipe Conntrazy</p>
+      `
+      : `
+        <h2>Hi ${clientName},</h2>
+        <p>Your security deposit of <strong>${formatEmailMoney(amount, currency)}</strong> with <strong>${vendorName}</strong> has been automatically refunded.</p>
+        <p>The refund should appear on your bank statement within the next few business days.</p>
+        <br />
+        <p>Thanks,<br />The Conntrazy Team</p>
+      `,
+  })
+}
+
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
 
+import {
+  getDepositAutoRefundDays,
+  getDepositStrategy,
+} from "@/features/subscriptions/server/deposit-strategy"
 import { shouldRequestExtendedCardAuthorization } from "@/features/subscriptions/server/feature-gates"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -78,27 +82,46 @@ export async function POST(
     const isDeposit = nextStage === "deposit_authorization"
     const amountCents = isDeposit ? transaction.depositAmount! : transaction.amount!
     const stripeAccountId = transaction.vendor.stripeAccountId
+    const subscription = transaction.vendor.subscription
+
+    const depositStrategy = isDeposit ? getDepositStrategy(subscription) : null
+    const isChargeRefund = depositStrategy === "CHARGE_REFUND"
     const requestExtendedAuthorization =
-      isDeposit && shouldRequestExtendedCardAuthorization(transaction.vendor.subscription)
+      isDeposit && !isChargeRefund && shouldRequestExtendedCardAuthorization(subscription)
+
+    const depositAutoRefundAt = isDeposit && isChargeRefund
+      ? new Date(Date.now() + getDepositAutoRefundDays(subscription) * 24 * 60 * 60 * 1000).toISOString()
+      : null
+
+    const isFr = transaction.locale === "fr"
+    const statementDescriptorSuffix = isDeposit && isChargeRefund
+      ? (isFr ? "DEPOT GARANTIE" : "DEPOSIT")
+      : undefined
+
+    // For CHARGE_REFUND deposits the platform fee (0.5%) is collected at charge time.
+    // If the vendor later refunds, Stripe returns it via refund_application_fee: true.
+    const depositPlatformFee = isDeposit && isChargeRefund
+      ? Math.round(amountCents * 0.005)
+      : undefined
 
     const intent = await stripe.paymentIntents.create(
       {
         amount: amountCents,
         currency: transaction.currency.toLowerCase(),
-        capture_method: isDeposit ? "manual" : "automatic",
+        capture_method: isDeposit && !isChargeRefund ? "manual" : "automatic",
         payment_method_types: ["card"],
-        // payment_method_options: {
-        //   card: {
-        //     request_extended_authorization: requestExtendedAuthorization ? "if_available" : "never",
-        //   },
-        // },
+        ...(statementDescriptorSuffix ? { statement_descriptor_suffix: statementDescriptorSuffix } : {}),
+        ...(depositPlatformFee ? { application_fee_amount: depositPlatformFee } : {}),
         metadata: {
           transactionId: transaction.id,
           vendorId: transaction.vendorId,
           kind: transaction.kind,
           financeStage: nextStage,
           token,
-          authorizationWindowDays: String(requestExtendedAuthorization ? 30 : 7),
+          ...(isDeposit && depositStrategy ? { depositStrategy } : {}),
+          ...(depositAutoRefundAt ? { depositAutoRefundAt } : {}),
+          ...(depositPlatformFee ? { depositPlatformFeeAmount: String(depositPlatformFee) } : {}),
+          ...(requestExtendedAuthorization ? { authorizationWindowDays: "30" } : {}),
         },
         description: `${transaction.title} — ${isDeposit ? "Security Deposit" : "Service Payment"} (${transaction.reference})`,
         receipt_email: transaction.clientProfile?.email ?? undefined,
@@ -110,12 +133,13 @@ export async function POST(
       transactionId: transaction.id,
       type: "PAYMENT_SESSION_CREATED",
       title: isDeposit ? "Deposit authorization started" : "Service payment started",
-      detail: `PaymentIntent ${intent.id} created for ${isDeposit ? "deposit hold" : "service payment"}.`,
+      detail: `PaymentIntent ${intent.id} created for ${isDeposit ? (isChargeRefund ? "deposit charge" : "deposit hold") : "service payment"}.`,
       dedupeKey: `event:payment-intent:${transaction.id}:${nextStage}:${intent.id}`,
       metadata: {
         intentId: intent.id,
         financeStage: nextStage,
-        authorizationWindowDays: requestExtendedAuthorization ? 30 : 7,
+        depositStrategy: depositStrategy ?? null,
+        depositAutoRefundAt: depositAutoRefundAt ?? null,
       },
     })
 

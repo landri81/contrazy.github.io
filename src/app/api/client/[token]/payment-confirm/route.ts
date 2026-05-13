@@ -4,6 +4,7 @@ import {
   getNextFinanceStage,
   syncTransactionFinanceState,
   upsertDepositAuthorizationFromIntent,
+  upsertDepositChargeFromIntent,
   upsertServicePaymentFromIntent,
 } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -57,22 +58,21 @@ export async function POST(
     const { transaction } = link
     const stripeAccountId = transaction.vendor.stripeAccountId
 
-    // Retrieve and verify the PaymentIntent from Stripe
     const intent = await stripe.paymentIntents.retrieve(
       paymentIntentId,
       {},
       getConnectedAccountRequestOptions(stripeAccountId)
     )
 
-    // Validate the intent belongs to this transaction
     if (intent.metadata?.transactionId !== transaction.id) {
       return NextResponse.json({ success: false, message: "Payment intent mismatch" }, { status: 403 })
     }
 
     const financeStage = intent.metadata?.financeStage
+    const depositStrategy = intent.metadata?.depositStrategy
     const isDeposit = financeStage === "deposit_authorization"
+    const isChargeRefund = depositStrategy === "CHARGE_REFUND"
 
-    // Map intent status to DB updates
     if (intent.status === "succeeded" && !isDeposit) {
       await upsertServicePaymentFromIntent(prisma, transaction.id, intent)
 
@@ -83,6 +83,17 @@ export async function POST(
         detail: `PaymentIntent ${intent.id} succeeded.`,
         dedupeKey: `event:payment-confirm:${intent.id}`,
         metadata: { intentId: intent.id, financeStage },
+      })
+    } else if (intent.status === "succeeded" && isDeposit && isChargeRefund) {
+      await upsertDepositChargeFromIntent(prisma, transaction.id, intent)
+
+      await recordTransactionEvent(prisma, {
+        transactionId: transaction.id,
+        type: "WEBHOOK_PROCESSED",
+        title: "Deposit charge confirmed",
+        detail: `PaymentIntent ${intent.id} succeeded (charge-and-refund deposit).`,
+        dedupeKey: `event:payment-confirm:${intent.id}`,
+        metadata: { intentId: intent.id, financeStage, depositStrategy },
       })
     } else if (intent.status === "requires_capture" && isDeposit) {
       await upsertDepositAuthorizationFromIntent(prisma, transaction.id, intent)
@@ -96,7 +107,6 @@ export async function POST(
         metadata: { intentId: intent.id, financeStage },
       })
     } else if (intent.status === "processing") {
-      // Payment still processing — client should poll or wait for webhook
       return NextResponse.json({ success: true, status: "processing", nextStep: "payment" })
     } else if (intent.status === "canceled" || intent.status === "requires_payment_method") {
       return NextResponse.json({
@@ -104,7 +114,6 @@ export async function POST(
         message: intent.last_payment_error?.message ?? "Payment was not successful. Please try again.",
       }, { status: 422 })
     } else {
-      // Unknown state — let webhook handle it
       return NextResponse.json({ success: true, status: intent.status, nextStep: "payment" })
     }
 
@@ -115,7 +124,6 @@ export async function POST(
     }
 
     const nextFinanceStage = getNextFinanceStage(updated)
-
     const nextStep = nextFinanceStage === "complete" ? "complete" : "payment"
 
     return NextResponse.json({ success: true, status: "confirmed", nextStep })

@@ -61,6 +61,7 @@ type FinanceAuditLogInput = {
 
 const authorizedDepositStatuses = new Set<PaymentStatus>([
   PaymentStatus.AUTHORIZED,
+  PaymentStatus.SUCCEEDED, // CHARGE_REFUND deposits: money already captured, period is active
   PaymentStatus.CAPTURED,
   PaymentStatus.RELEASED,
 ])
@@ -539,6 +540,95 @@ export async function upsertDepositAuthorizationFromIntent(
       currency,
       stripeIntentId: paymentIntentId,
       status: PaymentStatus.AUTHORIZED,
+    },
+  })
+}
+
+export async function upsertDepositChargeFromIntent(
+  db: DatabaseClient,
+  transactionId: string,
+  intent: Stripe.PaymentIntent
+) {
+  const amount = intent.amount
+  const currency = intent.currency.toUpperCase()
+  const paymentIntentId = intent.id
+  const autoRefundAtStr = intent.metadata?.depositAutoRefundAt
+  const autoRefundAt = autoRefundAtStr ? new Date(autoRefundAtStr) : null
+
+  // Platform fee was already collected via application_fee_amount at charge time.
+  const platformFeeAmount = intent.metadata?.depositPlatformFeeAmount
+    ? parseInt(intent.metadata.depositPlatformFeeAmount, 10)
+    : Math.round(amount * 0.005)
+  const stripeFeeAmount = Math.round(amount * 0.015) + 25
+  const vendorNetAmount = Math.max(0, amount - stripeFeeAmount - platformFeeAmount)
+
+  await db.depositAuthorization.upsert({
+    where: { transactionId },
+    update: {
+      status: PaymentStatus.SUCCEEDED,
+      depositStrategy: "CHARGE_REFUND",
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      authorizedAt: new Date(),
+      depositChargedAt: new Date(),
+      depositAutoRefundAt: autoRefundAt,
+    },
+    create: {
+      transactionId,
+      status: PaymentStatus.SUCCEEDED,
+      depositStrategy: "CHARGE_REFUND",
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      authorizedAt: new Date(),
+      depositChargedAt: new Date(),
+      depositAutoRefundAt: autoRefundAt,
+    },
+  })
+
+  await db.payment.upsert({
+    where: { transactionId_kind: { transactionId, kind: PaymentKind.DEPOSIT_AUTHORIZATION } },
+    update: {
+      status: PaymentStatus.SUCCEEDED,
+      amount,
+      currency,
+      stripeFeeAmount,
+      platformFeeAmount,
+      vendorNetAmount,
+      stripeIntentId: paymentIntentId,
+      processedAt: new Date(),
+    },
+    create: {
+      transactionId,
+      kind: PaymentKind.DEPOSIT_AUTHORIZATION,
+      status: PaymentStatus.SUCCEEDED,
+      amount,
+      currency,
+      stripeFeeAmount,
+      platformFeeAmount,
+      vendorNetAmount,
+      stripeIntentId: paymentIntentId,
+      processedAt: new Date(),
+    },
+  })
+
+  const autoRefundNote = autoRefundAt
+    ? ` Auto-refund scheduled for ${autoRefundAt.toISOString().slice(0, 10)}.`
+    : ""
+
+  await recordTransactionEvent(db, {
+    transactionId,
+    type: "DEPOSIT_CHARGED",
+    title: "Deposit charged",
+    detail: `${currency} ${(amount / 100).toFixed(2)} charged as deposit.${autoRefundNote}`,
+    dedupeKey: `event:deposit-charged:${transactionId}:${paymentIntentId}`,
+    metadata: {
+      amount,
+      currency,
+      stripeIntentId: paymentIntentId,
+      depositStrategy: "CHARGE_REFUND",
+      depositAutoRefundAt: autoRefundAt?.toISOString() ?? null,
     },
   })
 }

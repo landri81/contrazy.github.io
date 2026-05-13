@@ -47,9 +47,11 @@ export async function POST(
     const depositAuth = transaction.depositAuthorization
     const actorType =
       session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
+    const isChargeRefund = depositAuth.depositStrategy === "CHARGE_REFUND"
+    const activeStatuses = ["AUTHORIZED", "SUCCEEDED"]
 
-    if (depositAuth.status !== "AUTHORIZED") {
-      return NextResponse.json({ success: false, message: "Deposit is not in an authorized state" }, { status: 400 })
+    if (!activeStatuses.includes(depositAuth.status)) {
+      return NextResponse.json({ success: false, message: "Deposit is not in an active state" }, { status: 400 })
     }
 
     if (!depositAuth.stripeIntentId) {
@@ -60,44 +62,84 @@ export async function POST(
     let feeBreakdown = null as ReturnType<typeof calculateCapturedDepositFeeBreakdown> | null
 
     if (action === "release") {
-      await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
+      if (isChargeRefund) {
+        // Issue a Stripe refund + return the platform application fee to the vendor
+        const refund = await stripe.refunds.create(
+          {
+            payment_intent: depositAuth.stripeIntentId,
+            reason: "requested_by_customer",
+            refund_application_fee: true,
+          },
+          stripeOpts
+        )
 
-      await prisma.depositAuthorization.update({
-        where: { id: depositAuth.id },
-        data: { status: "RELEASED", releasedAt: new Date() },
-      })
-    } else {
-      // Validate partial capture amount
-      const partialCents = captureAmount ? Math.round(captureAmount) : undefined
+        await prisma.depositAuthorization.update({
+          where: { id: depositAuth.id },
+          data: {
+            status: "RELEASED",
+            releasedAt: new Date(),
+            depositRefundedAt: new Date(),
+            depositRefundId: refund.id,
+            depositRefundedAmount: refund.amount,
+          },
+        })
+      } else {
+        // Cancel the authorization hold
+        await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
 
-      if (partialCents !== undefined) {
-        if (partialCents <= 0 || partialCents > depositAuth.amount) {
-          return NextResponse.json(
-            { success: false, message: "Invalid capture amount" },
-            { status: 400 }
-          )
-        }
+        await prisma.depositAuthorization.update({
+          where: { id: depositAuth.id },
+          data: { status: "RELEASED", releasedAt: new Date() },
+        })
       }
+    } else {
+      // action === "capture"
+      if (isChargeRefund) {
+        // Money already captured in Stripe (and platform fee already collected via
+        // application_fee_amount). Just mark as kept — no further Stripe call needed.
+        feeBreakdown = calculateCapturedDepositFeeBreakdown(depositAuth.amount)
 
-      const capturedAmount = partialCents ?? depositAuth.amount
-      feeBreakdown = calculateCapturedDepositFeeBreakdown(capturedAmount)
+        await prisma.depositAuthorization.update({
+          where: { id: depositAuth.id },
+          data: {
+            status: "CAPTURED",
+            capturedAt: new Date(),
+            depositCapturedAmount: depositAuth.amount,
+          },
+        })
+      } else {
+        // AUTHORIZATION_HOLD: capture the Stripe hold
+        const partialCents = captureAmount ? Math.round(captureAmount) : undefined
 
-      await stripe.paymentIntents.capture(
-        depositAuth.stripeIntentId,
-        {
-          ...(partialCents ? { amount_to_capture: partialCents } : {}),
-          application_fee_amount: feeBreakdown.platformFeeAmount,
-        },
-        stripeOpts
-      )
+        if (partialCents !== undefined) {
+          if (partialCents <= 0 || partialCents > depositAuth.amount) {
+            return NextResponse.json(
+              { success: false, message: "Invalid capture amount" },
+              { status: 400 }
+            )
+          }
+        }
 
-      await prisma.depositAuthorization.update({
-        where: { id: depositAuth.id },
-        data: { status: "CAPTURED", capturedAt: new Date() },
-      })
+        const capturedAmount = partialCents ?? depositAuth.amount
+        feeBreakdown = calculateCapturedDepositFeeBreakdown(capturedAmount)
+
+        await stripe.paymentIntents.capture(
+          depositAuth.stripeIntentId,
+          {
+            ...(partialCents ? { amount_to_capture: partialCents } : {}),
+            application_fee_amount: feeBreakdown.platformFeeAmount,
+          },
+          stripeOpts
+        )
+
+        await prisma.depositAuthorization.update({
+          where: { id: depositAuth.id },
+          data: { status: "CAPTURED", capturedAt: new Date() },
+        })
+      }
     }
 
-    const actualAmount = action === "capture" && captureAmount
+    const actualAmount = action === "capture" && captureAmount && !isChargeRefund
       ? Math.round(captureAmount)
       : depositAuth.amount
 
@@ -119,12 +161,15 @@ export async function POST(
     await recordFinanceAuditLog(prisma, {
       actorId: dbUser.id,
       actorType,
-      action: action === "capture" ? "Captured deposit hold" : "Released deposit hold",
+      action: action === "capture"
+        ? (isChargeRefund ? "Kept charge-and-refund deposit (no refund)" : "Captured deposit hold")
+        : (isChargeRefund ? "Refunded charge-and-refund deposit" : "Released deposit hold"),
       entityType: "Transaction",
       entityId: transaction.id,
       metadata: {
         transactionId: transaction.id,
         depositAuthorizationId: depositAuth.id,
+        depositStrategy: depositAuth.depositStrategy,
         action,
         captureType: action === "capture" ? (actualAmount === depositAuth.amount ? "full" : "partial") : null,
         releaseReason: action === "release" ? "manual_release" : null,

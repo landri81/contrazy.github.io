@@ -151,9 +151,12 @@ export async function PATCH(
       return NextResponse.json({ success: true })
     }
 
-    if (!depositAuth || depositAuth.status !== "AUTHORIZED") {
-      return NextResponse.json({ success: false, message: "Deposit is not in an authorized state" }, { status: 400 })
+    const depositIsActive = depositAuth?.status === "AUTHORIZED" || depositAuth?.status === "SUCCEEDED"
+    if (!depositAuth || !depositIsActive) {
+      return NextResponse.json({ success: false, message: "Deposit is not in an active state" }, { status: 400 })
     }
+
+    const isChargeRefund = depositAuth.depositStrategy === "CHARGE_REFUND"
 
     const now = new Date()
     const resolutionText = resolution || ""
@@ -180,6 +183,19 @@ export async function PATCH(
           where: { id: tx.id },
           data: { status: "COMPLETED" },
         })
+
+        // For CHARGE_REFUND: money already settled with Stripe. Mark as CAPTURED
+        // so the hourly cron doesn't auto-refund this deposit.
+        if (isChargeRefund) {
+          await txClient.depositAuthorization.update({
+            where: { id: depositAuth.id },
+            data: {
+              status: "CAPTURED",
+              capturedAt: now,
+              depositCapturedAmount: depositAuth.amount,
+            },
+          })
+        }
       })
 
       try {
@@ -247,12 +263,32 @@ export async function PATCH(
     }
 
     const stripeOpts = getConnectedAccountRequestOptions(tx.vendor?.stripeAccountId)
-    await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
+    let clientWinsRefundId: string | null = null
+
+    if (isChargeRefund) {
+      const refund = await stripe.refunds.create(
+        {
+          payment_intent: depositAuth.stripeIntentId,
+          reason: "requested_by_customer",
+          refund_application_fee: true,
+        },
+        stripeOpts
+      )
+      clientWinsRefundId = refund.id
+    } else {
+      await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
+    }
 
     await prisma.$transaction(async (txClient) => {
       await txClient.depositAuthorization.update({
         where: { id: depositAuth.id },
-        data: { status: "RELEASED", releasedAt: now },
+        data: {
+          status: "RELEASED",
+          releasedAt: now,
+          ...(isChargeRefund && clientWinsRefundId
+            ? { depositRefundedAt: now, depositRefundId: clientWinsRefundId }
+            : {}),
+        },
       })
 
       const resolutionOutcome = getResolutionOutcome(action)

@@ -358,6 +358,8 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
           transactionId={transaction.id}
           depositStatus={transaction.depositAuthorization.status}
           transactionStatus={transaction.status}
+          depositStrategy={transaction.depositAuthorization.depositStrategy}
+          depositAutoRefundAt={transaction.depositAuthorization.depositAutoRefundAt}
           amount={transaction.depositAuthorization.amount}
           currency={transaction.depositAuthorization.currency}
         />

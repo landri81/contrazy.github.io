@@ -985,22 +985,33 @@
         "statuses": {
           "disputeTitle": "Dispute in progress",
           "disputeDesc": "The deposit hold is frozen while the platform reviews the dispute. Capture and release are disabled until a decision is made.",
+          "disputeDescChargeRefund": "The deposit charge is frozen while the platform reviews the dispute. Keep and refund actions are disabled until a decision is made.",
           "releasedTitle": "Deposit released",
           "releasedDesc": "{amount} returned to the customer.",
           "capturedTitle": "Deposit captured",
           "capturedDesc": "The hold was converted into a card charge.",
+          "capturedDescChargeRefund": "The vendor kept the deposit. The scheduled auto-refund was cancelled.",
           "cancelledTitle": "Deposit cancelled",
-          "cancelledDesc": "The transaction was cancelled and the hold was released."
+          "cancelledDesc": "The transaction was cancelled and the hold was released.",
+          "cancelledDescChargeRefund": "The transaction was cancelled and the deposit charge was refunded."
         },
         "card": {
           "title": "Active deposit",
-          "description": "The amount is held on the customer's card. Choose the next action for this transaction."
+          "description": "The amount is held on the customer's card. Choose the next action for this transaction.",
+          "descriptionChargeRefund": "The deposit has been charged to the customer's card. An automatic refund will be issued unless you keep it."
+        },
+        "chargeRefundBanner": {
+          "autoRefundOn": "Auto-refund scheduled for {date} unless you keep the deposit."
         },
         "actions": {
           "capture": "Capture deposit",
           "captureDetail": "Charge all or part of the amount",
+          "captureChargeRefund": "Keep deposit",
+          "captureChargeRefundDetail": "Cancel the scheduled auto-refund",
           "release": "Release deposit",
           "releaseDetail": "Return the hold to the customer",
+          "releaseChargeRefund": "Refund now",
+          "releaseChargeRefundDetail": "Issue an immediate refund to the customer",
           "dispute": "Open dispute",
           "disputeDetail": "Report an issue on this transaction",
           "cancel": "Cancel transaction",
@@ -1009,6 +1020,7 @@
         "captureModal": {
           "title": "Capture deposit",
           "description": "Authorized amount: {amount}. Choose the amount to charge.",
+          "descriptionChargeRefund": "Keeping the deposit ({amount}) will cancel the scheduled auto-refund. The customer will not be reimbursed.",
           "fullAmount": "Full amount",
           "partialAmount": "Partial amount",
           "setAmount": "Set amount",
@@ -1022,6 +1034,7 @@
         "disputeModal": {
           "title": "Open dispute",
           "description": "Describe the dispute reason. The transaction will be marked as disputed and the deposit will remain held during resolution.",
+          "descriptionChargeRefund": "Describe the dispute reason. The transaction will be marked as disputed and the deposit charge will remain frozen during resolution.",
           "reasonLabel": "Dispute reason",
           "placeholder": "Example: returned item has unreported damage...",
           "minChars": "{min} characters minimum",
@@ -1032,10 +1045,13 @@
         "toast": {
           "captured": "Deposit captured",
           "capturedDesc": "{amount} was charged successfully.",
+          "capturedDescChargeRefund": "Deposit of {amount} kept — auto-refund cancelled.",
           "released": "Deposit released",
           "releasedDesc": "The hold was released on the customer's card.",
+          "releasedDescChargeRefund": "The deposit charge was refunded to the customer.",
           "cancelled": "Transaction cancelled",
           "cancelledDesc": "The deposit hold was released automatically.",
+          "cancelledDescChargeRefund": "The transaction was cancelled and the deposit charge was refunded.",
           "disputeOpened": "Dispute opened",
           "disputeOpenedDesc": "The transaction is now marked as disputed.",
           "failed": "Failed",
@@ -3447,7 +3463,7 @@
           "4": "Auto-generated contracts",
           "5": "Unlimited QR codes",
           "6": "Persistent client profiles",
-          "7": "Up to 30-day card authorization"
+          "7": "14-day deposit refund window"
         }
       },
       "business": {
@@ -3462,7 +3478,7 @@
           "2": "Unlimited contracts",
           "3": "Dispute management workflow",
           "4": "3 users",
-          "5": "Up to 30-day card authorization"
+          "5": "30-day deposit refund window"
         }
       },
       "enterprise": {

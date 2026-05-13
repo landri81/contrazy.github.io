@@ -127,6 +127,11 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum DepositStrategy {
+  AUTHORIZATION_HOLD
+  CHARGE_REFUND
+}
+
 enum TransactionLinkStatus {
   ACTIVE
   PROCESSING
@@ -244,6 +249,10 @@ enum TransactionEventType {
   CHECK_IN_SUBMITTED
   CHECK_OUT_REQUESTED
   CHECK_OUT_SUBMITTED
+  DEPOSIT_CHARGED
+  DEPOSIT_AUTO_REFUNDED
+  DEPOSIT_AUTO_REFUND_SKIPPED
+  DEPOSIT_REFUND_FAILED
 }
 
 model User {
@@ -687,16 +696,25 @@ model Payment {
 }
 
 model DepositAuthorization {
-  id             String        @id @default(cuid())
-  transactionId  String        @unique
-  status         PaymentStatus @default(PENDING)
-  amount         Int
-  currency       String        @default("EUR")
-  stripeIntentId String?
-  authorizedAt   DateTime?
-  capturedAt     DateTime?
-  releasedAt     DateTime?
-  transaction    Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id                    String          @id @default(cuid())
+  transactionId         String          @unique
+  status                PaymentStatus   @default(PENDING)
+  depositStrategy       DepositStrategy @default(AUTHORIZATION_HOLD)
+  amount                Int
+  currency              String          @default("EUR")
+  stripeIntentId        String?
+  authorizedAt          DateTime?
+  capturedAt            DateTime?
+  releasedAt            DateTime?
+  depositAutoRefundAt   DateTime?
+  depositChargedAt      DateTime?
+  depositRefundedAt     DateTime?
+  depositRefundId       String?
+  depositCapturedAmount Int?
+  depositRefundedAmount Int?
+  transaction           Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([depositStrategy, depositAutoRefundAt])
 }
 
 model Dispute {
