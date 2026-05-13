@@ -165,7 +165,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "1 contract template",
       "Email delivery",
       "Stripe Identity included",
-      "7-day card authorization",
+      "Deposit authorization controls",
     ],
     features: {
       transactionsPerPeriod: 10,
@@ -195,7 +195,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Auto-generated contracts",
       "Unlimited QR codes",
       "Persistent client profiles",
-      "14-day deposit refund window",
+      "Advanced deposit controls",
     ],
     features: {
       transactionsPerPeriod: null,
@@ -225,7 +225,7 @@ export const subscriptionPlans: SubscriptionPlanDefinition[] = [
       "Unlimited contracts",
       "Dispute management workflow",
       "3 users",
-      "30-day deposit refund window",
+      "Team deposit controls",
     ],
     features: {
       transactionsPerPeriod: null,

@@ -998,7 +998,7 @@
         "card": {
           "title": "Active deposit",
           "description": "The amount is held on the customer's card. Choose the next action for this transaction.",
-          "descriptionChargeRefund": "The deposit has been charged to the customer's card. An automatic refund will be issued unless you keep it."
+          "descriptionChargeRefund": "The deposit has been charged to the customer's card. An automatic refund will be issued unless you keep it. The accepted long-deposit fee remains a vendor cost."
         },
         "chargeRefundBanner": {
           "autoRefundOn": "Auto-refund scheduled for {date} unless you keep the deposit."
@@ -1011,7 +1011,7 @@
           "release": "Release deposit",
           "releaseDetail": "Return the hold to the customer",
           "releaseChargeRefund": "Refund now",
-          "releaseChargeRefundDetail": "Issue an immediate refund to the customer",
+          "releaseChargeRefundDetail": "Issue an immediate refund to the customer; vendor fee still applies",
           "dispute": "Open dispute",
           "disputeDetail": "Report an issue on this transaction",
           "cancel": "Cancel transaction",
@@ -1594,12 +1594,18 @@
         "recreateMissingContractWarning": "The original contract template \"{template}\" is no longer available. Choose a contract template before launching this recreated transaction.",
         "depositTitle": "Security Deposit",
         "depositBadge": "Primary",
-        "depositDesc": "The card is held only. Capture or release it after the work is complete.",
+        "depositDesc": "Choose the security deposit amount and duration for this transaction.",
         "depositHoldLabel": "Hold amount (EUR)",
+        "depositDurationLabel": "Deposit duration (days)",
+        "depositDurationStarterLocked": "Starter includes the standard 7-day card hold only.",
+        "depositDurationChoiceHint": "Choose 7 days for the free card hold, or 8-30 days for a refundable deposit charge with vendor fees.",
+        "longDepositWarning": "This {days}-day deposit is longer than the free 7-day hold. By accepting, you agree that the vendor bears the estimated Stripe cost ({stripeFee}) plus Contrazy margin ({platformFee}), estimated total {totalFee}.",
+        "longDepositAcceptLabel": "I accept the long-deposit vendor fee for this transaction.",
         "holdAmount": "Hold amount",
         "stripeFeeEstimate": "Stripe fee estimate",
         "platformMargin": "Conntrazy margin",
         "ifCaptured": "If captured you receive {amount}.",
+        "longDepositFeeSummary": "For long deposits, this vendor cost is collected when the refundable deposit is charged. The customer pays only the deposit amount.",
         "servicePaymentTitle": "Service Payment",
         "servicePaymentOptional": "Optional",
         "servicePaymentDesc": "Charged immediately. Stripe fees are deducted from the collected amount.",
@@ -1671,6 +1677,8 @@
         "summaryRecipientsCount": "{count} email(s)",
         "summaryType": "Type",
         "summaryDeposit": "Deposit hold",
+        "summaryDepositDuration": "Deposit duration",
+        "summaryDepositDurationDays": "{count} day(s)",
         "summaryService": "Service payment",
         "summaryTiming": "Payment timing",
         "summaryContract": "Contract",
@@ -1755,6 +1763,9 @@
         "errorAmount": "Set at least one amount — a deposit hold, a service payment, or both.",
         "errorMinService": "Minimum service payment is €0.50",
         "errorMinDeposit": "Minimum deposit hold is €0.50",
+        "errorDepositDuration": "Deposit duration must be between 7 and 30 days.",
+        "errorDepositDurationStarter": "Starter plan transactions must use the included 7-day deposit hold.",
+        "errorLongDepositAcceptance": "Accept the long-deposit vendor fee before launching.",
         "errorRequirements": "Complete every requirement label and add a custom category label when using Other.",
         "errorCustomFields": "Complete every customer field label and add at least two options for each select field.",
         "errorCustomFieldsContract": "Select a contract template before adding customer fields that must be completed before signing.",
@@ -2686,17 +2697,20 @@
       "preparingPayment": "Preparing secure payment…",
       "confirmingPayment": "Confirming your payment…",
       "takingMoment": "This will only take a moment.",
-      "depositAuthorized": "Deposit authorized",
+      "depositAuthorized": "Deposit confirmed",
       "paymentConfirmed": "Payment confirmed",
       "loadingServicePayment": "Loading service payment…",
       "nextStep": "Taking you to the next step…",
       "securityDepositHold": "Security Deposit Hold",
+      "refundableSecurityDeposit": "Refundable Security Deposit",
       "cardHeldNotCharged": "Card held — not charged until vendor action",
+      "refundableDepositChargedNow": "Charged now as a refundable deposit for up to {days} day(s)",
       "chargedNow": "Charged to your card now",
       "cardDetails": "Card details",
       "stripeNote": "Payments are processed securely by Stripe. Card details are never stored on our servers.",
       "processing": "Processing…",
       "depositHoldLabel": "Deposit Hold",
+      "refundableDepositLabel": "Refundable Deposit",
       "servicePaymentLabel": "Service Payment",
       "loadError": "Unable to load payment",
       "tryAgain": "Try again",
@@ -2706,6 +2720,7 @@
       "confirmError": "Unable to confirm payment. Please contact support.",
       "securedByStripe": "Payments secured by Stripe",
       "authorizeHold": "Authorize {amount} Hold",
+      "payDepositNow": "Pay {amount} Deposit",
       "payNow": "Pay {amount} Now",
       "stepOf": "Step {step} of {total}"
     }
@@ -3447,7 +3462,7 @@
           "4": "1 contract template",
           "5": "Email delivery",
           "6": "Stripe Identity included",
-          "7": "7-day card authorization"
+          "7": "Deposit authorization controls"
         }
       },
       "pro": {
@@ -3463,7 +3478,7 @@
           "4": "Auto-generated contracts",
           "5": "Unlimited QR codes",
           "6": "Persistent client profiles",
-          "7": "14-day deposit refund window"
+          "7": "Advanced deposit controls"
         }
       },
       "business": {
@@ -3478,7 +3493,7 @@
           "2": "Unlimited contracts",
           "3": "Dispute management workflow",
           "4": "3 users",
-          "5": "30-day deposit refund window"
+          "5": "Team deposit controls"
         }
       },
       "enterprise": {

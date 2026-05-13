@@ -42,6 +42,7 @@ export type TransactionCreationInitialValues = {
   notes: string
   amount: string
   depositAmount: string
+  depositHoldDays: number
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean

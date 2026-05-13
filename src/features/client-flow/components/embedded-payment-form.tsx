@@ -72,6 +72,8 @@ type PaymentConfig = {
   title: string
   reference: string
   paymentIntentId: string
+  depositStrategy: "AUTHORIZATION_HOLD" | "CHARGE_REFUND" | null
+  depositHoldDays: number | null
 }
 
 type LoadState = "loading" | "ready" | "confirming" | "success" | "error"
@@ -146,6 +148,7 @@ function PaymentElementInner({
 
   const amountLabel = fmt(config.amountCents, config.currency)
   const isDeposit = config.isDeposit
+  const isDepositCharge = isDeposit && config.depositStrategy === "CHARGE_REFUND"
 
   const paymentElementOptions: StripePaymentElementOptions = {
     layout: "tabs",
@@ -171,10 +174,18 @@ function PaymentElementInner({
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {isDeposit ? t("securityDepositHold") : t("servicePaymentLabel")}
+              {isDeposit
+                ? isDepositCharge
+                  ? t("refundableSecurityDeposit")
+                  : t("securityDepositHold")
+                : t("servicePaymentLabel")}
             </p>
             <p className="text-xs text-muted-foreground">
-              {isDeposit ? t("cardHeldNotCharged") : t("chargedNow")}
+              {isDeposit
+                ? isDepositCharge
+                  ? t("refundableDepositChargedNow", { days: config.depositHoldDays ?? 7 })
+                  : t("cardHeldNotCharged")
+                : t("chargedNow")}
             </p>
           </div>
         </div>
@@ -235,7 +246,11 @@ function PaymentElementInner({
         ) : (
           <>
             <Lock className="mr-2 size-4" />
-            {isDeposit ? t("authorizeHold", { amount: amountLabel }) : t("payNow", { amount: amountLabel })}
+            {isDeposit
+              ? isDepositCharge
+                ? t("payDepositNow", { amount: amountLabel })
+                : t("authorizeHold", { amount: amountLabel })
+              : t("payNow", { amount: amountLabel })}
           </>
         )}
       </Button>
@@ -485,7 +500,11 @@ export function EmbeddedPaymentForm({
 
   // ── Step indicator for hybrid flow ───────────────────────────────────────
 
-  const currentStepLabel = config.isDeposit ? t("securityDepositHold") : t("servicePaymentLabel")
+  const currentStepLabel = config.isDeposit
+    ? config.depositStrategy === "CHARGE_REFUND"
+      ? t("refundableSecurityDeposit")
+      : t("securityDepositHold")
+    : t("servicePaymentLabel")
   const stepNum = config.isDeposit ? 1 : (isHybrid ? 2 : 1)
   const totalSteps = isHybrid ? 2 : 1
 
@@ -508,7 +527,9 @@ export function EmbeddedPaymentForm({
               "text-xs font-medium",
               config.isDeposit ? "text-foreground" : "text-muted-foreground line-through"
             )}>
-              {t("depositHoldLabel")}
+              {config.depositStrategy === "CHARGE_REFUND"
+                ? t("refundableDepositLabel")
+                : t("depositHoldLabel")}
             </span>
           </div>
           <ArrowRight className="size-3 shrink-0 text-muted-foreground/40" />

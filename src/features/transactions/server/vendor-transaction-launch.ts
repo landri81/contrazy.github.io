@@ -25,6 +25,13 @@ import {
   remainingQrCodes,
   remainingTransactions,
 } from "@/features/subscriptions/server/feature-gates"
+import {
+  canChooseLongDeposit,
+  estimateLongDepositVendorFee,
+  FREE_DEPOSIT_HOLD_DAYS,
+  MAX_LONG_DEPOSIT_HOLD_DAYS,
+  normalizeDepositHoldDays,
+} from "@/features/subscriptions/server/deposit-strategy"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import {
   buildRecreatedRequirementDocumentSeeds,
@@ -75,6 +82,10 @@ export type PreparedVendorTransactionLaunch = {
   notes: string | null
   amount: number | null
   depositAmount: number | null
+  depositHoldDays: number
+  depositLongTermStripeFeeEstimateAmount: number | null
+  depositLongTermPlatformFeeAmount: number | null
+  depositLongTermFeeAcceptedAt: Date | null
   requiresKyc: boolean
   generateQr: boolean
   paymentCollectionTiming: VendorTransactionCreateInput["paymentCollectionTiming"]
@@ -109,6 +120,7 @@ export type CreatedVendorTransaction = {
   status: TransactionStatus
   amount: number | null
   depositAmount: number | null
+  depositHoldDays: number
   currency: string
   locale: string
   notes: string | null
@@ -183,6 +195,8 @@ export async function prepareVendorTransactionLaunch({
     checklistTemplateId,
     amount,
     depositAmount,
+    depositHoldDays,
+    depositLongTermFeeAccepted,
     requiresKyc,
     generateQr,
     paymentCollectionTiming,
@@ -202,6 +216,9 @@ export async function prepareVendorTransactionLaunch({
 
   const normalizedAmount = typeof amount === "number" ? amount : null
   const normalizedDepositAmount = typeof depositAmount === "number" ? depositAmount : null
+  const normalizedDepositHoldDays = normalizedDepositAmount
+    ? normalizeDepositHoldDays(depositHoldDays)
+    : FREE_DEPOSIT_HOLD_DAYS
   const recreateSource = recreateFromTransactionId
     ? await getCompletedTransactionRecreateSource(vendorProfile.id, recreateFromTransactionId)
     : null
@@ -236,6 +253,52 @@ export async function prepareVendorTransactionLaunch({
       response: NextResponse.json({ success: false, message: "Amounts must be greater than zero when provided" }, { status: 422 }),
     }
   }
+
+  if (
+    normalizedDepositAmount &&
+    (normalizedDepositHoldDays < FREE_DEPOSIT_HOLD_DAYS ||
+      normalizedDepositHoldDays > MAX_LONG_DEPOSIT_HOLD_DAYS)
+  ) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          success: false,
+          message: `Deposit duration must be between ${FREE_DEPOSIT_HOLD_DAYS} and ${MAX_LONG_DEPOSIT_HOLD_DAYS} days.`,
+        },
+        { status: 422 }
+      ),
+    }
+  }
+
+  const isLongDeposit = Boolean(
+    normalizedDepositAmount && normalizedDepositHoldDays > FREE_DEPOSIT_HOLD_DAYS
+  )
+
+  if (isLongDeposit && !canChooseLongDeposit(subscription)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, message: "Your current plan only includes the 7-day deposit hold." },
+        { status: 422 }
+      ),
+    }
+  }
+
+  if (isLongDeposit && !depositLongTermFeeAccepted) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, message: "Accept the long-deposit vendor fee before launching this transaction." },
+        { status: 422 }
+      ),
+    }
+  }
+
+  const longDepositFeeEstimate =
+    normalizedDepositAmount && isLongDeposit
+      ? estimateLongDepositVendorFee(normalizedDepositAmount)
+      : null
 
   if (normalizedAmount === null && normalizedDepositAmount === null && requiresKyc) {
     return {
@@ -433,6 +496,10 @@ export async function prepareVendorTransactionLaunch({
       notes,
       amount: normalizedAmount,
       depositAmount: normalizedDepositAmount,
+      depositHoldDays: normalizedDepositHoldDays,
+      depositLongTermStripeFeeEstimateAmount: longDepositFeeEstimate?.stripeFeeAmount ?? null,
+      depositLongTermPlatformFeeAmount: longDepositFeeEstimate?.platformFeeAmount ?? null,
+      depositLongTermFeeAcceptedAt: isLongDeposit ? new Date() : null,
       requiresKyc: Boolean(requiresKyc),
       generateQr: effectiveGenerateQr,
       paymentCollectionTiming,
@@ -502,6 +569,10 @@ export async function createPreparedVendorTransaction(
       flowType: prepared.flowType,
       amount: prepared.amount,
       depositAmount: prepared.depositAmount,
+      depositHoldDays: prepared.depositHoldDays,
+      depositLongTermStripeFeeEstimateAmount: prepared.depositLongTermStripeFeeEstimateAmount,
+      depositLongTermPlatformFeeAmount: prepared.depositLongTermPlatformFeeAmount,
+      depositLongTermFeeAcceptedAt: prepared.depositLongTermFeeAcceptedAt,
       requiresKyc: prepared.requiresKyc,
       paymentCollectionTiming: prepared.paymentCollectionTiming,
       requireClientCompany: prepared.requireClientCompany,

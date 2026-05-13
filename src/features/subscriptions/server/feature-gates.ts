@@ -118,27 +118,14 @@ export function remainingKycVerifications(subscription: VendorSubscription | nul
 
 // ── Card authorization window for deposit holds ─────────────────────────────
 
-export function getCardAuthorizationWindowDays(subscription: VendorSubscription | null | undefined) {
-  if (!hasActiveSubscription(subscription) || !subscription) {
-    return 7
-  }
-
-  switch (subscription.planKey) {
-    case SubscriptionPlanKey.STARTER:
-      return 7
-    case SubscriptionPlanKey.PRO:
-    case SubscriptionPlanKey.BUSINESS:
-    case SubscriptionPlanKey.ENTERPRISE:
-      return 30
-    default:
-      return 7
-  }
+export function getCardAuthorizationWindowDays(_subscription: VendorSubscription | null | undefined) {
+  return 7
 }
 
 export function shouldRequestExtendedCardAuthorization(
-  subscription: VendorSubscription | null | undefined
+  _subscription: VendorSubscription | null | undefined
 ) {
-  return getCardAuthorizationWindowDays(subscription) > 7
+  return false
 }
 
 // ── Team Users (concurrent count) ────────────────────────────────────────────

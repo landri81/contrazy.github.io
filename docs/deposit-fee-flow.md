@@ -1,21 +1,23 @@
 # Conntrazy — Deposit & Fee Flow
 
 > **Audience:** Internal / client showcase  
-> **Last updated:** 2026-05-13  
+> **Last updated:** 2026-05-14  
 > **Scope:** Security-deposit lifecycle, fee collection, auto-refund automation, and Resend inbound forwarding
 
 ---
 
-## 1. Deposit Strategy by Plan
+## 1. Deposit Strategy by Vendor Choice
 
-Every transaction that includes a security deposit follows one of two strategies, assigned automatically based on the vendor's active subscription plan.
+Every transaction that includes a security deposit stores a transaction-level `depositHoldDays` value.
+Starter is locked to the included 7-day authorization hold. Pro, Business, and Enterprise can keep 7 days for free or choose 8-30 days after accepting the long-deposit vendor fee.
 
-| Plan | Strategy | Window | Platform fee |
-|------|----------|--------|--------------|
-| **Starter** | `AUTHORIZATION_HOLD` | 7 days | Only on capture |
-| **Pro** | `CHARGE_REFUND` | 14 days | Collected at charge, returned on refund |
-| **Business** | `CHARGE_REFUND` | 30 days | Collected at charge, returned on refund |
-| **Enterprise** | `CHARGE_REFUND` | 30 days | Collected at charge, returned on refund |
+| Plan | Vendor choice | Strategy | Platform fee |
+|------|---------------|----------|--------------|
+| **Starter** | 7 days only | `AUTHORIZATION_HOLD` | Only on capture |
+| **Pro** | 7 days | `AUTHORIZATION_HOLD` | Only on capture |
+| **Pro** | 8-30 days, accepted fee | `CHARGE_REFUND` | Collected at charge and retained as vendor cost |
+| **Business / Enterprise** | 7 days | `AUTHORIZATION_HOLD` | Only on capture |
+| **Business / Enterprise** | 8-30 days, accepted fee | `CHARGE_REFUND` | Collected at charge and retained as vendor cost |
 
 > **AUTHORIZATION_HOLD** — Stripe places a temporary hold on the customer's card. Money is never moved until the vendor explicitly captures it.  
 > **CHARGE_REFUND** — Stripe immediately charges the customer's card. An automatic refund is issued at the end of the window unless the vendor decides to keep the deposit.
@@ -25,24 +27,24 @@ Every transaction that includes a security deposit follows one of two strategies
 ## 2. Fee Structure
 
 ```
-Total cost to vendor on a captured deposit
-──────────────────────────────────────────
-Stripe processing fee   1.5% + €0.25   (deducted by Stripe)
-Platform margin         0.5%            (collected by Conntrazy)
-                        ─────────────────────────────────────
-Total fee on capture    ≈ 2% + €0.25
+Total cost to vendor when fees apply
+────────────────────────────────────
+Stripe processing estimate   1.5% + €0.25
+Platform margin              0.5%
+                             ─────────────
+Total estimate               ≈ 2% + €0.25
 
-Example — €1,000 deposit captured in full:
+Example — €1,000 deposit:
   Stripe fee        €15.25
   Platform fee      €5.00
-  Vendor receives   €979.75
+  Estimated cost    €20.25
 
-No fee on:  release · refund · cancellation · service payments
+7-day authorization holds do not create the long-deposit fee. For long deposits, the customer pays only the deposit amount; the vendor accepts the Stripe cost plus 0.5% Contrazy margin.
 ```
 
 ---
 
-## 3. Strategy A — AUTHORIZATION_HOLD (Starter)
+## 3. Strategy A — AUTHORIZATION_HOLD (7-day choice)
 
 ### How it works
 
@@ -96,11 +98,11 @@ flowchart LR
 
 ---
 
-## 4. Strategy B — CHARGE_REFUND (Pro / Business)
+## 4. Strategy B — CHARGE_REFUND (8-30 day choice)
 
 ### How it works
 
-The customer's card is charged immediately (automatic capture). The platform fee is collected upfront via `application_fee_amount`. An auto-refund is scheduled for day 14 (Pro) or day 30 (Business). The vendor can override at any time before the deadline.
+The customer's card is charged immediately (automatic capture). The platform fee is collected upfront via `application_fee_amount`. An auto-refund is scheduled using the transaction's selected `depositHoldDays`. The vendor can override at any time before the deadline.
 
 ```mermaid
 sequenceDiagram
@@ -115,7 +117,7 @@ sequenceDiagram
     C->>S: Card charged (capture_method: automatic)\napplication_fee_amount = 0.5%
     S-->>P: 0.5% fee collected immediately
     S-->>C: Receipt issued (statement: DEPOSIT / DÉPÔT GARANTIE)
-    S-->>DB: status = SUCCEEDED\ndepositAutoRefundAt = Day 14 or 30
+    S-->>DB: status = SUCCEEDED\ndepositAutoRefundAt = selected duration
 
     note over C,CR: Auto-refund window active
 
@@ -124,18 +126,18 @@ sequenceDiagram
         note over S: No Stripe call needed\nMoney already settled
         note over P: Platform fee already collected ✓
     else Vendor refunds early
-        V->>S: refunds.create(refund_application_fee: true)
-        S-->>P: Platform fee returned to vendor
+        V->>S: refunds.create()
+        note over P: Platform fee remains vendor cost
         S-->>C: Full refund issued
         S-->>DB: status = RELEASED
     else Auto-refund (deadline passed, cron)
-        CR->>S: refunds.create(refund_application_fee: true)
-        S-->>P: Platform fee returned to vendor
+        CR->>S: refunds.create()
+        note over P: Platform fee remains vendor cost
         S-->>C: Full refund issued
         S-->>DB: status = RELEASED\ndepositRefundedAt = now
     else Transaction cancelled
-        V->>S: refunds.create(refund_application_fee: true)
-        S-->>P: Platform fee returned to vendor
+        V->>S: refunds.create()
+        note over P: Platform fee remains vendor cost
         S-->>C: Full refund issued
         S-->>DB: status = CANCELLED
     end
@@ -148,9 +150,9 @@ flowchart LR
     A([Card charged immediately\napplication_fee_amount = 0.5%]) --> B{Vendor decision}
 
     B -->|Keeps before deadline| C([status = CAPTURED\nPlatform keeps fee ✓])
-    B -->|Refunds early| D([stripe.refunds.create\nrefund_application_fee: true\nPlatform fee returned])
-    B -->|No action — cron fires| E([Auto-refund at deadline\nrefund_application_fee: true\nPlatform fee returned])
-    B -->|Cancels transaction| F([Refund on cancel\nrefund_application_fee: true\nPlatform fee returned])
+    B -->|Refunds early| D([stripe.refunds.create\nPlatform fee retained as vendor cost])
+    B -->|No action — cron fires| E([Auto-refund at deadline\nPlatform fee retained as vendor cost])
+    B -->|Cancels transaction| F([Refund on cancel\nPlatform fee retained as vendor cost])
 ```
 
 ---
@@ -159,15 +161,13 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    START([New transaction with deposit]) --> PLAN{Vendor plan?}
+    START([New transaction with deposit]) --> PLAN{Vendor plan and selected days?}
 
-    PLAN -->|Starter| AUTH[AUTHORIZATION_HOLD\n7-day card hold]
-    PLAN -->|Pro| CR14[CHARGE_REFUND\n14-day window]
-    PLAN -->|Business / Enterprise| CR30[CHARGE_REFUND\n30-day window]
+    PLAN -->|Starter or 7 days| AUTH[AUTHORIZATION_HOLD\n7-day card hold]
+    PLAN -->|Pro / Business / Enterprise\n8-30 days + accepted fee| CR_LONG[CHARGE_REFUND\nselected duration]
 
     AUTH --> AUTH_PAY[Customer authorises card\nNo money moved yet]
-    CR14 --> CR_PAY[Customer card charged\n0.5% fee collected now]
-    CR30 --> CR_PAY
+    CR_LONG --> CR_PAY[Customer card charged\n0.5% fee collected now]
 
     AUTH_PAY --> AUTH_ACTIVE{Vendor action?}
     CR_PAY --> CR_ACTIVE{Vendor action before deadline?}
@@ -177,18 +177,18 @@ flowchart TD
     AUTH_ACTIVE -->|Cancel tx| AUTH_CAN[stripe.paymentIntents.cancel\nNo fee]
 
     CR_ACTIVE -->|Keep before deadline| CR_CAP[status = CAPTURED\nNo Stripe call\nFee already settled]
-    CR_ACTIVE -->|Refund early| CR_REL[stripe.refunds.create\nrefund_application_fee: true\nFee returned]
-    CR_ACTIVE -->|Cancel tx| CR_CAN[stripe.refunds.create\nrefund_application_fee: true\nFee returned]
-    CR_ACTIVE -->|No action| CR_CRON[Hourly cron fires at deadline\nstripe.refunds.create\nrefund_application_fee: true\nFee returned]
+    CR_ACTIVE -->|Refund early| CR_REL[stripe.refunds.create\nFee retained as vendor cost]
+    CR_ACTIVE -->|Cancel tx| CR_CAN[stripe.refunds.create\nFee retained as vendor cost]
+    CR_ACTIVE -->|No action| CR_CRON[Hourly cron fires at deadline\nstripe.refunds.create\nFee retained as vendor cost]
 
     AUTH_CAP --> FEE_YES([Fee collected ✓\n1.5%+€0.25 → Stripe\n0.5% → Platform])
     CR_CAP --> FEE_YES
 
     AUTH_REL --> FEE_NO([No fee ✓])
     AUTH_CAN --> FEE_NO
-    CR_REL --> FEE_NO
-    CR_CAN --> FEE_NO
-    CR_CRON --> FEE_NO
+    CR_REL --> FEE_YES
+    CR_CAN --> FEE_YES
+    CR_CRON --> FEE_YES
 ```
 
 ---
@@ -206,7 +206,7 @@ flowchart TD
 
     QUERY --> LOOP{For each deposit}
 
-    LOOP -->|Has Stripe intent| REFUND[stripe.refunds.create\nrefund_application_fee: true]
+    LOOP -->|Has Stripe intent| REFUND[stripe.refunds.create\napplication fee retained]
     LOOP -->|No intent| SKIP([Skip — log warning])
 
     REFUND -->|Success| UPDATE[Update DB:\nstatus = RELEASED\ndepositRefundedAt = now\ndepositRefundId = refund.id]
@@ -276,8 +276,8 @@ stateDiagram-v2
     AUTHORIZED --> CANCELLED : Transaction cancelled\nno fee
 
     SUCCEEDED --> CAPTURED : Vendor keeps before deadline\nfee already collected
-    SUCCEEDED --> RELEASED : Vendor refunds early\nor auto-refund cron fires\nfee returned
-    SUCCEEDED --> CANCELLED : Transaction cancelled\nfee returned
+    SUCCEEDED --> RELEASED : Vendor refunds early\nor auto-refund cron fires\nfee retained as vendor cost
+    SUCCEEDED --> CANCELLED : Transaction cancelled\nfee retained as vendor cost
 
     CAPTURED --> [*]
     RELEASED --> [*]
@@ -341,5 +341,5 @@ RESEND_AUDIT_BCC_EMAIL=                  # Optional — BCC on every forwarded e
 | Duplicate webhook delivery | `WebhookEvent` unique constraint on `(provider, providerEventId)` |
 | Double refund | Cron checks `depositRefundedAt IS NULL` before acting |
 | Platform fee not collected on keep | `application_fee_amount` set at PaymentIntent creation for CHARGE_REFUND; Stripe guarantees it |
-| Platform fee charged on release | `refund_application_fee: true` on every CHARGE_REFUND refund |
+| Platform fee charged on release | CHARGE_REFUND refunds omit `refund_application_fee`, so the accepted fee remains vendor cost |
 | Secrets in logs | No payment secrets, keys, or webhook bodies logged in production paths |

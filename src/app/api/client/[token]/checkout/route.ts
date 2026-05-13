@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
 import type Stripe from "stripe"
 
-import { shouldRequestExtendedCardAuthorization } from "@/features/subscriptions/server/feature-gates"
+import {
+  getDepositAutoRefundDays,
+  getDepositStrategy,
+} from "@/features/subscriptions/server/deposit-strategy"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -77,9 +80,21 @@ export async function POST(
     const origin = getAppBaseUrl()
     const lineItemAmount = nextStage === "service_payment" ? transaction.amount! : transaction.depositAmount!
     const lineItemName = nextStage === "service_payment" ? "Service Payment" : "Security Deposit"
-    const requestExtendedAuthorization =
-      nextStage === "deposit_authorization" &&
-      shouldRequestExtendedCardAuthorization(transaction.vendor.subscription)
+    const isDeposit = nextStage === "deposit_authorization"
+    const depositHoldDays = transaction.depositHoldDays ?? 7
+    const depositStrategy = isDeposit
+      ? getDepositStrategy(transaction.vendor.subscription, depositHoldDays)
+      : null
+    const isChargeRefund = depositStrategy === "CHARGE_REFUND"
+    const depositAutoRefundAt = isDeposit && isChargeRefund
+      ? new Date(Date.now() + getDepositAutoRefundDays(transaction.vendor.subscription, depositHoldDays) * 24 * 60 * 60 * 1000).toISOString()
+      : null
+    const depositPlatformFee = isDeposit && isChargeRefund
+      ? Math.round(lineItemAmount * 0.005)
+      : undefined
+    const statementDescriptorSuffix = isDeposit && isChargeRefund
+      ? (transaction.locale === "fr" ? "DEPOT GARANTIE" : "DEPOSIT")
+      : undefined
     const returnsToPayment =
       nextStage === "service_payment" && Boolean(transaction.depositAmount && transaction.depositAmount > 0)
     const successPath = returnsToPayment
@@ -121,16 +136,21 @@ export async function POST(
     }
 
     sessionConfig.payment_intent_data =
-      nextStage === "deposit_authorization"
+      isDeposit
         ? {
-            capture_method: "manual",
+            capture_method: isChargeRefund ? "automatic" : "manual",
+            ...(statementDescriptorSuffix ? { statement_descriptor_suffix: statementDescriptorSuffix } : {}),
+            ...(depositPlatformFee ? { application_fee_amount: depositPlatformFee } : {}),
             metadata: {
               transactionId: transaction.id,
               vendorId: transaction.vendorId,
               kind: transaction.kind,
               financeStage: nextStage,
               token,
-              authorizationWindowDays: String(requestExtendedAuthorization ? 30 : 7),
+              depositStrategy: depositStrategy ?? "AUTHORIZATION_HOLD",
+              depositHoldDays: String(depositHoldDays),
+              ...(depositAutoRefundAt ? { depositAutoRefundAt } : {}),
+              ...(depositPlatformFee ? { depositPlatformFeeAmount: String(depositPlatformFee) } : {}),
             },
           }
         : {
@@ -152,13 +172,19 @@ export async function POST(
     await recordTransactionEvent(prisma, {
       transactionId: transaction.id,
       type: "PAYMENT_SESSION_CREATED",
-      title: nextStage === "service_payment" ? "Service payment requested" : "Deposit authorization requested",
+      title:
+        nextStage === "service_payment"
+          ? "Service payment requested"
+          : isChargeRefund
+            ? "Deposit charge requested"
+            : "Deposit authorization requested",
       detail: `${lineItemName} session created in Stripe Checkout.`,
       dedupeKey: `event:checkout-session:${transaction.id}:${nextStage}:${stripeSession.id}`,
       metadata: {
         sessionId: stripeSession.id,
         financeStage: nextStage,
-        authorizationWindowDays: requestExtendedAuthorization ? 30 : 7,
+        depositStrategy,
+        depositHoldDays: isDeposit ? depositHoldDays : null,
       },
     })
 

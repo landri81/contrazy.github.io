@@ -63,12 +63,12 @@ export async function POST(
 
     if (action === "release") {
       if (isChargeRefund) {
-        // Issue a Stripe refund + return the platform application fee to the vendor
+        // Issue a Stripe refund. The application fee remains as the vendor's
+        // accepted long-deposit platform cost.
         const refund = await stripe.refunds.create(
           {
             payment_intent: depositAuth.stripeIntentId,
             reason: "requested_by_customer",
-            refund_application_fee: true,
           },
           stripeOpts
         )

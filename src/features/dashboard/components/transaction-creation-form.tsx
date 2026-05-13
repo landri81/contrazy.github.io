@@ -390,6 +390,7 @@ type TransactionCreationFormState = {
   notes: string
   amount: string
   depositAmount: string
+  depositHoldDays: string
   contractId: string
   checklistId: string
   requiresKyc: boolean
@@ -456,6 +457,7 @@ function createInitialFormState(
     notes: initialValues?.notes ?? "",
     amount: initialValues?.amount ?? "",
     depositAmount: initialValues?.depositAmount ?? "",
+    depositHoldDays: String(initialValues?.depositHoldDays ?? 7),
     contractId: initialValues?.contractTemplateId ?? "none",
     checklistId: initialValues?.checklistTemplateId ?? "none",
     requiresKyc: initialValues?.requiresKyc ?? false,
@@ -481,6 +483,7 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
     notes: state.notes,
     amount: state.amount,
     depositAmount: state.depositAmount,
+    depositHoldDays: state.depositHoldDays,
     contractId: state.contractId,
     checklistId: state.checklistId,
     requiresKyc: state.requiresKyc,
@@ -842,6 +845,8 @@ export function TransactionCreationForm({
   const [notes, setNotes] = useState(initialFormState.notes)
   const [amount, setAmount] = useState(initialFormState.amount)
   const [depositAmount, setDepositAmount] = useState(initialFormState.depositAmount)
+  const [depositHoldDays, setDepositHoldDays] = useState(initialFormState.depositHoldDays)
+  const [longDepositFeeAccepted, setLongDepositFeeAccepted] = useState(false)
   const [contractId, setContractId] = useState<string>(initialFormState.contractId)
   const [checklistId, setChecklistId] = useState<string>(initialFormState.checklistId)
   const [requiresKyc, setRequiresKyc] = useState(initialFormState.requiresKyc)
@@ -882,7 +887,23 @@ export function TransactionCreationForm({
 
   const amountNum = Number.parseFloat(amount) || 0
   const depositNum = Number.parseFloat(depositAmount) || 0
+  const depositHoldDaysValue = Number(depositHoldDays)
+  const depositHoldDaysNum = Number.isFinite(depositHoldDaysValue)
+    ? Math.trunc(depositHoldDaysValue)
+    : 7
+  const hasValidDepositHoldDays =
+    Number.isInteger(depositHoldDaysValue) &&
+    depositHoldDaysValue >= 7 &&
+    depositHoldDaysValue <= 30
   const depositPricing = depositNum > 0 ? depositFee(depositNum) : null
+  const isStarterPlan = usage?.planSlug === "starter" || !usage?.planSlug
+  const canChooseLongDeposit = !isStarterPlan
+  const isLongDeposit = depositNum > 0 && depositHoldDaysNum > 7
+  const depositDaysInvalid =
+    canChooseLongDeposit &&
+    depositNum > 0 &&
+    depositHoldDays !== "" &&
+    !hasValidDepositHoldDays
   const financeDisabled = !hasStripe || !canLaunch
   const qrRemaining = usage?.qrCodes.remaining ?? null
   const canUseKycInPlan = usage?.kyc.allowed ?? false
@@ -943,6 +964,7 @@ export function TransactionCreationForm({
             notes,
             amount,
             depositAmount,
+            depositHoldDays,
             contractId,
             checklistId,
             requiresKyc,
@@ -968,6 +990,7 @@ export function TransactionCreationForm({
       checklistId,
       contractId,
       depositAmount,
+      depositHoldDays,
       enableCheckInOut,
       generateQr,
       isBulkMode,
@@ -1061,6 +1084,19 @@ export function TransactionCreationForm({
       setGenerateQr(false)
     }
   }, [generateQr, isBulkMode])
+
+  useEffect(() => {
+    if (!canChooseLongDeposit && depositHoldDays !== "7") {
+      setDepositHoldDays("7")
+      setLongDepositFeeAccepted(false)
+    }
+  }, [canChooseLongDeposit, depositHoldDays])
+
+  useEffect(() => {
+    if (!isLongDeposit && longDepositFeeAccepted) {
+      setLongDepositFeeAccepted(false)
+    }
+  }, [isLongDeposit, longDepositFeeAccepted])
 
   useEffect(() => {
     onDirtyChange?.(isDirty)
@@ -1436,6 +1472,25 @@ export function TransactionCreationForm({
         setStepError(t("errorMinDeposit"))
         return false
       }
+
+      if (depositNum > 0) {
+        if (
+          !hasValidDepositHoldDays
+        ) {
+          setStepError(t("errorDepositDuration"))
+          return false
+        }
+
+        if (isLongDeposit && !canChooseLongDeposit) {
+          setStepError(t("errorDepositDurationStarter"))
+          return false
+        }
+
+        if (isLongDeposit && !longDepositFeeAccepted) {
+          setStepError(t("errorLongDepositAcceptance"))
+          return false
+        }
+      }
     }
 
     if (step === 4) {
@@ -1511,6 +1566,28 @@ export function TransactionCreationForm({
       return
     }
 
+    if (depositNum > 0) {
+      if (
+        !hasValidDepositHoldDays
+      ) {
+        setError(t("errorDepositDuration"))
+        navigate(2)
+        return
+      }
+
+      if (isLongDeposit && !canChooseLongDeposit) {
+        setError(t("errorDepositDurationStarter"))
+        navigate(2)
+        return
+      }
+
+      if (isLongDeposit && !longDepositFeeAccepted) {
+        setError(t("errorLongDepositAcceptance"))
+        navigate(2)
+        return
+      }
+    }
+
     if (customFields.length > 0 && contractId === "none") {
       setError(t("errorCustomFieldsContract"))
       navigate(4)
@@ -1534,6 +1611,8 @@ export function TransactionCreationForm({
         checklistTemplateId: checklistId === "none" ? null : checklistId,
         amount: amount ? parseEur(amount) : null,
         depositAmount: depositAmount ? parseEur(depositAmount) : null,
+        depositHoldDays: depositNum > 0 ? depositHoldDaysNum : 7,
+        depositLongTermFeeAccepted: isLongDeposit && longDepositFeeAccepted,
         requiresKyc,
         generateQr: isBulkMode ? false : generateQr,
         paymentCollectionTiming,
@@ -1651,6 +1730,8 @@ export function TransactionCreationForm({
     setChecklistId(nextInitialState.checklistId)
     setAmount(nextInitialState.amount)
     setDepositAmount(nextInitialState.depositAmount)
+    setDepositHoldDays(nextInitialState.depositHoldDays)
+    setLongDepositFeeAccepted(false)
     setRequiresKyc(nextInitialState.requiresKyc)
     setGenerateQr(nextInitialState.generateQr)
     setPaymentCollectionTiming(nextInitialState.paymentCollectionTiming)
@@ -2299,12 +2380,91 @@ export function TransactionCreationForm({
                           value={depositAmount}
                           onChange={(event) => {
                             setDepositAmount(event.target.value)
+                            setLongDepositFeeAccepted(false)
                             setStepError(null)
                           }}
                           disabled={financeDisabled}
                           className={controlClass}
                         />
                       </Field>
+
+                      {depositNum > 0 ? (
+                        <div className="space-y-2 rounded-sm border border-border bg-muted/20 p-3">
+                          <Field id="depositHoldDays" label={t("depositDurationLabel")}>
+                            <Input
+                              id="depositHoldDays"
+                              type="number"
+                              min="7"
+                              max="30"
+                              step="1"
+                              value={canChooseLongDeposit ? depositHoldDays : "7"}
+                              onChange={(event) => {
+                                const raw = event.target.value
+                                // Allow free typing but strip decimals and leading zeros
+                                const cleaned = raw.replace(/[^0-9]/g, "")
+                                setDepositHoldDays(cleaned === "" ? "" : String(parseInt(cleaned, 10)))
+                                setLongDepositFeeAccepted(false)
+                                setStepError(null)
+                              }}
+                              onBlur={(event) => {
+                                if (!canChooseLongDeposit) return
+                                const val = parseInt(event.target.value, 10)
+                                if (isNaN(val) || val < 7) {
+                                  setDepositHoldDays("7")
+                                } else if (val > 30) {
+                                  setDepositHoldDays("30")
+                                } else {
+                                  setDepositHoldDays(String(val))
+                                }
+                              }}
+                              disabled={financeDisabled || !canChooseLongDeposit}
+                              className={`${controlClass} ${depositDaysInvalid ? "border-destructive ring-destructive/20" : ""}`}
+                            />
+                          </Field>
+
+                          {!canChooseLongDeposit ? (
+                            <p className="text-xs leading-5 text-muted-foreground">
+                              {t("depositDurationStarterLocked")}
+                            </p>
+                          ) : depositDaysInvalid ? (
+                            <p className="text-xs leading-5 text-destructive">
+                              {t("errorDepositDuration")}
+                            </p>
+                          ) : (
+                            <p className="text-xs leading-5 text-muted-foreground">
+                              {t("depositDurationChoiceHint")}
+                            </p>
+                          )}
+
+                          {isLongDeposit && depositPricing ? (
+                            <div className="space-y-2 rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                                <p className="leading-5">
+                                  {t("longDepositWarning", {
+                                    days: depositHoldDaysNum,
+                                    stripeFee: `€${depositPricing.stripeFee.toFixed(2)}`,
+                                    platformFee: `€${depositPricing.platformFee.toFixed(2)}`,
+                                    totalFee: `€${depositPricing.total.toFixed(2)}`,
+                                  })}
+                                </p>
+                              </div>
+                              <label className="flex cursor-pointer items-start gap-2 text-xs font-medium leading-5 text-destructive">
+                                <input
+                                  type="checkbox"
+                                  checked={longDepositFeeAccepted}
+                                  onChange={(event) => {
+                                    setLongDepositFeeAccepted(event.target.checked)
+                                    setStepError(null)
+                                  }}
+                                  className="mt-1 size-3.5 cursor-pointer accent-red-600"
+                                />
+                                <span>{t("longDepositAcceptLabel")}</span>
+                              </label>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
 
                       {depositNum > 0 ? (
                         <dl className="space-y-1 border-t border-border pt-2 text-xs">
@@ -2321,7 +2481,9 @@ export function TransactionCreationForm({
                             <dd>€{depositPricing?.platformFee.toFixed(2)}</dd>
                           </div>
                           <div className="border-t border-border pt-1.5 text-muted-foreground">
-                            {t("ifCaptured", { amount: `€${depositPricing?.vendorNet.toFixed(2)}` })}
+                            {isLongDeposit
+                              ? t("longDepositFeeSummary")
+                              : t("ifCaptured", { amount: `€${depositPricing?.vendorNet.toFixed(2)}` })}
                           </div>
                         </dl>
                       ) : null}
@@ -3121,6 +3283,15 @@ export function TransactionCreationForm({
                           <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
                             <dt className="text-muted-foreground">{t("summaryDeposit")}</dt>
                             <dd className="font-medium text-foreground">€{depositNum.toFixed(2)}</dd>
+                          </div>
+                        ) : null}
+
+                        {depositNum > 0 ? (
+                          <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
+                            <dt className="text-muted-foreground">{t("summaryDepositDuration")}</dt>
+                            <dd className="font-medium text-foreground">
+                              {t("summaryDepositDurationDays", { count: depositHoldDaysNum })}
+                            </dd>
                           </div>
                         ) : null}
 

@@ -264,17 +264,18 @@ export async function PATCH(
 
     const stripeOpts = getConnectedAccountRequestOptions(tx.vendor?.stripeAccountId)
     let clientWinsRefundId: string | null = null
+    let clientWinsRefundAmount: number | null = null
 
     if (isChargeRefund) {
       const refund = await stripe.refunds.create(
         {
           payment_intent: depositAuth.stripeIntentId,
           reason: "requested_by_customer",
-          refund_application_fee: true,
         },
         stripeOpts
       )
       clientWinsRefundId = refund.id
+      clientWinsRefundAmount = refund.amount
     } else {
       await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
     }
@@ -286,7 +287,7 @@ export async function PATCH(
           status: "RELEASED",
           releasedAt: now,
           ...(isChargeRefund && clientWinsRefundId
-            ? { depositRefundedAt: now, depositRefundId: clientWinsRefundId }
+            ? { depositRefundedAt: now, depositRefundId: clientWinsRefundId, depositRefundedAmount: clientWinsRefundAmount }
             : {}),
         },
       })

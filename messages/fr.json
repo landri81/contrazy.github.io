@@ -998,7 +998,7 @@
         "card": {
           "title": "Caution active",
           "description": "Le montant est bloqué sur la carte du client. Choisissez l'action suivante pour cette transaction.",
-          "descriptionChargeRefund": "Le dépôt a été prélevé sur la carte du client. Un remboursement automatique sera effectué sauf si vous le conservez."
+          "descriptionChargeRefund": "Le dépôt a été prélevé sur la carte du client. Un remboursement automatique sera effectué sauf si vous le conservez. Les frais acceptés de caution longue restent à la charge du vendeur."
         },
         "chargeRefundBanner": {
           "autoRefundOn": "Remboursement automatique prévu le {date} sauf si vous conservez le dépôt."
@@ -1011,7 +1011,7 @@
           "release": "Libérer la caution",
           "releaseDetail": "Restituer le blocage au client",
           "releaseChargeRefund": "Rembourser maintenant",
-          "releaseChargeRefundDetail": "Émettre un remboursement immédiat au client",
+          "releaseChargeRefundDetail": "Rembourser le client immédiatement ; les frais vendeur restent dus",
           "dispute": "Ouvrir un litige",
           "disputeDetail": "Signaler un problème sur cette transaction",
           "cancel": "Annuler la transaction",
@@ -1594,12 +1594,18 @@
         "recreateMissingContractWarning": "Le modèle de contrat d'origine \"{template}\" n'est plus disponible. Choisissez un modèle de contrat avant de lancer cette transaction recréée.",
         "depositTitle": "Caution de sécurité",
         "depositBadge": "Prioritaire",
-        "depositDesc": "La carte est uniquement bloquée. Capturez ou libérez après la fin du travail.",
+        "depositDesc": "Choisissez le montant et la durée de la caution pour cette transaction.",
         "depositHoldLabel": "Montant de blocage (EUR)",
+        "depositDurationLabel": "Durée de la caution (jours)",
+        "depositDurationStarterLocked": "Le plan Starter inclut uniquement le blocage carte standard de 7 jours.",
+        "depositDurationChoiceHint": "Choisissez 7 jours pour le blocage carte inclus, ou 8 à 30 jours pour une caution débitée puis remboursable avec frais vendeur.",
+        "longDepositWarning": "Cette caution de {days} jours dépasse le blocage gratuit de 7 jours. En acceptant, vous confirmez que le vendeur supporte le coût Stripe estimé ({stripeFee}) plus la marge Contrazy ({platformFee}), soit {totalFee} estimés au total.",
+        "longDepositAcceptLabel": "J'accepte les frais vendeur de caution longue pour cette transaction.",
         "holdAmount": "Montant bloqué",
         "stripeFeeEstimate": "Estimation des frais Stripe",
         "platformMargin": "Marge Conntrazy",
         "ifCaptured": "Si capturé vous recevez {amount}.",
+        "longDepositFeeSummary": "Pour les cautions longues, ce coût vendeur est collecté lorsque la caution remboursable est débitée. Le client paie uniquement le montant de la caution.",
         "servicePaymentTitle": "Paiement de service",
         "servicePaymentOptional": "Facultatif",
         "servicePaymentDesc": "Débité immédiatement. Les frais Stripe sont déduits du montant collecté.",
@@ -1671,6 +1677,8 @@
         "summaryRecipientsCount": "{count} email(s)",
         "summaryType": "Type",
         "summaryDeposit": "Blocage de caution",
+        "summaryDepositDuration": "Durée de caution",
+        "summaryDepositDurationDays": "{count} jour(s)",
         "summaryService": "Paiement de service",
         "summaryTiming": "Calendrier de paiement",
         "summaryContract": "Contrat",
@@ -1755,6 +1763,9 @@
         "errorAmount": "Définissez au moins un montant — un blocage de caution, un paiement de service, ou les deux.",
         "errorMinService": "Le paiement de service minimum est de €0,50",
         "errorMinDeposit": "Le blocage de caution minimum est de €0,50",
+        "errorDepositDuration": "La durée de caution doit être comprise entre 7 et 30 jours.",
+        "errorDepositDurationStarter": "Les transactions du plan Starter doivent utiliser le blocage de caution inclus de 7 jours.",
+        "errorLongDepositAcceptance": "Acceptez les frais vendeur de caution longue avant de lancer.",
         "errorRequirements": "Complétez chaque libellé d'exigence et ajoutez un libellé de catégorie personnalisée lorsque vous utilisez Autre.",
         "errorCustomFields": "Complétez chaque libellé de champ client et ajoutez au moins deux options pour chaque champ de type liste.",
         "errorCustomFieldsContract": "Choisissez un modèle de contrat avant d'ajouter des champs client à compléter avant la signature.",
@@ -2686,17 +2697,20 @@
       "preparingPayment": "Préparation du paiement sécurisé…",
       "confirmingPayment": "Confirmation de votre paiement…",
       "takingMoment": "Cela ne prendra qu'un instant.",
-      "depositAuthorized": "Caution autorisée",
+      "depositAuthorized": "Caution confirmée",
       "paymentConfirmed": "Paiement confirmé",
       "loadingServicePayment": "Chargement du paiement du service…",
       "nextStep": "Redirection vers l'étape suivante…",
       "securityDepositHold": "Blocage de caution",
+      "refundableSecurityDeposit": "Caution remboursable",
       "cardHeldNotCharged": "Carte bloquée — non débitée jusqu'à l'action du vendeur",
+      "refundableDepositChargedNow": "Débitée maintenant comme caution remboursable jusqu'à {days} jour(s)",
       "chargedNow": "Débité sur votre carte maintenant",
       "cardDetails": "Coordonnées de carte",
       "stripeNote": "Les paiements sont traités de manière sécurisée par Stripe. Les coordonnées de carte ne sont jamais stockées sur nos serveurs.",
       "processing": "Traitement…",
       "depositHoldLabel": "Blocage de caution",
+      "refundableDepositLabel": "Caution remboursable",
       "servicePaymentLabel": "Paiement du service",
       "loadError": "Impossible de charger le paiement",
       "tryAgain": "Réessayer",
@@ -2706,6 +2720,7 @@
       "confirmError": "Impossible de confirmer le paiement. Contactez le support.",
       "securedByStripe": "Paiements sécurisés par Stripe",
       "authorizeHold": "Autoriser le hold de {amount}",
+      "payDepositNow": "Payer la caution de {amount}",
       "payNow": "Payer {amount} maintenant",
       "stepOf": "Étape {step} sur {total}"
     }
@@ -3447,7 +3462,7 @@
           "4": "1 modèle de contrat",
           "5": "Envoi par email",
           "6": "Stripe Identity inclus",
-          "7": "Autorisation carte 7 jours"
+          "7": "Contrôles d'autorisation de caution"
         }
       },
       "pro": {
@@ -3463,7 +3478,7 @@
           "4": "Contrats générés automatiquement",
           "5": "QR codes illimités",
           "6": "Profils clients persistants",
-          "7": "Fenêtre de remboursement dépôt 14 jours"
+          "7": "Contrôles avancés de caution"
         }
       },
       "business": {
@@ -3478,7 +3493,7 @@
           "2": "Contrats illimités",
           "3": "Workflow de gestion des litiges",
           "4": "3 utilisateurs",
-          "5": "Fenêtre de remboursement dépôt 30 jours"
+          "5": "Contrôles de caution en équipe"
         }
       },
       "enterprise": {

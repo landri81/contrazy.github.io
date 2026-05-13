@@ -70,6 +70,7 @@ type RecreateInitialValueSource = {
   notes: string | null
   amount: number | null
   depositAmount: number | null
+  depositHoldDays: number
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean
@@ -157,6 +158,7 @@ export function buildTransactionCreationInitialValues(
     notes: source.notes ?? "",
     amount: formatAmountForInput(source.amount),
     depositAmount: formatAmountForInput(source.depositAmount),
+    depositHoldDays: source.depositHoldDays ?? 7,
     contractTemplateId: hasContractTemplate ? source.contractTemplateId : null,
     checklistTemplateId: hasChecklistTemplate ? source.checklistTemplateId : null,
     requiresKyc: source.requiresKyc,

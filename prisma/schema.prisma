@@ -414,6 +414,10 @@ model Transaction {
   currency           String             @default("EUR")
   amount             Int?
   depositAmount      Int?
+  depositHoldDays    Int                @default(7)
+  depositLongTermStripeFeeEstimateAmount Int?
+  depositLongTermPlatformFeeAmount Int?
+  depositLongTermFeeAcceptedAt DateTime?
   requiresKyc        Boolean            @default(false)
   requireClientCompany Boolean          @default(false)
   stripePaymentIntentId String?

@@ -57,7 +57,6 @@ export async function GET(request: Request) {
         {
           payment_intent: deposit.stripeIntentId,
           reason: "requested_by_customer",
-          refund_application_fee: true,
         },
         stripeOpts
       )

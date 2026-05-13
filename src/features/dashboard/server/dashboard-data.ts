@@ -512,6 +512,7 @@ type VendorLinkSource = {
   kind: TransactionKind | string
   amount: number | null
   depositAmount: number | null
+  depositHoldDays?: number | null
   currency: string
   notes: string | null
   updatedAt: Date

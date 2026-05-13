@@ -4,7 +4,6 @@ import {
   getDepositAutoRefundDays,
   getDepositStrategy,
 } from "@/features/subscriptions/server/deposit-strategy"
-import { shouldRequestExtendedCardAuthorization } from "@/features/subscriptions/server/feature-gates"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -83,14 +82,13 @@ export async function POST(
     const amountCents = isDeposit ? transaction.depositAmount! : transaction.amount!
     const stripeAccountId = transaction.vendor.stripeAccountId
     const subscription = transaction.vendor.subscription
+    const depositHoldDays = transaction.depositHoldDays ?? 7
 
-    const depositStrategy = isDeposit ? getDepositStrategy(subscription) : null
+    const depositStrategy = isDeposit ? getDepositStrategy(subscription, depositHoldDays) : null
     const isChargeRefund = depositStrategy === "CHARGE_REFUND"
-    const requestExtendedAuthorization =
-      isDeposit && !isChargeRefund && shouldRequestExtendedCardAuthorization(subscription)
 
     const depositAutoRefundAt = isDeposit && isChargeRefund
-      ? new Date(Date.now() + getDepositAutoRefundDays(subscription) * 24 * 60 * 60 * 1000).toISOString()
+      ? new Date(Date.now() + getDepositAutoRefundDays(subscription, depositHoldDays) * 24 * 60 * 60 * 1000).toISOString()
       : null
 
     const isFr = transaction.locale === "fr"
@@ -98,8 +96,8 @@ export async function POST(
       ? (isFr ? "DEPOT GARANTIE" : "DEPOSIT")
       : undefined
 
-    // For CHARGE_REFUND deposits the platform fee (0.5%) is collected at charge time.
-    // If the vendor later refunds, Stripe returns it via refund_application_fee: true.
+    // For long CHARGE_REFUND deposits the platform fee (0.5%) is collected at charge time.
+    // If the vendor later refunds the deposit, the platform fee remains the vendor cost.
     const depositPlatformFee = isDeposit && isChargeRefund
       ? Math.round(amountCents * 0.005)
       : undefined
@@ -121,7 +119,7 @@ export async function POST(
           ...(isDeposit && depositStrategy ? { depositStrategy } : {}),
           ...(depositAutoRefundAt ? { depositAutoRefundAt } : {}),
           ...(depositPlatformFee ? { depositPlatformFeeAmount: String(depositPlatformFee) } : {}),
-          ...(requestExtendedAuthorization ? { authorizationWindowDays: "30" } : {}),
+          ...(isDeposit ? { depositHoldDays: String(depositHoldDays) } : {}),
         },
         description: `${transaction.title} — ${isDeposit ? "Security Deposit" : "Service Payment"} (${transaction.reference})`,
         receipt_email: transaction.clientProfile?.email ?? undefined,
@@ -132,13 +130,18 @@ export async function POST(
     await recordTransactionEvent(prisma, {
       transactionId: transaction.id,
       type: "PAYMENT_SESSION_CREATED",
-      title: isDeposit ? "Deposit authorization started" : "Service payment started",
+      title: isDeposit
+        ? isChargeRefund
+          ? "Deposit charge started"
+          : "Deposit authorization started"
+        : "Service payment started",
       detail: `PaymentIntent ${intent.id} created for ${isDeposit ? (isChargeRefund ? "deposit charge" : "deposit hold") : "service payment"}.`,
       dedupeKey: `event:payment-intent:${transaction.id}:${nextStage}:${intent.id}`,
       metadata: {
         intentId: intent.id,
         financeStage: nextStage,
         depositStrategy: depositStrategy ?? null,
+        depositHoldDays: isDeposit ? depositHoldDays : null,
         depositAutoRefundAt: depositAutoRefundAt ?? null,
       },
     })
@@ -155,6 +158,8 @@ export async function POST(
       title: transaction.title,
       reference: transaction.reference,
       paymentIntentId: intent.id,
+      depositStrategy: depositStrategy ?? null,
+      depositHoldDays: isDeposit ? depositHoldDays : null,
     })
   } catch (error) {
     console.error("Create Payment Intent Error:", error)

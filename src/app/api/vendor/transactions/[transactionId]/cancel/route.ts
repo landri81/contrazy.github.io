@@ -63,6 +63,7 @@ export async function POST(
 
     const isChargeRefund = depositAuth.depositStrategy === "CHARGE_REFUND"
     let depositRefundId: string | null = null
+    let depositRefundAmount: number | null = null
 
     await prisma.$transaction(async (tx) => {
       if (depositAuth.stripeIntentId) {
@@ -72,11 +73,11 @@ export async function POST(
               {
                 payment_intent: depositAuth.stripeIntentId,
                 reason: "requested_by_customer",
-                refund_application_fee: true,
               },
               getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
             )
             depositRefundId = refund.id
+            depositRefundAmount = refund.amount
           } else {
             await stripe.paymentIntents.cancel(
               depositAuth.stripeIntentId,
@@ -95,7 +96,7 @@ export async function POST(
           status: "CANCELLED",
           releasedAt: new Date(),
           ...(isChargeRefund && depositRefundId
-            ? { depositRefundedAt: new Date(), depositRefundId }
+            ? { depositRefundedAt: new Date(), depositRefundId, depositRefundedAmount: depositRefundAmount }
             : {}),
         },
       })

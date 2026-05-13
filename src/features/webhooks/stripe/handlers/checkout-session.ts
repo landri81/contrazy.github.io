@@ -3,10 +3,12 @@ import type Stripe from "stripe"
 import {
   syncTransactionFinanceState,
   upsertDepositAuthorization,
+  upsertDepositChargeFromIntent,
   upsertServicePayment,
 } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
+import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 import type { WebhookHandlerResult } from "@/features/webhooks/stripe/types"
 
 function extractSessionContext(session: Stripe.Checkout.Session): {
@@ -26,6 +28,32 @@ function extractSessionContext(session: Stripe.Checkout.Session): {
   }
 }
 
+async function retrieveCheckoutPaymentIntent(
+  transactionId: string,
+  paymentIntentId: string | null
+): Promise<Stripe.PaymentIntent | null> {
+  if (!paymentIntentId) {
+    return null
+  }
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    select: {
+      vendor: {
+        select: {
+          stripeAccountId: true,
+        },
+      },
+    },
+  })
+
+  return stripe.paymentIntents.retrieve(
+    paymentIntentId,
+    {},
+    getConnectedAccountRequestOptions(transaction?.vendor?.stripeAccountId)
+  )
+}
+
 /**
  * Handles `checkout.session.completed` and
  * `checkout.session.async_payment_succeeded`.
@@ -39,12 +67,21 @@ export async function handleCheckoutSuccess(
   eventId: string,
   eventType: string
 ): Promise<WebhookHandlerResult> {
-  const { vendorId, transactionId, financeStage } = extractSessionContext(session)
+  const { vendorId, transactionId, financeStage, paymentIntentId } = extractSessionContext(session)
 
   if (transactionId) {
+    const depositIntent =
+      financeStage === "deposit_authorization"
+        ? await retrieveCheckoutPaymentIntent(transactionId, paymentIntentId)
+        : null
+
     await prisma.$transaction(async (tx) => {
       if (financeStage === "deposit_authorization") {
-        await upsertDepositAuthorization(tx, transactionId, session)
+        if (depositIntent?.metadata?.depositStrategy === "CHARGE_REFUND") {
+          await upsertDepositChargeFromIntent(tx, transactionId, depositIntent)
+        } else {
+          await upsertDepositAuthorization(tx, transactionId, session)
+        }
       } else {
         await upsertServicePayment(tx, transactionId, session)
       }

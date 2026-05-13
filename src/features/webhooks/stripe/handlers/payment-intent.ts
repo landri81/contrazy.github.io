@@ -3,6 +3,7 @@ import type Stripe from "stripe"
 import {
   syncTransactionFinanceState,
   upsertDepositAuthorizationFromIntent,
+  upsertDepositChargeFromIntent,
   upsertServicePaymentFromIntent,
 } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -29,7 +30,24 @@ export async function handlePaymentIntentSucceeded(
 ): Promise<WebhookHandlerResult> {
   const { transactionId, vendorId, financeStage } = extractIntentContext(intent)
 
-  if (transactionId && financeStage !== "deposit_authorization") {
+  if (
+    transactionId &&
+    financeStage === "deposit_authorization" &&
+    intent.metadata?.depositStrategy === "CHARGE_REFUND"
+  ) {
+    await upsertDepositChargeFromIntent(prisma, transactionId, intent)
+
+    await recordTransactionEvent(prisma, {
+      transactionId,
+      type: "WEBHOOK_PROCESSED",
+      title: "Deposit charge webhook confirmed",
+      detail: `${eventType} processed for PaymentIntent ${intent.id}.`,
+      dedupeKey: `webhook:${eventId}`,
+      metadata: { eventId, eventType, intentId: intent.id, depositStrategy: "CHARGE_REFUND" },
+    })
+
+    await syncTransactionFinanceState(prisma, transactionId)
+  } else if (transactionId && financeStage !== "deposit_authorization") {
     await upsertServicePaymentFromIntent(prisma, transactionId, intent)
 
     await recordTransactionEvent(prisma, {
