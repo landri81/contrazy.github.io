@@ -8,6 +8,7 @@ import {
 } from "@/features/transactions/server/transaction-finance"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
+import { sendVendorFeeReceiptEmail } from "@/lib/integrations/resend"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -182,6 +183,21 @@ export async function POST(
         vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
       },
     })
+
+    // Send fee receipt to vendor on deposit capture (fee is charged on capture)
+    if (action === "capture" && feeBreakdown && transaction.vendor?.businessEmail) {
+      sendVendorFeeReceiptEmail(
+        transaction.vendor.businessEmail,
+        transaction.vendor.businessName ?? "",
+        transaction.reference,
+        "deposit_capture",
+        actualAmount,
+        feeBreakdown.stripeFeeAmount,
+        feeBreakdown.platformFeeAmount,
+        depositAuth.currency,
+        transaction.locale ?? undefined
+      ).catch(() => {})
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

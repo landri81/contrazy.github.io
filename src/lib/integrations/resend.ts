@@ -558,6 +558,70 @@ export async function sendDepositAutoRefundedEmail(
   })
 }
 
+export async function sendVendorFeeReceiptEmail(
+  to: string,
+  vendorName: string,
+  transactionRef: string,
+  feeType: "long_deposit" | "deposit_capture",
+  depositAmount: number,
+  stripeFee: number,
+  platformFee: number,
+  currency: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  const fmt = (n: number) => formatEmailMoney(n, currency)
+  const total = stripeFee + platformFee
+  const date = new Date().toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
+
+  const typeLabel = isFr
+    ? feeType === "long_deposit" ? "Dépôt longue durée" : "Capture de caution"
+    : feeType === "long_deposit" ? "Extended deposit" : "Deposit capture"
+
+  const subject = isFr
+    ? `Reçu de frais — ${transactionRef}`
+    : `Fee receipt — ${transactionRef}`
+
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 16px 6px 0;color:#888;font-size:13px;white-space:nowrap">${label}</td><td style="padding:6px 0;font-size:13px;font-weight:600">${value}</td></tr>`
+
+  const html = isFr ? `
+    <div style="font-family:sans-serif;color:#333;max-width:560px">
+      <h2 style="margin-bottom:4px">Reçu de frais</h2>
+      <p style="margin-top:0;color:#888;font-size:13px">${date}</p>
+      <table style="border-collapse:collapse;width:100%;margin:20px 0">
+        ${row("Transaction", escapeEmailHtml(transactionRef))}
+        ${row("Type de frais", typeLabel)}
+        ${row("Montant du dépôt", fmt(depositAmount))}
+        ${row("Frais Stripe", fmt(stripeFee))}
+        ${row("Frais Contrazy", fmt(platformFee))}
+        ${row("Total frais", fmt(total))}
+      </table>
+      <p style="font-size:13px;color:#555">Ces frais ont été automatiquement collectés lors du traitement du dépôt. Ce reçu est fourni à titre informatif.</p>
+      <br />
+      <p>Merci,<br />L'équipe Conntrazy</p>
+    </div>
+  ` : `
+    <div style="font-family:sans-serif;color:#333;max-width:560px">
+      <h2 style="margin-bottom:4px">Fee receipt</h2>
+      <p style="margin-top:0;color:#888;font-size:13px">${date}</p>
+      <table style="border-collapse:collapse;width:100%;margin:20px 0">
+        ${row("Transaction", escapeEmailHtml(transactionRef))}
+        ${row("Fee type", typeLabel)}
+        ${row("Deposit amount", fmt(depositAmount))}
+        ${row("Stripe fee", fmt(stripeFee))}
+        ${row("Contrazy fee", fmt(platformFee))}
+        ${row("Total fees", fmt(total))}
+      </table>
+      <p style="font-size:13px;color:#555">These fees were automatically collected during deposit processing. This receipt is provided for your records.</p>
+      <br />
+      <p>Thanks,<br />The Conntrazy Team</p>
+    </div>
+  `
+
+  return deliverEmail({ to, subject, html })
+}
+
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,

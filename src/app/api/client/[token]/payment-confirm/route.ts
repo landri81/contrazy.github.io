@@ -10,6 +10,7 @@ import {
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
+import { sendVendorFeeReceiptEmail } from "@/lib/integrations/resend"
 import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
@@ -95,6 +96,26 @@ export async function POST(
         dedupeKey: `event:payment-confirm:${intent.id}`,
         metadata: { intentId: intent.id, financeStage, depositStrategy },
       })
+
+      // Send fee receipt to vendor if they accepted a long deposit fee
+      if (
+        transaction.depositLongTermFeeAcceptedAt &&
+        transaction.depositLongTermStripeFeeEstimateAmount &&
+        transaction.depositLongTermPlatformFeeAmount &&
+        transaction.vendor.businessEmail
+      ) {
+        sendVendorFeeReceiptEmail(
+          transaction.vendor.businessEmail,
+          transaction.vendor.businessName ?? "",
+          transaction.reference,
+          "long_deposit",
+          intent.amount,
+          transaction.depositLongTermStripeFeeEstimateAmount,
+          transaction.depositLongTermPlatformFeeAmount,
+          intent.currency.toUpperCase(),
+          transaction.locale ?? undefined
+        ).catch(() => {})
+      }
     } else if (intent.status === "requires_capture" && isDeposit) {
       await upsertDepositAuthorizationFromIntent(prisma, transaction.id, intent)
 
