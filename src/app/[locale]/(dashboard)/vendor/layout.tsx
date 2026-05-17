@@ -10,7 +10,10 @@ export default async function VendorLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { session, vendorProfile, subscription } = await requireVendorProfileAccess()
+  const { session, dbUser, vendorProfile, subscription } = await requireVendorProfileAccess()
+  const vendorProfileWithLogo = vendorProfile as typeof vendorProfile & {
+    businessLogoUrl?: string | null
+  }
   const t = await getTranslations("dashboard")
   const tFn = (key: string) => t(key as never)
   const navigation = subscription && hasActiveSubscription(subscription)
@@ -24,9 +27,9 @@ export default async function VendorLayout({
       subtitle={vendorProfile.businessName ?? t("vendor.workspace.defaultSubtitle")}
       actorLabel={t("vendor.workspace.actorLabel")}
       account={{
-        name: session.user.name ?? null,
+        name: dbUser.name ?? session.user.name ?? null,
         email: session.user.email ?? null,
-        image: session.user.image ?? null,
+        image: vendorProfileWithLogo.businessLogoUrl ?? null,
         role: session.user.role ?? null,
       }}
     >

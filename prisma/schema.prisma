@@ -288,6 +288,9 @@ model VendorProfile {
   businessCountry        String?
   registrationNumber     String?
   vatNumber              String?
+  businessLogoUrl        String?
+  businessLogoPublicId   String?
+  businessLogoFileName   String?
   stripeAccountId        String?
   stripeConnectionStatus StripeConnectionStatus @default(NOT_CONNECTED)
   reviewStatus           VendorStatus           @default(PENDING)

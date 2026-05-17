@@ -31,6 +31,11 @@ import { Link } from "@/i18n/navigation"
 import { VendorCreateLinkDialog } from "@/features/dashboard/components/vendor-create-link-dialog"
 import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-route-link"
 import { StatusBadge } from "@/features/dashboard/components/dashboard-ui"
+import {
+  type DashboardStatusLabelKey,
+  getDashboardStatusLabelKey,
+  humanizeStatusLabel,
+} from "@/features/dashboard/lib/status-labels"
 import type {
   AlertRecord,
   SubscriptionUsageRecord,
@@ -57,11 +62,52 @@ type DashboardTone = "success" | "warning" | "danger" | "neutral" | "info"
 const surfaceClass =
   "overflow-hidden rounded-[26px] bg-white/82 backdrop-blur-xl ring-1 ring-slate-950/[0.05] shadow-[0_18px_44px_-28px_rgba(15,23,42,0.18)]"
 
-function formatStatusLabel(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+const alertToneLabelKeys = {
+  success: "alertTones.success",
+  warning: "alertTones.warning",
+  danger: "alertTones.danger",
+  neutral: "alertTones.neutral",
+  info: "alertTones.info",
+} as const satisfies Record<AlertRecord["tone"], string>
+
+const overviewStatusTranslationKeys = {
+  active: "statusLabels.active",
+  trialing: "statusLabels.trialing",
+  pending: "statusLabels.pending",
+  approved: "statusLabels.approved",
+  rejected: "statusLabels.rejected",
+  suspended: "statusLabels.suspended",
+  connected: "statusLabels.connected",
+  notConnected: "statusLabels.notConnected",
+  missing: "statusLabels.missing",
+  optional: "statusLabels.optional",
+  required: "statusLabels.required",
+  incomplete: "statusLabels.incomplete",
+  expired: "statusLabels.expired",
+  canceled: "statusLabels.canceled",
+  attached: "statusLabels.attached",
+  signed: "statusLabels.signed",
+} as const satisfies Record<DashboardStatusLabelKey, string>
+
+const planNameTranslationKeys = {
+  starter: "starter.name",
+  pro: "pro.name",
+  business: "business.name",
+  enterprise: "enterprise.name",
+} as const
+
+function useOverviewStatusLabel() {
+  const t = useTranslations("dashboard.vendor.overview")
+
+  return (value: string) => {
+    const key = getDashboardStatusLabelKey(value)
+    return key ? t(overviewStatusTranslationKeys[key]) : humanizeStatusLabel(value)
+  }
+}
+
+function useOverviewToneLabel() {
+  const t = useTranslations("dashboard.vendor.overview")
+  return (tone: AlertRecord["tone"]) => t(alertToneLabelKeys[tone])
 }
 
 function StatusPill({
@@ -180,6 +226,8 @@ function EmptyState({
 }
 
 function AttentionRail({ items }: { items: WorkspaceRecord["alerts"] }) {
+  const formatToneLabel = useOverviewToneLabel()
+
   if (items.length === 0) {
     return null
   }
@@ -222,7 +270,7 @@ function AttentionRail({ items }: { items: WorkspaceRecord["alerts"] }) {
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
               </div>
-              <StatusPill label={formatStatusLabel(item.tone)} tone={toneFromAlert(item.tone)} />
+              <StatusPill label={formatToneLabel(item.tone)} tone={toneFromAlert(item.tone)} />
             </div>
             {item.href && item.hrefLabel ? (
               <Link
@@ -415,6 +463,8 @@ function PlanUsageSection({
   locale: string
 }) {
   const t = useTranslations("dashboard.vendor.overview")
+  const tPlans = useTranslations("subscriptions.plans")
+  const formatStatusLabel = useOverviewStatusLabel()
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(locale, {
@@ -426,7 +476,8 @@ function PlanUsageSection({
   )
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
 
-  const planLabel = usage.planName.toUpperCase()
+  const planKey = planNameTranslationKeys[usage.planSlug as keyof typeof planNameTranslationKeys]
+  const planLabel = (planKey ? tPlans(planKey) : usage.planName).toUpperCase()
   const statusLabel = usage.isTrial ? t("usage.trial") : formatStatusLabel(usage.status)
   const periodEndLabel = usage.periodEnd ? dateFormatter.format(new Date(usage.periodEnd)) : null
 
@@ -558,6 +609,8 @@ function ReadinessItem({
   plain?: boolean
   className?: string
 }) {
+  const formatStatusLabel = useOverviewStatusLabel()
+
   return (
     <div
       className={cn(
@@ -630,7 +683,9 @@ function getActivityPresentation(type: VendorOverviewActivityRecord["type"]) {
 
 export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewProps) {
   const t = useTranslations("dashboard.vendor.overview")
+  const tPlans = useTranslations("subscriptions.plans")
   const locale = useLocale()
+  const formatStatusLabel = useOverviewStatusLabel()
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
   const dateTimeFormatter = useMemo(
     () =>
@@ -664,6 +719,59 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
     overviewFlow.kycReady +
     overviewFlow.contractReady +
     overviewFlow.signed
+
+  const localizedPlanName =
+    subscriptionUsage
+      ? (() => {
+          const planKey =
+            planNameTranslationKeys[
+              subscriptionUsage.planSlug as keyof typeof planNameTranslationKeys
+            ]
+          return planKey ? tPlans(planKey) : subscriptionUsage.planName
+        })()
+      : null
+
+  const attentionItems = useMemo(() => {
+    const items: WorkspaceRecord["alerts"] = []
+
+    if (summary.profileCompletion < 100) {
+      items.push({
+        title: t("attention.profile.title"),
+        description: t("attention.profile.description"),
+        tone: "warning",
+        href: "/vendor/profile",
+        hrefLabel: t("attention.profile.action"),
+      })
+    }
+
+    if (summary.reviewStatus === "PENDING") {
+      items.push({
+        title: t("attention.review.title"),
+        description: t("attention.review.description"),
+        tone: "info",
+      })
+    }
+
+    if (
+      summary.stripeConnectionStatus === "NOT_CONNECTED" ||
+      summary.stripeConnectionStatus === "PENDING"
+    ) {
+      items.push({
+        title: t("attention.stripe.title"),
+        description: t("attention.stripe.description"),
+        tone: "neutral",
+        href: "/vendor/stripe",
+        hrefLabel: t("attention.stripe.action"),
+      })
+    }
+
+    return items
+  }, [
+    summary.profileCompletion,
+    summary.reviewStatus,
+    summary.stripeConnectionStatus,
+    t,
+  ])
 
   const heroState = useMemo(() => {
     if (!hasActivePlan) {
@@ -748,7 +856,7 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
   const heroSnapshots = [
     {
       label: t("planUsage.title"),
-      value: subscriptionUsage?.planName ?? t("noActivePlan.title"),
+      value: localizedPlanName ?? t("noActivePlan.title"),
       tone: subscriptionUsage ? "info" as DashboardTone : "warning" as DashboardTone,
     },
     {
@@ -991,7 +1099,7 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
         </div>
       </motion.section>
 
-      <AttentionRail items={workspace.alerts} />
+      <AttentionRail items={attentionItems} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metricCards.map((item) => (

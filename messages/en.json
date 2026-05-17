@@ -468,6 +468,47 @@
         "reviewStatus": "Review status",
         "payoutSetup": "Payout setup",
         "business": "Business",
+        "alertTones": {
+          "success": "Success",
+          "warning": "Warning",
+          "danger": "Action required",
+          "neutral": "Neutral",
+          "info": "Info"
+        },
+        "attention": {
+          "profile": {
+            "title": "Complete your business profile",
+            "description": "Finish your business details so the review team can approve the account without delay.",
+            "action": "Open profile"
+          },
+          "review": {
+            "title": "Your account is under review",
+            "description": "You can continue preparing templates and transactions while the review is pending."
+          },
+          "stripe": {
+            "title": "Payout setup is still incomplete",
+            "description": "Connect your payout account so customer payments and deposit holds can be activated.",
+            "action": "Review payouts"
+          }
+        },
+        "statusLabels": {
+          "active": "Active",
+          "trialing": "Trial",
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "suspended": "Suspended",
+          "connected": "Connected",
+          "notConnected": "Not connected",
+          "missing": "Missing",
+          "optional": "Optional",
+          "required": "Required",
+          "incomplete": "Incomplete",
+          "expired": "Expired",
+          "canceled": "Canceled",
+          "attached": "Attached",
+          "signed": "Signed"
+        },
         "completeProfile": "Complete business profile",
         "setUpPayouts": "Set up payouts",
         "openActionQueue": "Open action queue",
@@ -918,24 +959,51 @@
           "lastName": "Last name",
           "businessName": "Business name",
           "registrationNumber": "Registration number",
+          "registrationNumberFrance": "Registration number / SIRET number",
           "loginEmail": "Login email",
           "supportEmail": "Support email",
           "businessPhone": "Business phone",
           "vatNumber": "VAT number",
           "preferredLocale": "Default customer language",
           "country": "Country",
-          "businessAddress": "Business address"
+          "businessAddress": "Business address",
+          "businessAddressLine1": "Street address",
+          "businessPostalCode": "Postal code",
+          "businessCity": "City"
         },
         "placeholders": {
           "firstName": "Enter your first name",
           "lastName": "Enter your last name",
           "businessName": "Enter your business name",
           "registrationNumber": "Enter your company registration number",
+          "registrationNumberFrance": "Enter the 9-digit French company number",
           "supportEmail": "Enter your support email",
           "vatNumber": "Enter your VAT number",
           "country": "Select your country",
           "businessAddress": "Enter your full business address",
+          "businessAddressLine1": "Enter the street address",
+          "businessPostalCode": "Enter the 5-digit postal code",
+          "businessCity": "Enter the city",
+          "businessAddressFrance": "Enter your full business address with city and postal code",
           "phoneHint": "Include country code, e.g. +1 202 555 0100"
+        },
+        "hints": {
+          "registrationNumberFrance": "For France, use exactly 9 digits.",
+          "businessAddressFrance": "For France, include the city and postal code."
+        },
+        "sections": {
+          "frenchAddressTitle": "Business address",
+          "frenchAddressDescription": "Enter the street address, city, and 5-digit postal code separately."
+        },
+        "logo": {
+          "title": "Business logo",
+          "description": "Upload the logo you want to show on your vendor workspace profile.",
+          "upload": "Upload logo",
+          "uploading": "Uploading...",
+          "replace": "Replace logo",
+          "remove": "Remove logo",
+          "removing": "Removing...",
+          "uploadFailed": "The logo could not be uploaded. Please try again."
         },
         "localeHint": "New customer links, emails, and PDF labels default to this language.",
         "localeOptions": {
@@ -977,6 +1045,10 @@
         "messages": {
           "success": "Business profile updated.",
           "fixErrors": "Please fix the highlighted fields and try again.",
+          "registrationNumberFrance": "For France, the registration number must contain exactly 9 digits.",
+          "businessAddressLine1France": "For France, enter the street address.",
+          "businessPostalCodeFrance": "For France, enter a valid 5-digit postal code.",
+          "businessCityFrance": "For France, enter the city.",
           "saveError": "Unable to save your profile.",
           "networkError": "Unable to save your profile right now."
         }
@@ -3635,6 +3707,30 @@
       "statusCanceled": "Canceled",
       "statusExpired": "Expired",
       "vatLabel": "excl. VAT"
+    },
+    "subscribeSuccess": {
+      "badge": "Success",
+      "title": "Congratulations",
+      "description": "Your checkout has been completed successfully. Your account is being prepared, and access will be available shortly.",
+      "noteTitle": "Thank you for joining Contrazy.",
+      "noteDescription": "You can continue once your workspace access is ready."
+    },
+    "statusPoll": {
+      "ready": {
+        "title": "Subscription confirmed",
+        "description": "Your workspace is active now. You can continue directly to the vendor dashboard.",
+        "action": "Open workspace"
+      },
+      "waiting": {
+        "title": "Waiting for Stripe confirmation",
+        "description": "Your checkout is complete. This page will unlock the workspace as soon as the subscription webhook is recorded.",
+        "statusLabel": "Status",
+        "statusChecking": "Checking Stripe",
+        "statusAwaiting": "Awaiting webhook",
+        "refreshLabel": "Refresh",
+        "refreshValue": "Every 3.5 seconds",
+        "retry": "Check again"
+      }
     }
   }
 }

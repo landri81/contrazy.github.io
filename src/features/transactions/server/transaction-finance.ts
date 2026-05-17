@@ -173,6 +173,7 @@ async function recordEmailSentEvent(db: DatabaseClient, transactionId: string, d
 async function sendCompletionNotifications(db: DatabaseClient, transaction: FinanceTransaction) {
   const vendorName = transaction.vendor?.businessName ?? "Conntrazy vendor"
   const locale = transaction.locale
+  const vendorLogoUrl = (transaction.vendor as (VendorProfile & { businessLogoUrl?: string | null }) | null)?.businessLogoUrl ?? null
 
   if (transaction.clientProfile?.email) {
     const sent = await sendTransactionCompletedEmail(
@@ -181,7 +182,8 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       vendorName,
       transaction.reference,
       transaction.contractArtifact?.signedPdfUrl ?? null,
-      locale
+      locale,
+      vendorLogoUrl
     )
 
     if (sent) {
@@ -200,7 +202,8 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       vendorName,
       transaction.clientProfile.fullName,
       transaction.depositAmount,
-      locale
+      locale,
+      vendorLogoUrl
     )
 
     if (sent) {

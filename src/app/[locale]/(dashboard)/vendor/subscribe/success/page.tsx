@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react"
+import { getTranslations } from "next-intl/server"
 
 import { SubscriptionStatusPoll } from "@/features/subscriptions/components/subscription-status-poll"
 import { getVendorSubscriptionAccessState } from "@/features/subscriptions/server/subscription-service"
@@ -13,6 +14,7 @@ export default async function VendorSubscribeSuccessPage({
 }) {
   const { vendorProfile } = await requireVendorProfileAccess()
   const accessState = await getVendorSubscriptionAccessState(vendorProfile.id)
+  const t = await getTranslations("subscriptions.subscribeSuccess")
  
   return (
     <div className="mx-auto space-y-4 sm:space-y-5">
@@ -24,24 +26,23 @@ export default async function VendorSubscribeSuccessPage({
             </div>
 
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 shadow-sm">
-              Success
+              {t("badge")}
             </div>
 
             <h1 className="mt-4 text-[1.85rem] font-bold tracking-tight text-foreground sm:text-[2.25rem]">
-              Congratulations!
+              {t("title")}
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Your checkout has been completed successfully. Your account is being
-              prepared, and access will be available shortly.
+              {t("description")}
             </p>
 
             <div className="mt-6 rounded-2xl border border-border/70 bg-background/85 px-4 py-3 shadow-sm">
               <p className="text-sm font-semibold text-foreground">
-                Thank you for joining Contrazy.
+                {t("noteTitle")}
               </p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                You can continue once your workspace access is ready.
+                {t("noteDescription")}
               </p>
             </div>
           </div>

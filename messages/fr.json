@@ -468,6 +468,47 @@
         "reviewStatus": "Statut de révision",
         "payoutSetup": "Configuration des paiements",
         "business": "Entreprise",
+        "alertTones": {
+          "success": "Succès",
+          "warning": "Alerte",
+          "danger": "Action requise",
+          "neutral": "Neutre",
+          "info": "Info"
+        },
+        "attention": {
+          "profile": {
+            "title": "Complétez votre profil entreprise",
+            "description": "Terminez vos informations professionnelles pour que l'équipe de révision puisse approuver le compte sans délai.",
+            "action": "Ouvrir le profil"
+          },
+          "review": {
+            "title": "Votre compte est en cours de révision",
+            "description": "Vous pouvez continuer à préparer vos modèles et transactions pendant que la révision est en attente."
+          },
+          "stripe": {
+            "title": "La configuration des virements est encore incomplète",
+            "description": "Connectez votre compte de versement afin d'activer les paiements clients et les cautions.",
+            "action": "Voir les virements"
+          }
+        },
+        "statusLabels": {
+          "active": "Actif",
+          "trialing": "Essai",
+          "pending": "En attente",
+          "approved": "Approuvé",
+          "rejected": "Rejeté",
+          "suspended": "Suspendu",
+          "connected": "Connecté",
+          "notConnected": "Non connecté",
+          "missing": "Manquant",
+          "optional": "Optionnel",
+          "required": "Requis",
+          "incomplete": "Incomplet",
+          "expired": "Expiré",
+          "canceled": "Annulé",
+          "attached": "Joint",
+          "signed": "Signé"
+        },
         "completeProfile": "Compléter le profil entreprise",
         "setUpPayouts": "Configurer les paiements",
         "openActionQueue": "Ouvrir la file d'actions",
@@ -918,24 +959,51 @@
           "lastName": "Nom",
           "businessName": "Nom de l'entreprise",
           "registrationNumber": "Numéro d'immatriculation",
+          "registrationNumberFrance": "Numéro d'immatriculation / numéro SIRET",
           "loginEmail": "Email de connexion",
           "supportEmail": "Email de support",
           "businessPhone": "Téléphone professionnel",
           "vatNumber": "Numéro de TVA",
           "preferredLocale": "Langue client par défaut",
           "country": "Pays",
-          "businessAddress": "Adresse professionnelle"
+          "businessAddress": "Adresse professionnelle",
+          "businessAddressLine1": "Adresse",
+          "businessPostalCode": "Code postal",
+          "businessCity": "Ville"
         },
         "placeholders": {
           "firstName": "Entrez votre prénom",
           "lastName": "Entrez votre nom",
           "businessName": "Entrez le nom de votre entreprise",
           "registrationNumber": "Entrez votre numéro d'immatriculation",
+          "registrationNumberFrance": "Entrez le numéro français à 9 chiffres",
           "supportEmail": "Entrez votre email de support",
           "vatNumber": "Entrez votre numéro de TVA",
           "country": "Sélectionnez votre pays",
           "businessAddress": "Entrez votre adresse professionnelle complète",
+          "businessAddressLine1": "Entrez l'adresse",
+          "businessPostalCode": "Entrez le code postal à 5 chiffres",
+          "businessCity": "Entrez la ville",
+          "businessAddressFrance": "Entrez l'adresse professionnelle complète avec la ville et le code postal",
           "phoneHint": "Inclure le code pays, ex. +33 1 23 45 67 89"
+        },
+        "hints": {
+          "registrationNumberFrance": "Pour la France, saisissez exactement 9 chiffres.",
+          "businessAddressFrance": "Pour la France, ajoutez la ville et le code postal."
+        },
+        "sections": {
+          "frenchAddressTitle": "Adresse professionnelle",
+          "frenchAddressDescription": "Saisissez séparément l'adresse, la ville et le code postal à 5 chiffres."
+        },
+        "logo": {
+          "title": "Logo de l'entreprise",
+          "description": "Téléchargez le logo à afficher sur le profil de votre espace vendeur.",
+          "upload": "Télécharger le logo",
+          "uploading": "Téléchargement...",
+          "replace": "Remplacer le logo",
+          "remove": "Supprimer le logo",
+          "removing": "Suppression...",
+          "uploadFailed": "Le logo n'a pas pu être téléchargé. Veuillez réessayer."
         },
         "localeHint": "Les nouveaux liens clients, emails et libellés PDF utiliseront cette langue par défaut.",
         "localeOptions": {
@@ -977,6 +1045,10 @@
         "messages": {
           "success": "Profil professionnel mis à jour.",
           "fixErrors": "Veuillez corriger les champs en surbrillance et réessayer.",
+          "registrationNumberFrance": "Pour la France, le numéro d'immatriculation doit contenir exactement 9 chiffres.",
+          "businessAddressLine1France": "Pour la France, saisissez l'adresse.",
+          "businessPostalCodeFrance": "Pour la France, saisissez un code postal valide à 5 chiffres.",
+          "businessCityFrance": "Pour la France, saisissez la ville.",
           "saveError": "Impossible d'enregistrer votre profil.",
           "networkError": "Impossible d'enregistrer votre profil pour le moment."
         }
@@ -3635,6 +3707,30 @@
       "statusCanceled": "Annulé",
       "statusExpired": "Expiré",
       "vatLabel": "HT"
+    },
+    "subscribeSuccess": {
+      "badge": "Succès",
+      "title": "Félicitations",
+      "description": "Votre paiement a bien été finalisé. Votre compte est en cours de préparation et l'accès sera disponible sous peu.",
+      "noteTitle": "Merci d'avoir rejoint Contrazy.",
+      "noteDescription": "Vous pourrez continuer dès que l'accès à votre espace sera prêt."
+    },
+    "statusPoll": {
+      "ready": {
+        "title": "Abonnement confirmé",
+        "description": "Votre espace est maintenant actif. Vous pouvez continuer directement vers le tableau de bord vendeur.",
+        "action": "Ouvrir l'espace"
+      },
+      "waiting": {
+        "title": "En attente de la confirmation Stripe",
+        "description": "Votre paiement est terminé. Cette page débloquera l'espace dès que le webhook d'abonnement sera enregistré.",
+        "statusLabel": "Statut",
+        "statusChecking": "Vérification Stripe",
+        "statusAwaiting": "Webhook en attente",
+        "refreshLabel": "Actualisation",
+        "refreshValue": "Toutes les 3,5 secondes",
+        "retry": "Vérifier à nouveau"
+      }
     }
   }
 }

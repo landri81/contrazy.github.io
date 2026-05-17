@@ -4,6 +4,7 @@ import { z } from "zod"
 import { canAccessAdminScope } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
+import { stripe } from "@/lib/integrations/stripe"
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").max(120),
@@ -99,6 +100,9 @@ export async function DELETE(
       include: {
         vendorProfile: {
           include: {
+            subscription: {
+              select: { stripeSubscriptionId: true },
+            },
             _count: {
               select: {
                 transactions: {
@@ -130,14 +134,30 @@ export async function DELETE(
       )
     }
 
+    const stripeSubscriptionId = user.vendorProfile?.subscription?.stripeSubscriptionId
+    let stripeCancelled = false
+
+    if (stripeSubscriptionId) {
+      try {
+        await stripe.subscriptions.cancel(stripeSubscriptionId)
+        stripeCancelled = true
+      } catch (stripeError) {
+        console.error("Stripe subscription cancellation failed during account deletion", stripeError)
+      }
+    }
+
     await prisma.user.delete({ where: { id: userId } })
 
     try {
+      const auditAction = stripeSubscriptionId
+        ? `Deleted user account (${user.email}) — Stripe subscription ${stripeCancelled ? "cancelled" : "cancellation failed"}: ${stripeSubscriptionId}`
+        : `Deleted user account (${user.email})`
+
       await prisma.auditLog.create({
         data: {
           actorId: actor?.id,
           actorType: session.user.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER",
-          action: `Deleted user account (${user.email})`,
+          action: auditAction,
           entityType: "User",
           entityId: userId,
         },

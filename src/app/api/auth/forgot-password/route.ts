@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 import { forgotPasswordSchema } from "@/features/auth/schemas/auth.schema"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
-import { resend } from "@/lib/integrations/resend"
+import { sendPasswordResetEmail } from "@/lib/integrations/resend"
 import { resolveRequestLocale, toAbsoluteLocalizedAppUrl } from "@/lib/i18n/locale-utils"
 
 export async function POST(request: Request) {
@@ -52,17 +52,7 @@ export async function POST(request: Request) {
     const locale = resolveRequestLocale(request)
     const resetUrl = `${toAbsoluteLocalizedAppUrl(baseUrl, locale, "/reset-password")}?token=${token}`
 
-    await resend.emails.send({
-      from: env.RESEND_FROM_EMAIL,
-      to: user.email,
-      subject: "Conntrazy password reset",
-      html: `
-        <h2>Conntrazy password reset</h2>
-        <p>Use the link below to set a new password.</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>This link expires in 1 hour.</p>
-      `,
-    })
+    await sendPasswordResetEmail(user.email, resetUrl, locale)
 
     return NextResponse.json({ success: true, message: "Reset request processed" })
   } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { CheckCircle2, Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Link, useRouter } from "@/i18n/navigation"
@@ -22,6 +23,7 @@ export function SubscriptionStatusPoll({
   initialAllowed: boolean
 }) {
   const router = useRouter()
+  const t = useTranslations("subscriptions.statusPoll")
   const [state, setState] = useState<SubscriptionPollState | null>(null)
   const [isLoading, setIsLoading] = useState(!initialAllowed)
 
@@ -81,10 +83,10 @@ export function SubscriptionStatusPoll({
           <div className="min-w-0 space-y-3">
             <div>
               <p className="text-base font-semibold text-foreground">
-                Subscription confirmed
+                {t("ready.title")}
               </p>
               <p className="mt-1 text-sm leading-6 text-emerald-800/85">
-                Your workspace is active now. You can continue directly to the vendor dashboard.
+                {t("ready.description")}
               </p>
             </div>
             <Link
@@ -94,7 +96,7 @@ export function SubscriptionStatusPoll({
                   "h-10 rounded-xl bg-[var(--contrazy-teal)] px-4 text-white hover:bg-[#0eb8a0]",
               })}
             >
-              Open workspace
+              {t("ready.action")}
             </Link>
           </div>
         </div>
@@ -111,35 +113,35 @@ export function SubscriptionStatusPoll({
         <div className="min-w-0 space-y-3">
           <div>
             <p className="text-base font-semibold text-foreground">
-              Waiting for Stripe confirmation
+              {t("waiting.title")}
             </p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Your checkout is complete. This page will unlock the workspace as soon as the subscription webhook is recorded.
+              {t("waiting.description")}
             </p>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-2xl border border-border/70 bg-background/85 p-3 shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Status
+                {t("waiting.statusLabel")}
               </p>
               <p className="mt-1 text-sm font-semibold text-foreground">
-                {isLoading ? "Checking Stripe" : "Awaiting webhook"}
+                {isLoading ? t("waiting.statusChecking") : t("waiting.statusAwaiting")}
               </p>
             </div>
 
             <div className="rounded-2xl border border-border/70 bg-background/85 p-3 shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Refresh
+                {t("waiting.refreshLabel")}
               </p>
               <p className="mt-1 text-sm font-semibold text-foreground">
-                Every 3.5 seconds
+                {t("waiting.refreshValue")}
               </p>
             </div>
           </div>
 
           <Button variant="outline" className="h-10 rounded-xl" onClick={() => router.refresh()}>
-            Check again
+            {t("waiting.retry")}
           </Button>
         </div>
       </div>

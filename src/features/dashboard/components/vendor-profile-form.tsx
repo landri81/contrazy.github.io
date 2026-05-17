@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CreditCard,
   Globe,
+  ImageUp,
   Loader2,
   LockKeyhole,
   Mail,
@@ -14,14 +15,16 @@ import {
   Phone,
   Save,
   ShieldCheck,
+  Trash2,
   UserCircle,
   UserRound,
   X,
 } from "lucide-react"
-import { useMemo, useState, useTransition } from "react"
+import { useId, useMemo, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { CountryCombobox } from "@/components/ui/country-combobox"
 import { Input } from "@/components/ui/input"
@@ -29,8 +32,21 @@ import { Label } from "@/components/ui/label"
 import { PhoneInput } from "@/components/ui/phone-input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { formatValueLabel } from "@/features/dashboard/lib/format-value-label"
-import { vendorProfileSchema } from "@/features/dashboard/schemas/vendor-profile.schema"
+import {
+  type DashboardStatusLabelKey,
+  getDashboardStatusLabelKey,
+  humanizeStatusLabel,
+} from "@/features/dashboard/lib/status-labels"
+import {
+  isFrenchBusinessCountry,
+  vendorProfileSchema,
+} from "@/features/dashboard/schemas/vendor-profile.schema"
+import {
+  cleanupVendorProfileLogos,
+  uploadVendorProfileLogo,
+  VendorProfileLogoUploadError,
+} from "@/features/dashboard/lib/vendor-profile-logo-upload-client"
+import { toVendorProfileLogoCleanupAsset, type VendorProfileLogoAsset } from "@/features/dashboard/lib/vendor-profile-logo-images"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type VendorProfileFormProps = {
@@ -45,6 +61,9 @@ type VendorProfileFormProps = {
     businessCountry: string
     registrationNumber: string
     vatNumber: string
+    businessLogoUrl: string
+    businessLogoPublicId: string
+    businessLogoFileName: string
     preferredLocale: "en" | "fr"
     reviewStatus: string
     stripeConnectionStatus: string
@@ -52,19 +71,153 @@ type VendorProfileFormProps = {
   accountEmail: string
 }
 
+type BusinessLogoDraftSource = "saved" | "local" | "none"
+
+type FrenchBusinessAddressFields = {
+  businessAddressLine1: string
+  businessPostalCode: string
+  businessCity: string
+}
+
+type BusinessLogoDraftFields = {
+  businessLogoPublicId: string
+  businessLogoFileName: string
+  businessLogoSource: BusinessLogoDraftSource
+}
+
+type VendorProfileFormState = VendorProfileFormProps["initialValues"] & FrenchBusinessAddressFields & BusinessLogoDraftFields
+
+const profileStatusTranslationKeys = {
+  active: "statusLabels.active",
+  trialing: "statusLabels.trialing",
+  pending: "statusLabels.pending",
+  approved: "statusLabels.approved",
+  rejected: "statusLabels.rejected",
+  suspended: "statusLabels.suspended",
+  connected: "statusLabels.connected",
+  notConnected: "statusLabels.notConnected",
+  missing: "statusLabels.missing",
+  optional: "statusLabels.optional",
+  required: "statusLabels.required",
+  incomplete: "statusLabels.incomplete",
+  expired: "statusLabels.expired",
+  canceled: "statusLabels.canceled",
+  attached: "statusLabels.attached",
+  signed: "statusLabels.signed",
+} as const satisfies Record<DashboardStatusLabelKey, string>
+
 function normalizeInitialValues(
   initialValues: VendorProfileFormProps["initialValues"],
   accountEmail: string
-) {
+): VendorProfileFormState {
+  const frenchAddress = parseFrenchBusinessAddress(initialValues.businessAddress)
+  const hasSavedLogo = initialValues.businessLogoUrl.trim().length > 0
+
   return {
     ...initialValues,
     businessEmail: accountEmail,
+    registrationNumber: isFrenchBusinessCountry(initialValues.businessCountry)
+      ? normalizeFrenchRegistrationNumber(initialValues.registrationNumber)
+      : initialValues.registrationNumber,
+    businessAddressLine1: frenchAddress.businessAddressLine1,
+    businessPostalCode: frenchAddress.businessPostalCode,
+    businessCity: frenchAddress.businessCity,
+    businessLogoPublicId: initialValues.businessLogoPublicId,
+    businessLogoFileName: initialValues.businessLogoFileName,
+    businessLogoSource: hasSavedLogo ? "saved" : "none",
   }
+}
+
+function normalizeFrenchRegistrationNumber(value: string) {
+  return value.replace(/\D/g, "").slice(0, 9)
+}
+
+function parseFrenchBusinessAddress(value: string): FrenchBusinessAddressFields {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return {
+      businessAddressLine1: "",
+      businessPostalCode: "",
+      businessCity: "",
+    }
+  }
+
+  const lines = trimmedValue
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const normalizedValue = lines.length > 0 ? lines.join("\n") : trimmedValue
+  const commaParts = normalizedValue
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const hasMultiLineAddress = lines.length > 1
+  const locationLine = hasMultiLineAddress ? lines.at(-1) ?? "" : commaParts.at(-1) ?? ""
+  const locationMatch = locationLine.match(/^(\d{5})\s+(.+)$/)
+
+  if (locationMatch) {
+    return {
+      businessAddressLine1: (hasMultiLineAddress ? lines.slice(0, -1) : commaParts.slice(0, -1))
+        .join(", ")
+        .trim(),
+      businessPostalCode: locationMatch[1],
+      businessCity: locationMatch[2].trim(),
+    }
+  }
+
+  return {
+    businessAddressLine1: normalizedValue,
+    businessPostalCode: "",
+    businessCity: "",
+  }
+}
+
+function composeFrenchBusinessAddress(fields: FrenchBusinessAddressFields) {
+  const addressLine = fields.businessAddressLine1.trim()
+  const postalCode = fields.businessPostalCode.trim()
+  const city = fields.businessCity.trim()
+  const locationLine = [postalCode, city].filter(Boolean).join(" ")
+
+  return [addressLine, locationLine].filter(Boolean).join("\n")
+}
+
+function buildProfilePayload(form: VendorProfileFormState) {
+  return {
+    ownerFirstName: form.ownerFirstName,
+    ownerLastName: form.ownerLastName,
+    businessName: form.businessName,
+    businessEmail: form.businessEmail,
+    supportEmail: form.supportEmail,
+    businessPhone: form.businessPhone,
+    businessAddress: isFrenchBusinessCountry(form.businessCountry)
+      ? composeFrenchBusinessAddress(form)
+      : form.businessAddress,
+    businessCountry: form.businessCountry,
+    registrationNumber: form.registrationNumber,
+    vatNumber: form.vatNumber,
+    businessLogoUrl: form.businessLogoUrl,
+    businessLogoPublicId: form.businessLogoPublicId,
+    businessLogoFileName: form.businessLogoFileName,
+    preferredLocale: form.preferredLocale,
+  }
+}
+
+function getBusinessInitials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length >= 2) {
+    return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase()
+  }
+
+  return (value.trim().slice(0, 2) || "BP").toUpperCase()
 }
 
 export function VendorProfileForm({ initialValues, accountEmail }: VendorProfileFormProps) {
   const router = useRouter()
   const t = useTranslations("dashboard.vendor.profileForm")
+  const tOverview = useTranslations("dashboard.vendor.overview")
   const normalizedInitialValues = useMemo(
     () => normalizeInitialValues(initialValues, accountEmail),
     [accountEmail, initialValues]
@@ -75,31 +228,96 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [isLogoUploading, setIsLogoUploading] = useState(false)
+  const [isLogoRemoving, setIsLogoRemoving] = useState(false)
   const [isPending, startTransition] = useTransition()
   const ownerDisplayName = [form.ownerFirstName, form.ownerLastName].filter(Boolean).join(" ").trim()
+  const isFrenchBusiness = true;
 
   const profileCompletion = useMemo(() => {
-    const requiredValues = [
-      form.ownerFirstName,
-      form.ownerLastName,
-      form.businessName,
-      form.businessEmail,
-      form.businessPhone,
-      form.businessAddress,
-      form.businessCountry,
-      form.registrationNumber,
-    ]
+    const requiredValues = isFrenchBusiness
+      ? [
+          form.ownerFirstName,
+          form.ownerLastName,
+          form.businessName,
+          form.businessEmail,
+          form.businessPhone,
+          form.businessCountry,
+          form.registrationNumber,
+          form.businessAddressLine1,
+          form.businessPostalCode,
+          form.businessCity,
+        ]
+      : [
+          form.ownerFirstName,
+          form.ownerLastName,
+          form.businessName,
+          form.businessEmail,
+          form.businessPhone,
+          form.businessAddress,
+          form.businessCountry,
+          form.registrationNumber,
+        ]
     const filled = requiredValues.filter((value) => value.trim().length > 0).length
     return Math.round((filled / requiredValues.length) * 100)
-  }, [form])
+  }, [form, isFrenchBusiness])
 
-  function updateField(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }))
+  function updateField(field: keyof VendorProfileFormState, value: string) {
+    setForm((current) => {
+      const next = { ...current, [field]: value }
+
+      if (field === "registrationNumber" && isFrenchBusinessCountry(current.businessCountry)) {
+        next.registrationNumber = normalizeFrenchRegistrationNumber(value)
+      }
+
+      if (field === "businessCountry" && isFrenchBusinessCountry(value)) {
+        const parsedAddress = parseFrenchBusinessAddress(current.businessAddress)
+        next.registrationNumber = normalizeFrenchRegistrationNumber(current.registrationNumber)
+        next.businessAddressLine1 = current.businessAddressLine1.trim() || parsedAddress.businessAddressLine1
+        next.businessPostalCode = current.businessPostalCode.trim() || parsedAddress.businessPostalCode
+        next.businessCity = current.businessCity.trim() || parsedAddress.businessCity
+        next.businessAddress = composeFrenchBusinessAddress(next)
+      }
+
+      if (
+        field === "businessAddressLine1" ||
+        field === "businessPostalCode" ||
+        field === "businessCity"
+      ) {
+        next.businessAddress = composeFrenchBusinessAddress(next)
+      }
+
+      if (field === "businessAddress" && isFrenchBusinessCountry(current.businessCountry)) {
+        const parsedAddress = parseFrenchBusinessAddress(value)
+        next.businessAddressLine1 = parsedAddress.businessAddressLine1
+        next.businessPostalCode = parsedAddress.businessPostalCode
+        next.businessCity = parsedAddress.businessCity
+      }
+
+      return next
+    })
 
     if (fieldErrors[field]) {
       setFieldErrors((current) => {
         const next = { ...current }
         delete next[field]
+        return next
+      })
+    }
+
+    if (
+      field === "businessCountry" &&
+      (fieldErrors.registrationNumber ||
+        fieldErrors.businessAddressLine1 ||
+        fieldErrors.businessPostalCode ||
+        fieldErrors.businessCity)
+    ) {
+      setFieldErrors((current) => {
+        const next = { ...current }
+        delete next.registrationNumber
+        delete next.businessAddressLine1
+        delete next.businessPostalCode
+        delete next.businessCity
         return next
       })
     }
@@ -114,10 +332,97 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
   }
 
   function cancelEditor() {
+    if (form.businessLogoSource === "local" && form.businessLogoPublicId) {
+      void cleanupVendorProfileLogos(
+        [
+          toVendorProfileLogoCleanupAsset({
+            publicId: form.businessLogoPublicId,
+            assetUrl: form.businessLogoUrl,
+            fileName: form.businessLogoFileName || "business-logo",
+          }),
+        ],
+        { keepalive: true }
+      )
+    }
+
     setError(null)
     setFieldErrors({})
     setForm(normalizedInitialValues)
     setIsEditing(false)
+  }
+
+  async function handleLogoSelected(file: File) {
+    setError(null)
+    setMessage(null)
+    setIsLogoUploading(true)
+
+    try {
+      const uploaded = await uploadVendorProfileLogo(file)
+      const previousLocalLogo =
+        form.businessLogoSource === "local" && form.businessLogoPublicId
+          ? toVendorProfileLogoCleanupAsset({
+              publicId: form.businessLogoPublicId,
+              assetUrl: form.businessLogoUrl,
+              fileName: form.businessLogoFileName || "business-logo",
+            })
+          : null
+
+      setForm((current) => ({
+        ...current,
+        businessLogoUrl: uploaded.assetUrl,
+        businessLogoPublicId: uploaded.publicId,
+        businessLogoFileName: uploaded.fileName,
+        businessLogoSource: "local",
+      }))
+
+      if (previousLocalLogo) {
+        void cleanupVendorProfileLogos([previousLocalLogo], { keepalive: true })
+      }
+    } catch (uploadError) {
+      if (uploadError instanceof VendorProfileLogoUploadError) {
+        setError(uploadError.message)
+      } else {
+        console.error(uploadError)
+        setError(t("logo.uploadFailed"))
+      }
+    } finally {
+      setIsLogoUploading(false)
+    }
+  }
+
+  async function handleLogoRemove() {
+    if (!form.businessLogoUrl) {
+      return
+    }
+
+    setError(null)
+    setMessage(null)
+    setIsLogoRemoving(true)
+
+    try {
+      if (form.businessLogoSource === "local" && form.businessLogoPublicId) {
+        await cleanupVendorProfileLogos(
+          [
+            toVendorProfileLogoCleanupAsset({
+              publicId: form.businessLogoPublicId,
+              assetUrl: form.businessLogoUrl,
+              fileName: form.businessLogoFileName || "business-logo",
+            }),
+          ],
+          { keepalive: true }
+        )
+      }
+
+      setForm((current) => ({
+        ...current,
+        businessLogoUrl: "",
+        businessLogoPublicId: "",
+        businessLogoFileName: "",
+        businessLogoSource: "none",
+      }))
+    } finally {
+      setIsLogoRemoving(false)
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -126,7 +431,34 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
     setError(null)
     setFieldErrors({})
 
-    const parsed = vendorProfileSchema.safeParse(form)
+    const nextFieldErrors: Record<string, string> = {}
+
+    if (isFrenchBusiness) {
+      if (!/^\d{9}$/.test(form.registrationNumber.trim())) {
+        nextFieldErrors.registrationNumber = t("messages.registrationNumberFrance")
+      }
+
+      if (form.businessAddressLine1.trim().length < 5) {
+        nextFieldErrors.businessAddressLine1 = t("messages.businessAddressLine1France")
+      }
+
+      if (!/^\d{5}$/.test(form.businessPostalCode.trim())) {
+        nextFieldErrors.businessPostalCode = t("messages.businessPostalCodeFrance")
+      }
+
+      if (form.businessCity.trim().length < 2) {
+        nextFieldErrors.businessCity = t("messages.businessCityFrance")
+      }
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
+      setError(t("messages.fixErrors"))
+      return
+    }
+
+    const requestBody = buildProfilePayload(form)
+    const parsed = vendorProfileSchema.safeParse(requestBody)
 
     if (!parsed.success) {
       const errors: Record<string, string> = {}
@@ -147,15 +479,16 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            ...requestBody,
             ...parsed.data,
             businessEmail: accountEmail,
           }),
         })
 
-        const payload = await response.json()
+        const responseBody = await response.json()
 
         if (!response.ok) {
-          setError(payload.message ?? t("messages.saveError"))
+          setError(responseBody.message ?? t("messages.saveError"))
           return
         }
 
@@ -169,16 +502,26 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
     })
   }
 
-  const reviewStatusLabel = formatValueLabel(form.reviewStatus)
-  const stripeStatusLabel = formatValueLabel(form.stripeConnectionStatus)
+  const reviewStatusLabel = formatStatusLabel(form.reviewStatus, tOverview)
+  const stripeStatusLabel = formatStatusLabel(form.stripeConnectionStatus, tOverview)
+  const registrationLabel = isFrenchBusiness
+    ? t("fields.registrationNumberFrance")
+    : t("fields.registrationNumber")
+  const registrationPlaceholder = isFrenchBusiness
+    ? t("placeholders.registrationNumberFrance")
+    : t("placeholders.registrationNumber")
+  const registrationHint = isFrenchBusiness ? t("hints.registrationNumberFrance") : undefined
 
   return (
     <div className="space-y-4">
       <ProfileOverview
         businessName={form.businessName}
+        businessLogoUrl={form.businessLogoUrl}
         fullName={ownerDisplayName}
         profileCompletion={profileCompletion}
+        reviewStatusCode={form.reviewStatus}
         reviewStatus={reviewStatusLabel}
+        stripeConnectionStatusCode={form.stripeConnectionStatus}
         stripeConnectionStatus={stripeStatusLabel}
         isEditing={isEditing}
         isPending={isPending}
@@ -226,6 +569,23 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               title={t("editTitle")}
               description={t("editDescription")}
             >
+              <BusinessLogoField
+                value={
+                  form.businessLogoUrl
+                    ? {
+                        assetUrl: form.businessLogoUrl,
+                        fileName: form.businessLogoFileName || form.businessName || "business-logo",
+                      }
+                    : null
+                }
+                businessName={form.businessName}
+                disabled={isPending}
+                uploading={isLogoUploading}
+                removing={isLogoRemoving}
+                onFileSelected={handleLogoSelected}
+                onRemove={handleLogoRemove}
+              />
+
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label={t("fields.firstName")} htmlFor="ownerFirstName" error={fieldErrors.ownerFirstName}>
                   <Input
@@ -264,14 +624,21 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                   />
                 </Field>
 
-                <Field label={t("fields.registrationNumber")} htmlFor="registrationNumber" error={fieldErrors.registrationNumber}>
+                <Field
+                  label={registrationLabel}
+                  htmlFor="registrationNumber"
+                  error={fieldErrors.registrationNumber}
+                  hint={registrationHint}
+                >
                   <Input
                     id="registrationNumber"
-                    placeholder={t("placeholders.registrationNumber")}
-                    maxLength={INPUT_LIMITS.registrationNumber}
+                    placeholder={registrationPlaceholder}
+                    maxLength={isFrenchBusiness ? 9 : INPUT_LIMITS.registrationNumber}
                     value={form.registrationNumber}
                     onChange={(event) => updateField("registrationNumber", event.target.value)}
                     aria-invalid={!!fieldErrors.registrationNumber}
+                    inputMode={isFrenchBusiness ? "numeric" : undefined}
+                    pattern={isFrenchBusiness ? "[0-9]*" : undefined}
                   />
                 </Field>
               </div>
@@ -363,19 +730,90 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
                     placeholder={t("placeholders.country")}
                   />
                 </Field>
-
-                <Field label={t("fields.businessAddress")} htmlFor="businessAddress" error={fieldErrors.businessAddress}>
-                  <Textarea
-                    id="businessAddress"
-                    className="min-h-28"
-                    placeholder={t("placeholders.businessAddress")}
-                    maxLength={INPUT_LIMITS.address}
-                    value={form.businessAddress}
-                    onChange={(event) => updateField("businessAddress", event.target.value)}
-                    aria-invalid={!!fieldErrors.businessAddress}
-                  />
-                </Field>
               </div>
+
+              {isFrenchBusiness ? (
+                <div className="rounded-2xl border border-border/80 bg-muted/15 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-background shadow-sm ring-1 ring-border/60">
+                      <MapPin className="size-4 text-[var(--contrazy-teal)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{t("sections.frenchAddressTitle")}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {t("sections.frenchAddressDescription")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4">
+                    <Field
+                      label={t("fields.businessAddressLine1")}
+                      htmlFor="businessAddressLine1"
+                      error={fieldErrors.businessAddressLine1}
+                    >
+                      <Input
+                        id="businessAddressLine1"
+                        placeholder={t("placeholders.businessAddressLine1")}
+                        maxLength={INPUT_LIMITS.address}
+                        value={form.businessAddressLine1}
+                        onChange={(event) => updateField("businessAddressLine1", event.target.value)}
+                        aria-invalid={!!fieldErrors.businessAddressLine1}
+                      />
+                    </Field>
+
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                      <Field label={t("fields.businessCity")} htmlFor="businessCity" error={fieldErrors.businessCity}>
+                        <Input
+                          id="businessCity"
+                          placeholder={t("placeholders.businessCity")}
+                          maxLength={INPUT_LIMITS.address}
+                          value={form.businessCity}
+                          onChange={(event) => updateField("businessCity", event.target.value)}
+                          aria-invalid={!!fieldErrors.businessCity}
+                        />
+                      </Field>
+
+                      <Field
+                        label={t("fields.businessPostalCode")}
+                        htmlFor="businessPostalCode"
+                        error={fieldErrors.businessPostalCode}
+                      >
+                        <Input
+                          id="businessPostalCode"
+                          placeholder={t("placeholders.businessPostalCode")}
+                          maxLength={5}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={form.businessPostalCode}
+                          onChange={(event) =>
+                            updateField("businessPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))
+                          }
+                          aria-invalid={!!fieldErrors.businessPostalCode}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field
+                    label={t("fields.businessAddress")}
+                    htmlFor="businessAddress"
+                    error={fieldErrors.businessAddress}
+                  >
+                    <Textarea
+                      id="businessAddress"
+                      className="min-h-28"
+                      placeholder={t("placeholders.businessAddress")}
+                      maxLength={INPUT_LIMITS.address}
+                      value={form.businessAddress}
+                      onChange={(event) => updateField("businessAddress", event.target.value)}
+                      aria-invalid={!!fieldErrors.businessAddress}
+                    />
+                  </Field>
+                </div>
+              )}
             </InfoSection>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -459,7 +897,7 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
               />
               <DisplayField
                 icon={Building2}
-                label={t("fields.registrationNumber")}
+                label={registrationLabel}
                 value={form.registrationNumber}
                 emptyLabel={t("display.emptyRegistration")}
               />
@@ -490,11 +928,122 @@ export function VendorProfileForm({ initialValues, accountEmail }: VendorProfile
   )
 }
 
+function BusinessLogoField({
+  value,
+  businessName,
+  disabled = false,
+  uploading = false,
+  removing = false,
+  onFileSelected,
+  onRemove,
+}: {
+  value: Pick<VendorProfileLogoAsset, "assetUrl" | "fileName"> | null
+  businessName: string
+  disabled?: boolean
+  uploading?: boolean
+  removing?: boolean
+  onFileSelected: (file: File) => void | Promise<void>
+  onRemove: () => void
+}) {
+  const t = useTranslations("dashboard.vendor.profileForm")
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const logoInitials = getBusinessInitials(businessName || t("overview.defaultName"))
+  const busy = disabled || uploading || removing
+
+  function openPicker() {
+    if (busy) {
+      return
+    }
+
+    inputRef.current?.click()
+  }
+
+  return (
+    <div className="rounded-2xl border border-border/80 bg-muted/15 p-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <Avatar className="size-24 rounded-[1.75rem] after:rounded-[1.75rem]">
+          {value?.assetUrl ? (
+            <AvatarImage
+              src={value.assetUrl}
+              alt={businessName || t("overview.defaultName")}
+              className="rounded-[1.75rem]"
+            />
+          ) : null}
+          <AvatarFallback className="rounded-[1.75rem] bg-[var(--contrazy-teal)]/10 text-xl font-semibold text-[var(--contrazy-teal)]">
+            {logoInitials}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">{t("logo.title")}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{t("logo.description")}</p>
+          {value?.fileName ? (
+            <p className="mt-2 truncate text-xs font-medium text-foreground/80">{value.fileName}</p>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 cursor-pointer gap-2 rounded-xl"
+              onClick={openPicker}
+              disabled={busy}
+            >
+              {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImageUp className="size-4" />}
+              {uploading
+                ? t("logo.uploading")
+                : value?.assetUrl
+                  ? t("logo.replace")
+                  : t("logo.upload")}
+            </Button>
+
+            {value?.assetUrl ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 cursor-pointer gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={onRemove}
+                disabled={busy}
+              >
+                {removing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                {removing ? t("logo.removing") : t("logo.remove")}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <input
+        ref={inputRef}
+        id={inputId}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        tabIndex={-1}
+        disabled={busy}
+        onChange={(event) => {
+          const nextFile = event.target.files?.[0]
+
+          if (nextFile) {
+            void onFileSelected(nextFile)
+          }
+
+          event.target.value = ""
+        }}
+      />
+    </div>
+  )
+}
+
 function ProfileOverview({
   businessName,
+  businessLogoUrl,
   fullName,
   profileCompletion,
+  reviewStatusCode,
   reviewStatus,
+  stripeConnectionStatusCode,
   stripeConnectionStatus,
   isEditing,
   isPending,
@@ -502,9 +1051,12 @@ function ProfileOverview({
   onClose,
 }: {
   businessName: string
+  businessLogoUrl: string
   fullName: string
   profileCompletion: number
+  reviewStatusCode: string
   reviewStatus: string
+  stripeConnectionStatusCode: string
   stripeConnectionStatus: string
   isEditing: boolean
   isPending: boolean
@@ -512,6 +1064,7 @@ function ProfileOverview({
   onClose: () => void
 }) {
   const t = useTranslations("dashboard.vendor.profileForm")
+  const businessInitials = getBusinessInitials(businessName || t("overview.defaultName"))
 
   const stats = [
     {
@@ -524,13 +1077,13 @@ function ProfileOverview({
       label: t("stats.review"),
       value: reviewStatus,
       icon: ShieldCheck,
-      tone: statusTone(reviewStatus),
+      tone: statusTone(reviewStatusCode),
     },
     {
       label: t("stats.payout"),
       value: stripeConnectionStatus,
       icon: CreditCard,
-      tone: statusTone(stripeConnectionStatus),
+      tone: statusTone(stripeConnectionStatusCode),
     },
   ]
 
@@ -548,25 +1101,34 @@ function ProfileOverview({
     <section className="border rounded-xl border-border bg-background text-foreground">
       <div className="border-b border-border px-4 py-3 sm:px-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-sm border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <Building2 className="size-3.5 text-[var(--contrazy-teal)]" />
-              {t("overview.tag")}
-            </div>
+          <div className="flex min-w-0 items-start gap-4">
+            <Avatar className="size-16 rounded-[1.25rem] after:rounded-[1.25rem]">
+              {businessLogoUrl ? <AvatarImage src={businessLogoUrl} alt={businessName || t("overview.defaultName")} className="rounded-[1.25rem]" /> : null}
+              <AvatarFallback className="rounded-[1.25rem] bg-[var(--contrazy-teal)]/10 text-base font-semibold text-[var(--contrazy-teal)]">
+                {businessInitials}
+              </AvatarFallback>
+            </Avatar>
 
-            <h2 className="mt-3 truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {businessName.trim() || t("overview.defaultName")}
-            </h2>
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-sm border border-border bg-muted px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Building2 className="size-3.5 text-[var(--contrazy-teal)]" />
+                {t("overview.tag")}
+              </div>
 
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              <span className="inline-flex min-w-0 items-center gap-1.5">
-                <UserRound className="size-3.5 shrink-0" />
-                <span className="truncate">
-                  {fullName.trim() || t("display.emptyOwner")}
+              <h2 className="mt-3 truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                {businessName.trim() || t("overview.defaultName")}
+              </h2>
+
+              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <UserRound className="size-3.5 shrink-0" />
+                  <span className="truncate">
+                    {fullName.trim() || t("display.emptyOwner")}
+                  </span>
                 </span>
-              </span>
-              <span className="text-border">/</span>
-              <span>{t("overview.workspaceHint")}</span>
+                <span className="text-border">/</span>
+                <span>{t("overview.workspaceHint")}</span>
+              </div>
             </div>
           </div>
 
@@ -720,6 +1282,14 @@ function DisplayField({
       </div>
     </div>
   )
+}
+
+function formatStatusLabel(
+  value: string,
+  t: ReturnType<typeof useTranslations>
+) {
+  const key = getDashboardStatusLabelKey(value)
+  return key ? t(profileStatusTranslationKeys[key]) : humanizeStatusLabel(value)
 }
 
 function CompactStat({

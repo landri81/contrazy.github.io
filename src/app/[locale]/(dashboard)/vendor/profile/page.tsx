@@ -8,6 +8,11 @@ import { requireVendorProfileAccess } from "@/lib/auth/guards"
 export default async function VendorProfilePage() {
   const t = await getTranslations("dashboard.vendor.profile")
   const { dbUser, vendorProfile } = await requireVendorProfileAccess()
+  const vendorProfileWithLogo = vendorProfile as typeof vendorProfile & {
+    businessLogoUrl?: string | null
+    businessLogoPublicId?: string | null
+    businessLogoFileName?: string | null
+  }
   const accountEmail = dbUser.email
   const profileKey = [
     vendorProfile.ownerFirstName ?? "",
@@ -23,6 +28,9 @@ export default async function VendorProfilePage() {
     vendorProfile.preferredLocale,
     vendorProfile.reviewStatus,
     vendorProfile.stripeConnectionStatus,
+    vendorProfileWithLogo.businessLogoUrl ?? "",
+    vendorProfileWithLogo.businessLogoPublicId ?? "",
+    vendorProfileWithLogo.businessLogoFileName ?? "",
   ].join("|")
 
   return (
@@ -43,6 +51,9 @@ export default async function VendorProfilePage() {
           businessCountry: vendorProfile.businessCountry ?? "",
           registrationNumber: vendorProfile.registrationNumber ?? "",
           vatNumber: vendorProfile.vatNumber ?? "",
+          businessLogoUrl: vendorProfileWithLogo.businessLogoUrl ?? "",
+          businessLogoPublicId: vendorProfileWithLogo.businessLogoPublicId ?? "",
+          businessLogoFileName: vendorProfileWithLogo.businessLogoFileName ?? "",
           preferredLocale: vendorProfile.preferredLocale,
           reviewStatus: vendorProfile.reviewStatus,
           stripeConnectionStatus: vendorProfile.stripeConnectionStatus,

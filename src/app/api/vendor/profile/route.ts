@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 
+import {
+  destroyVendorProfileLogoAssetIfOwnedByVendor,
+  normalizeVendorProfileLogoImage,
+} from "@/features/dashboard/server/vendor-profile-logo-assets"
 import { vendorProfileSchema } from "@/features/dashboard/schemas/vendor-profile.schema"
 import { getAuthSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/db/prisma"
+import { env } from "@/lib/env"
+import { sendAdminVendorProfileSubmittedEmail } from "@/lib/integrations/resend"
 
 function slugify(value: string) {
   return value
@@ -40,6 +46,37 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 })
     }
 
+    if (!user.vendorProfile) {
+      return NextResponse.json({ success: false, message: "Vendor profile not found" }, { status: 404 })
+    }
+
+    const vendorProfile = user.vendorProfile as typeof user.vendorProfile & {
+      businessLogoUrl?: string | null
+      businessLogoPublicId?: string | null
+      businessLogoFileName?: string | null
+    }
+
+    let normalizedLogo: ReturnType<typeof normalizeVendorProfileLogoImage>
+
+    try {
+      normalizedLogo = normalizeVendorProfileLogoImage(
+        {
+          businessLogoUrl: typeof body?.businessLogoUrl === "string" ? body.businessLogoUrl : null,
+          businessLogoPublicId: typeof body?.businessLogoPublicId === "string" ? body.businessLogoPublicId : null,
+          businessLogoFileName: typeof body?.businessLogoFileName === "string" ? body.businessLogoFileName : null,
+        },
+        vendorProfile.id
+      )
+    } catch (logoError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: logoError instanceof Error ? logoError.message : "Invalid logo data",
+        },
+        { status: 400 }
+      )
+    }
+
     const {
       ownerFirstName,
       ownerLastName,
@@ -55,9 +92,16 @@ export async function PATCH(request: Request) {
       parsedBody.data
     const accountEmail = session.user.email.toLowerCase()
     const fullName = `${ownerFirstName} ${ownerLastName}`.trim()
+    const previousLogoUrl = vendorProfile.businessLogoUrl
+    const previousLogoFileName = vendorProfile.businessLogoFileName
 
     const nextSlugBase = slugify(businessName)
-    const nextSlug = user.vendorProfile?.businessSlug ?? `${nextSlugBase || "business"}-${user.id.slice(-6)}`
+    const nextSlug = vendorProfile.businessSlug ?? `${nextSlugBase || "business"}-${user.id.slice(-6)}`
+    const vendorProfileLogoData = {
+      businessLogoUrl: normalizedLogo.businessLogoUrl,
+      businessLogoPublicId: normalizedLogo.businessLogoPublicId,
+      businessLogoFileName: normalizedLogo.businessLogoFileName,
+    }
 
     await prisma.user.update({
       where: { id: user.id },
@@ -76,6 +120,7 @@ export async function PATCH(request: Request) {
               businessCountry,
               registrationNumber,
               vatNumber: vatNumber ? vatNumber : null,
+              ...vendorProfileLogoData,
               preferredLocale,
               businessSlug: nextSlug,
             },
@@ -90,6 +135,7 @@ export async function PATCH(request: Request) {
               businessCountry,
               registrationNumber,
               vatNumber: vatNumber ? vatNumber : null,
+              ...vendorProfileLogoData,
               preferredLocale,
               businessSlug: nextSlug,
             },
@@ -98,6 +144,14 @@ export async function PATCH(request: Request) {
       },
     })
 
+    if (previousLogoUrl !== normalizedLogo.businessLogoUrl) {
+      try {
+        await destroyVendorProfileLogoAssetIfOwnedByVendor(previousLogoUrl, vendorProfile.id, previousLogoFileName)
+      } catch (cleanupError) {
+        console.error("Previous vendor logo cleanup skipped", cleanupError)
+      }
+    }
+
     try {
       await prisma.auditLog.create({
         data: {
@@ -105,11 +159,27 @@ export async function PATCH(request: Request) {
           actorType: "USER",
           action: "Updated vendor profile",
           entityType: "VendorProfile",
-          entityId: user.vendorProfile?.id,
+          entityId: vendorProfile.id,
         },
       })
     } catch (auditError) {
       console.error("Audit log write skipped", auditError)
+    }
+
+    // Notify superadmin when profile is pending review
+    if (vendorProfile.reviewStatus === "PENDING") {
+      try {
+        const isFirst = !vendorProfile.businessName
+        await sendAdminVendorProfileSubmittedEmail(
+          env.SUPER_ADMIN_EMAIL,
+          businessName,
+          accountEmail,
+          user.id,
+          isFirst
+        )
+      } catch (emailError) {
+        console.error("Admin profile notification skipped", emailError)
+      }
     }
 
     return NextResponse.json({ success: true, message: "Profile updated" })

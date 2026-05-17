@@ -52,7 +52,10 @@ export async function PATCH(
       await sendVendorReviewStatusEmail(
         user.vendorProfile.businessEmail ?? user.email,
         user.vendorProfile.businessName ?? user.name ?? "Vendor",
-        parsedBody.data.reviewStatus
+        parsedBody.data.reviewStatus,
+        user.vendorProfile.preferredLocale ?? undefined,
+        (user.vendorProfile as typeof user.vendorProfile & { businessLogoUrl?: string | null }).businessLogoUrl ?? null,
+        user.vendorProfile.ownerFirstName ?? user.name ?? null
       )
     }
 

@@ -151,6 +151,7 @@ export async function POST(request: Request) {
     let sentCount = 0
     let failedCount = 0
     const vendorName = vendorProfile.businessName || vendorProfile.businessEmail || "Contrazy vendor"
+    const vendorLogoUrl = (vendorProfile as typeof vendorProfile & { businessLogoUrl?: string | null }).businessLogoUrl ?? null
     const deliveryRows = []
 
     for (const row of created.rows) {
@@ -160,7 +161,8 @@ export async function POST(request: Request) {
         launch.prepared.title,
         row.reference,
         row.secureLink,
-        launch.prepared.locale
+        launch.prepared.locale,
+        vendorLogoUrl
       )
 
       if (sent) {
