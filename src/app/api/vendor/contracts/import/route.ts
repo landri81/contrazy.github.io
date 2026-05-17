@@ -122,68 +122,10 @@ async function importDocx(buffer: Buffer) {
 }
 
 async function importPdf(buffer: Buffer): Promise<string> {
-  // Dynamic import keeps any load-time failures inside the async call stack,
-  // where the route's try/catch can handle them instead of crashing the module.
-  // GlobalWorkerOptions.workerSrc = "" forces pdfjs to run on the main thread
-  // (fake worker) — web workers are not available in Vercel serverless functions.
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs")
-  pdfjsLib.GlobalWorkerOptions.workerSrc = ""
-
-  const loadingTask = pdfjsLib.getDocument({
-    data: new Uint8Array(buffer),
-    useWorkerFetch: false,   // no internal fetch in serverless
-    isEvalSupported: false,  // eval() may be blocked in hardened Lambda envs
-    useSystemFonts: true,    // avoid loading external font files
-    disableFontFace: true,   // text extraction only — no rendering, no canvas
-  })
-
-  const pdfDoc = await loadingTask.promise
-  const pageTexts: string[] = []
-
-  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-    const page = await pdfDoc.getPage(pageNum)
-    const { items } = await page.getTextContent()
-
-    let prevY: number | null = null
-    const lineBuffer: string[] = []
-    const pageLines: string[] = []
-
-    for (const item of items) {
-      if (!("str" in item)) continue
-      const { str, transform, hasEOL } = item as {
-        str: string
-        transform: number[]
-        hasEOL: boolean
-      }
-      const y = transform[5]
-
-      // New line when Y coordinate changes meaningfully
-      if (prevY !== null && Math.abs(y - prevY) > 3) {
-        if (lineBuffer.length) {
-          pageLines.push(lineBuffer.join(""))
-          lineBuffer.length = 0
-        }
-      }
-
-      lineBuffer.push(str)
-
-      if (hasEOL) {
-        pageLines.push(lineBuffer.join(""))
-        lineBuffer.length = 0
-      }
-
-      prevY = y
-    }
-
-    if (lineBuffer.length) pageLines.push(lineBuffer.join(""))
-
-    pageTexts.push(pageLines.filter((l) => l.trim()).join("\n"))
-    page.cleanup()
-  }
-
-  await pdfDoc.cleanup()
-
-  return convertPlainTextImportToHtml(pageTexts.filter(Boolean).join("\n\n"))
+  const { extractText } = await import("unpdf")
+  const { text } = await extractText(new Uint8Array(buffer))
+  const fullText = Array.isArray(text) ? text.join("\n\n") : (text ?? "")
+  return convertPlainTextImportToHtml(fullText)
 }
 
 function getFileKind(file: File) {
