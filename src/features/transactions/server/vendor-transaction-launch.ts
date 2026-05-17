@@ -32,6 +32,7 @@ import {
   MAX_LONG_DEPOSIT_HOLD_DAYS,
   normalizeDepositHoldDays,
 } from "@/features/subscriptions/server/deposit-strategy"
+import { normalizeRequirementFileSlotLabels } from "@/features/transactions/contract-flow"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import {
   buildRecreatedRequirementDocumentSeeds,
@@ -54,6 +55,8 @@ type RequirementDefinition = {
   category: VendorTransactionCreateInput["requirements"][number]["category"]
   customCategoryLabel: string | null
   required: boolean
+  requiredFileCount: number
+  fileSlotLabels: string[]
   sortOrder: number
   exampleImageUrl: string | null
   exampleImagePublicId: string | null
@@ -83,6 +86,7 @@ export type PreparedVendorTransactionLaunch = {
   amount: number | null
   depositAmount: number | null
   depositHoldDays: number
+  serviceDate: Date
   depositLongTermStripeFeeEstimateAmount: number | null
   depositLongTermPlatformFeeAmount: number | null
   depositLongTermFeeAcceptedAt: Date | null
@@ -189,6 +193,7 @@ export async function prepareVendorTransactionLaunch({
 
   const {
     title,
+    serviceDate,
     recreateFromTransactionId,
     notes,
     contractTemplateId,
@@ -423,6 +428,8 @@ export async function prepareVendorTransactionLaunch({
       category: item.category,
       customCategoryLabel: item.customCategoryLabel,
       required: item.required,
+      requiredFileCount: item.requiredFileCount,
+      fileSlotLabels: item.fileSlotLabels,
       sortOrder: index,
       ...normalizeRequirementExampleImage(item, item.type, vendorProfile.id),
     }))
@@ -446,6 +453,13 @@ export async function prepareVendorTransactionLaunch({
           category: item.category,
           customCategoryLabel: item.customCategoryLabel,
           required: item.required,
+          requiredFileCount: item.requiredFileCount,
+          fileSlotLabels: normalizeRequirementFileSlotLabels({
+            type: item.type,
+            fileCount: item.requiredFileCount,
+            labels: item.fileSlotLabels,
+            requirementLabel: item.label,
+          }),
           sortOrder: item.sortOrder,
           exampleImageUrl: item.exampleImageUrl,
           exampleImagePublicId: item.exampleImagePublicId,
@@ -497,6 +511,7 @@ export async function prepareVendorTransactionLaunch({
       amount: normalizedAmount,
       depositAmount: normalizedDepositAmount,
       depositHoldDays: normalizedDepositHoldDays,
+      serviceDate,
       depositLongTermStripeFeeEstimateAmount: longDepositFeeEstimate?.stripeFeeAmount ?? null,
       depositLongTermPlatformFeeAmount: longDepositFeeEstimate?.platformFeeAmount ?? null,
       depositLongTermFeeAcceptedAt: isLongDeposit ? new Date() : null,
@@ -545,6 +560,8 @@ export async function createPreparedVendorTransaction(
             fullName: prepared.recreateSource.clientProfile.fullName,
             firstName: prepared.recreateSource.clientProfile.firstName,
             lastName: prepared.recreateSource.clientProfile.lastName,
+            birthCity: prepared.recreateSource.clientProfile.birthCity,
+            birthDate: prepared.recreateSource.clientProfile.birthDate,
             email: prepared.recreateSource.clientProfile.email,
             phone: prepared.recreateSource.clientProfile.phone,
             companyName: prepared.recreateSource.clientProfile.companyName,
@@ -570,6 +587,7 @@ export async function createPreparedVendorTransaction(
       amount: prepared.amount,
       depositAmount: prepared.depositAmount,
       depositHoldDays: prepared.depositHoldDays,
+      serviceDate: prepared.serviceDate,
       depositLongTermStripeFeeEstimateAmount: prepared.depositLongTermStripeFeeEstimateAmount,
       depositLongTermPlatformFeeAmount: prepared.depositLongTermPlatformFeeAmount,
       depositLongTermFeeAcceptedAt: prepared.depositLongTermFeeAcceptedAt,
@@ -596,6 +614,8 @@ export async function createPreparedVendorTransaction(
                 category: item.category,
                 customCategoryLabel: item.customCategoryLabel,
                 required: item.required,
+                requiredFileCount: item.requiredFileCount,
+                fileSlotLabels: item.fileSlotLabels as Prisma.InputJsonValue,
                 exampleImageUrl: item.exampleImageUrl,
                 exampleImagePublicId: item.exampleImagePublicId,
                 exampleImageFileName: item.exampleImageFileName,
@@ -676,6 +696,10 @@ export async function createPreparedVendorTransaction(
         requirementId: document.requirementId,
         label: document.label,
         type: document.type,
+        slotIndex: document.slotIndex,
+        slotLabel: document.slotLabel,
+        source: document.source,
+        capturedAt: document.capturedAt,
         assetUrl: document.assetUrl,
         publicId: document.publicId,
         fileName: document.fileName,

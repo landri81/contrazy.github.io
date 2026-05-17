@@ -35,6 +35,7 @@ export default async function ClientContractPage(props: { params: Promise<{ loca
       transaction.contractTemplate?.name ??
       transaction.title,
     vendorName: transaction.vendor?.businessName ?? null,
+    vendorLogoUrl: transaction.vendor?.businessLogoUrl ?? null,
     clientName: buildClientDisplayName(transaction.clientProfile) || null,
     reference: transaction.reference,
     amount: transaction.amount,

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const publicId = searchParams.get("publicId")
     const resourceType = searchParams.get("resourceType")
     const format = searchParams.get("format")
+    const disposition = searchParams.get("disposition") === "inline" ? "inline" : "attachment"
 
     if (!publicId || !resourceType || !format || !ALLOWED_RESOURCE_TYPES.has(resourceType)) {
       return NextResponse.json({ ok: false, message: "Invalid download request." }, { status: 400 })
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const downloadUrl = cloudinary.utils.private_download_url(publicId, format, {
       resource_type: resourceType as "image" | "raw" | "video",
       type: "upload",
-      attachment: true,
+      attachment: disposition !== "inline",
       expires_at: Math.floor(Date.now() / 1000) + 60 * 10,
     })
 

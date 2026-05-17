@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import {
   AlertCircle,
   ArrowRight,
+  ArrowRightLeft,
   BadgeCheck,
   CheckCircle2,
   Clock3,
@@ -12,6 +13,8 @@ import {
   Link2,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
+  Unlock,
   Users,
   Wallet,
 } from "lucide-react"
@@ -108,6 +111,17 @@ function useOverviewStatusLabel() {
 function useOverviewToneLabel() {
   const t = useTranslations("dashboard.vendor.overview")
   return (tone: AlertRecord["tone"]) => t(alertToneLabelKeys[tone])
+}
+
+function useRecentTransactionLabel() {
+  const t = useTranslations("dashboard.vendor.transactions")
+
+  return {
+    kind: (value: string) => t(`enums.kind.${value}` as never),
+    kyc: (value: string) => t(`enums.kyc.${value}` as never),
+    contract: (value: string) => t(`enums.contract.${value}` as never),
+    status: (value: string) => t(`enums.status.${value}` as never),
+  }
 }
 
 function StatusPill({
@@ -686,6 +700,7 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
   const tPlans = useTranslations("subscriptions.plans")
   const locale = useLocale()
   const formatStatusLabel = useOverviewStatusLabel()
+  const formatRecentTransaction = useRecentTransactionLabel()
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
   const dateTimeFormatter = useMemo(
     () =>
@@ -871,33 +886,47 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
     },
   ]
 
+  const currencyFormatter = new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-US", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+
+  const totalDepositDecisions = stats.depositCaptureCount + stats.depositReleaseCount
+  const captureRate = totalDepositDecisions > 0
+    ? Math.round((stats.depositCaptureCount / totalDepositDecisions) * 100)
+    : null
+
   const metricCards = [
     {
-      label: t("hero.metrics.liveWorkflows.label"),
-      value: numberFormatter.format(liveWorkflows),
-      detail: t("hero.metrics.liveWorkflows.detail"),
-      icon: Link2,
-      href: "/vendor/links",
-    },
-    {
-      label: t("hero.metrics.completed.label"),
-      value: numberFormatter.format(overviewFlow.completed),
-      detail: t("hero.metrics.completed.detail"),
-      icon: CheckCircle2,
+      label: t("hero.metrics.solde.label"),
+      value: currencyFormatter.format(stats.serviceRevenue / 100),
+      detail: t("hero.metrics.solde.detail", { count: overviewFlow.completed }),
+      icon: TrendingUp,
       href: "/vendor/transactions",
     },
     {
-      label: t("hero.metrics.signedContracts.label"),
-      value: numberFormatter.format(stats.signedContracts),
-      detail: t("hero.metrics.signedContracts.detail"),
-      icon: FileSignature,
-      href: "/vendor/signatures",
+      label: t("hero.metrics.transactions.label"),
+      value: numberFormatter.format(stats.totalTransactions),
+      detail: t("hero.metrics.transactions.detail", { live: liveWorkflows }),
+      icon: ArrowRightLeft,
+      href: "/vendor/transactions",
     },
     {
-      label: t("hero.metrics.activeDeposits.label"),
-      value: numberFormatter.format(stats.activeDeposits),
-      detail: t("hero.metrics.activeDeposits.detail"),
+      label: t("hero.metrics.depositsCaptured.label"),
+      value: currencyFormatter.format(stats.depositsCaptured / 100),
+      detail: captureRate !== null
+        ? t("hero.metrics.depositsCaptured.detailWithRate", { rate: captureRate })
+        : t("hero.metrics.depositsCaptured.detail"),
       icon: Wallet,
+      href: "/vendor/deposits",
+    },
+    {
+      label: t("hero.metrics.depositsReleased.label"),
+      value: currencyFormatter.format(stats.depositsReleased / 100),
+      detail: t("hero.metrics.depositsReleased.detail", { count: stats.depositReleaseCount }),
+      icon: Unlock,
       href: "/vendor/deposits",
     },
   ]
@@ -1340,7 +1369,9 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
                       <p className="mt-1 text-sm text-muted-foreground">{transaction.clientName}</p>
                       <p className="text-xs text-muted-foreground">{transaction.clientEmail}</p>
                     </div>
-                    <StatusBadge tone={getStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
+                    <StatusBadge tone={getStatusTone(transaction.status)}>
+                      {formatRecentTransaction.status(transaction.status)}
+                    </StatusBadge>
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -1354,11 +1385,17 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t("table.type")}</p>
-                      <p className="mt-1 font-medium text-foreground">{transaction.kind}</p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {formatRecentTransaction.kind(transaction.kind)}
+                      </p>
                     </div>
                     <div className="flex flex-wrap items-start gap-2">
-                      <StatusBadge tone={getStatusTone(transaction.kyc)}>{transaction.kyc}</StatusBadge>
-                      <StatusBadge tone={getStatusTone(transaction.contract)}>{transaction.contract}</StatusBadge>
+                      <StatusBadge tone={getStatusTone(transaction.kyc)}>
+                        {formatRecentTransaction.kyc(transaction.kyc)}
+                      </StatusBadge>
+                      <StatusBadge tone={getStatusTone(transaction.contract)}>
+                        {formatRecentTransaction.contract(transaction.contract)}
+                      </StatusBadge>
                     </div>
                   </div>
                 </div>
@@ -1415,16 +1452,24 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
                           {transaction.reference}
                         </Link>
                       </TableCell>
-                      <TableCell className="px-4 py-3.5 text-muted-foreground">{transaction.kind}</TableCell>
+                      <TableCell className="px-4 py-3.5 text-muted-foreground">
+                        {formatRecentTransaction.kind(transaction.kind)}
+                      </TableCell>
                       <TableCell className="px-4 py-3.5 font-medium text-foreground">{transaction.amount}</TableCell>
                       <TableCell className="px-4 py-3.5">
-                        <StatusBadge tone={getStatusTone(transaction.kyc)}>{transaction.kyc}</StatusBadge>
+                        <StatusBadge tone={getStatusTone(transaction.kyc)}>
+                          {formatRecentTransaction.kyc(transaction.kyc)}
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="px-4 py-3.5">
-                        <StatusBadge tone={getStatusTone(transaction.contract)}>{transaction.contract}</StatusBadge>
+                        <StatusBadge tone={getStatusTone(transaction.contract)}>
+                          {formatRecentTransaction.contract(transaction.contract)}
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="px-4 py-3.5">
-                        <StatusBadge tone={getStatusTone(transaction.status)}>{transaction.status}</StatusBadge>
+                        <StatusBadge tone={getStatusTone(transaction.status)}>
+                          {formatRecentTransaction.status(transaction.status)}
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="px-4 py-3.5 text-muted-foreground">{transaction.date}</TableCell>
                     </TableRow>

@@ -120,7 +120,8 @@ export async function POST(
         transaction.amount,
         transaction.currency,
         paymentUrl,
-        transaction.locale
+        transaction.locale,
+        transaction.vendor?.businessLogoUrl
       )
 
       if (sent) {

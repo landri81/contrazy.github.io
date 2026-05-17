@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { ClipboardCheck, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,10 +20,18 @@ export function RequestCheckoutCard({
   checkOutSubmittedAt: string | null
 }) {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations("dashboard.vendor.transactionDetailPage")
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const canRequest = Boolean(checkInSubmittedAt && !checkOutRequestedAt && !checkOutSubmittedAt)
+
+  const intlLocale = locale === "fr" ? "fr-FR" : "en-GB"
+
+  function formatDateTime(value: string) {
+    return new Date(value).toLocaleString(intlLocale)
+  }
 
   async function handleRequest() {
     setIsPending(true)
@@ -35,13 +44,13 @@ export function RequestCheckoutCard({
       const payload = await res.json().catch(() => null)
 
       if (!res.ok || !payload?.success) {
-        setError(payload?.message ?? "Failed to request checkout. Please try again.")
+        setError(payload?.message ?? t("requestCheckoutError"))
         return
       }
 
       router.refresh()
     } catch {
-      setError("Failed to request checkout. Please try again.")
+      setError(t("requestCheckoutError"))
     } finally {
       setIsPending(false)
     }
@@ -50,29 +59,29 @@ export function RequestCheckoutCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Check-In / Check-Out</CardTitle>
+        <CardTitle>{t("checkInOutTitle")}</CardTitle>
         <CardDescription>
-          Track the service lifecycle. Request checkout once the service period is ending.
+          {t("checkInOutDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-3">
           <div>
-            <p className="font-medium text-foreground">Check-In</p>
+            <p className="font-medium text-foreground">{t("checkInLabel")}</p>
             <p className="mt-1 text-muted-foreground">
               {checkInSubmittedAt
-                ? `Submitted on ${new Date(checkInSubmittedAt).toLocaleString()}`
-                : "Pending — customer has not completed check-in yet."}
+                ? t("submittedOn", { date: formatDateTime(checkInSubmittedAt) })
+                : t("checkInPending")}
             </p>
           </div>
           <div>
-            <p className="font-medium text-foreground">Checkout Request</p>
+            <p className="font-medium text-foreground">{t("checkoutRequestLabel")}</p>
             <p className="mt-1 text-muted-foreground">
               {checkOutSubmittedAt
-                ? `Check-out submitted on ${new Date(checkOutSubmittedAt).toLocaleString()}`
+                ? t("checkOutSubmittedOn", { date: formatDateTime(checkOutSubmittedAt) })
                 : checkOutRequestedAt
-                  ? `Requested on ${new Date(checkOutRequestedAt).toLocaleString()} — awaiting customer.`
-                  : "Not requested yet."}
+                  ? t("requestedOnAwaitingCustomer", { date: formatDateTime(checkOutRequestedAt) })
+                  : t("notRequestedYet")}
             </p>
           </div>
         </div>
@@ -90,7 +99,7 @@ export function RequestCheckoutCard({
           ) : (
             <ClipboardCheck className="mr-2 size-4" />
           )}
-          Request checkout
+          {t("requestCheckoutButton")}
         </Button>
       </CardContent>
     </Card>

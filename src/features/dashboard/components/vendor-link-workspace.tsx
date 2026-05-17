@@ -127,6 +127,7 @@ function UsageCard({
   icon: React.ElementType
   percent: number | null
 }) {
+  const t = useTranslations("dashboard.vendor.linkWorkspace")
   const toneClasses: Record<UsageTone, string> = {
     default: "border-border bg-background text-muted-foreground",
     accent:
@@ -185,8 +186,8 @@ function UsageCard({
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{percent === null ? "Unlimited" : `${percent}% used`}</span>
-          <span className="opacity-70">Current period</span>
+          <span>{percent === null ? t("usage.unlimited") : t("usage.percentUsed", { percent })}</span>
+          <span className="opacity-70">{t("usage.currentPeriod")}</span>
         </div>
       </div>
     </motion.div>
@@ -222,7 +223,7 @@ function MobileTransactionCard({
           </p>
         </div>
 
-        <StatusBadge tone={getStatusTone(record.status)}>{record.status}</StatusBadge>
+        <StatusBadge tone={getStatusTone(record.status)}>{t(`enums.status.${record.status}` as never)}</StatusBadge>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 border-y border-border py-3 text-sm">
@@ -253,7 +254,7 @@ function MobileTransactionCard({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full border border-border bg-muted px-2 py-0.5 capitalize">
-            {record.kind.replaceAll("_", " ").toLowerCase()}
+            {t(`enums.kind.${record.kind}` as never)}
           </span>
 
           {record.qrReady ? (
@@ -350,7 +351,7 @@ export function VendorLinkWorkspace({
   const statusLabel = usageState?.isTrial
     ? t("header.trialStatus")
     : usageState?.status
-      ? usageState.status.charAt(0) + usageState.status.slice(1).toLowerCase()
+      ? t(`enums.subscriptionStatus.${usageState.status}` as never)
       : t("header.activePlan")
 
   const periodEndLabel = formatPeriodEnd(usageState?.periodEnd ?? null)
@@ -661,7 +662,7 @@ export function VendorLinkWorkspace({
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full border border-border bg-muted px-2 py-0.5 capitalize">
-                    {record.kind.replaceAll("_", " ").toLowerCase()}
+                    {t(`enums.kind.${record.kind}` as never)}
                   </span>
 
                   {record.qrReady ? (
@@ -699,7 +700,7 @@ export function VendorLinkWorkspace({
               </span>,
 
               <StatusBadge key={`${record.id}-status`} tone={getStatusTone(record.status)}>
-                {record.status}
+                {t(`enums.status.${record.status}` as never)}
               </StatusBadge>,
 
               <PaymentLinkManagementActions

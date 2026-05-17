@@ -105,7 +105,8 @@ export async function POST(
           transaction.vendor?.businessName ?? "Vendor",
           transaction.reference,
           checkOutUrl,
-          transaction.locale
+          transaction.locale,
+          transaction.vendor?.businessLogoUrl
         )
         if (sent) {
           await recordTransactionEvent(prisma, {

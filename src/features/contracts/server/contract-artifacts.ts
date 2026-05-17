@@ -664,6 +664,8 @@ async function prepareSignedArtifactRender(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    signatureCity: transaction.signatureCity,
+    serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
   })
@@ -675,6 +677,8 @@ async function prepareSignedArtifactRender(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    signatureCity: transaction.signatureCity,
+    serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
     signerName,
@@ -799,6 +803,8 @@ export async function persistReviewedContractSnapshot(
     transactionReference: transaction.reference,
     amount: transaction.amount,
     depositAmount: transaction.depositAmount,
+    signatureCity: transaction.signatureCity,
+    serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
   })

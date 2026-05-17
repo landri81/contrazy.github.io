@@ -49,6 +49,7 @@ import type {
   BillingWorkspace,
   SerializedSubscription,
 } from "@/features/subscriptions/types"
+import { VendorFeeOperationsTable } from "@/features/subscriptions/components/vendor-fee-operations-table"
 import { cn } from "@/lib/utils"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -593,9 +594,11 @@ function SubscriptionStatusBand({ subscription }: { subscription: SerializedSubs
 export function VendorBillingWorkspace({
   workspace,
   stripePublishableKey,
+  locale,
 }: {
   workspace: BillingWorkspace
   stripePublishableKey: string
+  locale: string
 }) {
   const router = useRouter()
   const t = useTranslations("subscriptions.billing")
@@ -884,6 +887,13 @@ export function VendorBillingWorkspace({
             loading={planLoading}
           />
         </section>
+
+        {/* Fee operations (even without active sub) */}
+        <VendorFeeOperationsTable
+          feeOperations={workspace.feeOperations}
+          feeSummary={workspace.feeSummary}
+          locale={locale}
+        />
       </div>
     )
   }
@@ -939,7 +949,14 @@ export function VendorBillingWorkspace({
           </div>
         </div>
 
-        {/* Payment method modal */}
+        {/* Fee operations */}
+      <VendorFeeOperationsTable
+        feeOperations={workspace.feeOperations}
+        feeSummary={workspace.feeSummary}
+        locale={locale}
+      />
+
+      {/* Payment method modal */}
         <Dialog open={pmModal} onOpenChange={(open) => { if (!open) { setPmModal(false); setSetupClientSecret(null) } }}>
           <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-md">
             <DialogHeader className="shrink-0">
@@ -1065,6 +1082,13 @@ export function VendorBillingWorkspace({
           </div>
         </div>
       </section>
+
+      {/* Fee operations */}
+      <VendorFeeOperationsTable
+        feeOperations={workspace.feeOperations}
+        feeSummary={workspace.feeSummary}
+        locale={locale}
+      />
 
       {/* Danger zone */}
       {!isCanceling && (

@@ -33,6 +33,7 @@ import {
   remainingQrCodes,
   remainingTransactions,
 } from "@/features/subscriptions/server/feature-gates"
+import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 import { isLiveLinkStatus } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import {
@@ -53,6 +54,11 @@ import {
   vendorWebhookStatusOptions,
 } from "@/features/dashboard/filter-options"
 import { getStatusTone as getStatusToneValue } from "@/features/dashboard/lib/status-tone"
+import {
+  buildVendorDisputeEvidenceAsset,
+  parseDisputeEvidenceAssets,
+  type VendorDisputeEvidenceAsset,
+} from "@/features/dashboard/server/dispute-evidence"
 import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { buildPaginationMeta, resolvePagination, type PaginationMeta } from "@/lib/pagination"
 
@@ -203,6 +209,11 @@ export type WorkspaceRecord = {
     totalClients: number
     activeDeposits: number
     signedContracts: number
+    serviceRevenue: number
+    depositsCaptured: number
+    depositsReleased: number
+    depositCaptureCount: number
+    depositReleaseCount: number
   }
   subscriptionUsage: SubscriptionUsageRecord | null
   overviewFlow: VendorOverviewFlowRecord
@@ -231,8 +242,8 @@ export type WorkspaceRecord = {
   }[]
   deposits: VendorDepositRecord[]
   payments: { client: string; reference: string; amount: string; status: string; date: string }[]
-  disputes: { client: string; reference: string; status: string; summary: string }[]
-  clients: { name: string; email: string; status: string; lastTransaction: string }[]
+  disputes: { transactionId: string; client: string; reference: string; status: string; summary: string }[]
+  clients: { name: string; email: string; status: string; lastTransaction: string | null }[]
   links: VendorLinkRecord[]
   webhooks: VendorWebhookRecord[]
 }
@@ -989,18 +1000,18 @@ function mapTransactionListRecord(transaction: {
     reference: transaction.reference,
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
     clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
-    kind: formatDisplayLabel(transaction.kind),
+    kind: transaction.kind as string,
     amount: formatMoney(
       transaction.amount != null && transaction.amount > 0 ? transaction.amount : transaction.depositAmount,
       transaction.currency
     ),
-    kyc: transaction.requiresKyc ? transaction.kycVerification?.status ?? "Required" : "Not required",
+    kyc: transaction.requiresKyc ? (transaction.kycVerification?.status ?? "REQUIRED") : "NOT_REQUIRED",
     contract:
       transaction.contractTemplateId != null
         ? transaction.signatureRecord?.status === "SIGNED"
-          ? "Signed"
-          : "Attached"
-        : "Not required",
+          ? "SIGNED"
+          : "ATTACHED"
+        : "NOT_REQUIRED",
     status: transaction.status,
     date: formatDate(transaction.createdAt),
   }
@@ -1009,7 +1020,7 @@ function mapTransactionListRecord(transaction: {
 function createEmptyVendorWorkspace(summary: WorkspaceRecord["summary"]): WorkspaceRecord {
   return {
     summary,
-    stats: { totalTransactions: 0, totalClients: 0, activeDeposits: 0, signedContracts: 0 },
+    stats: { totalTransactions: 0, totalClients: 0, activeDeposits: 0, signedContracts: 0, serviceRevenue: 0, depositsCaptured: 0, depositsReleased: 0, depositCaptureCount: 0, depositReleaseCount: 0 },
     subscriptionUsage: null,
     overviewFlow: createEmptyVendorOverviewFlow(),
     overviewActivity: [],
@@ -1124,6 +1135,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
 
   const [transactions, contracts, checklists, webhooks, clients,
          totalTransactionCount, totalClientCount, activeDepositCount, signedContractCount,
+         serviceRevenueAgg, depositCapturedAgg, depositReleasedAgg,
          transactionStatusGroups, recentActivityEvents, vendorSubscription,
          contractTemplateCount, acceptedInvitationCount, verifiedKycCount] = await Promise.all([
     safeQuery(
@@ -1198,6 +1210,32 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     safeQuery(() => prisma.transaction.count({
       where: { vendorId, signatureRecord: { is: { status: "SIGNED" } } },
     }), 0),
+    safeQuery(() => prisma.payment.aggregate({
+      _sum: { vendorNetAmount: true },
+      _count: { _all: true },
+      where: {
+        kind: PaymentKind.SERVICE_PAYMENT,
+        status: { in: [PaymentStatus.SUCCEEDED, PaymentStatus.CAPTURED] },
+        transaction: { vendorId },
+      },
+    }), { _sum: { vendorNetAmount: null }, _count: { _all: 0 } }),
+    safeQuery(() => prisma.payment.aggregate({
+      _sum: { vendorNetAmount: true },
+      _count: { _all: true },
+      where: {
+        kind: PaymentKind.DEPOSIT_CAPTURE,
+        status: PaymentStatus.CAPTURED,
+        transaction: { vendorId },
+      },
+    }), { _sum: { vendorNetAmount: null }, _count: { _all: 0 } }),
+    safeQuery(() => prisma.payment.aggregate({
+      _sum: { amount: true },
+      _count: { _all: true },
+      where: {
+        kind: PaymentKind.DEPOSIT_RELEASE,
+        transaction: { vendorId },
+      },
+    }), { _sum: { amount: null }, _count: { _all: 0 } }),
     safeQuery(
       () =>
         prisma.transaction.groupBy({
@@ -1246,13 +1284,13 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     reference: transaction.reference,
     clientName: transaction.clientProfile?.fullName ?? "Client pending",
     clientEmail: transaction.clientProfile?.email ?? transaction.bulkRecipient?.email ?? "No email",
-    kind: transaction.kind.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    kind: transaction.kind as string,
     amount: formatMoney(
       transaction.amount != null && transaction.amount > 0 ? transaction.amount : transaction.depositAmount,
       transaction.currency
     ),
-    kyc: transaction.requiresKyc ? transaction.kycVerification?.status ?? "Required" : "Not required",
-    contract: transaction.contractTemplate ? (transaction.signatureRecord ? "Signed" : "Attached") : "Not required",
+    kyc: transaction.requiresKyc ? (transaction.kycVerification?.status ?? "REQUIRED") : "NOT_REQUIRED",
+    contract: transaction.contractTemplate ? (transaction.signatureRecord ? "SIGNED" : "ATTACHED") : "NOT_REQUIRED",
     status: transaction.status,
     date: formatDate(transaction.createdAt),
   }))
@@ -1341,6 +1379,11 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
       totalClients: totalClientCount,
       activeDeposits: activeDepositCount,
       signedContracts: signedContractCount,
+      serviceRevenue: serviceRevenueAgg._sum.vendorNetAmount ?? 0,
+      depositsCaptured: depositCapturedAgg._sum.vendorNetAmount ?? 0,
+      depositsReleased: depositReleasedAgg._sum.amount ?? 0,
+      depositCaptureCount: depositCapturedAgg._count._all,
+      depositReleaseCount: depositReleasedAgg._count._all,
     },
     subscriptionUsage: isActive ? subscriptionUsage : null,
     overviewFlow,
@@ -1421,6 +1464,7 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     disputes: transactions
       .filter((transaction) => transaction.dispute)
       .map((transaction) => ({
+        transactionId: transaction.id,
         client: transaction.clientProfile?.fullName ?? "Client pending",
         reference: transaction.reference,
         status: transaction.dispute?.status ?? "OPEN",
@@ -1429,8 +1473,8 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     clients: clients.map((client) => ({
       name: client.fullName,
       email: client.email,
-      status: "Tracked",
-      lastTransaction: latestTransactionByClient.get(client.id) ?? "Recent",
+      status: "TRACKED",
+      lastTransaction: latestTransactionByClient.get(client.id) ?? null,
     })),
     links: transactions
       .filter((transaction) => transaction.link)
@@ -1918,6 +1962,7 @@ export async function getVendorDisputesPageData(
 
   return buildPaginatedResult(
     transactions.map((transaction) => ({
+      transactionId: transaction.id,
       client: transaction.clientProfile?.fullName ?? "Client pending",
       reference: transaction.reference,
       status: transaction.dispute?.status ?? "OPEN",
@@ -1927,6 +1972,91 @@ export async function getVendorDisputesPageData(
     pagination.page,
     pagination.pageSize
   )
+}
+
+export type VendorDisputeDetailRecord = {
+  transactionId: string
+  disputeId: string
+  reference: string
+  title: string
+  clientName: string
+  depositAmount: string
+  depositCents: number
+  currency: string
+  status: string
+  summary: string
+  openedAt: string
+  resolvedAt: string | null
+  resolution: string | null
+  signedAgreementUrl: string | null
+  evidenceAssets: VendorDisputeEvidenceAsset[]
+  history: { eventType: string | null; title: string; detail: string | null; occurredAt: string; pending: boolean }[]
+}
+
+export async function getVendorDisputeDetail(
+  email: string | undefined | null,
+  transactionId: string
+): Promise<VendorDisputeDetailRecord | null> {
+  const context = await getVendorContextByEmail(email)
+  if (!context) return null
+
+  const transaction = await safeQuery(
+    () =>
+      prisma.transaction.findFirst({
+        where: { id: transactionId, vendorId: context.vendorProfile.id },
+        include: {
+          dispute: true,
+          depositAuthorization: { select: { amount: true, currency: true } },
+          clientProfile: { select: { fullName: true } },
+          contractArtifact: { select: { signedPdfPublicId: true } },
+          events: { orderBy: { occurredAt: "asc" } },
+        },
+      }),
+    null
+  )
+
+  if (!transaction || !transaction.dispute) return null
+
+  const d = transaction.dispute
+  const isPending = d.status === "OPEN" || d.status === "UNDER_REVIEW"
+
+  const signedPdfPublicId = transaction.contractArtifact?.signedPdfPublicId
+  // Build download URL for the signed PDF via Cloudinary proxy
+  const signedAgreementUrl = signedPdfPublicId
+    ? `${getAppBaseUrl()}/api/integrations/cloudinary/download?publicId=${encodeURIComponent(signedPdfPublicId)}&resourceType=raw&format=pdf&fileName=${encodeURIComponent(`${transaction.reference}-signed.pdf`)}`
+    : null
+
+  const evidenceAssets = parseDisputeEvidenceAssets(d.evidenceImages).map(buildVendorDisputeEvidenceAsset)
+
+  return {
+    transactionId: transaction.id,
+    disputeId: d.id,
+    reference: transaction.reference,
+    title: transaction.title,
+    clientName: transaction.clientProfile?.fullName ?? "Unknown client",
+    depositAmount: formatMoney(transaction.depositAuthorization?.amount, transaction.depositAuthorization?.currency),
+    depositCents: transaction.depositAuthorization?.amount ?? 0,
+    currency: transaction.depositAuthorization?.currency ?? "EUR",
+    status: d.status,
+    summary: d.summary,
+    openedAt: formatDate(d.openedAt),
+    resolvedAt: d.resolvedAt ? formatDate(d.resolvedAt) : null,
+    resolution: d.resolution ?? null,
+    signedAgreementUrl,
+    evidenceAssets,
+    history: [
+      ...transaction.events.map((ev) => ({
+        eventType: ev.type as string,
+        title: ev.title,
+        detail: ev.detail ?? null,
+        occurredAt: formatDateTime(ev.occurredAt),
+        pending: false,
+      })),
+      ...(isPending
+        ? [{ eventType: "PENDING", title: "⏳ Decision pending", detail: `Deadline: ${formatDate(disputeDeadline(d.openedAt))}`, occurredAt: "", pending: true }]
+        : []),
+    ],
+  }
 }
 
 export async function getVendorClientsPageData(
@@ -1996,8 +2126,8 @@ export async function getVendorClientsPageData(
     clients.map((client) => ({
       name: client.fullName,
       email: client.email,
-      status: "Tracked",
-      lastTransaction: latestTransactionByClient.get(client.id) ?? "Recent",
+      status: "TRACKED",
+      lastTransaction: latestTransactionByClient.get(client.id) ?? null,
     })),
     totalCount,
     pagination.page,
@@ -2999,11 +3129,7 @@ export async function getAdminVendorProfile(
   const depositRelease = tx.payments.find((payment) => payment.kind === PaymentKind.DEPOSIT_RELEASE) ?? null
   const requiredRequirements = tx.requirements.filter((requirement) => requirement.required)
   const submittedRequiredCount = requiredRequirements.filter((requirement) =>
-    tx.documents.some(
-      (document) =>
-        document.requirementId === requirement.id &&
-        (requirement.type === "TEXT" ? Boolean(document.textValue?.trim()) : Boolean(document.assetUrl))
-    )
+    isRequirementSlotSatisfied(requirement, tx.documents)
   ).length
 
   const selectedLink: AdminVendorLinkDetailRecord = {

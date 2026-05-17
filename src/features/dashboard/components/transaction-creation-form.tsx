@@ -31,6 +31,7 @@ import {
   Upload,
   Users,
   Wallet,
+  X,
 } from "lucide-react"
 import { QRCodeCanvas } from "qrcode.react"
 
@@ -75,8 +76,12 @@ import type {
   VendorLinkRecord,
 } from "@/features/dashboard/server/dashboard-data"
 import {
+  normalizeRequirementFileCount,
+  normalizeRequirementFileSlotLabels,
   paymentCollectionTimingOptions,
+  parseRequirementFileSlotLabels,
   requirementCategoryOptions,
+  requirementSupportsFileSlots,
   requirementTypeOptions,
   type PaymentCollectionTimingValue,
   type RequirementCategoryValue,
@@ -110,7 +115,10 @@ type DraftRequirement = {
   category: RequirementCategoryValue
   customCategoryLabel: string
   required: boolean
+  requiredFileCount: number
+  fileSlotLabels: string[]
   exampleImage: RequirementExampleDraft | null
+  sourceChecklistId: string | null
 }
 
 type DraftCustomField = {
@@ -202,6 +210,34 @@ function createRequirementId() {
   return `requirement-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+function normalizeDraftRequirement(item: {
+  label: string
+  description: string
+  type: RequirementTypeValue
+  category: RequirementCategoryValue
+  customCategoryLabel: string
+  required: boolean
+  requiredFileCount?: number
+  fileSlotLabels?: string[]
+  exampleImage: RequirementExampleDraft | null
+}): Omit<DraftRequirement, "id" | "sourceChecklistId"> {
+  const requiredFileCount = normalizeRequirementFileCount(item.type, item.requiredFileCount)
+  const fileSlotLabels = normalizeRequirementFileSlotLabels({
+    type: item.type,
+    fileCount: requiredFileCount,
+    labels: item.fileSlotLabels,
+    requirementLabel: item.label,
+  })
+
+  return {
+    ...item,
+    requiredFileCount,
+    fileSlotLabels,
+    customCategoryLabel: item.category === "OTHER" ? item.customCategoryLabel : "",
+    exampleImage: item.type === "TEXT" ? null : item.exampleImage,
+  }
+}
+
 function createCustomFieldId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID()
@@ -279,7 +315,7 @@ function parseBulkCsvPreview(fileName: string, text: string): BulkCsvPreview {
   }
 }
 
-function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement {
+function createDraftRequirement(item?: Partial<ChecklistItem>, sourceChecklistId: string | null = null): DraftRequirement {
   const exampleImage =
     item?.exampleImageUrl && item.exampleImagePublicId
       ? {
@@ -292,13 +328,18 @@ function createDraftRequirement(item?: Partial<ChecklistItem>): DraftRequirement
 
   return {
     id: createRequirementId(),
-    label: item?.label ?? "",
-    description: item?.description ?? "",
-    type: (item?.type as RequirementTypeValue | undefined) ?? "DOCUMENT",
-    category: (item?.category as RequirementCategoryValue | undefined) ?? "CUSTOM",
-    customCategoryLabel: item?.customCategoryLabel ?? "",
-    required: item?.required ?? true,
-    exampleImage,
+    ...normalizeDraftRequirement({
+      label: item?.label ?? "",
+      description: item?.description ?? "",
+      type: (item?.type as RequirementTypeValue | undefined) ?? "DOCUMENT",
+      category: (item?.category as RequirementCategoryValue | undefined) ?? "CUSTOM",
+      customCategoryLabel: item?.customCategoryLabel ?? "",
+      required: item?.required ?? true,
+      requiredFileCount: item?.requiredFileCount ?? 1,
+      fileSlotLabels: parseRequirementFileSlotLabels(item?.fileSlotLabels),
+      exampleImage,
+    }),
+    sourceChecklistId,
   }
 }
 
@@ -307,13 +348,18 @@ function createDraftRequirementFromInitialValue(
 ): DraftRequirement {
   return {
     id: createRequirementId(),
-    label: item.label,
-    description: item.description,
-    type: item.type,
-    category: item.category,
-    customCategoryLabel: item.customCategoryLabel,
-    required: item.required,
-    exampleImage: item.exampleImage ? { ...item.exampleImage } : null,
+    ...normalizeDraftRequirement({
+      label: item.label,
+      description: item.description,
+      type: item.type,
+      category: item.category,
+      customCategoryLabel: item.customCategoryLabel,
+      required: item.required,
+      requiredFileCount: item.requiredFileCount,
+      fileSlotLabels: item.fileSlotLabels,
+      exampleImage: item.exampleImage ? { ...item.exampleImage } : null,
+    }),
+    sourceChecklistId: null,
   }
 }
 
@@ -391,8 +437,9 @@ type TransactionCreationFormState = {
   amount: string
   depositAmount: string
   depositHoldDays: string
+  serviceDate: string
   contractId: string
-  checklistId: string
+  checklistIds: string[]
   requiresKyc: boolean
   generateQr: boolean
   paymentCollectionTiming: PaymentCollectionTimingValue
@@ -407,14 +454,16 @@ type TransactionCreationFormSnapshot = Omit<
   TransactionCreationFormState,
   "requirements" | "customFields" | "reportFields"
 > & {
-  requirements: Array<{
-    label: string
-    description: string
-    type: RequirementTypeValue
-    category: RequirementCategoryValue
-    customCategoryLabel: string
-    required: boolean
-    exampleImage:
+    requirements: Array<{
+      label: string
+      description: string
+      type: RequirementTypeValue
+      category: RequirementCategoryValue
+      customCategoryLabel: string
+      required: boolean
+      requiredFileCount: number
+      fileSlotLabels: string[]
+      exampleImage:
       | {
           source: RequirementExampleDraft["source"]
           assetUrl: string
@@ -458,8 +507,9 @@ function createInitialFormState(
     amount: initialValues?.amount ?? "",
     depositAmount: initialValues?.depositAmount ?? "",
     depositHoldDays: String(initialValues?.depositHoldDays ?? 7),
+    serviceDate: initialValues?.serviceDate ?? "",
     contractId: initialValues?.contractTemplateId ?? "none",
-    checklistId: initialValues?.checklistTemplateId ?? "none",
+    checklistIds: [],
     requiresKyc: initialValues?.requiresKyc ?? false,
     generateQr: initialValues?.generateQr ?? false,
     paymentCollectionTiming: initialValues?.paymentCollectionTiming ?? "AFTER_SIGNING",
@@ -484,8 +534,9 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
     amount: state.amount,
     depositAmount: state.depositAmount,
     depositHoldDays: state.depositHoldDays,
+    serviceDate: state.serviceDate,
     contractId: state.contractId,
-    checklistId: state.checklistId,
+    checklistIds: state.checklistIds,
     requiresKyc: state.requiresKyc,
     generateQr: state.generateQr,
     paymentCollectionTiming: state.paymentCollectionTiming,
@@ -498,6 +549,8 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
       category: item.category,
       customCategoryLabel: item.customCategoryLabel,
       required: item.required,
+      requiredFileCount: item.requiredFileCount,
+      fileSlotLabels: item.fileSlotLabels,
       exampleImage: item.exampleImage
         ? {
             source: item.exampleImage.source,
@@ -779,6 +832,7 @@ export function TransactionCreationForm({
   const reqTypeLabels: Record<string, string> = {
     DOCUMENT: t("reqTypeDocument"),
     PHOTO: t("reqTypePhoto"),
+    CAPTURE: t("reqTypeCapture"),
     TEXT: t("reqTypeText"),
   }
 
@@ -846,9 +900,10 @@ export function TransactionCreationForm({
   const [amount, setAmount] = useState(initialFormState.amount)
   const [depositAmount, setDepositAmount] = useState(initialFormState.depositAmount)
   const [depositHoldDays, setDepositHoldDays] = useState(initialFormState.depositHoldDays)
+  const [serviceDate, setServiceDate] = useState(initialFormState.serviceDate)
   const [longDepositFeeAccepted, setLongDepositFeeAccepted] = useState(false)
   const [contractId, setContractId] = useState<string>(initialFormState.contractId)
-  const [checklistId, setChecklistId] = useState<string>(initialFormState.checklistId)
+  const [checklistIds, setChecklistIds] = useState<string[]>(initialFormState.checklistIds)
   const [requiresKyc, setRequiresKyc] = useState(initialFormState.requiresKyc)
   const [generateQr, setGenerateQr] = useState(initialFormState.generateQr)
   const [paymentCollectionTiming, setPaymentCollectionTiming] =
@@ -913,11 +968,9 @@ export function TransactionCreationForm({
     financeDisabled || !canUseKycInPlan || (remainingKyc !== null && remainingKyc <= 0)
 
   const selectedContract = contracts.find((contract) => contract.id === contractId)
-  const selectedChecklist = checklists.find((checklist) => checklist.id === checklistId)
   const contractLabel =
     contractId === "none" ? t("noContract") : getTemplateLabel(selectedContract, t("selectedContract"))
-  const checklistLabel =
-    checklistId === "none" ? t("noUploads") : getTemplateLabel(selectedChecklist, t("selectedChecklist"))
+  const selectedChecklistTemplates = checklists.filter((c) => checklistIds.includes(c.id))
 
   const txKind =
     amountNum > 0 && depositNum > 0
@@ -965,8 +1018,9 @@ export function TransactionCreationForm({
             amount,
             depositAmount,
             depositHoldDays,
+            serviceDate,
             contractId,
-            checklistId,
+            checklistIds,
             requiresKyc,
             generateQr: isBulkMode ? false : generateQr,
             paymentCollectionTiming,
@@ -987,7 +1041,7 @@ export function TransactionCreationForm({
     [
       amount,
       bulkCsvPreview,
-      checklistId,
+      checklistIds,
       contractId,
       depositAmount,
       depositHoldDays,
@@ -996,6 +1050,7 @@ export function TransactionCreationForm({
       isBulkMode,
       notes,
       paymentCollectionTiming,
+      serviceDate,
       requireClientCompany,
       requirements,
       customFields,
@@ -1040,20 +1095,25 @@ export function TransactionCreationForm({
     await cleanupVendorRequirementExampleImages(assets, options)
   }
 
-  function handleChecklistChange(nextChecklistId: string) {
-    const currentLocalAssets = getLocalRequirementExampleAssets(requirements)
+  function handleAddBundle(bundleId: string) {
+    if (checklistIds.includes(bundleId)) return
+    const bundle = checklists.find((c) => c.id === bundleId)
+    if (!bundle) return
+    setChecklistIds((prev) => [...prev, bundleId])
+    setRequirements((prev) => [
+      ...prev,
+      ...bundle.items.map((item) => createDraftRequirement(item, bundleId)),
+    ])
+  }
 
-    setChecklistId(nextChecklistId)
-
-    if (nextChecklistId === "none") {
-      setRequirements([])
-    } else {
-      const nextChecklist = checklists.find((checklist) => checklist.id === nextChecklistId)
-      setRequirements((nextChecklist?.items ?? []).map((item) => createDraftRequirement(item)))
-    }
-
-    if (currentLocalAssets.length > 0) {
-      void cleanupRequirementExampleAssets(currentLocalAssets)
+  function handleRemoveBundle(bundleId: string) {
+    const removedLocalAssets = getLocalRequirementExampleAssets(
+      requirements.filter((r) => r.sourceChecklistId === bundleId)
+    )
+    setChecklistIds((prev) => prev.filter((id) => id !== bundleId))
+    setRequirements((prev) => prev.filter((r) => r.sourceChecklistId !== bundleId))
+    if (removedLocalAssets.length > 0) {
+      void cleanupRequirementExampleAssets(removedLocalAssets)
     }
   }
 
@@ -1166,19 +1226,47 @@ export function TransactionCreationForm({
       current.map((item) => {
         if (item.id !== requirementId) return item
 
-        const nextCategory = patch.category ?? item.category
-        const nextType = patch.type ?? item.type
         return {
-          ...item,
-          ...patch,
-          exampleImage: nextType === "TEXT" ? null : (patch.exampleImage ?? item.exampleImage),
-          customCategoryLabel:
-            nextCategory === "OTHER"
-              ? (patch.customCategoryLabel ?? item.customCategoryLabel)
-              : "",
+          id: item.id,
+          ...normalizeDraftRequirement({
+            label: patch.label ?? item.label,
+            description: patch.description ?? item.description,
+            type: patch.type ?? item.type,
+            category: patch.category ?? item.category,
+            customCategoryLabel: patch.customCategoryLabel ?? item.customCategoryLabel,
+            required: patch.required ?? item.required,
+            requiredFileCount: patch.requiredFileCount ?? item.requiredFileCount,
+            fileSlotLabels: patch.fileSlotLabels ?? item.fileSlotLabels,
+            exampleImage: patch.exampleImage ?? item.exampleImage,
+          }),
+          sourceChecklistId: item.sourceChecklistId,
         }
       })
     )
+  }
+
+  function updateRequirementFileCount(requirementId: string, nextValue: string) {
+    const parsed = Number.parseInt(nextValue.replace(/[^0-9]/g, ""), 10)
+
+    updateRequirement(requirementId, {
+      requiredFileCount: Number.isFinite(parsed) && parsed >= 1 ? Math.min(parsed, 5) : 1,
+    })
+  }
+
+  function updateRequirementSlotLabel(
+    requirementId: string,
+    slotIndex: number,
+    nextValue: string
+  ) {
+    const requirement = requirements.find((item) => item.id === requirementId)
+
+    if (!requirement) {
+      return
+    }
+
+    const nextLabels = [...requirement.fileSlotLabels]
+    nextLabels[slotIndex] = nextValue
+    updateRequirement(requirementId, { fileSlotLabels: nextLabels })
   }
 
   function updateCustomField(customFieldId: string, patch: Partial<DraftCustomField>) {
@@ -1442,6 +1530,11 @@ export function TransactionCreationForm({
       return false
     }
 
+    if (step === 1 && !serviceDate) {
+      setStepError(t("errorServiceDate"))
+      return false
+    }
+
     if (step === 1 && isBulkMode) {
       if (!bulkCsvPreview || bulkCsvPreview.validEmails.length === 0) {
         setStepError(t("bulkCsvRequired"))
@@ -1566,6 +1659,12 @@ export function TransactionCreationForm({
       return
     }
 
+    if (!serviceDate) {
+      setError(t("errorServiceDate"))
+      navigate(1)
+      return
+    }
+
     if (depositNum > 0) {
       if (
         !hasValidDepositHoldDays
@@ -1606,9 +1705,10 @@ export function TransactionCreationForm({
       const payload = {
         recreateFromTransactionId,
         title,
+        serviceDate,
         notes,
         contractTemplateId: contractId === "none" ? null : contractId,
-        checklistTemplateId: checklistId === "none" ? null : checklistId,
+        checklistTemplateId: checklistIds[0] ?? null,
         amount: amount ? parseEur(amount) : null,
         depositAmount: depositAmount ? parseEur(depositAmount) : null,
         depositHoldDays: depositNum > 0 ? depositHoldDaysNum : 7,
@@ -1625,6 +1725,8 @@ export function TransactionCreationForm({
           customCategoryLabel:
             item.category === "OTHER" ? item.customCategoryLabel || null : null,
           required: item.required,
+          requiredFileCount: item.requiredFileCount,
+          fileSlotLabels: item.fileSlotLabels,
           exampleImageUrl: item.type === "TEXT" ? null : item.exampleImage?.assetUrl ?? null,
           exampleImagePublicId:
             item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
@@ -1727,10 +1829,11 @@ export function TransactionCreationForm({
     setTitle(nextInitialState.title)
     setNotes(nextInitialState.notes)
     setContractId(nextInitialState.contractId)
-    setChecklistId(nextInitialState.checklistId)
+    setChecklistIds(nextInitialState.checklistIds)
     setAmount(nextInitialState.amount)
     setDepositAmount(nextInitialState.depositAmount)
     setDepositHoldDays(nextInitialState.depositHoldDays)
+    setServiceDate(nextInitialState.serviceDate)
     setLongDepositFeeAccepted(false)
     setRequiresKyc(nextInitialState.requiresKyc)
     setGenerateQr(nextInitialState.generateQr)
@@ -2258,6 +2361,21 @@ export function TransactionCreationForm({
                   </Field>
                 </Section>
 
+                <Section>
+                  <Field id="serviceDate" label={t("serviceDateLabel")} required>
+                    <Input
+                      id="serviceDate"
+                      type="date"
+                      value={serviceDate}
+                      onChange={(event) => {
+                        setServiceDate(event.target.value)
+                        setStepError(null)
+                      }}
+                      className={controlClass}
+                    />
+                  </Field>
+                </Section>
+
                 {isBulkMode ? (
                   <Section>
                     <div className="flex items-start gap-3">
@@ -2471,17 +2589,13 @@ export function TransactionCreationForm({
                             <dd className="font-medium text-foreground">€{depositNum.toFixed(2)}</dd>
                           </div>
                           <div className="flex justify-between gap-3">
-                            <dt className="text-muted-foreground">{t("stripeFeeEstimate")}</dt>
-                            <dd>€{depositPricing?.stripeFee.toFixed(2)}</dd>
-                          </div>
-                          <div className="flex justify-between gap-3">
-                            <dt className="text-muted-foreground">{t("platformMargin")}</dt>
-                            <dd>€{depositPricing?.platformFee.toFixed(2)}</dd>
+                            <dt className="text-muted-foreground">{t("vendorFeeEstimate")}</dt>
+                            <dd>€{depositPricing?.total.toFixed(2)}</dd>
                           </div>
                           <div className="border-t border-border pt-1.5 text-muted-foreground">
                             {isLongDeposit
                               ? t("longDepositFeeSummary")
-                              : t("ifCaptured", { amount: `€${depositPricing?.vendorNet.toFixed(2)}` })}
+                              : t("noFeesUnlessCaptured")}
                           </div>
                         </dl>
                       ) : null}
@@ -2615,25 +2729,58 @@ export function TransactionCreationForm({
 
                 <Section>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field id="checklist" label={t("requiredUploads")}>
-                      <Select value={checklistId} onValueChange={(value) => void handleChecklistChange(value ?? "none")}>
-                        <SelectTrigger id="checklist" className={cn(controlClass, "cursor-pointer")}>
-                          <span className={cn("truncate text-sm", checklistId === "none" && "text-muted-foreground")}>{checklistLabel}</span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none" className="cursor-pointer">
-                            {t("noUploadsNeeded")}
-                          </SelectItem>
-                          {checklists.map((checklist) => (
-                            <SelectItem key={checklist.id} value={checklist.id} className="cursor-pointer">
-                              <span className="block max-w-60 truncate">
-                                {getTemplateLabel(checklist, t("untitledChecklist"))}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {t("requiredUploads")}
+                      </label>
+                      {selectedChecklistTemplates.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedChecklistTemplates.map((bundle) => (
+                            <span
+                              key={bundle.id}
+                              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground"
+                            >
+                              <ClipboardList className="size-3 shrink-0 text-muted-foreground" />
+                              <span className="max-w-[140px] truncate">
+                                {getTemplateLabel(bundle, t("untitledChecklist"))}
                               </span>
-                            </SelectItem>
+                              <button
+                                type="button"
+                                aria-label={t("removeBundle")}
+                                onClick={() => handleRemoveBundle(bundle.id)}
+                                className="ml-0.5 rounded text-muted-foreground transition-colors hover:text-destructive"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </span>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
+                        </div>
+                      )}
+                      {checklists.filter((c) => !checklistIds.includes(c.id)).length > 0 ? (
+                        <Select onValueChange={(value: string | null) => { if (value) handleAddBundle(value) }}>
+                          <SelectTrigger className={cn(controlClass, "cursor-pointer")}>
+                            <span className="truncate text-sm text-muted-foreground">
+                              {t("addBundle")}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {checklists
+                              .filter((c) => !checklistIds.includes(c.id))
+                              .map((checklist) => (
+                                <SelectItem key={checklist.id} value={checklist.id} className="cursor-pointer">
+                                  <span className="block max-w-60 truncate">
+                                    {getTemplateLabel(checklist, t("untitledChecklist"))}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      ) : checklists.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">{t("noUploadsNeeded")}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{t("allBundlesAdded")}</span>
+                      )}
+                    </div>
 
                     <Field id="contract" label={t("contractTemplate")}>
                       <Select value={contractId} onValueChange={(value) => setContractId(value ?? "none")}>
@@ -2756,6 +2903,29 @@ export function TransactionCreationForm({
                                     className="cursor-pointer data-[state=checked]:bg-[var(--contrazy-teal)]"
                                   />
                                 </div>
+
+                                {requirementSupportsFileSlots(item.type) ? (
+                                  <div className="space-y-1.5 border border-border bg-muted/20 px-3 py-3">
+                                    <Label htmlFor={`${rowId}-file-count`} className={fieldLabelClass}>
+                                      {t("reqFileCount")}
+                                    </Label>
+                                    <Input
+                                      id={`${rowId}-file-count`}
+                                      type="number"
+                                      min="1"
+                                      max="5"
+                                      step="1"
+                                      value={String(item.requiredFileCount)}
+                                      onChange={(event) =>
+                                        updateRequirementFileCount(item.id, event.target.value)
+                                      }
+                                      className={controlClass}
+                                    />
+                                    <p className="text-xs leading-5 text-muted-foreground">
+                                      {t("reqFileCountHint")}
+                                    </p>
+                                  </div>
+                                ) : null}
                               </div>
 
                               <div className="space-y-2">
@@ -2792,6 +2962,46 @@ export function TransactionCreationForm({
                                   disabled={customCategoryDisabled}
                                   className={controlClass}
                                 />
+
+                                {requirementSupportsFileSlots(item.type) ? (
+                                  <div className="space-y-2 border border-border bg-muted/20 px-3 py-3">
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                        {t("reqSlotLabels")}
+                                      </p>
+                                      <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                                        {t("reqSlotLabelsHint")}
+                                      </p>
+                                    </div>
+
+                                    {item.fileSlotLabels.map((slotLabel, slotIndex) => (
+                                      <div key={`${item.id}-slot-${slotIndex}`} className="space-y-1">
+                                        <Label
+                                          htmlFor={`${rowId}-slot-${slotIndex}`}
+                                          className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
+                                        >
+                                          {t("reqSlotLabel", { index: slotIndex + 1 })}
+                                        </Label>
+                                        <Input
+                                          id={`${rowId}-slot-${slotIndex}`}
+                                          value={slotLabel}
+                                          onChange={(event) =>
+                                            updateRequirementSlotLabel(
+                                              item.id,
+                                              slotIndex,
+                                              event.target.value
+                                            )
+                                          }
+                                          placeholder={t("reqSlotLabelPlaceholder", {
+                                            index: slotIndex + 1,
+                                          })}
+                                          maxLength={INPUT_LIMITS.checklistItemLabel}
+                                          className={controlClass}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
 
                                 {item.type !== "TEXT" ? (
                                   <RequirementExampleImageField
@@ -3277,6 +3487,11 @@ export function TransactionCreationForm({
                           <dd className="font-medium text-foreground">{txKind ? kindLabels[txKind] : "—"}</dd>
                         </div>
 
+                        <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
+                          <dt className="text-muted-foreground">{t("summaryServiceDate")}</dt>
+                          <dd className="font-medium text-foreground">{serviceDate || "—"}</dd>
+                        </div>
+
                         {depositNum > 0 ? (
                           <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
                             <dt className="text-muted-foreground">{t("summaryDeposit")}</dt>
@@ -3307,6 +3522,17 @@ export function TransactionCreationForm({
                             </div>
                           </>
                         ) : null}
+
+                        <div className="flex items-start justify-between gap-4 border-b border-dotted border-border py-2">
+                          <dt className="text-muted-foreground">{t("summaryBundles")}</dt>
+                          <dd className="max-w-[220px] text-right font-medium text-foreground">
+                            {selectedChecklistTemplates.length === 0
+                              ? <span className="text-muted-foreground font-normal">{t("noUploads")}</span>
+                              : selectedChecklistTemplates.map((b) => (
+                                  <div key={b.id} className="truncate">{getTemplateLabel(b, t("untitledChecklist"))}</div>
+                                ))}
+                          </dd>
+                        </div>
 
                         <div className="flex items-start justify-between gap-4 border-b border-dotted border-border py-2">
                           <dt className="text-muted-foreground">{t("summaryContract")}</dt>

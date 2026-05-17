@@ -6,14 +6,18 @@ import {
   Banknote,
   CheckCircle2,
   Clock,
+  FileText,
   Flag,
+  ImageIcon,
   Loader2,
   ShieldAlert,
   ShieldCheck,
   Unlock,
+  UploadCloud,
+  X,
   XCircle,
 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
@@ -33,6 +37,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/toast"
+import {
+  type DisputeEvidenceAsset,
+  MAX_DISPUTE_EVIDENCE_FILES,
+  uploadDisputeEvidence,
+  validateDisputeEvidenceFile,
+} from "@/features/dashboard/lib/dispute-evidence-upload-client"
 import { INPUT_LIMITS, MIN_DISPUTE_SUMMARY_LENGTH } from "@/lib/validation/input-limits"
 
 type PendingAction = "capture" | "release" | "dispute" | "cancel" | null
@@ -70,6 +80,9 @@ export function DepositControlCard({
   const [disputeOpen, setDisputeOpen] = useState(false)
   const [disputeSummary, setDisputeSummary] = useState("")
   const [disputeError, setDisputeError] = useState<string | null>(null)
+  const [evidenceFiles, setEvidenceFiles] = useState<DisputeEvidenceAsset[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState<string[]>([]) // file names currently uploading
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const maxEuros = amount / 100
   const isChargeRefund = depositStrategy === "CHARGE_REFUND"
@@ -148,17 +161,72 @@ export function DepositControlCard({
     }
   }
 
+  async function handleEvidenceFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (!files.length) return
+
+    const remaining = MAX_DISPUTE_EVIDENCE_FILES - evidenceFiles.length
+    const toUpload = files.slice(0, remaining)
+
+    for (const file of toUpload) {
+      const err = validateDisputeEvidenceFile(file)
+      if (err) {
+        setDisputeError(err.message)
+        return
+      }
+    }
+
+    setUploadingFiles((prev) => [...prev, ...toUpload.map((f) => f.name)])
+    setDisputeError(null)
+
+    const results = await Promise.allSettled(
+      toUpload.map((file) => uploadDisputeEvidence(file, transactionId))
+    )
+
+    const uploaded: DisputeEvidenceAsset[] = []
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+      if (result.status === "fulfilled") {
+        uploaded.push(result.value)
+      } else {
+        setDisputeError((result.reason as Error).message ?? `Failed to upload "${toUpload[i].name}"`)
+      }
+    }
+
+    setEvidenceFiles((prev) => [...prev, ...uploaded])
+    setUploadingFiles((prev) => prev.filter((n) => !toUpload.map((f) => f.name).includes(n)))
+  }
+
+  function removeEvidenceFile(publicId: string) {
+    setEvidenceFiles((prev) => prev.filter((f) => f.publicId !== publicId))
+  }
+
   async function handleDispute() {
     setDisputeError(null)
     if (disputeSummary.trim().length < MIN_DISPUTE_SUMMARY_LENGTH) {
       setDisputeError(t("disputeModal.minChars", { min: MIN_DISPUTE_SUMMARY_LENGTH }))
       return
     }
+    if (uploadingFiles.length > 0) {
+      setDisputeError("Please wait for all files to finish uploading.")
+      return
+    }
     setPendingAction("dispute")
     try {
-      const { ok, data } = await callApi("dispute", { summary: disputeSummary.trim() })
-      if (ok) {
+      const res = await fetch(`/api/vendor/transactions/${transactionId}/dispute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          summary: disputeSummary.trim(),
+          evidenceImages: evidenceFiles,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
         setDisputeOpen(false)
+        setEvidenceFiles([])
+        setDisputeSummary("")
         toast({ variant: "warning", title: t("toast.disputeOpened"), description: t("toast.disputeOpenedDesc") })
         router.refresh()
       } else {
@@ -473,9 +541,14 @@ export function DepositControlCard({
       {/* ── Dispute Modal ──────────────────────────────────────────────────── */}
       <Dialog
         open={disputeOpen}
-        onOpenChange={(open: boolean) => { if (!pendingAction) setDisputeOpen(open) }}
+        onOpenChange={(open: boolean) => {
+          if (!pendingAction && uploadingFiles.length === 0) {
+            setDisputeOpen(open)
+            if (!open) { setEvidenceFiles([]); setDisputeSummary(""); setDisputeError(null) }
+          }
+        }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" />
@@ -484,20 +557,104 @@ export function DepositControlCard({
             <DialogDescription>{isChargeRefund ? t("disputeModal.descriptionChargeRefund") : t("disputeModal.description")}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
-            <Label htmlFor="dispute-summary">{t("disputeModal.reasonLabel")}</Label>
-            <Textarea
-              id="dispute-summary"
-              rows={4}
-              placeholder={t("disputeModal.placeholder")}
-              maxLength={INPUT_LIMITS.disputeSummary}
-              value={disputeSummary}
-              onChange={(e) => { setDisputeSummary(e.target.value); setDisputeError(null) }}
-            />
-            <div className="flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
-              <span>{t("disputeModal.minChars", { min: MIN_DISPUTE_SUMMARY_LENGTH })}</span>
-              <CharacterCount current={disputeSummary.length} limit={INPUT_LIMITS.disputeSummary} />
+          <div className="space-y-4">
+            {/* Summary */}
+            <div className="space-y-2">
+              <Label htmlFor="dispute-summary">{t("disputeModal.reasonLabel")}</Label>
+              <Textarea
+                id="dispute-summary"
+                rows={4}
+                placeholder={t("disputeModal.placeholder")}
+                maxLength={INPUT_LIMITS.disputeSummary}
+                value={disputeSummary}
+                onChange={(e) => { setDisputeSummary(e.target.value); setDisputeError(null) }}
+              />
+              <div className="flex items-center justify-between gap-3 text-[12px] text-muted-foreground">
+                <span>{t("disputeModal.minChars", { min: MIN_DISPUTE_SUMMARY_LENGTH })}</span>
+                <CharacterCount current={disputeSummary.length} limit={INPUT_LIMITS.disputeSummary} />
+              </div>
             </div>
+
+            {/* Evidence upload */}
+            <div className="space-y-2">
+              <Label>{t("disputeModal.evidenceLabel")}</Label>
+              <p className="text-[12px] text-muted-foreground">{t("disputeModal.evidenceHint")}</p>
+
+              {/* Upload trigger */}
+              {evidenceFiles.length < MAX_DISPUTE_EVIDENCE_FILES && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    className="hidden"
+                    onChange={handleEvidenceFileSelect}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFiles.length > 0 || pendingAction === "dispute"}
+                    className="flex w-full cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-5 text-center transition-colors hover:border-(--contrazy-teal)/50 hover:bg-(--contrazy-teal)/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <UploadCloud className="size-6 text-muted-foreground" />
+                    <span className="text-[13px] font-medium text-foreground">{t("disputeModal.uploadCta")}</span>
+                    <span className="text-[11px] text-muted-foreground">JPG, PNG, WebP, GIF, PDF · max 10 MB each · up to {MAX_DISPUTE_EVIDENCE_FILES} files</span>
+                  </button>
+                </>
+              )}
+
+              {/* Uploading spinners */}
+              {uploadingFiles.length > 0 && (
+                <div className="space-y-1">
+                  {uploadingFiles.map((name) => (
+                    <div key={name} className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-[13px]">
+                      <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                      <span className="truncate text-muted-foreground">{name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Uploaded files preview */}
+              {evidenceFiles.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {evidenceFiles.map((file) => {
+                    const isPdf = file.fileName.toLowerCase().endsWith(".pdf") || file.assetUrl.includes("/raw/")
+                    return (
+                      <div key={file.publicId} className="group relative overflow-hidden rounded-lg border border-border bg-muted/30">
+                        {isPdf ? (
+                          <div className="flex h-20 flex-col items-center justify-center gap-1 px-2">
+                            <FileText className="size-7 text-muted-foreground" />
+                            <span className="line-clamp-2 text-center text-[10px] text-muted-foreground leading-tight">{file.fileName}</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={file.assetUrl}
+                            alt={file.fileName}
+                            className="h-20 w-full object-cover"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeEvidenceFile(file.publicId)}
+                          className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <X className="size-3.5 text-foreground" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {evidenceFiles.length > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  {evidenceFiles.length} / {MAX_DISPUTE_EVIDENCE_FILES} {t("disputeModal.filesAdded")}
+                </p>
+              )}
+            </div>
+
             {disputeError && (
               <p className="text-[13px] text-destructive">{disputeError}</p>
             )}
@@ -506,14 +663,14 @@ export function DepositControlCard({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDisputeOpen(false)}
-              disabled={pendingAction === "dispute"}
+              onClick={() => { setDisputeOpen(false); setEvidenceFiles([]); setDisputeSummary(""); setDisputeError(null) }}
+              disabled={pendingAction === "dispute" || uploadingFiles.length > 0}
             >
               {t("disputeModal.cancel")}
             </Button>
             <Button
               onClick={handleDispute}
-              disabled={pendingAction === "dispute"}
+              disabled={pendingAction === "dispute" || uploadingFiles.length > 0}
               className="bg-amber-500 text-white hover:bg-amber-600"
             >
               {pendingAction === "dispute" ? (

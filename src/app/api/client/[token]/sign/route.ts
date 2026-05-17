@@ -51,6 +51,8 @@ export async function POST(
       typeof body.typedValue === "string" ? body.typedValue.slice(0, 500) : null
     const fontKey: string | null =
       typeof body.fontKey === "string" ? body.fontKey.slice(0, 100) : null
+    const signatureCity: string | null =
+      typeof body.signatureCity === "string" ? body.signatureCity.trim().slice(0, 100) : null
 
     if (
       !signatureDataUrl ||
@@ -59,6 +61,13 @@ export async function POST(
     ) {
       return NextResponse.json(
         { success: false, message: "A valid signature image is required." },
+        { status: 400 }
+      )
+    }
+
+    if (!signatureCity) {
+      return NextResponse.json(
+        { success: false, message: "Please enter the city of signature before signing." },
         { status: 400 }
       )
     }
@@ -134,6 +143,11 @@ export async function POST(
         ipAddress,
         signedAt,
       },
+    })
+
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { signatureCity },
     })
 
     const artifact = await generateSignedContractArtifact(prisma, {

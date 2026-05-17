@@ -45,16 +45,17 @@ const signatureContractMergeFieldGroup: ContractMergeFieldGroup = {
   ],
 }
 
+const legacyClientNameMergeField: ContractMergeField = {
+  label: "Client name",
+  token: "{{clientName}}",
+  description: "Legacy full client name token retained for existing templates.",
+  sampleValue: "Alex Morgan",
+}
+
 export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
   {
     label: "Client",
     fields: [
-      {
-        label: "Client name",
-        token: "{{clientName}}",
-        description: "Full client name, using first and last name when available.",
-        sampleValue: "Alex Morgan",
-      },
       {
         label: "Client first name",
         token: "{{clientFirstName}}",
@@ -66,6 +67,18 @@ export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
         token: "{{clientLastName}}",
         description: "Client last name only.",
         sampleValue: "Morgan",
+      },
+      {
+        label: "Client birth city",
+        token: "{{clientBirthCity}}",
+        description: "City of birth captured in the client profile step.",
+        sampleValue: "Nice",
+      },
+      {
+        label: "Client birth date",
+        token: "{{clientBirthDate}}",
+        description: "Date of birth captured in the client profile step.",
+        sampleValue: "05 May 1992",
       },
       {
         label: "Client email",
@@ -131,12 +144,24 @@ export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
         description: "Authorized deposit amount formatted in major currency units.",
         sampleValue: "800.00",
       },
+      {
+        label: "Signature city",
+        token: "{{signatureCity}}",
+        description: "Vendor-defined city of signature for this transaction.",
+        sampleValue: "Paris",
+      },
+      {
+        label: "Service date",
+        token: "{{serviceDate}}",
+        description: "Vendor-defined date of service for this transaction.",
+        sampleValue: "12 May 2026",
+      },
     ],
   },
   signatureContractMergeFieldGroup,
 ]
 
-export const contractMergeFields = contractMergeFieldGroups.flatMap((group) => group.fields)
+export const contractMergeFields = [legacyClientNameMergeField, ...contractMergeFieldGroups.flatMap((group) => group.fields)]
 export const vendorContractMergeFieldGroups = contractMergeFieldGroups.filter(
   (group) => group !== signatureContractMergeFieldGroup
 )
@@ -173,7 +198,7 @@ export const contractEditorSnippets = [
 
 export const defaultContractTemplateContent = [
   "<h1>Service agreement</h1>",
-  "<p>This agreement is entered into between {{vendorName}} and {{clientName}} for transaction {{transactionReference}}.</p>",
+  "<p>This agreement is entered into between {{vendorName}} and {{clientFirstName}} {{clientLastName}} for transaction {{transactionReference}}.</p>",
   "<h2>Scope</h2>",
   "<p>Describe the service, rental, or engagement covered by this agreement.</p>",
   "<h2>Payment</h2>",

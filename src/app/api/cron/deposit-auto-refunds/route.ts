@@ -101,6 +101,8 @@ export async function GET(request: Request) {
         clientFullName: deposit.transaction.clientProfile?.fullName,
         clientEmail: deposit.transaction.clientProfile?.email,
         locale: deposit.transaction.locale,
+        vendorLocale: deposit.transaction.vendor?.preferredLocale,
+        vendorLogoUrl: deposit.transaction.vendor?.businessLogoUrl,
       })
 
       results.processed++

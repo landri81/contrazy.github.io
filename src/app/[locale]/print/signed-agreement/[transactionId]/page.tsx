@@ -8,7 +8,6 @@ import {
 import { verifySignedDocumentRenderToken } from "@/features/contracts/server/signed-document-render-auth"
 import { buildTransactionCustomFieldRenderEntries } from "@/features/transactions/custom-fields"
 import { prisma } from "@/lib/db/prisma"
-import { getSiteUrl } from "@/lib/site-url"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -87,6 +86,8 @@ export default async function SignedAgreementPrintPage(props: {
           transactionReference: transaction.reference,
           amount: transaction.amount,
           depositAmount: transaction.depositAmount,
+          signatureCity: transaction.signatureCity,
+          serviceDate: transaction.serviceDate,
           locale: transaction.locale,
           customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
           signerName:
@@ -123,7 +124,7 @@ export default async function SignedAgreementPrintPage(props: {
             transaction.signatureRecord.signatureDataUrl ??
             null
           }
-          brandIconSrc={`${getSiteUrl().replace(/\/$/, "")}/logo/favicon-contrazy-64.png`}
+          vendorLogoUrl={transaction.vendor?.businessLogoUrl ?? null}
           presentation="plain"
           renderedHtml={renderedHtml}
         />

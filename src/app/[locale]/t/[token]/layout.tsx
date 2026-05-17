@@ -94,6 +94,7 @@ export default async function TokenLayout({
       enabledSteps={enabledSteps}
       completedSteps={completedSteps}
       revisitableSteps={revisitableSteps}
+      businessLogoUrl={transaction.vendor?.businessLogoUrl}
     >
       {children}
     </ClientFlowShell>

@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server"
 import { Link } from "@/i18n/navigation"
 
 import { UserDeleteAction, UserRoleActions, VendorQuickReview, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
-import { AdminDisputeActions } from "@/features/dashboard/components/admin-dispute-actions"
 import { AdminContactReplyForm, MarkReadOnMount } from "@/features/dashboard/components/admin-contact-actions"
 import { Card, CardContent } from "@/components/ui/card"
 import { DetailGrid, DashboardTable, KpiGrid, PagePanel, ResourceCards, StatusBadge, TimelineList } from "@/features/dashboard/components/dashboard-ui"
@@ -27,6 +26,7 @@ import type {
   TransactionDetailRecord,
   VendorClientListData,
   VendorDepositListData,
+  VendorDisputeDetailRecord,
   VendorDisputeListData,
   VendorKycListData,
   VendorLinkListData,
@@ -142,6 +142,14 @@ export async function VendorTransactionsView({
   availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.transactions")
+  const translatedStatusOptions = vendorTransactionStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
+  const translatedKindOptions = vendorTransactionKindOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.kind.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
@@ -149,8 +157,8 @@ export async function VendorTransactionsView({
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorTransactionStatusOptions },
-          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
+          { name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedStatusOptions },
+          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: translatedKindOptions },
         ]}
         actions={
           <VendorTableExportDialog
@@ -176,16 +184,16 @@ export async function VendorTransactionsView({
           <Link key={`${transaction.reference}-detail`} href={`/vendor/transactions/${transaction.id}`} className="font-medium text-foreground hover:text-(--contrazy-teal)">
             {transaction.reference}
           </Link>,
-          transaction.kind,
+          t(`enums.kind.${transaction.kind}` as never),
           transaction.amount,
           <StatusBadge key={`${transaction.reference}-kyc`} tone={getStatusTone(transaction.kyc)}>
-            {transaction.kyc}
+            {t(`enums.kyc.${transaction.kyc}` as never)}
           </StatusBadge>,
           <StatusBadge key={`${transaction.reference}-contract`} tone={getStatusTone(transaction.contract)}>
-            {transaction.contract}
+            {t(`enums.contract.${transaction.contract}` as never)}
           </StatusBadge>,
           <StatusBadge key={`${transaction.reference}-status`} tone={getStatusTone(transaction.status)}>
-            {transaction.status}
+            {t(`enums.status.${transaction.status}` as never)}
           </StatusBadge>,
           transaction.date,
         ])}
@@ -246,13 +254,17 @@ export async function VendorKycView({
   availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.kyc")
+  const translatedKycStatusOptions = vendorKycStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/kyc"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorKycStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedKycStatusOptions }]}
         actions={
           <VendorTableExportDialog
             endpoint="/api/vendor/kyc/export"
@@ -273,7 +285,7 @@ export async function VendorKycView({
           record.client,
           record.reference,
           <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.provider,
           record.note,
@@ -294,13 +306,17 @@ export async function VendorSignaturesView({
   availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.signatures")
+  const translatedSignatureStatusOptions = vendorSignatureStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/signatures"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorSignatureStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedSignatureStatusOptions }]}
         actions={
           <VendorTableExportDialog
             endpoint="/api/vendor/signatures/export"
@@ -328,7 +344,7 @@ export async function VendorSignaturesView({
           record.signer,
           record.reference,
           <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.template,
           record.date,
@@ -357,13 +373,17 @@ export async function VendorDepositsView({
   searchParams?: Record<string, string>
 }) {
   const t = await getTranslations("dashboard.vendor.deposits")
+  const translatedDepositStatusOptions = vendorPaymentStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/deposits"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedDepositStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -375,7 +395,7 @@ export async function VendorDepositsView({
           record.reference,
           record.amount,
           <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.date,
           <DepositQuickActions
@@ -400,13 +420,17 @@ export async function VendorPaymentsView({
   searchParams?: Record<string, string>
 }) {
   const t = await getTranslations("dashboard.vendor.payments")
+  const translatedPaymentStatusOptions = vendorPaymentStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/payments"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorPaymentStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedPaymentStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -418,7 +442,7 @@ export async function VendorPaymentsView({
           record.reference,
           record.amount,
           <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.date,
         ])}
@@ -436,13 +460,17 @@ export async function VendorDisputesView({
   searchParams?: Record<string, string>
 }) {
   const t = await getTranslations("dashboard.vendor.disputes")
+  const translatedDisputeStatusOptions = vendorDisputeStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/disputes"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorDisputeStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedDisputeStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -451,15 +479,222 @@ export async function VendorDisputesView({
         columns={[t("columns.client"), t("columns.reference"), t("columns.status"), t("columns.summary")]}
         rows={data.items.map((record) => [
           record.client,
-          record.reference,
+          <Link
+            key={`${record.reference}-link`}
+            href={`/vendor/disputes/${record.transactionId}`}
+            className="font-medium text-foreground hover:text-(--contrazy-teal)"
+          >
+            ⚖️ {record.reference}
+          </Link>,
           <StatusBadge key={`${record.reference}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.summary,
         ])}
         emptyMessage={t("empty")}
       />
     </PagePanel>
+  )
+}
+
+export async function VendorDisputeDetailView({ dispute }: { dispute: VendorDisputeDetailRecord }) {
+  const t = await getTranslations("dashboard.vendor.disputes")
+  const sharedT = await getTranslations("dashboard.shared")
+  const { VendorDisputeActions } = await import("@/features/dashboard/components/vendor-dispute-actions")
+  const statusTone = getStatusTone(dispute.status)
+  const isPending = dispute.status === "OPEN" || dispute.status === "UNDER_REVIEW"
+  const imageEvidence = dispute.evidenceAssets.filter((asset) => asset.kind === "image")
+  const documentEvidence = dispute.evidenceAssets.filter((asset) => asset.kind === "pdf")
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <Link href="/vendor/disputes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        {t("backToDisputes")}
+      </Link>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="border-b border-border px-6 py-5">
+            <h2 className="text-lg font-bold tracking-tight">
+              ⚖️ {t("caseTitle")} · {dispute.clientName} · {dispute.reference}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-3">{dispute.summary}</p>
+          </div>
+
+          <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3">
+            {[
+              { label: t("detailClient"), value: dispute.clientName },
+              { label: t("detailDeposit"), value: dispute.depositAmount },
+              {
+                label: t("detailStatus"),
+                value: (
+                  <StatusBadge tone={statusTone}>{dispute.status.replace("_", " ")}</StatusBadge>
+                ),
+              },
+            ].map((cell, i) => (
+              <div
+                key={cell.label}
+                className={`px-6 py-4 ${i < 2 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
+              >
+                <p className="mb-1 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{cell.label}</p>
+                <div className="text-sm font-medium text-foreground">{cell.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 border-b border-border sm:grid-cols-2">
+            {[
+              { label: t("openedOn"), value: dispute.openedAt },
+              {
+                label: t("signedAgreement"),
+                value: dispute.signedAgreementUrl ? (
+                  <a
+                    href={dispute.signedAgreementUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-(--contrazy-teal) hover:underline"
+                  >
+                    📄 {t("downloadAgreement")}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground text-sm">{t("noAgreement")}</span>
+                ),
+              },
+            ].map((cell, i) => (
+              <div
+                key={cell.label}
+                className={`px-6 py-4 ${i === 0 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
+              >
+                <p className="mb-1 text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">{cell.label}</p>
+                <div className="text-sm font-medium text-foreground">{cell.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {dispute.evidenceAssets.length > 0 && (
+            <div className="border-b border-border px-6 py-5">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold">📎 {t("evidenceFiles")}</p>
+                <a
+                  href={`/api/vendor/transactions/${dispute.transactionId}/dispute/evidence-zip`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:text-(--contrazy-teal)"
+                >
+                  ⬇ {t("downloadAllEvidence")}
+                </a>
+              </div>
+
+              {imageEvidence.length > 0 && (
+                <div className={documentEvidence.length > 0 ? "pb-5" : ""}>
+                  <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                    🖼 {t("evidencePhotos")}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {imageEvidence.map((asset) => (
+                      <a
+                        key={`${asset.publicId}:${asset.fileName}`}
+                        href={asset.viewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group relative overflow-hidden rounded-lg border border-border hover:border-(--contrazy-teal)/40"
+                        title={asset.fileName}
+                      >
+                        <img
+                          src={asset.viewUrl}
+                          alt={asset.fileName}
+                          className="size-24 object-cover transition-opacity group-hover:opacity-90"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {documentEvidence.length > 0 && (
+                <div className={imageEvidence.length > 0 ? "border-t border-border pt-5" : ""}>
+                  <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                    📄 {t("evidenceDocuments")}
+                  </p>
+                  <div className="space-y-3">
+                    {documentEvidence.map((asset) => (
+                      <div
+                        key={`${asset.publicId}:${asset.fileName}`}
+                        className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{asset.fileName}</p>
+                          <p className="text-xs text-muted-foreground">PDF</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <a
+                            href={asset.viewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:text-(--contrazy-teal)"
+                          >
+                            👁 {t("viewFile")}
+                          </a>
+                          <a
+                            href={asset.downloadUrl}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-(--contrazy-teal)/40 hover:text-(--contrazy-teal)"
+                          >
+                            ⬇ {t("downloadFile")}
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {dispute.resolution && (
+            <div className="border-b border-border px-6 py-4 bg-muted/30">
+              <p className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase mb-1">{t("resolutionNote")}</p>
+              <p className="text-sm text-foreground">{dispute.resolution}</p>
+              {dispute.resolvedAt && (
+                <p className="mt-1 text-xs text-muted-foreground">{sharedT("resolvedOn", { date: dispute.resolvedAt })}</p>
+              )}
+            </div>
+          )}
+
+          <div className="border-b border-border px-6 py-5">
+            <p className="mb-4 text-sm font-semibold">🕓 {t("historyLabel")}</p>
+            <ol className="space-y-4">
+              {dispute.history.map((ev, i) => (
+                <li key={i} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={`mt-0.5 size-2.5 shrink-0 rounded-full ${ev.pending ? "bg-muted-foreground/40" : "bg-(--contrazy-teal)"}`}
+                    />
+                    {i < dispute.history.length - 1 && (
+                      <div className="mt-1 w-px flex-1 bg-border" />
+                    )}
+                  </div>
+                  <div className="pb-2">
+                    <p className={`text-sm font-medium ${ev.pending ? "text-amber-600" : "text-foreground"}`}>
+                      {ev.eventType ? (t.has(`events.${ev.eventType}` as never) ? t(`events.${ev.eventType}` as never) : ev.title) : ev.title}
+                    </p>
+                    {ev.occurredAt && (
+                      <p className="text-xs text-muted-foreground">{ev.occurredAt}</p>
+                    )}
+                    {ev.detail && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{ev.detail}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {isPending && (
+            <div className="px-6 py-5">
+              <VendorDisputeActions transactionId={dispute.transactionId} status={dispute.status} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -499,9 +734,9 @@ export async function VendorClientsView({
           record.name,
           record.email,
           <StatusBadge key={`${record.email}-status`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
-          record.lastTransaction,
+          record.lastTransaction ?? t("noTransaction"),
         ])}
         emptyMessage={t("empty")}
       />
@@ -519,6 +754,14 @@ export async function VendorLinksView({
   availableExportRange: { min: string | null; max: string | null }
 }) {
   const t = await getTranslations("dashboard.vendor.links")
+  const translatedStateOptions = vendorLinkStateOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
+  const translatedKindOptions = vendorTransactionKindOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.kind.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
@@ -526,8 +769,8 @@ export async function VendorLinksView({
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
         filters={[
-          { name: "state", label: t("columns.status"), value: searchParams?.state, options: vendorLinkStateOptions },
-          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: vendorTransactionKindOptions },
+          { name: "state", label: t("columns.status"), value: searchParams?.state, options: translatedStateOptions },
+          { name: "kind", label: t("columns.type"), value: searchParams?.kind, options: translatedKindOptions },
         ]}
         actions={
           <VendorTableExportDialog
@@ -569,7 +812,7 @@ export async function VendorLinksView({
               {record.title}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {record.kind.replaceAll("_", " ")}
+              {t(`enums.kind.${record.kind}` as never)}
             </p>
           </div>,
           <div key={`${record.reference}-amounts`} className="min-w-[132px] space-y-1">
@@ -587,7 +830,7 @@ export async function VendorLinksView({
             {record.lastActivity}
           </span>,
           <StatusBadge key={`${record.reference}-state`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           <PaymentLinkManagementActions
             key={`${record.id}-${record.status}-${record.title}-${record.expiresAt ?? "none"}`}
@@ -608,13 +851,17 @@ export async function VendorWebhooksView({
   searchParams?: Record<string, string>
 }) {
   const t = await getTranslations("dashboard.vendor.webhooks")
+  const translatedWebhookStatusOptions = vendorWebhookStatusOptions.map((opt) => ({
+    ...opt,
+    label: t(`enums.status.${opt.value}` as never),
+  }))
   return (
     <PagePanel title={t("title")} description={t("description")}>
       <TablePageSection
         basePath="/vendor/webhooks"
         searchValue={searchParams?.q}
         searchPlaceholder={t("searchPlaceholder")}
-        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: vendorWebhookStatusOptions }]}
+        filters={[{ name: "status", label: t("columns.status"), value: searchParams?.status, options: translatedWebhookStatusOptions }]}
         currentPage={data.page}
         totalPages={data.totalPages}
         totalCount={data.totalCount}
@@ -630,7 +877,7 @@ export async function VendorWebhooksView({
           </div>,
           record.reference,
           <StatusBadge key={`${record.eventType}-${record.date}`} tone={getStatusTone(record.status)}>
-            {record.status}
+            {t(`enums.status.${record.status}` as never)}
           </StatusBadge>,
           record.date,
         ])}
@@ -1288,7 +1535,14 @@ export async function AdminDisputeDetailView({ dispute }: { dispute: AdminDisput
           </div>
 
           <div className="px-6 py-5">
-            <AdminDisputeActions disputeId={dispute.id} status={dispute.status} />
+            <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+                {t("auditTrailLabel")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t("auditTrailNote")}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -13,6 +13,8 @@ export type TransactionCreationInitialRequirement = {
   category: RequirementCategoryValue
   customCategoryLabel: string
   required: boolean
+  requiredFileCount: number
+  fileSlotLabels: string[]
   exampleImage: RequirementExampleDraft | null
 }
 
@@ -43,6 +45,7 @@ export type TransactionCreationInitialValues = {
   amount: string
   depositAmount: string
   depositHoldDays: number
+  serviceDate: string
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean

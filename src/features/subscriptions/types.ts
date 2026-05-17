@@ -57,12 +57,40 @@ export type BillingInvoice = {
   invoicePdf: string | null
 }
 
+export type BillingFeeOperation = {
+  paymentId: string
+  transactionId: string
+  reference: string
+  title: string
+  clientName: string | null
+  kind: string
+  status: string
+  processedAt: string
+  grossAmount: number
+  stripeFee: number
+  contrazyFee: number
+  totalFees: number
+  vendorNet: number
+  currency: string
+  invoiceNumber: string
+  invoiceUrl: string
+}
+
+export type BillingFeeSummary = {
+  totalContrazyFees: number
+  totalStripeFees: number
+  totalOperations: number
+  latestOperationDate: string | null
+}
+
 export type BillingWorkspace = {
   subscription: SerializedSubscription | null
   access: BillingAccessInfo
   usage: BillingUsage
   paymentMethods: BillingPaymentMethod[]
   invoices: BillingInvoice[]
+  feeOperations: BillingFeeOperation[]
+  feeSummary: BillingFeeSummary
 }
 
 export type ChangePlanResult = {

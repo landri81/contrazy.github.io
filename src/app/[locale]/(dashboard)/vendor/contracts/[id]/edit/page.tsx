@@ -35,6 +35,8 @@ export default async function VendorContractTemplateEditPage({
       initialTemplate={template}
       canEdit={isVendorPreparationAllowed(vendorProfile)}
       blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+      vendorName={vendorProfile.businessName}
+      vendorLogoUrl={vendorProfile.businessLogoUrl}
     />
   )
 }

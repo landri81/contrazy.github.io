@@ -6,7 +6,10 @@ import { getStripePublishableKey } from "@/lib/integrations/stripe"
 
 export const dynamic = "force-dynamic"
 
-export default async function VendorBillingPage() {
+export default async function VendorBillingPage(props: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await props.params
   const t = await getTranslations("dashboard.vendor.billing")
   const { vendorProfile } = await requireVendorProfileAccess()
   const workspace = await getBillingWorkspace(vendorProfile.id)
@@ -18,7 +21,11 @@ export default async function VendorBillingPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
       </div>
-      <VendorBillingWorkspace workspace={workspace} stripePublishableKey={stripePublishableKey} />
+      <VendorBillingWorkspace
+        workspace={workspace}
+        stripePublishableKey={stripePublishableKey}
+        locale={locale}
+      />
     </div>
   )
 }

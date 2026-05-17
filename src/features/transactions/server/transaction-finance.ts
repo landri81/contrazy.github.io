@@ -23,7 +23,10 @@ import {
   sendTransactionCompletedEmail,
   sendVendorDepositAlert,
   sendVendorDepositStatusEmail,
+  sendVendorTransactionCompletedEmail,
+  type SubmittedDoc,
 } from "@/lib/integrations/resend"
+import { getSiteUrl } from "@/lib/site-url"
 
 type DatabaseClient = PrismaClient | Prisma.TransactionClient
 
@@ -49,6 +52,7 @@ export type DepositOutcomeReason =
   | "manual_release"
   | "transaction_cancelled"
   | "admin_dispute_release"
+  | "vendor_dispute_release"
 
 type FinanceAuditLogInput = {
   actorId?: string | null
@@ -173,17 +177,46 @@ async function recordEmailSentEvent(db: DatabaseClient, transactionId: string, d
 async function sendCompletionNotifications(db: DatabaseClient, transaction: FinanceTransaction) {
   const vendorName = transaction.vendor?.businessName ?? "Conntrazy vendor"
   const locale = transaction.locale
+  const vendorLocale = (transaction.vendor as (VendorProfile & { preferredLocale?: string | null }) | null)?.preferredLocale ?? locale
   const vendorLogoUrl = (transaction.vendor as (VendorProfile & { businessLogoUrl?: string | null }) | null)?.businessLogoUrl ?? null
 
   if (transaction.clientProfile?.email) {
+    let documents: SubmittedDoc[] = []
+    try {
+      const rawDocs = await db.documentAsset.findMany({
+        where: { transactionId: transaction.id },
+        include: { requirement: { select: { label: true, type: true, fileSlotLabels: true } } },
+        orderBy: [{ requirementId: "asc" }, { slotIndex: "asc" }],
+      })
+      documents = rawDocs.map((d) => {
+        const slotLabels = d.requirement?.fileSlotLabels as Record<string, string> | null
+        return {
+          label: d.requirement?.label ?? d.label,
+          type: d.requirement?.type ?? d.type,
+          slotLabel: slotLabels ? slotLabels[String(d.slotIndex)] ?? null : d.slotLabel,
+          fileName: d.fileName,
+          assetUrl: d.assetUrl,
+          textValue: d.textValue,
+        } satisfies SubmittedDoc
+      })
+    } catch {
+      // Non-blocking — send email without document list if query fails
+    }
+
+    const signedPdfPublicId = transaction.contractArtifact?.signedPdfPublicId
+    const signedAgreementUrl = signedPdfPublicId
+      ? `${getSiteUrl()}/api/integrations/cloudinary/download?publicId=${encodeURIComponent(signedPdfPublicId)}&resourceType=raw&format=pdf&fileName=${encodeURIComponent(`${transaction.reference}-signed.pdf`)}`
+      : null
+
     const sent = await sendTransactionCompletedEmail(
       transaction.clientProfile.email,
       transaction.clientProfile.fullName,
       vendorName,
       transaction.reference,
-      transaction.contractArtifact?.signedPdfUrl ?? null,
+      signedAgreementUrl,
       locale,
-      vendorLogoUrl
+      vendorLogoUrl,
+      documents
     )
 
     if (sent) {
@@ -196,13 +229,71 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
     }
   }
 
+  if (transaction.vendor?.businessEmail && transaction.clientProfile) {
+    const signedPdfPublicId = transaction.contractArtifact?.signedPdfPublicId
+    const signedAgreementUrl = signedPdfPublicId
+      ? `${getSiteUrl()}/api/integrations/cloudinary/download?publicId=${encodeURIComponent(signedPdfPublicId)}&resourceType=raw&format=pdf&fileName=${encodeURIComponent(`${transaction.reference}-signed.pdf`)}`
+      : null
+
+    let vendorDocuments: SubmittedDoc[] = []
+    try {
+      const rawDocs = await db.documentAsset.findMany({
+        where: { transactionId: transaction.id },
+        include: { requirement: { select: { label: true, type: true, fileSlotLabels: true } } },
+        orderBy: [{ requirementId: "asc" }, { slotIndex: "asc" }],
+      })
+      vendorDocuments = rawDocs.map((d) => {
+        const slotLabels = d.requirement?.fileSlotLabels as Record<string, string> | null
+        return {
+          label: d.requirement?.label ?? d.label,
+          type: d.requirement?.type ?? d.type,
+          slotLabel: slotLabels ? slotLabels[String(d.slotIndex)] ?? null : d.slotLabel,
+          fileName: d.fileName,
+          assetUrl: d.assetUrl,
+          textValue: d.textValue,
+        } satisfies SubmittedDoc
+      })
+    } catch {
+      // Non-blocking
+    }
+
+    const vendorSent = await sendVendorTransactionCompletedEmail({
+      to: transaction.vendor.businessEmail,
+      vendorName,
+      clientName: transaction.clientProfile.fullName,
+      clientEmail: transaction.clientProfile.email,
+      clientPhone: transaction.clientProfile.phone ?? null,
+      clientCompany: transaction.clientProfile.companyName ?? null,
+      transactionReference: transaction.reference,
+      transactionTitle: transaction.title,
+      serviceDate: transaction.serviceDate ?? null,
+      amount: transaction.amount ?? null,
+      depositAmount: transaction.depositAmount ?? null,
+      currency: transaction.currency,
+      notes: transaction.notes ?? null,
+      signedAgreementUrl,
+      documents: vendorDocuments,
+      locale: vendorLocale,
+      vendorLogoUrl,
+    })
+
+    if (vendorSent) {
+      await recordEmailSentEvent(
+        db,
+        transaction.id,
+        `email:vendor-completed:${transaction.id}:${transaction.vendor.businessEmail.toLowerCase()}`,
+        `Completion summary sent to vendor at ${transaction.vendor.businessEmail}.`
+      )
+    }
+  }
+
   if (transaction.depositAmount && transaction.depositAmount > 0 && transaction.vendor?.businessEmail && transaction.clientProfile?.fullName) {
     const sent = await sendVendorDepositAlert(
       transaction.vendor.businessEmail,
       vendorName,
       transaction.clientProfile.fullName,
       transaction.depositAmount,
-      locale,
+      vendorLocale,
       vendorLogoUrl
     )
 
@@ -670,6 +761,8 @@ export async function recordDepositOutcome(
     reason,
     occurredAt,
     locale,
+    vendorLocale,
+    vendorLogoUrl,
   }: {
     transactionId: string
     amount: number
@@ -684,6 +777,8 @@ export async function recordDepositOutcome(
     reason?: DepositOutcomeReason
     occurredAt?: Date
     locale?: string
+    vendorLocale?: string
+    vendorLogoUrl?: string | null
   }
 ) {
   const paymentKind = action === "capture" ? PaymentKind.DEPOSIT_CAPTURE : PaymentKind.DEPOSIT_RELEASE
@@ -763,7 +858,8 @@ export async function recordDepositOutcome(
       recordedAmount,
       currency,
       action === "capture" ? "captured" : "released",
-      locale
+      vendorLocale ?? locale,
+      vendorLogoUrl
     )
 
     if (sent) {
@@ -784,7 +880,8 @@ export async function recordDepositOutcome(
       recordedAmount,
       currency,
       action === "capture" ? "captured" : "released",
-      locale
+      locale,
+      vendorLogoUrl
     )
 
     if (sent) {

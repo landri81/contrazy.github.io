@@ -31,6 +31,8 @@ import {
 } from "@/features/subscriptions/server/subscription-service"
 import type {
   BillingAccessInfo,
+  BillingFeeOperation,
+  BillingFeeSummary,
   BillingInvoice,
   BillingPaymentMethod,
   BillingUsage,
@@ -56,6 +58,8 @@ export const TERMINAL_STATUSES = new Set<VendorSubscriptionStatus>([
 
 export type {
   BillingAccessInfo,
+  BillingFeeOperation,
+  BillingFeeSummary,
   BillingInvoice,
   BillingPaymentMethod,
   BillingUsage,
@@ -219,12 +223,65 @@ export async function getBillingWorkspace(vendorId: string): Promise<BillingWork
     periodEnd: subscription?.usagePeriodEnd?.toISOString() ?? null,
   }
 
-  const [paymentMethods, invoices] = subscription?.stripeCustomerId
-    ? await Promise.all([
-        listAllPaymentMethods(subscription.stripeCustomerId, subscription.stripeSubscriptionId),
-        fetchInvoices(subscription.stripeCustomerId, 5),
-      ])
-    : [[], []]
+  const [paymentMethods, invoices, feePayments] = await Promise.all([
+    subscription?.stripeCustomerId
+      ? listAllPaymentMethods(subscription.stripeCustomerId, subscription.stripeSubscriptionId)
+      : Promise.resolve([]),
+    subscription?.stripeCustomerId
+      ? fetchInvoices(subscription.stripeCustomerId, 5)
+      : Promise.resolve([]),
+    prisma.payment.findMany({
+      where: {
+        transaction: { vendorId },
+        OR: [
+          { platformFeeAmount: { gt: 0 } },
+          { stripeFeeAmount: { gt: 0 } },
+        ],
+      },
+      include: {
+        transaction: {
+          include: {
+            clientProfile: { select: { fullName: true } },
+          },
+        },
+      },
+      orderBy: { processedAt: "desc" },
+    }),
+  ])
+
+  const feeOperations: BillingFeeOperation[] = feePayments.map((payment) => {
+    const processedAt = payment.processedAt ?? payment.createdAt
+    const dateStr = processedAt.toISOString().slice(0, 10).replace(/-/g, "")
+    const invoiceNumber = `CZ-FEE-${dateStr}-${payment.id.slice(-6).toUpperCase()}`
+    const stripeFee = payment.stripeFeeAmount ?? 0
+    const contrazyFee = payment.platformFeeAmount ?? 0
+
+    return {
+      paymentId: payment.id,
+      transactionId: payment.transactionId,
+      reference: payment.transaction.reference,
+      title: payment.transaction.title,
+      clientName: payment.transaction.clientProfile?.fullName ?? null,
+      kind: payment.kind,
+      status: payment.status,
+      processedAt: processedAt.toISOString(),
+      grossAmount: payment.amount,
+      stripeFee,
+      contrazyFee,
+      totalFees: stripeFee + contrazyFee,
+      vendorNet: payment.vendorNetAmount ?? Math.max(0, payment.amount - stripeFee - contrazyFee),
+      currency: payment.currency,
+      invoiceNumber,
+      invoiceUrl: `/api/vendor/billing/fee-invoices/${payment.id}`,
+    }
+  })
+
+  const feeSummary: BillingFeeSummary = {
+    totalContrazyFees: feeOperations.reduce((sum, op) => sum + op.contrazyFee, 0),
+    totalStripeFees: feeOperations.reduce((sum, op) => sum + op.stripeFee, 0),
+    totalOperations: feeOperations.length,
+    latestOperationDate: feeOperations.length > 0 ? (feeOperations[0]?.processedAt ?? null) : null,
+  }
 
   return {
     subscription: subscription ? serializeSubscription(subscription) : null,
@@ -232,6 +289,8 @@ export async function getBillingWorkspace(vendorId: string): Promise<BillingWork
     usage,
     paymentMethods,
     invoices,
+    feeOperations,
+    feeSummary,
   }
 }
 

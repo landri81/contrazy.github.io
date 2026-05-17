@@ -9,6 +9,12 @@ import {
 } from "@prisma/client"
 import { z } from "zod"
 
+import { parseDateOnlyInput } from "@/lib/date-only"
+import {
+  normalizeRequirementFileCount,
+  normalizeRequirementFileSlotLabels,
+  requirementSupportsFileSlots,
+} from "@/features/transactions/contract-flow"
 import {
   INPUT_LIMITS,
   MIN_DISPUTE_SUMMARY_LENGTH,
@@ -28,6 +34,8 @@ const requirementItemSchema = z
     category: z.nativeEnum(RequirementCategory),
     customCategoryLabel: optionalNullableText("Custom category label", INPUT_LIMITS.checklistItemLabel).optional(),
     required: z.boolean(),
+    requiredFileCount: z.number().int().min(1).max(5).optional(),
+    fileSlotLabels: z.array(z.string().trim()).optional(),
     exampleImageUrl: optionalNullableStringSchema,
     exampleImagePublicId: optionalNullableStringSchema,
     exampleImageFileName: optionalNullableStringSchema,
@@ -40,9 +48,44 @@ const requirementItemSchema = z
         message: "Provide a display label when category is Other.",
       })
     }
+
+    if (!requirementSupportsFileSlots(item.type)) {
+      return
+    }
+
+    const normalizedCount = normalizeRequirementFileCount(item.type, item.requiredFileCount)
+    const normalizedLabels = normalizeRequirementFileSlotLabels({
+      type: item.type,
+      fileCount: normalizedCount,
+      labels: item.fileSlotLabels,
+      requirementLabel: item.label,
+    })
+
+    if (normalizedLabels.some((label) => label.trim().length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fileSlotLabels"],
+        message: "Provide a label for each required file slot.",
+      })
+    }
+
+    if (Array.isArray(item.fileSlotLabels) && item.fileSlotLabels.length > normalizedCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fileSlotLabels"],
+        message: "Provide exactly one slot label per required file.",
+      })
+    }
   })
   .transform((item) => ({
     ...item,
+    requiredFileCount: normalizeRequirementFileCount(item.type, item.requiredFileCount),
+    fileSlotLabels: normalizeRequirementFileSlotLabels({
+      type: item.type,
+      fileCount: normalizeRequirementFileCount(item.type, item.requiredFileCount),
+      labels: item.fileSlotLabels,
+      requirementLabel: item.label,
+    }),
     description: typeof item.description === "string" && item.description.length > 0 ? item.description : null,
     customCategoryLabel:
       item.category === RequirementCategory.OTHER && typeof item.customCategoryLabel === "string" && item.customCategoryLabel.length > 0
@@ -156,6 +199,11 @@ const vendorTransactionCreateBaseSchema = z.object({
   title: requiredText("Title", INPUT_LIMITS.transactionTitle, {
     requiredMessage: "Title is required",
   }),
+  serviceDate: z
+    .string()
+    .trim()
+    .min(1, "Service date is required")
+    .refine((value) => Boolean(parseDateOnlyInput(value)), "Service date is required"),
   recreateFromTransactionId: optionalIdSchema,
   notes: optionalText("Internal notes", INPUT_LIMITS.transactionNotes).optional(),
   contractTemplateId: optionalIdSchema,
@@ -177,6 +225,7 @@ const vendorTransactionCreateBaseSchema = z.object({
 function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransactionCreateBaseSchema>) {
   return {
     ...data,
+    serviceDate: parseDateOnlyInput(data.serviceDate) ?? new Date(),
     recreateFromTransactionId:
       typeof data.recreateFromTransactionId === "string" ? data.recreateFromTransactionId : null,
     notes: typeof data.notes === "string" && data.notes.length > 0 ? data.notes : null,

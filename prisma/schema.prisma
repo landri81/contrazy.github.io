@@ -78,7 +78,13 @@ enum TransactionStatus {
 enum RequirementType {
   DOCUMENT
   PHOTO
+  CAPTURE
   TEXT
+}
+
+enum DocumentAssetSource {
+  UPLOAD
+  LIVE_CAPTURE
 }
 
 enum TransactionCustomFieldType {
@@ -346,6 +352,8 @@ model ClientProfile {
   fullName    String
   firstName   String?
   lastName    String?
+  birthCity   String?
+  birthDate   DateTime?       @db.Date
   email       String
   phone       String?
   companyName String?
@@ -393,6 +401,8 @@ model ChecklistItem {
   type        RequirementType  @default(DOCUMENT)
   category    RequirementCategory @default(CUSTOM)
   customCategoryLabel String?
+  requiredFileCount    Int     @default(1)
+  fileSlotLabels       Json?
   exampleImageUrl      String?
   exampleImagePublicId String?
   exampleImageFileName String?
@@ -427,6 +437,8 @@ model Transaction {
   servicePaymentRequestedAt DateTime?
   checkOutRequestedAt DateTime?
   customerCompletedAt DateTime?
+  signatureCity      String?
+  serviceDate        DateTime?          @db.Date
   notes              String?            @db.Text
   locale             LocaleCode         @default(en)
   createdAt          DateTime           @default(now())
@@ -580,6 +592,8 @@ model TransactionRequirement {
   type          RequirementType @default(DOCUMENT)
   category      RequirementCategory @default(CUSTOM)
   customCategoryLabel String?
+  requiredFileCount    Int      @default(1)
+  fileSlotLabels       Json?
   exampleImageUrl      String?
   exampleImagePublicId String?
   exampleImageFileName String?
@@ -620,6 +634,10 @@ model DocumentAsset {
   requirementId   String?
   label           String
   type            RequirementType @default(DOCUMENT)
+  slotIndex       Int            @default(0)
+  slotLabel       String?
+  source          DocumentAssetSource @default(UPLOAD)
+  capturedAt      DateTime?
   fileName        String?
   assetUrl        String?
   textValue       String?        @db.Text
@@ -629,7 +647,7 @@ model DocumentAsset {
   clientProfile   ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
   requirement     TransactionRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
 
-  @@unique([transactionId, requirementId])
+  @@unique([transactionId, requirementId, slotIndex])
 }
 
 model KycVerification {
@@ -729,6 +747,7 @@ model Dispute {
   transactionId     String        @unique
   status            DisputeStatus @default(OPEN)
   summary           String        @db.Text
+  evidenceImages    Json?
   resolution        String?       @db.Text
   resolvedByAdminId String?
   openedAt          DateTime      @default(now())

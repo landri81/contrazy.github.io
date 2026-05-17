@@ -40,7 +40,18 @@ export async function POST(
       )
     }
 
-    const { firstName, lastName, fullName, email, phone, companyName, address, country } = parsedBody.data
+    const {
+      firstName,
+      lastName,
+      fullName,
+      email,
+      phone,
+      birthCity,
+      birthDate,
+      companyName,
+      address,
+      country,
+    } = parsedBody.data
 
     const transactionId = link.transaction.id
     const currentTransaction = await prisma.transaction.findUnique({
@@ -73,7 +84,18 @@ export async function POST(
     if (clientProfileId) {
       await prisma.clientProfile.update({
         where: { id: clientProfileId },
-        data: { firstName, lastName, fullName, email, phone, companyName, address, country },
+        data: {
+          firstName,
+          lastName,
+          fullName,
+          email,
+          phone,
+          birthCity,
+          birthDate,
+          companyName,
+          address,
+          country,
+        },
       })
     } else {
       const newProfile = await prisma.clientProfile.create({
@@ -84,6 +106,8 @@ export async function POST(
           fullName,
           email,
           phone,
+          birthCity,
+          birthDate,
           companyName,
           address,
           country,

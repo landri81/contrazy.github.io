@@ -1,6 +1,7 @@
 "use client"
 
 import type { ContractTemplate } from "@prisma/client"
+import { mergeAttributes } from "@tiptap/core"
 import {
   AlignCenter,
   AlignJustify,
@@ -10,7 +11,9 @@ import {
   Bold,
   Check,
   Eye,
+  FileUp,
   FileText,
+  ImagePlus,
   Italic,
   Link2,
   List,
@@ -38,8 +41,10 @@ import {
 } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
+import { NodeSelection } from "@tiptap/pm/state"
 import { useEditor, EditorContent, type Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
+import Image from "@tiptap/extension-image"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
 import TextAlign from "@tiptap/extension-text-align"
@@ -57,12 +62,22 @@ import { DashboardRouteLink } from "@/features/dashboard/components/dashboard-ro
 import { ContractDocumentViewer } from "@/features/contracts/components/contract-document-viewer"
 import { stripContractMarkup } from "@/features/contracts/contract-content"
 import {
+  cleanupContractTemplateInlineImages,
+  importContractTemplateDocument,
+  uploadContractTemplateInlineImage,
+  ContractTemplateUploadError,
+} from "@/features/contracts/editor/contract-template-upload-client"
+import {
   clearContractDraft,
   createDraftSnapshot,
   loadContractDraft,
   saveContractDraft,
   type ContractEditorRestoreState,
 } from "@/features/contracts/editor/local-drafts"
+import {
+  extractManagedContractTemplateInlineImageAssets,
+  type ContractTemplateInlineImageAsset,
+} from "@/features/contracts/contract-template-inline-assets"
 import {
   MergeFieldExtension,
   getEditorMarkup,
@@ -79,6 +94,115 @@ type EditorTemplate = Pick<
   ContractTemplate,
   "id" | "name" | "description" | "content" | "updatedAt"
 >
+
+type ContractImageAlign = "left" | "center" | "right"
+
+type SelectedContractImage = {
+  position: number
+  src: string
+  alt: string
+  title: string
+  widthPercent: number
+  align: ContractImageAlign
+}
+
+const CONTRACT_IMAGE_MIN_WIDTH = 20
+const CONTRACT_IMAGE_MAX_WIDTH = 100
+const CONTRACT_IMAGE_DEFAULT_WIDTH = 100
+const CONTRACT_IMAGE_WIDTH_PRESETS = [40, 60, 80, 100] as const
+
+function clampContractImageWidth(value: unknown) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number.parseInt(typeof value === "string" ? value : "", 10)
+
+  if (!Number.isFinite(parsed)) {
+    return CONTRACT_IMAGE_DEFAULT_WIDTH
+  }
+
+  return Math.min(CONTRACT_IMAGE_MAX_WIDTH, Math.max(CONTRACT_IMAGE_MIN_WIDTH, Math.round(parsed)))
+}
+
+function normalizeContractImageAlign(value: unknown): ContractImageAlign {
+  if (value === "left" || value === "center" || value === "right") {
+    return value
+  }
+
+  return "center"
+}
+
+const ContractImageExtension = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      widthPercent: {
+        default: CONTRACT_IMAGE_DEFAULT_WIDTH,
+        parseHTML: (element) => {
+          const htmlElement = element as HTMLElement
+          const dataWidth = htmlElement.getAttribute("data-contract-width")
+          const styleWidth = htmlElement.style.width?.trim()
+
+          if (dataWidth) {
+            return clampContractImageWidth(dataWidth)
+          }
+
+          if (styleWidth.endsWith("%")) {
+            return clampContractImageWidth(styleWidth.slice(0, -1))
+          }
+
+          return CONTRACT_IMAGE_DEFAULT_WIDTH
+        },
+        renderHTML: (attributes) => ({
+          "data-contract-width": String(clampContractImageWidth(attributes.widthPercent)),
+          style: `width: ${clampContractImageWidth(attributes.widthPercent)}%;`,
+        }),
+      },
+      align: {
+        default: "center",
+        parseHTML: (element) =>
+          normalizeContractImageAlign(
+            (element as HTMLElement).getAttribute("data-contract-align")
+          ),
+        renderHTML: (attributes) => ({
+          "data-contract-align": normalizeContractImageAlign(attributes.align),
+        }),
+      },
+    }
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "img",
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+        class: "contract-inline-image",
+      }),
+    ]
+  },
+})
+
+function getSelectedContractImage(editor: Editor | null): SelectedContractImage | null {
+  if (!editor) {
+    return null
+  }
+
+  const { selection } = editor.state
+
+  if (!(selection instanceof NodeSelection) || selection.node.type.name !== "image") {
+    return null
+  }
+
+  const attrs = selection.node.attrs as Record<string, unknown>
+
+  return {
+    position: selection.from,
+    src: typeof attrs.src === "string" ? attrs.src : "",
+    alt: typeof attrs.alt === "string" ? attrs.alt : "",
+    title: typeof attrs.title === "string" ? attrs.title : "",
+    widthPercent: clampContractImageWidth(attrs.widthPercent),
+    align: normalizeContractImageAlign(attrs.align),
+  }
+}
 
 // ─── Markdown paste helpers ───────────────────────────────────────────────────
 
@@ -204,7 +328,21 @@ function ToolbarDivider() {
   return <div className="mx-0.5 h-5 w-px shrink-0 bg-slate-200" />
 }
 
-function EditorToolbar({ editor, disabled }: { editor: Editor; disabled?: boolean }) {
+function EditorToolbar({
+  editor,
+  disabled,
+  isUploadingInlineImage = false,
+  isImportingDocument = false,
+  onUploadInlineImage,
+  onImportDocument,
+}: {
+  editor: Editor
+  disabled?: boolean
+  isUploadingInlineImage?: boolean
+  isImportingDocument?: boolean
+  onUploadInlineImage?: () => void
+  onImportDocument?: () => void
+}) {
   const t = useTranslations("dashboard.vendor.contractTemplateEditor")
   const [linkOpen, setLinkOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
@@ -365,9 +503,130 @@ function EditorToolbar({ editor, disabled }: { editor: Editor; disabled?: boolea
 
       <ToolbarDivider />
 
+      <ToolbarBtn
+        onClick={() => onUploadInlineImage?.()}
+        disabled={disabled || isUploadingInlineImage || isImportingDocument}
+        title={t("toolInlineImage")}
+      >
+        {isUploadingInlineImage ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />}
+      </ToolbarBtn>
+      <ToolbarBtn
+        onClick={() => onImportDocument?.()}
+        disabled={disabled || isUploadingInlineImage || isImportingDocument}
+        title={t("toolImportDocument")}
+      >
+        {isImportingDocument ? <Loader2 className="size-3.5 animate-spin" /> : <FileUp className="size-3.5" />}
+      </ToolbarBtn>
+
+      <ToolbarDivider />
+
       <ToolbarBtn onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title={t("toolClearFormat")}>
         <RemoveFormatting className="size-3.5" />
       </ToolbarBtn>
+    </div>
+  )
+}
+
+function SelectedImagePanel({
+  image,
+  disabled,
+  onWidthChange,
+  onAlignChange,
+}: {
+  image: SelectedContractImage
+  disabled?: boolean
+  onWidthChange: (nextWidth: number) => void
+  onAlignChange: (align: ContractImageAlign) => void
+}) {
+  const t = useTranslations("dashboard.vendor.contractTemplateEditor")
+
+  return (
+    <div className="border-b border-border/80 bg-slate-50/85 px-5 py-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {t("selectedImageTitle")}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("selectedImageDesc")}</p>
+          </div>
+
+          <div className="flex items-center gap-1 self-start rounded-xl border border-border bg-white p-1 shadow-sm">
+            {([
+              ["left", AlignLeft, t("imageAlignLeft")],
+              ["center", AlignCenter, t("imageAlignCenter")],
+              ["right", AlignRight, t("imageAlignRight")],
+            ] as const).map(([align, Icon, label]) => {
+              const active = image.align === align
+
+              return (
+                <button
+                  key={align}
+                  type="button"
+                  disabled={disabled}
+                  title={label}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onAlignChange(align)}
+                  className={cn(
+                    "flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors",
+                    "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
+                    "disabled:pointer-events-none disabled:opacity-40",
+                    active && "bg-[var(--contrazy-teal)]/12 text-[var(--contrazy-teal)]"
+                  )}
+                >
+                  <Icon className="size-4" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-600">
+              <span>{t("imageWidthLabel")}</span>
+              <span>{image.widthPercent}%</span>
+            </div>
+            <input
+              type="range"
+              min={CONTRACT_IMAGE_MIN_WIDTH}
+              max={CONTRACT_IMAGE_MAX_WIDTH}
+              step={5}
+              value={image.widthPercent}
+              disabled={disabled}
+              onChange={(event) => onWidthChange(Number.parseInt(event.target.value, 10))}
+              className="h-2 w-full cursor-pointer accent-[var(--contrazy-teal)] disabled:cursor-not-allowed"
+            />
+            <div className="flex flex-wrap gap-2">
+              {CONTRACT_IMAGE_WIDTH_PRESETS.map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  size="sm"
+                  variant={image.widthPercent === preset ? "default" : "outline"}
+                  disabled={disabled}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onWidthChange(preset)}
+                  className={cn(
+                    "h-8 rounded-lg px-3 text-xs shadow-none",
+                    image.widthPercent === preset &&
+                      "bg-[var(--contrazy-teal)] text-white hover:bg-[#0eb8a0]"
+                  )}
+                >
+                  {preset}%
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-w-20 rounded-xl border border-border bg-white px-3 py-2 text-center shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {t("imageWidthCurrent")}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{image.widthPercent}%</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -388,6 +647,8 @@ export function ContractTemplateEditor({
   initialTemplate,
   canEdit,
   blockedMessage,
+  vendorName,
+  vendorLogoUrl,
   templateLimit,
   templateCount,
   templateLimitMessage,
@@ -396,6 +657,8 @@ export function ContractTemplateEditor({
   initialTemplate?: EditorTemplate | null
   canEdit: boolean
   blockedMessage: string
+  vendorName?: string | null
+  vendorLogoUrl?: string | null
   templateLimit?: number | null
   templateCount?: number
   templateLimitMessage?: string | null
@@ -429,10 +692,31 @@ export function ContractTemplateEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const [isUploadingInlineImage, setIsUploadingInlineImage] = useState(false)
+  const [isImportingDocument, setIsImportingDocument] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<SelectedContractImage | null>(null)
   const [lastSavedAt, setLastSavedAt] = useState<Date | string | null>(
     initialTemplate?.updatedAt ?? null
   )
   const formattedLastSavedAt = formatTimestamp(lastSavedAt)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const editorSelectionRef = useRef<number | null>(null)
+  const uploadedInlineAssetsRef = useRef<ContractTemplateInlineImageAsset[]>([])
+
+  const uploadCopy = {
+    errorTitle: t("uploadErrorTitle"),
+    invalidImageType: t("uploadInvalidImageType"),
+    imageTooLarge: t("uploadImageTooLarge"),
+    invalidImportType: t("uploadInvalidImportType"),
+    importTooLarge: t("uploadImportTooLarge"),
+    signingFailed: t("uploadSigningFailed"),
+    uploadFailed: t("uploadFailed"),
+    importFailed: t("importFailed"),
+    unexpected: t("uploadUnexpected"),
+    imageInserted: t("imageInserted"),
+    documentImported: t("documentImported"),
+  }
 
   // ── TipTap editor ────────────────────────────────────────────────────────────
   const editor = useEditor({
@@ -462,6 +746,12 @@ export function ContractTemplateEditor({
         placeholder: t("editorPlaceholder"),
         showOnlyCurrent: false,
       }),
+      ContractImageExtension.configure({
+        allowBase64: false,
+        HTMLAttributes: {
+          loading: "lazy",
+        },
+      }),
       MergeFieldExtension,
     ],
     content: templateMarkupToEditorHtml(initialContent),
@@ -482,6 +772,26 @@ export function ContractTemplateEditor({
 
   const isEditorReady = editor !== null
 
+  useEffect(() => {
+    if (!editor) {
+      setSelectedImage(null)
+      return
+    }
+
+    const syncSelectedImage = () => {
+      setSelectedImage(getSelectedContractImage(editor))
+    }
+
+    syncSelectedImage()
+    editor.on("selectionUpdate", syncSelectedImage)
+    editor.on("update", syncSelectedImage)
+
+    return () => {
+      editor.off("selectionUpdate", syncSelectedImage)
+      editor.off("update", syncSelectedImage)
+    }
+  }, [editor])
+
   // Markdown paste handler attached to the editor DOM
   useEffect(() => {
     if (!editor) return
@@ -489,6 +799,18 @@ export function ContractTemplateEditor({
     const el = currentEditor.view.dom
 
     function handlePaste(event: ClipboardEvent) {
+      const imageFile = Array.from(event.clipboardData?.files ?? []).find((file) =>
+        file.type.startsWith("image/")
+      )
+
+      if (imageFile) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        rememberEditorSelection()
+        void handleInlineImageFile(imageFile)
+        return
+      }
+
       const text = event.clipboardData?.getData("text/plain") ?? ""
       const html = event.clipboardData?.getData("text/html") ?? ""
       if (!text || html || !looksLikeMarkdown(text)) return
@@ -612,9 +934,10 @@ export function ContractTemplateEditor({
   }
 
   const sidebarFieldLabels: Record<string, string> = {
-    "{{clientName}}": t("sidebarFields.clientName"),
     "{{clientFirstName}}": t("sidebarFields.clientFirstName"),
     "{{clientLastName}}": t("sidebarFields.clientLastName"),
+    "{{clientBirthCity}}": t("sidebarFields.clientBirthCity"),
+    "{{clientBirthDate}}": t("sidebarFields.clientBirthDate"),
     "{{clientEmail}}": t("sidebarFields.clientEmail"),
     "{{clientPhone}}": t("sidebarFields.clientPhone"),
     "{{clientCompany}}": t("sidebarFields.clientCompany"),
@@ -624,10 +947,60 @@ export function ContractTemplateEditor({
     "{{transactionReference}}": t("sidebarFields.transactionReference"),
     "{{paymentAmount}}": t("sidebarFields.paymentAmount"),
     "{{depositAmount}}": t("sidebarFields.depositAmount"),
+    "{{signatureCity}}": t("sidebarFields.signatureCity"),
+    "{{serviceDate}}": t("sidebarFields.serviceDate"),
     "{{signerName}}": t("sidebarFields.signerName"),
     "{{signedDate}}": t("sidebarFields.signedDate"),
     "{{signedTime}}": t("sidebarFields.signedTime"),
     "{{signedTimestamp}}": t("sidebarFields.signedTimestamp"),
+  }
+
+  function rememberEditorSelection() {
+    if (!editor) {
+      return
+    }
+
+    editorSelectionRef.current = editor.state.selection.from
+  }
+
+  function focusEditorAtStoredSelection() {
+    if (!editor) {
+      return
+    }
+
+    const selection = editorSelectionRef.current
+    const chain = editor.chain().focus()
+
+    if (typeof selection === "number") {
+      chain.setTextSelection(selection)
+    }
+
+    chain.run()
+  }
+
+  function mapUploadError(error: unknown) {
+    if (!(error instanceof ContractTemplateUploadError)) {
+      return uploadCopy.unexpected
+    }
+
+    switch (error.code) {
+      case "INVALID_IMAGE_TYPE":
+        return uploadCopy.invalidImageType
+      case "IMAGE_TOO_LARGE":
+        return uploadCopy.imageTooLarge
+      case "INVALID_IMPORT_TYPE":
+        return uploadCopy.invalidImportType
+      case "IMPORT_TOO_LARGE":
+        return uploadCopy.importTooLarge
+      case "SIGNING_FAILED":
+        return uploadCopy.signingFailed
+      case "UPLOAD_FAILED":
+        return error.message || uploadCopy.uploadFailed
+      case "IMPORT_FAILED":
+        return error.message || uploadCopy.importFailed
+      default:
+        return uploadCopy.unexpected
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────────
@@ -656,6 +1029,10 @@ export function ContractTemplateEditor({
   function handleDiscardDraft() {
     clearContractDraft(draftStorageKey)
     setRestoreState({ status: "idle" })
+    if (uploadedInlineAssetsRef.current.length > 0) {
+      void cleanupContractTemplateInlineImages(uploadedInlineAssetsRef.current)
+      uploadedInlineAssetsRef.current = []
+    }
   }
 
   function openPreview() {
@@ -671,6 +1048,113 @@ export function ContractTemplateEditor({
 
   function preserveEditorSelection(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault()
+  }
+
+  function registerUploadedInlineAsset(asset: ContractTemplateInlineImageAsset) {
+    uploadedInlineAssetsRef.current = [
+      ...uploadedInlineAssetsRef.current.filter((current) => current.publicId !== asset.publicId),
+      asset,
+    ]
+  }
+
+  async function handleInlineImageFile(file: File | null) {
+    if (!file || !editor) {
+      return
+    }
+
+    setSaveError(null)
+    setIsUploadingInlineImage(true)
+
+    try {
+      const asset = await uploadContractTemplateInlineImage(file)
+      registerUploadedInlineAsset(asset)
+      focusEditorAtStoredSelection()
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "image",
+          attrs: {
+            src: asset.assetUrl,
+            alt: asset.fileName,
+            title: asset.fileName,
+            widthPercent: CONTRACT_IMAGE_DEFAULT_WIDTH,
+            align: "center",
+          },
+        })
+        .run()
+
+      toast({
+        variant: "success",
+        title: uploadCopy.imageInserted,
+      })
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: uploadCopy.errorTitle,
+        description: mapUploadError(error),
+      })
+    } finally {
+      setIsUploadingInlineImage(false)
+    }
+  }
+
+  async function handleImportDocumentFile(file: File | null) {
+    if (!file || !editor) {
+      return
+    }
+
+    setSaveError(null)
+    setIsImportingDocument(true)
+
+    try {
+      const imported = await importContractTemplateDocument(file)
+      focusEditorAtStoredSelection()
+      editor.chain().focus().insertContent(imported.html).run()
+      toast({
+        variant: "success",
+        title: uploadCopy.documentImported,
+      })
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: uploadCopy.errorTitle,
+        description: mapUploadError(error),
+      })
+    } finally {
+      setIsImportingDocument(false)
+    }
+  }
+
+  function openInlineImagePicker() {
+    rememberEditorSelection()
+    imageInputRef.current?.click()
+  }
+
+  function openImportPicker() {
+    rememberEditorSelection()
+    importInputRef.current?.click()
+  }
+
+  function updateSelectedImageAttributes(
+    attributes: Partial<Pick<SelectedContractImage, "widthPercent" | "align">>
+  ) {
+    if (!editor || !selectedImage) {
+      return
+    }
+
+    editor
+      .chain()
+      .focus()
+      .setNodeSelection(selectedImage.position)
+      .updateAttributes("image", {
+        widthPercent:
+          attributes.widthPercent !== undefined
+            ? clampContractImageWidth(attributes.widthPercent)
+            : selectedImage.widthPercent,
+        align: attributes.align ?? selectedImage.align,
+      })
+      .run()
   }
 
   async function handleSave() {
@@ -699,6 +1183,17 @@ export function ContractTemplateEditor({
         setSaveError(payload?.message ?? (isEditingTemplate ? t("saveErrorUpdate") : t("saveErrorCreate")))
         return
       }
+
+      const persistedAssets = new Set(
+        extractManagedContractTemplateInlineImageAssets(content).map((asset) => asset.publicId)
+      )
+      const orphanedAssets = uploadedInlineAssetsRef.current.filter(
+        (asset) => !persistedAssets.has(asset.publicId)
+      )
+      if (orphanedAssets.length > 0) {
+        void cleanupContractTemplateInlineImages(orphanedAssets)
+      }
+      uploadedInlineAssetsRef.current = []
 
       clearContractDraft(draftStorageKey)
 
@@ -748,6 +1243,27 @@ export function ContractTemplateEditor({
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={(event) => {
+          void handleInlineImageFile(event.target.files?.[0] ?? null)
+          event.target.value = ""
+        }}
+      />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pdf,application/pdf"
+        className="sr-only"
+        onChange={(event) => {
+          void handleImportDocumentFile(event.target.files?.[0] ?? null)
+          event.target.value = ""
+        }}
+      />
+
       {/* Header card */}
       <Card className="overflow-hidden border-border/70 bg-white py-0 shadow-sm">
         <CardContent className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
@@ -905,7 +1421,8 @@ export function ContractTemplateEditor({
             sampleMode
             className="mx-auto max-w-275"
             documentMeta={{
-              vendorName: "Polarsoft BD",
+              vendorName: vendorName ?? "Vendor",
+              vendorLogoUrl: vendorLogoUrl ?? null,
               clientName: "Alex Morgan",
               reference: "TX-2048-A",
               amount: 320000,
@@ -934,7 +1451,28 @@ export function ContractTemplateEditor({
 
               {/* Toolbar */}
               {isEditorReady && editor ? (
-                <EditorToolbar editor={editor} disabled={!canEdit || isSaving || isDeleting} />
+                <>
+                  <EditorToolbar
+                    editor={editor}
+                    disabled={!canEdit || isSaving || isDeleting}
+                    isUploadingInlineImage={isUploadingInlineImage}
+                    isImportingDocument={isImportingDocument}
+                    onUploadInlineImage={openInlineImagePicker}
+                    onImportDocument={openImportPicker}
+                  />
+                  {selectedImage ? (
+                    <SelectedImagePanel
+                      image={selectedImage}
+                      disabled={!canEdit || isSaving || isDeleting}
+                      onWidthChange={(nextWidth) =>
+                        updateSelectedImageAttributes({ widthPercent: nextWidth })
+                      }
+                      onAlignChange={(align) =>
+                        updateSelectedImageAttributes({ align })
+                      }
+                    />
+                  ) : null}
+                </>
               ) : null}
 
               {/* Editor content */}

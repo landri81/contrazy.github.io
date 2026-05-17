@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 
 import {
   deleteRequirementExampleAssetIfUnreferenced,
@@ -78,6 +79,8 @@ export async function PATCH(
       category: typeof items[number]["category"]
       customCategoryLabel: string | null
       required: boolean
+      requiredFileCount: number
+      fileSlotLabels: string[]
       exampleImageUrl: string | null
       exampleImagePublicId: string | null
       exampleImageFileName: string | null
@@ -93,6 +96,8 @@ export async function PATCH(
           category: item.category,
           customCategoryLabel: item.customCategoryLabel,
           required: item.required,
+          requiredFileCount: item.requiredFileCount,
+          fileSlotLabels: item.fileSlotLabels,
           ...normalizedExampleImage,
         }
       })
@@ -121,6 +126,8 @@ export async function PATCH(
               category: item.category,
               customCategoryLabel: item.customCategoryLabel,
               required: item.required,
+              requiredFileCount: item.requiredFileCount,
+              fileSlotLabels: item.fileSlotLabels as Prisma.InputJsonValue,
               exampleImageUrl: item.exampleImageUrl,
               exampleImagePublicId: item.exampleImagePublicId,
               exampleImageFileName: item.exampleImageFileName,

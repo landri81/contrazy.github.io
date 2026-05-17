@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { checklistTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { normalizeRequirementExampleImage } from "@/features/dashboard/server/requirement-example-assets"
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       category: typeof items[number]["category"]
       customCategoryLabel: string | null
       required: boolean
+      requiredFileCount: number
+      fileSlotLabels: string[]
       exampleImageUrl: string | null
       exampleImagePublicId: string | null
       exampleImageFileName: string | null
@@ -95,6 +98,8 @@ export async function POST(request: Request) {
           category: item.category,
           customCategoryLabel: item.customCategoryLabel,
           required: item.required,
+          requiredFileCount: item.requiredFileCount,
+          fileSlotLabels: item.fileSlotLabels,
           ...normalizedExampleImage,
         }
       })
@@ -121,6 +126,8 @@ export async function POST(request: Request) {
             category: item.category,
             customCategoryLabel: item.customCategoryLabel,
             required: item.required,
+            requiredFileCount: item.requiredFileCount,
+            fileSlotLabels: item.fileSlotLabels as Prisma.InputJsonValue,
             exampleImageUrl: item.exampleImageUrl,
             exampleImagePublicId: item.exampleImagePublicId,
             exampleImageFileName: item.exampleImageFileName,

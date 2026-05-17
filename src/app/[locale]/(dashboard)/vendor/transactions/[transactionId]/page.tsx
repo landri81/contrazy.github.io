@@ -16,6 +16,24 @@ import { getAppBaseUrl } from "@/lib/integrations/stripe"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import {
+  AlertTriangle,
+  Banknote,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock,
+  Eye,
+  FileCheck,
+  FileText,
+  Link2,
+  Lock,
+  Mail,
+  Receipt,
+  ShieldCheck,
+  Unlock,
+  User,
+  XCircle,
+} from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,12 +46,16 @@ import { ServicePaymentRequestCard } from "@/features/dashboard/components/servi
 import { StatusBadge } from "@/features/dashboard/components/dashboard-ui"
 import { getStatusTone } from "@/features/dashboard/lib/status-tone"
 import { ContractDocument } from "@/features/contracts/components/contract-document"
+import { TransactionRequirementsCard } from "@/features/dashboard/components/transaction-requirements-card"
 import { buildTransactionCreationInitialValues } from "@/features/transactions/server/transaction-recreation"
+import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
-export default async function VendorTransactionDetailPage(props: { params: Promise<{ transactionId: string }> }) {
-  const { transactionId } = await props.params
+export default async function VendorTransactionDetailPage(props: {
+  params: Promise<{ transactionId: string; locale: string }>
+}) {
+  const { transactionId, locale } = await props.params
   const t = await getTranslations("dashboard.vendor.transactionDetailPage")
   const sharedT = await getTranslations("dashboard.shared")
 
@@ -113,12 +135,116 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     SERVICE_PAYMENT_REQUESTED: t("eventDetails.SERVICE_PAYMENT_REQUESTED"),
   }
 
-  function formatEventMoney(amount: number, currency: string) {
+  const { session, dbUser, subscription, vendorProfile } = await requireSubscribedVendorAccess()
+  const isAdmin = isAdminRole(session.user.role)
+
+  const transaction = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: {
+      vendor: true,
+      clientProfile: true,
+      bulkRecipient: true,
+      contractTemplate: true,
+      link: true,
+      requirements: { orderBy: { sortOrder: "asc" } },
+      customFields: { orderBy: { sortOrder: "asc" } },
+      reportFields: { orderBy: { sortOrder: "asc" } },
+      reports: {
+        include: { assets: { orderBy: { sortOrder: "asc" } }, responses: true },
+      },
+      documents: { orderBy: { uploadedAt: "asc" } },
+      payments: true,
+      depositAuthorization: true,
+      signatureRecord: true,
+      contractArtifact: true,
+      kycVerification: true,
+      events: { orderBy: { occurredAt: "asc" } },
+    },
+  })
+
+  if (!transaction) notFound()
+
+  if (!isAdmin) {
+    const currentVendorUserId = dbUser?.id
+    const transactionOwnerUserId = transaction.vendor?.userId
+    if (!currentVendorUserId || transactionOwnerUserId !== currentVendorUserId) notFound()
+  }
+
+  // ── Derived financial data ────────────────────────────────────────────────────
+
+  const txLocale = transaction.locale ?? locale ?? "en"
+  const intlLocale = txLocale === "fr" ? "fr-FR" : "en-GB"
+  const transactionCurrency = transaction.currency ?? "EUR"
+
+  function fmt(amount: number | null | undefined, currency?: string): string {
+    if (amount == null) return "—"
+    const resolvedCurrency = currency ?? transactionCurrency
     try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount / 100)
+      return new Intl.NumberFormat(intlLocale, {
+        style: "currency",
+        currency: resolvedCurrency.toUpperCase(),
+      }).format(amount / 100)
     } catch {
-      return `${currency} ${(amount / 100).toFixed(2)}`
+      return `${resolvedCurrency.toUpperCase()} ${((amount ?? 0) / 100).toFixed(2)}`
     }
+  }
+
+  const servicePayment = transaction.payments.find((p) => p.kind === "SERVICE_PAYMENT")
+  const depositCapturePmt = transaction.payments.find((p) => p.kind === "DEPOSIT_CAPTURE")
+  const depositReleasePmt = transaction.payments.find((p) => p.kind === "DEPOSIT_RELEASE")
+
+  const servicePaymentAlreadyCollected =
+    servicePayment?.status === "SUCCEEDED" || servicePayment?.status === "CAPTURED"
+
+  // ── Recreate dialog ───────────────────────────────────────────────────────────
+
+  const canRecreateTransaction =
+    transaction.status === "COMPLETED" && transaction.vendorId === vendorProfile.id
+  const recreateDialogData = canRecreateTransaction
+    ? await getVendorCreateLinkDialogData(session.user.email)
+    : null
+  const recreateInitialValues =
+    canRecreateTransaction && recreateDialogData
+      ? buildTransactionCreationInitialValues(transaction, {
+          availableContractIds: recreateDialogData.contracts.map((c) => c.id),
+          availableChecklistIds: recreateDialogData.checklists.map((c) => c.id),
+        })
+      : null
+
+  const shareLink = transaction.link
+    ? `${getAppBaseUrl()}/${transaction.locale.toLowerCase()}/t/${transaction.link.token}`
+    : null
+  const signedPdfHref = resolveDocumentAssetUrl(
+    transaction.contractArtifact?.signedPdfUrl,
+    `${transaction.reference}-signed.pdf`
+  )
+
+  const linkRecord = transaction.link
+    ? buildVendorLinkRecord(
+        {
+          id: transaction.id,
+          reference: transaction.reference,
+          title: transaction.title,
+          kind: transaction.kind,
+          amount: transaction.amount,
+          depositAmount: transaction.depositAmount,
+          currency: transaction.currency,
+          notes: transaction.notes,
+          updatedAt: transaction.updatedAt,
+          clientProfile: transaction.clientProfile
+            ? { fullName: transaction.clientProfile.fullName, email: transaction.clientProfile.email }
+            : null,
+          bulkRecipient: transaction.bulkRecipient ? { email: transaction.bulkRecipient.email } : null,
+          link: transaction.link,
+        },
+        { qrRemaining: remainingQrCodes(subscription) }
+      )
+    : null
+
+  // ── Event helpers ─────────────────────────────────────────────────────────────
+
+  function formatEventMoney(amount: number, currency: string) {
+    return fmt(amount, currency)
   }
 
   type TransactionEvent = { type: string; title: string; detail: string | null; metadata: unknown }
@@ -140,24 +266,20 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
 
     switch (event.type) {
       case "DEPOSIT_AUTHORIZED":
-        if (rawAmount !== null && currency) {
+        if (rawAmount !== null && currency)
           return { title, detail: t("eventDetails.DEPOSIT_AUTHORIZED", { amount: formatEventMoney(rawAmount, currency) }) }
-        }
         break
       case "DEPOSIT_CAPTURED":
-        if (rawAmount !== null && currency) {
+        if (rawAmount !== null && currency)
           return { title, detail: t("eventDetails.DEPOSIT_CAPTURED", { amount: formatEventMoney(rawAmount, currency) }) }
-        }
         break
       case "DEPOSIT_RELEASED":
-        if (rawAmount !== null && currency) {
+        if (rawAmount !== null && currency)
           return { title, detail: t("eventDetails.DEPOSIT_RELEASED", { amount: formatEventMoney(rawAmount, currency) }) }
-        }
         break
       case "SERVICE_PAYMENT_SUCCEEDED":
-        if (rawAmount !== null && currency) {
+        if (rawAmount !== null && currency)
           return { title, detail: t("eventDetails.SERVICE_PAYMENT_SUCCEEDED", { amount: formatEventMoney(rawAmount, currency) }) }
-        }
         break
     }
 
@@ -165,114 +287,67 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
     return { title, detail: staticDetail ?? event.detail }
   }
 
-  const { session, dbUser, subscription, vendorProfile } = await requireSubscribedVendorAccess()
-  const isAdmin = isAdminRole(session.user.role)
-
-  const transaction = await prisma.transaction.findUnique({
-    where: {
-      id: transactionId,
-    },
-    include: {
-      vendor: true,
-      clientProfile: true,
-      bulkRecipient: true,
-      contractTemplate: true,
-      link: true,
-      requirements: {
-        orderBy: { sortOrder: "asc" },
-      },
-      customFields: {
-        orderBy: { sortOrder: "asc" },
-      },
-      reportFields: {
-        orderBy: { sortOrder: "asc" },
-      },
-      reports: {
-        include: { assets: { orderBy: { sortOrder: "asc" } }, responses: true },
-      },
-      documents: {
-        orderBy: { uploadedAt: "asc" },
-      },
-      payments: true,
-      depositAuthorization: true,
-      signatureRecord: true,
-      contractArtifact: true,
-      kycVerification: true,
-      events: {
-        orderBy: { occurredAt: "asc" },
-      },
-    }
-  })
-
-  if (!transaction) {
-    notFound()
+  function getEventIcon(type: string) {
+    const cls = "size-[15px]"
+    if (type === "LINK_CREATED" || type === "TRANSACTION_RECREATED") return <Link2 className={cls} />
+    if (type === "LINK_OPENED") return <Eye className={cls} />
+    if (type === "LINK_UPDATED" || type === "LINK_CANCELLED") return <Link2 className={cls} />
+    if (type === "PROFILE_SUBMITTED") return <User className={cls} />
+    if (type === "DOCUMENTS_SUBMITTED" || type === "CUSTOM_FIELDS_SUBMITTED") return <FileText className={cls} />
+    if (type === "KYC_STARTED" || type === "KYC_VERIFIED" || type === "KYC_FAILED") return <ShieldCheck className={cls} />
+    if (type === "CONTRACT_REVIEWED" || type === "CONTRACT_SNAPSHOT_CREATED") return <FileCheck className={cls} />
+    if (type === "SIGNATURE_COMPLETED" || type === "SIGNED_PDF_GENERATED") return <FileCheck className={cls} />
+    if (type === "SERVICE_PAYMENT_SUCCEEDED" || type === "SERVICE_PAYMENT_REQUESTED" || type === "PAYMENT_SESSION_CREATED") return <CircleDollarSign className={cls} />
+    if (type === "DEPOSIT_AUTHORIZED") return <Lock className={cls} />
+    if (type === "DEPOSIT_CAPTURED" || type === "DEPOSIT_CHARGED") return <Banknote className={cls} />
+    if (type === "DEPOSIT_RELEASED") return <Unlock className={cls} />
+    if (type === "COMPLETED") return <CheckCircle2 className={cls} />
+    if (type === "EMAIL_SENT") return <Mail className={cls} />
+    if (type === "DISPUTE_OPENED") return <AlertTriangle className={cls} />
+    if (type === "TRANSACTION_CANCELLED") return <XCircle className={cls} />
+    if (type === "CHECK_IN_SUBMITTED" || type === "CHECK_OUT_SUBMITTED" || type === "CHECK_OUT_REQUESTED") return <FileText className={cls} />
+    return <Clock className={cls} />
   }
 
-  if (!isAdmin) {
-    const currentVendorUserId = dbUser?.id
-    const transactionOwnerUserId = transaction.vendor?.userId
-
-    if (!currentVendorUserId || transactionOwnerUserId !== currentVendorUserId) {
-      notFound()
-    }
+  function getEventColorCls(type: string): string {
+    if (
+      ["SERVICE_PAYMENT_SUCCEEDED", "COMPLETED", "DEPOSIT_RELEASED", "KYC_VERIFIED", "SIGNATURE_COMPLETED", "SIGNED_PDF_GENERATED"].includes(type)
+    ) return "border-emerald-300 bg-emerald-50 text-emerald-600"
+    if (
+      ["DEPOSIT_AUTHORIZED", "DEPOSIT_CHARGED", "LINK_CREATED", "LINK_UPDATED", "TRANSACTION_RECREATED"].includes(type)
+    ) return "border-blue-300 bg-blue-50 text-blue-600"
+    if (
+      ["DEPOSIT_CAPTURED", "DOCUMENTS_SUBMITTED", "PROFILE_SUBMITTED", "CONTRACT_REVIEWED", "CUSTOM_FIELDS_SUBMITTED", "CHECK_IN_SUBMITTED", "CHECK_OUT_SUBMITTED"].includes(type)
+    ) return "border-amber-300 bg-amber-50 text-amber-600"
+    if (
+      ["KYC_STARTED", "KYC_FAILED", "CONTRACT_SNAPSHOT_CREATED", "PAYMENT_SESSION_CREATED", "SERVICE_PAYMENT_REQUESTED"].includes(type)
+    ) return "border-violet-300 bg-violet-50 text-violet-600"
+    if (
+      ["DISPUTE_OPENED", "TRANSACTION_CANCELLED", "LINK_CANCELLED"].includes(type)
+    ) return "border-rose-300 bg-rose-50 text-rose-600"
+    return "border-slate-200 bg-slate-50 text-slate-500"
   }
 
-  const canRecreateTransaction =
-    transaction.status === "COMPLETED" && transaction.vendorId === vendorProfile.id
-  const recreateDialogData = canRecreateTransaction
-    ? await getVendorCreateLinkDialogData(session.user.email)
-    : null
-  const recreateInitialValues =
-    canRecreateTransaction && recreateDialogData
-      ? buildTransactionCreationInitialValues(transaction, {
-          availableContractIds: recreateDialogData.contracts.map((contract) => contract.id),
-          availableChecklistIds: recreateDialogData.checklists.map((checklist) => checklist.id),
-        })
-      : null
-
-  const shareLink = transaction.link ? `${getAppBaseUrl()}/${transaction.locale.toLowerCase()}/t/${transaction.link.token}` : null
-  const signedPdfHref = resolveDocumentAssetUrl(transaction.contractArtifact?.signedPdfUrl, `${transaction.reference}-signed.pdf`)
-  const servicePaymentAlreadyCollected = transaction.payments.some(
-    (payment: (typeof transaction.payments)[number]) =>
-      payment.kind === "SERVICE_PAYMENT" &&
-      (payment.status === "SUCCEEDED" || payment.status === "CAPTURED")
-  )
-  const linkRecord = transaction.link
-    ? buildVendorLinkRecord({
-        id: transaction.id,
-        reference: transaction.reference,
-        title: transaction.title,
-        kind: transaction.kind,
-        amount: transaction.amount,
-        depositAmount: transaction.depositAmount,
-        currency: transaction.currency,
-        notes: transaction.notes,
-        updatedAt: transaction.updatedAt,
-        clientProfile: transaction.clientProfile
-          ? {
-              fullName: transaction.clientProfile.fullName,
-              email: transaction.clientProfile.email,
-            }
-          : null,
-        bulkRecipient: transaction.bulkRecipient
-          ? {
-              email: transaction.bulkRecipient.email,
-            }
-          : null,
-        link: transaction.link,
-      }, { qrRemaining: remainingQrCodes(subscription) })
-    : null
+  // ── JSX ───────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
-      <div className="flex mb-4 bg-white p-4 rounded-md shadow-sm items-center justify-between gap-4">
-        <div >
-          <h1 className="text-3xl font-bold tracking-tight">{transaction.title}</h1>
-          <p className="text-muted-foreground mt-2">
-            {t("reference")}: {transaction.reference}
-          </p>
+
+      {/* ── Page header ─────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4 rounded-xl bg-white p-5 shadow-sm">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{transaction.title}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span className="font-mono text-xs">{transaction.reference}</span>
+            {transaction.clientProfile?.email && (
+              <>
+                <span className="text-border">·</span>
+                <span>{transaction.clientProfile.email}</span>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {recreateDialogData && recreateInitialValues ? (
             <RecreateTransactionAction
               contracts={recreateDialogData.contracts}
@@ -290,69 +365,259 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("client")}</CardTitle>
+      {/* ── Stat cards row ───────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {/* Client */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("client")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold truncate">
+            <div className="truncate text-base font-bold">
               {transaction.clientProfile?.fullName || t("pending")}
             </div>
             {(transaction.clientProfile?.email || transaction.bulkRecipient?.email) && (
-              <div className="text-xs text-muted-foreground truncate">
+              <div className="mt-0.5 truncate text-xs text-muted-foreground">
                 {transaction.clientProfile?.email ?? transaction.bulkRecipient?.email}
               </div>
             )}
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("paymentStatusLabel")}</CardTitle>
+
+        {/* Service payment status */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("paymentStatusLabel")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">
-              {(() => {
-                const status = transaction.payments.find(
-                  (payment: (typeof transaction.payments)[number]) => payment.kind === "SERVICE_PAYMENT"
-                )?.status
-                return status
-                  ? (paymentStatusMap[status] ?? status)
-                  : (transaction.amount ? t("pending") : t("na"))
-              })()}
+            <div className="text-base font-bold">
+              {transaction.amount
+                ? (fmt(servicePayment?.amount ?? transaction.amount))
+                : t("na")}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {servicePayment
+                ? (paymentStatusMap[servicePayment.status] ?? servicePayment.status)
+                : transaction.amount
+                  ? t("pending")
+                  : t("na")}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("depositStatus")}</CardTitle>
+        {/* Deposit status */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("depositStatus")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">
-              {(() => {
-                const status = transaction.depositAuthorization?.status
-                return status
-                  ? (paymentStatusMap[status] ?? status)
-                  : (transaction.depositAmount ? t("pending") : t("none"))
-              })()}
+            <div className="text-base font-bold">
+              {transaction.depositAuthorization
+                ? fmt(transaction.depositAuthorization.amount)
+                : transaction.depositAmount
+                  ? fmt(transaction.depositAmount)
+                  : t("none")}
+            </div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {transaction.depositAuthorization
+                ? (paymentStatusMap[transaction.depositAuthorization.status] ?? transaction.depositAuthorization.status)
+                : transaction.depositAmount
+                  ? t("pending")
+                  : t("none")}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t("docsUploaded")}</CardTitle>
+        {/* Documents */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("docsUploaded")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">
-              {transaction.documents.length} / {transaction.requirements.length}
+            <div className="text-base font-bold">
+              {transaction.documents.filter((d) => d.requirementId).length}
+              {" / "}
+              {transaction.requirements.reduce((sum, r) => sum + (r.requiredFileCount ?? 1), 0)}
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* ── Financial Overview ───────────────────────────────────────────────── */}
+      {(transaction.amount || transaction.depositAmount || transaction.depositAuthorization) ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Receipt className="size-4 text-muted-foreground" />
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("financialOverview")}
+            </h2>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+
+            {/* Service Payment panel */}
+            {transaction.amount ? (
+              <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50">
+                      <CircleDollarSign className="size-4 text-blue-600" />
+                    </span>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {t("servicePaymentTitle")}
+                    </p>
+                  </div>
+                  {servicePayment ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize",
+                        servicePaymentAlreadyCollected
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {paymentStatusMap[servicePayment.status] ?? servicePayment.status}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      {t("pending")}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-[13px]">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-muted-foreground">{t("configuredAmount")}</span>
+                    <span className="font-semibold text-foreground">{fmt(transaction.amount)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-muted-foreground">{t("collected")}</span>
+                    <span className="font-semibold text-foreground">
+                      {servicePayment ? fmt(servicePayment.amount) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-muted-foreground">{t("platformFees")}</span>
+                    <span className="text-muted-foreground">{t("none")}</span>
+                  </div>
+                  <div className="my-2 border-t border-border/60" />
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium text-foreground">{t("netToYou")}</span>
+                    <span className="text-base font-bold text-emerald-700">
+                      {servicePayment ? fmt(servicePayment.vendorNetAmount ?? servicePayment.amount) : "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Deposit panel */}
+            {(transaction.depositAmount || transaction.depositAuthorization) ? (
+              <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-50">
+                      <Lock className="size-4 text-amber-600" />
+                    </span>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {t("securityDepositTitle")}
+                    </p>
+                  </div>
+                  {transaction.depositAuthorization && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize",
+                        transaction.depositAuthorization.status === "CAPTURED"
+                          ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : transaction.depositAuthorization.status === "RELEASED"
+                            ? "border-blue-200 bg-blue-50 text-blue-700"
+                            : transaction.depositAuthorization.status === "AUTHORIZED" || transaction.depositAuthorization.status === "SUCCEEDED"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {paymentStatusMap[transaction.depositAuthorization.status] ?? transaction.depositAuthorization.status}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-[13px]">
+                  {transaction.depositAmount ? (
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground">{t("configured")}</span>
+                      <span className="font-semibold text-foreground">{fmt(transaction.depositAmount)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-muted-foreground">{t("authorizedHold")}</span>
+                    <span className="font-semibold text-foreground">
+                      {transaction.depositAuthorization ? fmt(transaction.depositAuthorization.amount) : "—"}
+                    </span>
+                  </div>
+
+                  {/* Capture breakdown */}
+                  {depositCapturePmt ? (
+                    <>
+                      <div className="my-2 border-t border-border/60" />
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-foreground">{t("captured")}</span>
+                        <span className="font-semibold text-foreground">{fmt(depositCapturePmt.amount)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-muted-foreground">{t("contrazyFeeInclVat")}</span>
+                        <span className="text-muted-foreground">− {fmt(depositCapturePmt.platformFeeAmount)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-[11px] text-muted-foreground/60">
+                          {t("stripeFee")}{" "}
+                          <span className="text-[10px]">({t("billedByStripe")})</span>
+                        </span>
+                        <span className="text-[11px] text-muted-foreground/60">
+                          − {fmt(depositCapturePmt.stripeFeeAmount)}
+                        </span>
+                      </div>
+                      <div className="my-2 border-t border-border/60" />
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-foreground">{t("netFromCapture")}</span>
+                        <span className="text-base font-bold text-emerald-700">
+                          {fmt(depositCapturePmt.vendorNetAmount)}
+                        </span>
+                      </div>
+                    </>
+                  ) : depositReleasePmt ? (
+                    <>
+                      <div className="my-2 border-t border-border/60" />
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-medium text-foreground">{t("releasedToClient")}</span>
+                        <span className="font-semibold text-blue-700">{fmt(depositReleasePmt.amount)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="my-2 border-t border-border/60" />
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-muted-foreground">{t("captured")}</span>
+                        <span className="text-muted-foreground">{t("notYetCaptured")}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Action cards ─────────────────────────────────────────────────────── */}
       {transaction.depositAuthorization && (
         <DepositControlCard
           transactionId={transaction.id}
@@ -376,165 +641,152 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         />
       ) : null}
 
-      {transaction.flowType === "CHECK_IN_OUT" ? (() => {
-        const checkInReport = transaction.reports.find((r) => r.type === "CHECK_IN") ?? null
-        const checkOutReport = transaction.reports.find((r) => r.type === "CHECK_OUT") ?? null
-        const checkInFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_IN")
-        const checkOutFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_OUT")
-        const checkInResponseMap = new Map(
-          (checkInReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
-        )
-        const checkOutResponseMap = new Map(
-          (checkOutReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
-        )
-        const hasCheckInData = Boolean(checkInReport?.submittedAt)
-        const hasCheckOutData = Boolean(checkOutReport?.submittedAt)
+      {/* ── Check-In / Check-Out ─────────────────────────────────────────────── */}
+      {transaction.flowType === "CHECK_IN_OUT"
+        ? (() => {
+            const checkInReport = transaction.reports.find((r) => r.type === "CHECK_IN") ?? null
+            const checkOutReport = transaction.reports.find((r) => r.type === "CHECK_OUT") ?? null
+            const checkInFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_IN")
+            const checkOutFields = transaction.reportFields.filter((f) => f.reportType === "CHECK_OUT")
+            const checkInResponseMap = new Map(
+              (checkInReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
+            )
+            const checkOutResponseMap = new Map(
+              (checkOutReport?.responses ?? []).map((r) => [r.fieldId, r.value] as const)
+            )
+            const hasCheckInData = Boolean(checkInReport?.submittedAt)
+            const hasCheckOutData = Boolean(checkOutReport?.submittedAt)
 
-        function toThumb(url: string) {
-          if (!url.includes("/upload/")) return url
-          return url.replace("/upload/", "/upload/w_600,h_450,c_fill,q_auto,f_auto/")
-        }
+            function toThumb(url: string) {
+              if (!url.includes("/upload/")) return url
+              return url.replace("/upload/", "/upload/w_600,h_450,c_fill,q_auto,f_auto/")
+            }
 
-        function ReportPanel({
-          label,
-          accent,
-          submittedAt,
-          fields,
-          responseMap,
-          assets,
-        }: {
-          label: string
-          accent: "amber" | "rose"
-          submittedAt: Date | null
-          fields: typeof checkInFields
-          responseMap: Map<string, string>
-          assets: Array<{ assetUrl: string; fileName: string; publicId: string }>
-        }) {
-          const borderCls = accent === "amber" ? "border-amber-200" : "border-rose-200"
-          const badgeCls = accent === "amber"
-            ? "border-amber-300 bg-amber-50 text-amber-800"
-            : "border-rose-300 bg-rose-50 text-rose-800"
-          const headingCls = accent === "amber" ? "text-amber-700" : "text-rose-700"
-          const ringCls = accent === "amber" ? "ring-amber-100" : "ring-rose-100"
-
-          return (
-            <div className={`flex flex-col gap-4 rounded-xl border ${borderCls} bg-white p-5 shadow-sm`}>
-              <div className="flex items-center justify-between gap-2">
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${badgeCls}`}>
-                  {label}
-                </span>
-                {submittedAt ? (
-                  <span className="text-xs text-muted-foreground">
-                    {submittedAt.toLocaleString()}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground italic">Pending</span>
-                )}
-              </div>
-
-              {fields.length > 0 && submittedAt ? (
-                <div className="overflow-hidden rounded-lg border">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/30">
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground w-1/2">Field</th>
-                        <th className={`px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] ${headingCls} w-1/2`}>Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fields.map((field, i) => (
-                        <tr key={field.id} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
-                          <td className="px-3 py-2.5 text-sm font-medium text-foreground">{field.label}</td>
-                          <td className="px-3 py-2.5 text-sm text-foreground">{responseMap.get(field.id) ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            function ReportPanel({
+              label,
+              accent,
+              submittedAt,
+              fields,
+              responseMap,
+              assets,
+            }: {
+              label: string
+              accent: "amber" | "rose"
+              submittedAt: Date | null
+              fields: typeof checkInFields
+              responseMap: Map<string, string>
+              assets: Array<{ assetUrl: string; fileName: string; publicId: string }>
+            }) {
+              const borderCls = accent === "amber" ? "border-amber-200" : "border-rose-200"
+              const badgeCls =
+                accent === "amber"
+                  ? "border-amber-300 bg-amber-50 text-amber-800"
+                  : "border-rose-300 bg-rose-50 text-rose-800"
+              const headingCls = accent === "amber" ? "text-amber-700" : "text-rose-700"
+              const ringCls = accent === "amber" ? "ring-amber-100" : "ring-rose-100"
+              return (
+                <div className={`flex flex-col gap-4 rounded-xl border ${borderCls} bg-white p-5 shadow-sm`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${badgeCls}`}>
+                      {label}
+                    </span>
+                    {submittedAt ? (
+                      <span className="text-xs text-muted-foreground">{submittedAt.toLocaleString(intlLocale)}</span>
+                    ) : (
+                      <span className="text-xs italic text-muted-foreground">{t("pending")}</span>
+                    )}
+                  </div>
+                  {fields.length > 0 && submittedAt ? (
+                    <div className="overflow-hidden rounded-lg border">
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30">
+                            <th className="w-1/2 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("fieldHeader")}</th>
+                            <th className={`w-1/2 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] ${headingCls}`}>{t("valueHeader")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fields.map((field, i) => (
+                            <tr key={field.id} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
+                              <td className="px-3 py-2.5 text-sm font-medium text-foreground">{field.label}</td>
+                              <td className="px-3 py-2.5 text-sm text-foreground">{responseMap.get(field.id) ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : fields.length === 0 ? null : (
+                    <p className="text-sm italic text-muted-foreground">{t("notYetSubmitted")}</p>
+                  )}
+                  <div>
+                    <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
+                      {t("photosLabel")} {assets?.length ? `(${assets.length})` : ""}
+                    </p>
+                    {assets?.length ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {assets.map((asset, i) => (
+                          <a key={i} href={asset.assetUrl} target="_blank" rel="noreferrer" title={asset.fileName} className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={toThumb(asset.assetUrl)} alt={asset.fileName} className="aspect-square w-full object-cover" loading="lazy" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : submittedAt ? (
+                      <p className="text-sm text-muted-foreground">{t("noPhotosUploaded")}</p>
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground">{t("pendingSubmission")}</p>
+                    )}
+                  </div>
                 </div>
-              ) : fields.length === 0 ? null : (
-                <p className="text-sm text-muted-foreground italic">Not yet submitted.</p>
-              )}
+              )
+            }
 
-              <div>
-                <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
-                  Photos {assets?.length ? `(${assets.length})` : ""}
-                </p>
-                {assets?.length ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {assets.map((asset, i) => (
-                      <a
-                        key={i}
-                        href={asset.assetUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={asset.fileName}
-                        className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={toThumb(asset.assetUrl)}
-                          alt={asset.fileName}
-                          className="aspect-square w-full object-cover"
-                          loading="lazy"
+            return (
+              <>
+                <RequestCheckoutCard
+                  transactionId={transaction.id}
+                  checkInSubmittedAt={checkInReport?.submittedAt?.toISOString() ?? null}
+                  checkOutRequestedAt={transaction.checkOutRequestedAt?.toISOString() ?? null}
+                  checkOutSubmittedAt={checkOutReport?.submittedAt?.toISOString() ?? null}
+                />
+                {hasCheckInData || hasCheckOutData ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("conditionReportsTitle")}</CardTitle>
+                      <CardDescription>
+                        {t("conditionReportsDescription")}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`grid gap-4 ${hasCheckOutData ? "md:grid-cols-2" : ""}`}>
+                        <ReportPanel
+                          label={t("checkInLabel")}
+                          accent="amber"
+                          submittedAt={checkInReport?.submittedAt ?? null}
+                          fields={checkInFields}
+                          responseMap={checkInResponseMap}
+                          assets={checkInReport?.assets ?? []}
                         />
-                      </a>
-                    ))}
-                  </div>
-                ) : submittedAt ? (
-                  <p className="text-sm text-muted-foreground">No photos uploaded.</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Pending submission.</p>
-                )}
-              </div>
-            </div>
-          )
-        }
+                        {hasCheckOutData ? (
+                          <ReportPanel
+                            label={t("checkOutLabel")}
+                            accent="rose"
+                            submittedAt={checkOutReport?.submittedAt ?? null}
+                            fields={checkOutFields}
+                            responseMap={checkOutResponseMap}
+                            assets={checkOutReport?.assets ?? []}
+                          />
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </>
+            )
+          })()
+        : null}
 
-        return (
-          <>
-            <RequestCheckoutCard
-              transactionId={transaction.id}
-              checkInSubmittedAt={checkInReport?.submittedAt?.toISOString() ?? null}
-              checkOutRequestedAt={transaction.checkOutRequestedAt?.toISOString() ?? null}
-              checkOutSubmittedAt={checkOutReport?.submittedAt?.toISOString() ?? null}
-            />
-
-            {hasCheckInData || hasCheckOutData ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Condition Reports</CardTitle>
-                  <CardDescription>
-                    Customer-submitted readings and photos for each phase of this service.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className={`grid gap-4 ${hasCheckOutData ? "md:grid-cols-2" : ""}`}>
-                    <ReportPanel
-                      label="Check-In"
-                      accent="amber"
-                      submittedAt={checkInReport?.submittedAt ?? null}
-                      fields={checkInFields}
-                      responseMap={checkInResponseMap}
-                      assets={checkInReport?.assets ?? []}
-                    />
-                    {hasCheckOutData ? (
-                      <ReportPanel
-                        label="Check-Out"
-                        accent="rose"
-                        submittedAt={checkOutReport?.submittedAt ?? null}
-                        fields={checkOutFields}
-                        responseMap={checkOutResponseMap}
-                        assets={checkOutReport?.assets ?? []}
-                      />
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
-          </>
-        )
-      })() : null}
-
+      {/* ── Client access ────────────────────────────────────────────────────── */}
       {transaction.link ? (
         <Card>
           <CardHeader>
@@ -561,7 +813,9 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
               >
                 {t("openSecureClientFlow")}
               </Link>
-              <p className="mt-2 text-xs">{t("reference")}: {transaction.reference}</p>
+              <p className="mt-2 text-xs">
+                {t("reference")}: {transaction.reference}
+              </p>
               {linkRecord?.cancelReason ? (
                 <p className="mt-2 text-xs text-destructive">
                   {t("cancelled")}: {linkRecord.cancelReason}
@@ -580,7 +834,7 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
                 <p className="mt-1">
                   {linkRecord?.canGenerateQr
                     ? t("generateQrHint")
-                    : linkRecord?.qrUnavailableReason ?? t("qrUnavailable")}
+                    : (linkRecord?.qrUnavailableReason ?? t("qrUnavailable"))}
                 </p>
               </div>
             )}
@@ -589,13 +843,12 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         </Card>
       ) : null}
 
+      {/* ── KYC ─────────────────────────────────────────────────────────────── */}
       {transaction.requiresKyc && transaction.kycVerification && (
-        <KycReviewCard
-          transactionId={transaction.id}
-          kyc={transaction.kycVerification}
-        />
+        <KycReviewCard transactionId={transaction.id} kyc={transaction.kycVerification} />
       )}
 
+      {/* ── Contract / agreement ─────────────────────────────────────────────── */}
       {transaction.contractTemplateId ? (
         <Card>
           <CardHeader>
@@ -638,7 +891,6 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
                 </p>
               </div>
             </div>
-
             {transaction.contractArtifact?.renderedContentBeforeSignature ? (
               <div className="rounded-lg border bg-muted/20 p-4">
                 <p className="mb-3 text-sm font-medium text-foreground">{t("agreementSnapshot")}</p>
@@ -647,7 +899,6 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
                 </div>
               </div>
             ) : null}
-
             {transaction.contractArtifact?.signedPdfUrl ? (
               <div className="rounded-lg border bg-muted/20 p-4">
                 <p className="text-sm font-medium text-foreground">{t("signedAgreement")}</p>
@@ -672,90 +923,130 @@ export default async function VendorTransactionDetailPage(props: { params: Promi
         </Card>
       ) : null}
 
+      {/* ── Requirements / documents ─────────────────────────────────────────── */}
       {transaction.requirements.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("requirementsTitle")}</CardTitle>
-            <CardDescription>{t("requirementsDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {transaction.requirements.map((requirement: (typeof transaction.requirements)[number]) => {
-              const response = transaction.documents.find(
-                (document: (typeof transaction.documents)[number]) => document.requirementId === requirement.id
-              )
-
-              return (
-                <div key={requirement.id} className="rounded-lg border bg-muted/20 p-4">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{requirement.label}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                        {requirement.type}
-                        {requirement.required ? ` · ${t("required")}` : ` · ${t("optional")}`}
-                      </p>
-                      {requirement.instructions ? (
-                        <p className="mt-2 text-sm text-muted-foreground">{requirement.instructions}</p>
-                      ) : null}
-                    </div>
-                    <StatusBadge tone={response ? "success" : "warning"}>
-                      {response ? t("submitted") : t("pending")}
-                    </StatusBadge>
-                  </div>
-
-                  {response ? (
-                    response.assetUrl ? (
-                      <Link
-                        href={resolveDocumentAssetUrl(response.assetUrl, response.fileName) ?? response.assetUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex items-center text-sm text-(--contrazy-teal) hover:underline"
-                      >
-                        {response.fileName ?? t("downloadUploadedFile")}
-                      </Link>
-                    ) : response.textValue ? (
-                      <div className="mt-3 rounded-md border bg-white p-3 text-sm text-foreground">
-                        {response.textValue}
-                      </div>
-                    ) : null
-                  ) : null}
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
+        <TransactionRequirementsCard
+          requirements={transaction.requirements}
+          documents={transaction.documents}
+          transactionTitle={transaction.title}
+        />
       ) : null}
 
+      {/* ── Audit trail ──────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>{sharedT("timelineTitle")}</CardTitle>
           <CardDescription>{t("timelineDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {transaction.events.length > 0 ? (
-              transaction.events.map((event: (typeof transaction.events)[number]) => {
-                const { title, detail } = getTranslatedEvent(event)
-                return (
-                  <div key={event.id} className="flex gap-4">
-                    <div className="w-28 shrink-0 text-sm text-muted-foreground">
-                      {event.occurredAt.toLocaleDateString()}
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div>{title}</div>
-                      {detail ? <div className="text-muted-foreground">{detail}</div> : null}
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="flex gap-4">
-                <div className="w-28 shrink-0 text-sm text-muted-foreground">
-                  {transaction.createdAt.toLocaleDateString()}
-                </div>
-                <div className="text-sm">{t("transactionCreated")}</div>
+          {transaction.events.length === 0 ? (
+            <div className="flex gap-4">
+              <div className="w-32 shrink-0 text-sm text-muted-foreground">
+                {transaction.createdAt.toLocaleDateString(intlLocale)}
               </div>
-            )}
-          </div>
+              <div className="text-sm">{t("transactionCreated")}</div>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Vertical connector line */}
+              <div className="absolute left-4.75 top-5 h-[calc(100%-40px)] w-px bg-border" />
+
+              <div className="space-y-0">
+                {transaction.events.map((event, index) => {
+                  const { title, detail } = getTranslatedEvent(event)
+                  const icon = getEventIcon(event.type)
+                  const colorCls = getEventColorCls(event.type)
+                  const isLast = index === transaction.events.length - 1
+
+                  // Extract financial metadata for capture events
+                  const meta =
+                    typeof event.metadata === "object" &&
+                    event.metadata !== null &&
+                    !Array.isArray(event.metadata)
+                      ? (event.metadata as Record<string, unknown>)
+                      : null
+
+                  const hasFinancialMeta =
+                    event.type === "DEPOSIT_CAPTURED" &&
+                    meta &&
+                    typeof meta.processedAmount === "number" &&
+                    typeof meta.currency === "string"
+
+                  return (
+                    <div key={event.id} className={cn("relative flex gap-4", !isLast && "pb-7")}>
+                      {/* Icon circle */}
+                      <div
+                        className={cn(
+                          "relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2",
+                          colorCls
+                        )}
+                      >
+                        {icon}
+                      </div>
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <p className="text-[13px] font-semibold text-foreground">{title}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {event.occurredAt.toLocaleDateString(intlLocale, {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {" · "}
+                            {event.occurredAt.toLocaleTimeString(intlLocale, {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+
+                        {detail && (
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">{detail}</p>
+                        )}
+
+                        {/* Fee breakdown for deposit capture */}
+                        {hasFinancialMeta && meta ? (
+                          <div className="mt-2 inline-grid grid-cols-2 gap-x-8 gap-y-1 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-2.5 text-[12px]">
+                            <span className="text-muted-foreground">{t("grossCaptured")}</span>
+                            <span className="font-semibold text-foreground text-right">
+                              {fmt(meta.processedAmount as number, meta.currency as string)}
+                            </span>
+                            <span className="text-muted-foreground">{t("contrazyFeeInclVat")}</span>
+                            <span className="text-muted-foreground text-right">
+                              − {fmt(meta.platformFeeAmount as number, meta.currency as string)}
+                            </span>
+                            <span className="col-span-2 border-t border-amber-100 pt-1 text-[10px] text-muted-foreground/60">
+                              {t("stripeFee")}: {fmt(meta.stripeFeeAmount as number, meta.currency as string)} — {t("billedByStripe")}
+                            </span>
+                            <span className="font-medium text-emerald-700 border-t border-amber-200 pt-1">{t("netToYou")}</span>
+                            <span className="font-bold text-emerald-700 text-right border-t border-amber-200 pt-1">
+                              {fmt(meta.vendorNetAmount as number, meta.currency as string)}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        {/* Amount highlight for service payment and deposit auth */}
+                        {(event.type === "SERVICE_PAYMENT_SUCCEEDED" || event.type === "DEPOSIT_AUTHORIZED" || event.type === "DEPOSIT_RELEASED") &&
+                          meta &&
+                          typeof meta.amount === "number" &&
+                          typeof meta.currency === "string" ? (
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700">
+                              <CheckCircle2 className="size-3" />
+                              {fmt(
+                                typeof meta.processedAmount === "number" ? meta.processedAmount : meta.amount,
+                                meta.currency as string
+                              )}
+                            </div>
+                          ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

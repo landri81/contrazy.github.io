@@ -10,6 +10,7 @@ import {
   buildTransactionCustomFieldRenderEntries,
   hasCompletedTransactionCustomFields,
 } from "@/features/transactions/custom-fields"
+import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 import {
   cancelTransactionLink,
   isCancellableLinkStatus,
@@ -73,7 +74,7 @@ export const clientFlowTransactionInclude = {
     },
   },
   documents: {
-    orderBy: { uploadedAt: "asc" },
+    orderBy: [{ slotIndex: "asc" }, { uploadedAt: "asc" }],
   },
   kycVerification: true,
   signatureRecord: true,
@@ -190,11 +191,13 @@ export function hasRequiredDocuments(transaction: ClientFlowTransaction) {
   }
 
   return requiredRequirements.every((requirement) =>
-    transaction.documents.some(
-      (document) =>
-        (document.requirementId === requirement.id ||
-          document.label.trim().toLowerCase() === requirement.label.trim().toLowerCase()) &&
-        (requirement.type === "TEXT" ? Boolean(document.textValue?.trim()) : Boolean(document.assetUrl))
+    isRequirementSlotSatisfied(
+      requirement,
+      transaction.documents.filter(
+        (document) =>
+          document.requirementId === requirement.id ||
+          document.label.trim().toLowerCase() === requirement.label.trim().toLowerCase()
+      )
     )
   )
 }
@@ -251,8 +254,31 @@ export function hasSubmittedCheckOut(transaction: Pick<ClientFlowTransaction, "r
   )
 }
 
+function hasCompletedClientProfile(
+  transaction: Pick<ClientFlowTransaction, "clientProfile" | "clientProfileId" | "requireClientCompany">
+) {
+  const profile = transaction.clientProfile
+
+  if (!transaction.clientProfileId || !profile) {
+    return false
+  }
+
+  const hasCompany = !transaction.requireClientCompany || Boolean(profile.companyName?.trim())
+
+  return Boolean(
+    profile.firstName?.trim() &&
+      profile.lastName?.trim() &&
+      profile.email?.trim() &&
+      profile.address?.trim() &&
+      profile.country?.trim() &&
+      profile.birthCity?.trim() &&
+      profile.birthDate &&
+      hasCompany
+  )
+}
+
 export function getClientFlowState(transaction: ClientFlowTransaction) {
-  const hasProfile = Boolean(transaction.clientProfileId && transaction.clientProfile)
+  const hasProfile = hasCompletedClientProfile(transaction)
   const hasDocs = hasRequiredDocuments(transaction)
   // PENDING means an identity check was started and the client may proceed while verification completes or awaits review.
   const hasKyc =
@@ -391,6 +417,8 @@ export function buildPopulatedContractContent(transaction: ClientFlowTransaction
           transactionReference: transaction.reference,
           amount: transaction.amount,
           depositAmount: transaction.depositAmount,
+          signatureCity: transaction.signatureCity,
+          serviceDate: transaction.serviceDate,
           locale: transaction.locale,
           customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
         })

@@ -1,7 +1,7 @@
 import { Resend } from "resend"
 
+import { CONTRAZY_COMPANY } from "@/lib/config/contrazy-company"
 import { env } from "@/lib/env"
-import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { getSiteUrl } from "@/lib/site-url"
 
 export const resend = new Resend(env.RESEND_API_KEY)
@@ -34,847 +34,43 @@ async function deliverEmail({ to, subject, html }: { to: string; subject: string
   }
 }
 
-// ─── Template helpers ─────────────────────────────────────────────────────────
+// ─── Template ─────────────────────────────────────────────────────────────────
 
-function emailHeader(siteUrl: string, vendorLogoUrl?: string | null, vendorName?: string | null): string {
-  const contrazyLogo = "https://contrazy.com/logo/logo-contrazy-white.png"
-  if (vendorLogoUrl && vendorName) {
-    return `<tr>
-      <td style="background:#0c1e2f;padding:20px 32px">
-        <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
-          <td style="vertical-align:middle">
-            <img src="${escapeHtml(vendorLogoUrl)}" height="36" style="max-width:110px;height:36px;object-fit:contain;border-radius:6px;background:#ffffff;padding:4px 8px;display:block" alt="${escapeHtml(vendorName)}" />
-          </td>
-          <td style="text-align:center;vertical-align:middle;padding:0 14px">
-            <span style="color:#3a5a7a;font-size:20px;font-weight:200;line-height:1">+</span>
-          </td>
-          <td style="text-align:right;vertical-align:middle">
-            <img src="${escapeHtml(contrazyLogo)}" height="22" alt="Contrazy" style="max-width:110px;display:block;margin-left:auto" />
-            <div style="font-size:9px;color:#3a5a7a;margin-top:5px;letter-spacing:0.1em;text-transform:uppercase;text-align:right">Powered by Contrazy</div>
-          </td>
-        </tr></table>
-      </td>
-    </tr>`
+function buildCleanEmailHtml(
+  bodyHtml: string,
+  options?: {
+    locale?: string
+    vendorLogoUrl?: string | null
+    vendorName?: string | null
   }
-  return `<tr>
-    <td style="background:#0c1e2f;padding:20px 32px">
-      <img src="${escapeHtml(contrazyLogo)}" height="28" alt="Contrazy" style="max-width:130px;display:block" />
-    </td>
-  </tr>`
-}
-
-function buildEmailHtml({
-  content,
-  siteUrl,
-  vendorLogoUrl,
-  vendorName,
-  locale,
-}: {
-  content: string
-  siteUrl: string
-  vendorLogoUrl?: string | null
-  vendorName?: string | null
-  locale?: string
-}): string {
-  const isFr = locale === "fr"
-  const year = new Date().getFullYear()
-  const contrazyLogoDark = "https://contrazy.com/logo/logo-contrazy-dark.png"
-  const footerNote = isFr
-    ? `© ${year} Contrazy — Tous droits réservés. Cet e-mail vous a été envoyé dans le cadre d'une transaction Contrazy.`
-    : `© ${year} Contrazy — All rights reserved. This email was sent as part of a Contrazy transaction.`
-
-  return `<!DOCTYPE html>
-<html lang="${isFr ? "fr" : "en"}">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Contrazy</title>
-</head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:28px 16px">
-<tr><td align="center">
-<table role="presentation" style="max-width:600px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(12,30,47,0.10)">
-  ${emailHeader(siteUrl, vendorLogoUrl, vendorName)}
-  <tr>
-    <td style="background:#ffffff;padding:36px 32px 40px">
-      ${content}
-    </td>
-  </tr>
-  <tr>
-    <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center">
-      <img src="${escapeHtml(contrazyLogoDark)}" height="16" alt="Contrazy" style="opacity:0.3;display:block;margin:0 auto 10px" />
-      <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.7">${footerNote}</p>
-    </td>
-  </tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`
-}
-
-function ctaButton(label: string, href: string, bg = "#0d9488"): string {
-  return `<p style="text-align:center;margin:28px 0 8px">
-    <a href="${href}" target="_blank" rel="noreferrer" style="display:inline-block;background:${bg};color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;letter-spacing:0.01em">${label}</a>
-  </p>`
-}
-
-function detailTable(rows: [string, string][]): string {
-  const inner = rows
-    .map(
-      ([label, value], i) =>
-        `<tr style="background:${i % 2 === 0 ? "#f8fafc" : "#f1f5f9"}">
-          <td style="padding:10px 16px;font-size:13px;color:#64748b;white-space:nowrap;width:38%">${label}</td>
-          <td style="padding:10px 16px;font-size:13px;font-weight:600;color:#0f172a">${value}</td>
-        </tr>`
-    )
-    .join("")
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin:20px 0;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0">${inner}</table>`
-}
-
-function h2(text: string): string {
-  return `<h2 style="margin:0 0 18px;font-size:22px;font-weight:700;color:#0c1e2f;letter-spacing:-0.01em">${text}</h2>`
-}
-
-function greet(name: string, isFr: boolean): string {
-  return h2(isFr ? `Bonjour ${name},` : `Hi ${name},`)
-}
-
-function p(text: string): string {
-  return `<p style="margin:0 0 14px;font-size:15px;color:#334155;line-height:1.65">${text}</p>`
-}
-
-function alertBox(text: string, bg: string, border: string): string {
-  return `<div style="margin:20px 0;padding:14px 16px;background:${bg};border-left:4px solid ${border};border-radius:8px;font-size:14px;color:#334155;line-height:1.65">${text}</div>`
-}
-
-// ─── Email functions ───────────────────────────────────────────────────────────
-
-/** Notifies the superadmin that a vendor has submitted / updated their profile for review. Always in French. */
-export async function sendAdminVendorProfileSubmittedEmail(
-  adminEmail: string,
-  vendorBusinessName: string,
-  vendorEmail: string,
-  userId: string,
-  isFirstSubmission: boolean
-) {
-  const siteUrl = getSiteUrl()
-  const reviewUrl = `${siteUrl}/fr/admin/users/${userId}`
-  const tag = isFirstSubmission ? "[Nouveau prestataire]" : "[Profil mis à jour]"
-
-  const content = [
-    h2("Nouveau profil prestataire en attente de validation"),
-    detailTable([
-      ["Entreprise", escapeHtml(vendorBusinessName)],
-      ["Email", escapeHtml(vendorEmail)],
-      ["Statut", isFirstSubmission ? "Première soumission" : "Profil mis à jour"],
-    ]),
-    p("Ce prestataire attend votre approbation pour pouvoir connecter Stripe et commencer à envoyer des transactions à ses clients."),
-    ctaButton("Examiner le profil prestataire", reviewUrl, "#0c1e2f"),
-  ].join("")
-
-  return deliverEmail({
-    to: adminEmail,
-    subject: `${tag} ${vendorBusinessName} — validation requise`,
-    html: buildEmailHtml({ content, siteUrl, locale: "fr" }),
-  })
-}
-
-/** Notifies the superadmin that a new vendor has signed up. Always in French. */
-export async function sendAdminNewVendorSignupEmail(
-  adminEmail: string,
-  vendorName: string,
-  vendorEmail: string,
-  userId: string
-) {
-  const siteUrl = getSiteUrl()
-  const reviewUrl = `${siteUrl}/fr/admin/users/${userId}`
-
-  const content = [
-    h2("Nouveau prestataire inscrit"),
-    detailTable([
-      ["Nom", escapeHtml(vendorName)],
-      ["Email", escapeHtml(vendorEmail)],
-    ]),
-    p("Un nouveau prestataire vient de créer un compte. Son profil est en attente de complétion et de validation."),
-    ctaButton("Voir le compte", reviewUrl, "#0c1e2f"),
-  ].join("")
-
-  return deliverEmail({
-    to: adminEmail,
-    subject: `[Inscription] ${vendorName} — ${vendorEmail}`,
-    html: buildEmailHtml({ content, siteUrl, locale: "fr" }),
-  })
-}
-
-export async function sendBulkTransactionLinkEmail(
-  to: string,
-  vendorName: string,
-  transactionTitle: string,
-  transactionReference: string,
-  secureLink: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const isFr = locale === "fr"
-  const siteUrl = getSiteUrl()
-  const safeVendorName = escapeHtml(vendorName)
-  const safeTitle = escapeHtml(transactionTitle)
-  const safeRef = escapeHtml(transactionReference)
-
-  const content = isFr
-    ? [
-        greet("", isFr).replace("Bonjour ,", "Bonjour,"),
-        p(`<strong>${safeVendorName}</strong> vous a envoyé un dossier sécurisé à compléter.`),
-        detailTable([
-          ["Transaction", safeTitle],
-          ["Référence", safeRef],
-        ]),
-        p("Depuis ce lien unique, vous pouvez renseigner votre profil, fournir les documents demandés, vérifier votre identité, signer le contrat et finaliser le paiement."),
-        ctaButton("Ouvrir le dossier sécurisé", secureLink),
-        p(`<span style="font-size:12px;color:#94a3b8">Si vous n'attendiez pas ce message, vous pouvez ignorer cet e-mail en toute sécurité.</span>`),
-      ].join("")
-    : [
-        h2("You have a secure client flow to complete"),
-        p(`<strong>${safeVendorName}</strong> has sent you a secure flow to complete.`),
-        detailTable([
-          ["Transaction", safeTitle],
-          ["Reference", safeRef],
-        ]),
-        p("From this single secure link you can fill in your profile, provide requested documents, verify your identity, sign the agreement, and complete payment."),
-        ctaButton("Open secure link", secureLink),
-        p(`<span style="font-size:12px;color:#94a3b8">If you weren't expecting this, you can safely ignore this email.</span>`),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Dossier sécurisé — ${vendorName}` : `Secure client link — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendTransactionCompletedEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  transactionId: string,
-  signedAgreementUrl?: string | null,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const signedHref = resolveDocumentAssetUrl(signedAgreementUrl, `${transactionId}-signed.pdf`, siteUrl)
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`Votre transaction avec <strong>${safeVendor}</strong> a été complétée avec succès.`),
-        detailTable([["Référence", escapeHtml(transactionId)]]),
-        signedHref ? ctaButton("Télécharger votre accord signé", signedHref) : "",
-        p("Pour toute question, contactez le prestataire directement."),
-        alertBox("Ce document constitue la preuve de votre accord électronique. Conservez-le précieusement.", "#f0fdf4", "#22c55e"),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`Your transaction with <strong>${safeVendor}</strong> has been successfully completed.`),
-        detailTable([["Reference", escapeHtml(transactionId)]]),
-        signedHref ? ctaButton("Download your signed agreement", signedHref) : "",
-        p("If you have any questions, please contact the vendor directly."),
-        alertBox("This document serves as proof of your electronic agreement. Keep it safe.", "#f0fdf4", "#22c55e"),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Transaction complétée avec ${vendorName}` : `Transaction completed with ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendVendorDepositAlert(
-  to: string,
-  vendorName: string,
-  clientName: string,
-  amount: number,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeVendor = escapeHtml(vendorName)
-  const safeClient = escapeHtml(clientName)
-  const formatted = formatEmailMoney(amount, "EUR")
-
-  const content = isFr
-    ? [
-        greet(safeVendor, true),
-        p(`Un dépôt de garantie de <strong>${formatted}</strong> a été autorisé par <strong>${safeClient}</strong>.`),
-        p("Vous pouvez capturer ou libérer ce dépôt depuis votre tableau de bord."),
-        ctaButton("Gérer le dépôt", `${siteUrl}/fr/vendor/transactions`),
-        alertBox("Le dépôt expirera automatiquement si aucune action n'est effectuée dans les 7 jours.", "#fef9c3", "#eab308"),
-      ].join("")
-    : [
-        greet(safeVendor, false),
-        p(`A deposit hold of <strong>${formatted}</strong> has been successfully authorized by <strong>${safeClient}</strong>.`),
-        p("You can capture or release this hold from your vendor dashboard."),
-        ctaButton("Manage deposit", `${siteUrl}/en/vendor/transactions`),
-        alertBox("The deposit authorization will expire automatically if no action is taken within 7 days.", "#fef9c3", "#eab308"),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Dépôt autorisé — ${clientName}` : `Deposit authorized — ${clientName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendVendorDepositStatusEmail(
-  to: string,
-  vendorName: string,
-  clientName: string,
-  amount: number,
-  currency: string,
-  action: "released" | "captured",
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeVendor = escapeHtml(vendorName)
-  const safeClient = escapeHtml(clientName)
-  const formatted = formatEmailMoney(amount, currency)
-  const isCaptured = action === "captured"
-
-  const content = isFr
-    ? [
-        greet(safeVendor, true),
-        p(`Le dépôt de garantie de <strong>${formatted}</strong> pour <strong>${safeClient}</strong> a été <strong>${isCaptured ? "capturé" : "libéré"}</strong>.`),
-        alertBox(
-          isCaptured
-            ? "Le montant retenu a été converti en prélèvement définitif."
-            : "Le montant retenu a été libéré et restitué au client.",
-          isCaptured ? "#f0fdf4" : "#fff7ed",
-          isCaptured ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-    : [
-        greet(safeVendor, false),
-        p(`The deposit hold of <strong>${formatted}</strong> for <strong>${safeClient}</strong> was <strong>${action}</strong>.`),
-        alertBox(
-          isCaptured
-            ? "The held amount has been converted into a permanent charge."
-            : "The held amount has been released back to the client.",
-          isCaptured ? "#f0fdf4" : "#fff7ed",
-          isCaptured ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr
-      ? `Dépôt ${isCaptured ? "capturé" : "libéré"} — ${clientName}`
-      : `Deposit ${action} — ${clientName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendCustomerDepositStatusEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  amount: number,
-  currency: string,
-  action: "released" | "captured",
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-  const formatted = formatEmailMoney(amount, currency)
-  const isCaptured = action === "captured"
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(isCaptured
-          ? `Le prestataire <strong>${safeVendor}</strong> a prélevé <strong>${formatted}</strong> depuis votre dépôt de garantie autorisé.`
-          : `Votre dépôt de garantie de <strong>${formatted}</strong> avec <strong>${safeVendor}</strong> a été libéré. Le montant ne sera pas prélevé.`),
-        alertBox(
-          isCaptured
-            ? "Ce prélèvement apparaîtra sur votre relevé bancaire dans les prochains jours."
-            : "Le montant sera restitué sur votre compte selon les délais de votre banque.",
-          isCaptured ? "#fef2f2" : "#f0fdf4",
-          isCaptured ? "#ef4444" : "#22c55e"
-        ),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(isCaptured
-          ? `Vendor <strong>${safeVendor}</strong> has captured <strong>${formatted}</strong> from your authorized deposit hold.`
-          : `Your <strong>${formatted}</strong> deposit hold with <strong>${safeVendor}</strong> has been released. You will not be charged.`),
-        alertBox(
-          isCaptured
-            ? "This charge will appear on your bank statement within a few business days."
-            : "The hold has been lifted and funds will return to your account per your bank's timeline.",
-          isCaptured ? "#fef2f2" : "#f0fdf4",
-          isCaptured ? "#ef4444" : "#22c55e"
-        ),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr
-      ? `Dépôt ${isCaptured ? "débité" : "libéré"} — ${vendorName}`
-      : `Deposit ${action} — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendDeferredServicePaymentRequestEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  transactionReference: string,
-  amount: number,
-  currency: string,
-  paymentUrl: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-  const formatted = formatEmailMoney(amount, currency)
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`<strong>${safeVendor}</strong> a demandé le paiement du service pour la transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
-        detailTable([
-          ["Prestataire", safeVendor],
-          ["Référence", escapeHtml(transactionReference)],
-          ["Montant dû", formatted],
-        ]),
-        ctaButton("Effectuer le paiement", paymentUrl),
-        p("Les autres détails de votre accord restent inchangés. Utilisez le même flux sécurisé pour finaliser le paiement."),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`<strong>${safeVendor}</strong> has requested the service payment for transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
-        detailTable([
-          ["Vendor", safeVendor],
-          ["Reference", escapeHtml(transactionReference)],
-          ["Amount due", formatted],
-        ]),
-        ctaButton("Complete payment", paymentUrl),
-        p("Your agreement details remain unchanged. Use the same secure link to finalize the payment step."),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Paiement demandé — ${vendorName}` : `Payment requested — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-/** Notifies the superadmin about a new dispute. Always in French. */
-export async function sendAdminDisputeAlert(
-  adminEmail: string,
-  vendorName: string,
-  clientName: string,
-  transactionRef: string,
-  summary: string,
-  disputeId: string
-) {
-  const siteUrl = getSiteUrl()
-  const disputeUrl = `${siteUrl}/fr/admin`
-
-  const content = [
-    h2("⚠️ Litige en attente de votre décision"),
-    detailTable([
-      ["Prestataire", escapeHtml(vendorName)],
-      ["Client", escapeHtml(clientName)],
-      ["Transaction", escapeHtml(transactionRef)],
-      ["ID du litige", disputeId],
-    ]),
-    alertBox(`<strong>Déclaration du prestataire :</strong><br />${escapeHtml(summary)}`, "#fffbeb", "#f59e0b"),
-    p("Le dépôt de garantie reste bloqué jusqu'à votre décision."),
-    ctaButton("Examiner le litige dans le tableau de bord", disputeUrl, "#0c1e2f"),
-  ].join("")
-
-  return deliverEmail({
-    to: adminEmail,
-    subject: `[Action requise] Litige ouvert — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, locale: "fr" }),
-  })
-}
-
-export async function sendVendorDisputeResolved(
-  to: string,
-  vendorName: string,
-  clientName: string,
-  outcome: "vendor_wins" | "client_wins",
-  resolution: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const won = outcome === "vendor_wins"
-  const safeVendor = escapeHtml(vendorName)
-  const safeClient = escapeHtml(clientName)
-  const safeResolution = resolution ? escapeHtml(resolution) : ""
-
-  const content = isFr
-    ? [
-        greet(safeVendor, true),
-        p(`Le litige concernant votre transaction avec <strong>${safeClient}</strong> a été résolu.`),
-        alertBox(
-          (won
-            ? "Décision en votre faveur — le dépôt a été capturé."
-            : "Décision en faveur du client — le dépôt a été libéré.") +
-            (safeResolution ? `<br /><br /><strong>Note admin :</strong> ${safeResolution}` : ""),
-          won ? "#f0fdf4" : "#fff7ed",
-          won ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-    : [
-        greet(safeVendor, false),
-        p(`The dispute regarding your transaction with <strong>${safeClient}</strong> has been resolved.`),
-        alertBox(
-          (won
-            ? "Decision in your favour — the deposit has been captured."
-            : "Decision in the client's favour — the deposit has been released.") +
-            (safeResolution ? `<br /><br /><strong>Admin note:</strong> ${safeResolution}` : ""),
-          won ? "#f0fdf4" : "#fff7ed",
-          won ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr
-      ? `Litige résolu — ${won ? "Décision en votre faveur" : "Décision en faveur du client"}`
-      : `Dispute resolved — ${won ? "Decision in your favour" : "Decision in client's favour"}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendClientDisputeResolved(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  outcome: "vendor_wins" | "client_wins",
-  resolution: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const won = outcome === "client_wins"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-  const safeResolution = resolution ? escapeHtml(resolution) : ""
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`Le litige soulevé par <strong>${safeVendor}</strong> concernant votre transaction a été résolu.`),
-        alertBox(
-          (won
-            ? "Le dépôt de garantie a été libéré. Aucun prélèvement ne sera effectué."
-            : "La réclamation du prestataire a été retenue et le dépôt a été capturé.") +
-            (safeResolution ? `<br /><br /><strong>Note admin :</strong> ${safeResolution}` : ""),
-          won ? "#f0fdf4" : "#fff7ed",
-          won ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`The dispute raised by <strong>${safeVendor}</strong> regarding your transaction has been resolved.`),
-        alertBox(
-          (won
-            ? "The deposit hold has been released. No charge was made."
-            : "The vendor's claim was upheld and the deposit was captured.") +
-            (safeResolution ? `<br /><br /><strong>Admin note:</strong> ${safeResolution}` : ""),
-          won ? "#f0fdf4" : "#fff7ed",
-          won ? "#22c55e" : "#f97316"
-        ),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Litige résolu — ${vendorName}` : `Dispute resolved — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendContactAutoReply(to: string, firstName: string, locale?: string) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeName = escapeHtml(firstName)
-
-  const content = isFr
-    ? [
-        greet(safeName, true),
-        p("Merci de nous avoir contactés. Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais."),
-        p("Si votre demande est urgente, n'hésitez pas à nous relancer en répondant directement à cet e-mail."),
-      ].join("")
-    : [
-        greet(safeName, false),
-        p("Thanks for reaching out. We've received your message and will get back to you as soon as possible."),
-        p("If your request is urgent, feel free to follow up by replying directly to this email."),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? "Nous avons bien reçu votre message" : "We've received your message",
-    html: buildEmailHtml({ content, siteUrl, locale }),
-  })
-}
-
-/** Notifies the superadmin about a new contact form submission. Always in French. */
-export async function sendAdminContactNotification(
-  adminEmail: string,
-  firstName: string,
-  lastName: string,
-  senderEmail: string,
-  message: string,
-  contactId: string,
-  locale: string
-) {
-  const siteUrl = getSiteUrl()
-
-  const content = [
-    h2("Nouveau message via le formulaire de contact"),
-    detailTable([
-      ["Nom", escapeHtml(`${firstName} ${lastName}`)],
-      ["Email", escapeHtml(senderEmail)],
-      ["Langue", locale.toUpperCase()],
-      ["ID message", contactId],
-    ]),
-    alertBox(escapeHtml(message), "#f8fafc", "#6366f1"),
-    ctaButton("Voir dans le tableau de bord admin", `${siteUrl}/fr/admin`),
-  ].join("")
-
-  return deliverEmail({
-    to: adminEmail,
-    subject: `[Nouveau contact] ${firstName} ${lastName} — ${senderEmail}`,
-    html: buildEmailHtml({ content, siteUrl, locale: "fr" }),
-  })
-}
-
-export async function sendContactReply(
-  to: string,
-  firstName: string,
-  replyText: string,
-  originalMessage: string,
-  locale?: string
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeName = escapeHtml(firstName)
-
-  const content = isFr
-    ? [
-        greet(safeName, true),
-        p("Merci pour votre message. Voici notre réponse :"),
-        alertBox(escapeHtml(replyText), "#f0fdf4", "#22c55e"),
-        `<details style="margin-top:24px"><summary style="font-size:12px;color:#94a3b8;cursor:pointer">Votre message original</summary>
-        <div style="margin-top:8px;padding:12px;background:#f9fafb;border-radius:8px;font-size:13px;color:#6b7280;white-space:pre-wrap">${escapeHtml(originalMessage)}</div></details>`,
-      ].join("")
-    : [
-        greet(safeName, false),
-        p("Thank you for your message. Here is our reply:"),
-        alertBox(escapeHtml(replyText), "#f0fdf4", "#22c55e"),
-        `<details style="margin-top:24px"><summary style="font-size:12px;color:#94a3b8;cursor:pointer">Your original message</summary>
-        <div style="margin-top:8px;padding:12px;background:#f9fafb;border-radius:8px;font-size:13px;color:#6b7280;white-space:pre-wrap">${escapeHtml(originalMessage)}</div></details>`,
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? "Réponse à votre message — Contrazy" : "Reply to your message — Contrazy",
-    html: buildEmailHtml({ content, siteUrl, locale }),
-  })
-}
-
-export async function sendCheckOutRequestEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  transactionReference: string,
-  checkOutUrl: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`<strong>${safeVendor}</strong> vous invite à effectuer le check-out pour la transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
-        p("Ouvrez le lien sécurisé ci-dessous pour compléter le rapport de fin de service."),
-        ctaButton("Accéder au check-out", checkOutUrl),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`<strong>${safeVendor}</strong> has requested the service check-out for transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
-        p("Open the link below to complete your end-of-service report."),
-        ctaButton("Open check-out", checkOutUrl),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Check-out demandé — ${vendorName}` : `Check-out requested — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendDepositChargedEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  amount: number,
-  currency: string,
-  autoRefundAt: Date | null,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-  const formatted = formatEmailMoney(amount, currency)
-  const refundDateStr = autoRefundAt
-    ? autoRefundAt.toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
-    : null
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`Un dépôt de garantie de <strong>${formatted}</strong> a été débité pour votre transaction avec <strong>${safeVendor}</strong>.`),
-        refundDateStr ? alertBox(`Un remboursement automatique sera effectué le <strong>${refundDateStr}</strong> si le prestataire ne décide pas de conserver le dépôt.`, "#fef9c3", "#eab308") : "",
-        p("Pour toute question, contactez le prestataire directement."),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`A security deposit of <strong>${formatted}</strong> has been charged for your transaction with <strong>${safeVendor}</strong>.`),
-        refundDateStr ? alertBox(`An automatic refund will be issued on <strong>${refundDateStr}</strong> unless the vendor decides to keep the deposit.`, "#fef9c3", "#eab308") : "",
-        p("If you have any questions, please contact the vendor directly."),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Dépôt de garantie débité — ${vendorName}` : `Security deposit charged — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendDepositAutoRefundedEmail(
-  to: string,
-  clientName: string,
-  vendorName: string,
-  amount: number,
-  currency: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeClient = escapeHtml(clientName)
-  const safeVendor = escapeHtml(vendorName)
-  const formatted = formatEmailMoney(amount, currency)
-
-  const content = isFr
-    ? [
-        greet(safeClient, true),
-        p(`Votre dépôt de garantie de <strong>${formatted}</strong> avec <strong>${safeVendor}</strong> a été remboursé automatiquement.`),
-        alertBox("Le remboursement devrait apparaître sur votre relevé bancaire dans les prochains jours ouvrables.", "#f0fdf4", "#22c55e"),
-      ].join("")
-    : [
-        greet(safeClient, false),
-        p(`Your security deposit of <strong>${formatted}</strong> with <strong>${safeVendor}</strong> has been automatically refunded.`),
-        alertBox("The refund should appear on your bank statement within the next few business days.", "#f0fdf4", "#22c55e"),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Dépôt remboursé — ${vendorName}` : `Security deposit refunded — ${vendorName}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-export async function sendVendorFeeReceiptEmail(
-  to: string,
-  vendorName: string,
-  transactionRef: string,
-  feeType: "long_deposit" | "deposit_capture",
-  depositAmount: number,
-  stripeFee: number,
-  platformFee: number,
-  currency: string,
-  locale?: string,
-  vendorLogoUrl?: string | null
-) {
-  const siteUrl = getSiteUrl()
-  const isFr = locale === "fr"
-  const safeVendor = escapeHtml(vendorName)
-  const fmt = (n: number) => formatEmailMoney(n, currency)
-  const total = stripeFee + platformFee
-  const date = new Date().toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
-  const typeLabel = isFr
-    ? feeType === "long_deposit" ? "Dépôt longue durée" : "Capture de caution"
-    : feeType === "long_deposit" ? "Extended deposit" : "Deposit capture"
-
-  const content = isFr
-    ? [
-        greet(safeVendor, true),
-        p(`Voici le reçu de frais pour la transaction <strong>${escapeHtml(transactionRef)}</strong>.`),
-        detailTable([
-          ["Date", date],
-          ["Type de frais", typeLabel],
-          ["Montant du dépôt", fmt(depositAmount)],
-          ["Frais Stripe", fmt(stripeFee)],
-          ["Frais Contrazy", fmt(platformFee)],
-          ["Total frais", fmt(total)],
-        ]),
-        p(`<span style="font-size:13px;color:#64748b">Ces frais ont été automatiquement collectés lors du traitement du dépôt. Ce reçu est fourni à titre informatif.</span>`),
-      ].join("")
-    : [
-        greet(safeVendor, false),
-        p(`Fee receipt for transaction <strong>${escapeHtml(transactionRef)}</strong>.`),
-        detailTable([
-          ["Date", date],
-          ["Fee type", typeLabel],
-          ["Deposit amount", fmt(depositAmount)],
-          ["Stripe fee", fmt(stripeFee)],
-          ["Contrazy fee", fmt(platformFee)],
-          ["Total fees", fmt(total)],
-        ]),
-        p(`<span style="font-size:13px;color:#64748b">These fees were automatically collected during deposit processing. This receipt is provided for your records.</span>`),
-      ].join("")
-
-  return deliverEmail({
-    to,
-    subject: isFr ? `Reçu de frais — ${transactionRef}` : `Fee receipt — ${transactionRef}`,
-    html: buildEmailHtml({ content, siteUrl, vendorLogoUrl, vendorName, locale }),
-  })
-}
-
-function buildCleanEmailHtml(bodyHtml: string, locale?: string): string {
-  const isFr = locale === "fr"
+): string {
+  const isFr = options?.locale === "fr"
   const year = new Date().getFullYear()
   const footerNote = isFr
     ? `© ${year} Contrazy — Tous droits réservés.`
     : `© ${year} Contrazy — All rights reserved.`
+
+  const contrazyDark = "https://contrazy.com/logo/logo-contrazy-dark.png"
+
+  let logoHtml: string
+  if (options?.vendorLogoUrl && options?.vendorName) {
+    logoHtml = `
+      <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+        <tr>
+          <td style="vertical-align:middle;padding-right:14px">
+            <img src="${escapeHtml(options.vendorLogoUrl)}" height="34" alt="${escapeHtml(options.vendorName)}"
+              style="max-width:120px;height:34px;object-fit:contain;display:block;border-radius:4px" />
+          </td>
+          <td style="vertical-align:middle;padding-right:14px;color:#cbd5e1;font-size:20px;font-weight:200;line-height:1">×</td>
+          <td style="vertical-align:middle">
+            <img src="${escapeHtml(contrazyDark)}" height="22" alt="Contrazy"
+              style="max-width:110px;display:block" />
+          </td>
+        </tr>
+      </table>`
+  } else {
+    logoHtml = `<img src="${escapeHtml(contrazyDark)}" height="28" alt="Contrazy" style="display:block;max-width:140px" />`
+  }
 
   return `<!DOCTYPE html>
 <html lang="${isFr ? "fr" : "en"}">
@@ -887,13 +83,9 @@ function buildCleanEmailHtml(bodyHtml: string, locale?: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff">
 <tr><td style="padding:40px 32px 24px">
   <table role="presentation" style="max-width:580px;width:100%">
-    <tr><td style="padding-bottom:32px">
-      <img src="https://contrazy.com/logo/logo-contrazy-dark.png" height="28" alt="Contrazy" style="display:block;max-width:140px" />
-    </td></tr>
-    <tr><td style="font-size:15px;line-height:1.7;color:#1a1a1a">
-      ${bodyHtml}
-    </td></tr>
-    <tr><td style="padding-top:40px;border-top:1px solid #e5e7eb;margin-top:32px">
+    <tr><td style="padding-bottom:36px">${logoHtml}</td></tr>
+    <tr><td style="font-size:15px;line-height:1.75;color:#1a1a1a">${bodyHtml}</td></tr>
+    <tr><td style="padding-top:36px;border-top:1px solid #e5e7eb;margin-top:32px">
       <p style="margin:0;font-size:11px;color:#9ca3af">${footerNote}</p>
     </td></tr>
   </table>
@@ -903,21 +95,444 @@ function buildCleanEmailHtml(bodyHtml: string, locale?: string): string {
 </html>`
 }
 
-function cleanP(text: string): string {
-  return `<p style="margin:0 0 16px">${text}</p>`
+// ─── Content helpers ──────────────────────────────────────────────────────────
+
+function cp(text: string): string {
+  return `<p style="margin:0 0 14px">${text}</p>`
 }
 
-function cleanList(items: string[]): string {
-  const lis = items.map((item) => `<li style="margin-bottom:6px">${item}</li>`).join("")
+function clist(items: string[]): string {
+  const lis = items.map((i) => `<li style="margin-bottom:6px">${i}</li>`).join("")
   return `<ul style="margin:0 0 16px;padding-left:20px">${lis}</ul>`
 }
 
-function cleanSignature(isFr: boolean): string {
-  return `
-    <p style="margin:24px 0 12px">${isFr ? "Cordialement," : "Best regards,"}</p>
-    <img src="https://contrazy.com/logo/logo-contrazy-dark.png" height="22" alt="Contrazy" style="display:block;max-width:110px" />`
+function clink(text: string, href: string): string {
+  return `<a href="${escapeHtml(href)}" style="color:#0d9488;font-weight:600;text-decoration:underline">${text}</a>`
 }
 
+function ccta(label: string, href: string): string {
+  return `<p style="margin:24px 0">
+    <a href="${escapeHtml(href)}" target="_blank" rel="noreferrer"
+       style="display:inline-block;background:#0d9488;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;letter-spacing:0.01em">${label}</a>
+  </p>`
+}
+
+function cdetail(label: string, value: string): string {
+  return `<p style="margin:0 0 6px;font-size:14px">
+    <span style="color:#6b7280">${label}:</span>&nbsp;<strong style="color:#111827">${value}</strong>
+  </p>`
+}
+
+function cdivider(): string {
+  return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0" />`
+}
+
+function csig(isFr: boolean): string {
+  return `<p style="margin:28px 0 4px">${isFr ? "Merci," : "Thank you,"}</p>
+    <p style="margin:0;font-weight:700;color:#0f172a">${isFr ? "L'équipe Contrazy" : "The Contrazy Team"}</p>`
+}
+
+export type SubmittedDoc = {
+  label: string
+  type?: string | null
+  slotLabel?: string | null
+  fileName?: string | null
+  assetUrl?: string | null
+  textValue?: string | null
+}
+
+function cdocumentList(docs: SubmittedDoc[], isFr: boolean): string {
+  if (docs.length === 0) return ""
+  const items = docs.map((d) => {
+    const slot = d.slotLabel ? ` — ${escapeHtml(d.slotLabel)}` : ""
+    const name = d.fileName ? ` <span style="color:#9ca3af;font-size:13px">(${escapeHtml(d.fileName)})</span>` : ""
+    return `<li style="margin-bottom:5px">${escapeHtml(d.label)}${slot}${name}</li>`
+  })
+  return `<p style="margin:16px 0 8px;font-size:14px;font-weight:600;color:#374151">
+    ${isFr ? "Documents soumis :" : "Submitted documents:"}
+  </p>
+  <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;color:#374151;line-height:1.6">
+    ${items.join("")}
+  </ul>`
+}
+
+// ─── Admin email functions ────────────────────────────────────────────────────
+
+/** Admin notification when a vendor submits / updates their profile. Always in French. */
+export async function sendAdminVendorProfileSubmittedEmail(
+  adminEmail: string,
+  vendorBusinessName: string,
+  vendorEmail: string,
+  userId: string,
+  isFirstSubmission: boolean
+) {
+  const siteUrl = getSiteUrl()
+  const reviewUrl = `${siteUrl}/fr/admin/users/${userId}`
+  const tag = isFirstSubmission ? "[Nouveau profil]" : "[Profil mis à jour]"
+
+  const html = buildCleanEmailHtml(
+    [
+      cp("Bonjour Admin,"),
+      cp(isFirstSubmission
+        ? `Un nouveau prestataire vient de soumettre son profil sur Contrazy et nécessite votre validation.`
+        : `Un prestataire a mis à jour son profil sur Contrazy et nécessite votre validation.`),
+      cdivider(),
+      cdetail("Entreprise", escapeHtml(vendorBusinessName)),
+      cdetail("Email", escapeHtml(vendorEmail)),
+      cdetail("Type", isFirstSubmission ? "Première soumission" : "Mise à jour du profil"),
+      cdivider(),
+      ccta("Accéder au panneau d'administration", reviewUrl),
+      csig(true),
+    ].join(""),
+    { locale: "fr" }
+  )
+
+  return deliverEmail({
+    to: adminEmail,
+    subject: `${tag} ${vendorBusinessName} — validation requise`,
+    html,
+  })
+}
+
+/** Admin notification when a new vendor signs up. Always in French. */
+export async function sendAdminNewVendorSignupEmail(
+  adminEmail: string,
+  vendorName: string,
+  vendorEmail: string,
+  userId: string
+) {
+  const siteUrl = getSiteUrl()
+  const reviewUrl = `${siteUrl}/fr/admin/users/${userId}`
+
+  const html = buildCleanEmailHtml(
+    [
+      cp("Bonjour Admin,"),
+      cp("Un nouveau prestataire vient de créer un compte sur Contrazy et nécessite une validation."),
+      cdivider(),
+      cdetail("Nom / Entreprise", escapeHtml(vendorName)),
+      cdetail("Email", escapeHtml(vendorEmail)),
+      cdivider(),
+      cp("Veuillez examiner et approuver ce profil afin d'activer son accès à la plateforme."),
+      ccta("Accéder au panneau d'administration", reviewUrl),
+      csig(true),
+    ].join(""),
+    { locale: "fr" }
+  )
+
+  return deliverEmail({
+    to: adminEmail,
+    subject: `[Inscription] ${vendorName} — ${vendorEmail}`,
+    html,
+  })
+}
+
+/** Admin dispute alert. Always in French. */
+/** Admin audit notification when a dispute is opened. Always French. Read-only — admin takes no action. */
+export async function sendAdminDisputeAlert(
+  adminEmail: string,
+  vendorName: string,
+  clientName: string,
+  transactionRef: string,
+  summary: string,
+  disputeId: string
+) {
+  const siteUrl = getSiteUrl()
+
+  const html = buildCleanEmailHtml(
+    [
+      cp("Bonjour Admin,"),
+      cp("Un prestataire a ouvert un litige sur une transaction Contrazy. Ce litige est géré directement par le prestataire."),
+      cdivider(),
+      cdetail("Prestataire", escapeHtml(vendorName)),
+      cdetail("Client", escapeHtml(clientName)),
+      cdetail("Référence transaction", escapeHtml(transactionRef)),
+      cdetail("ID du litige", disputeId),
+      cdivider(),
+      cp(`<strong>Déclaration du prestataire :</strong><br />${escapeHtml(summary)}`),
+      cp(`<span style="color:#6b7280;font-size:13px">Le prestataire peut résoudre ce litige directement depuis son tableau de bord. Vous pouvez consulter le dossier en lecture seule.</span>`),
+      ccta("Voir le dossier (lecture seule)", `${siteUrl}/fr/admin/disputes/${disputeId}`),
+      csig(true),
+    ].join(""),
+    { locale: "fr" }
+  )
+
+  return deliverEmail({
+    to: adminEmail,
+    subject: `[Audit] Litige ouvert — ${vendorName}`,
+    html,
+  })
+}
+
+type DisputeEvidenceItem = { assetUrl: string; publicId: string; fileName: string }
+
+type DisputeEmailDetails = {
+  transactionRef: string
+  transactionTitle?: string | null
+  depositAmount?: number | null
+  currency?: string
+  signedAgreementUrl?: string | null
+  evidenceImages?: DisputeEvidenceItem[]
+}
+
+function cevidenceSection(evidence: DisputeEvidenceItem[], isFr: boolean): string {
+  if (!evidence || evidence.length === 0) return ""
+
+  const images = evidence.filter((e) => !e.fileName.toLowerCase().endsWith(".pdf") && !e.assetUrl.includes("/raw/"))
+  const docs = evidence.filter((e) => e.fileName.toLowerCase().endsWith(".pdf") || e.assetUrl.includes("/raw/"))
+
+  const imgHtml = images.length > 0
+    ? `<table cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 12px">
+        <tr>${images.map((img) =>
+          `<td style="padding-right:8px;vertical-align:top">
+            <a href="${escapeHtml(img.assetUrl)}" target="_blank" rel="noreferrer">
+              <img src="${escapeHtml(img.assetUrl)}" alt="${escapeHtml(img.fileName)}"
+                   width="90" height="90"
+                   style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;display:block" />
+            </a>
+          </td>`
+        ).join("")}</tr>
+      </table>`
+    : ""
+
+  const docHtml = docs.length > 0
+    ? `<ul style="margin:4px 0 12px;padding-left:18px;font-size:13px;color:#374151">
+        ${docs.map((d) =>
+          `<li style="margin-bottom:4px"><a href="${escapeHtml(d.assetUrl)}" target="_blank" rel="noreferrer" style="color:#0d9488;font-weight:500;text-decoration:underline">${escapeHtml(d.fileName)}</a></li>`
+        ).join("")}
+      </ul>`
+    : ""
+
+  if (!imgHtml && !docHtml) return ""
+
+  return `${cdivider()}
+    <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.05em">
+      ${isFr ? "Pièces justificatives" : "Evidence attached"}
+    </p>
+    ${imgHtml}${docHtml}`
+}
+
+/** Sent to vendor confirming they opened a dispute — with case details and next-step CTA. */
+export async function sendVendorDisputeOpenedEmail(
+  to: string,
+  vendorName: string,
+  clientName: string,
+  disputeId: string,
+  summary: string,
+  details: DisputeEmailDetails,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const siteUrl = getSiteUrl()
+  const safeVendor = escapeHtml(vendorName)
+  const safeClient = escapeHtml(clientName)
+  const safeRef = escapeHtml(details.transactionRef)
+  const safeTitle = details.transactionTitle ? escapeHtml(details.transactionTitle) : null
+  const depositFormatted = details.depositAmount && details.depositAmount > 0
+    ? formatEmailMoney(details.depositAmount, details.currency ?? "EUR")
+    : null
+  const dashboardUrl = `${siteUrl}/${isFr ? "fr" : "en"}/vendor/disputes`
+
+  const transactionSection = [
+    cdetail(isFr ? "Référence" : "Reference", safeRef),
+    safeTitle ? cdetail(isFr ? "Transaction" : "Transaction", safeTitle) : "",
+    depositFormatted ? cdetail(isFr ? "Dépôt de garantie" : "Deposit hold", depositFormatted) : "",
+    cdetail(isFr ? "ID du litige" : "Case ID", disputeId),
+  ].join("")
+
+  const evidenceSection = cevidenceSection(details.evidenceImages ?? [], isFr)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeVendor},`),
+          cp(`Votre litige concernant la transaction avec <strong>${safeClient}</strong> a bien été enregistré.`),
+          cdivider(),
+          cp(`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280">Détails du dossier</strong>`),
+          transactionSection,
+          cdivider(),
+          cp(`<strong>Votre déclaration :</strong><br />${escapeHtml(summary)}`),
+          evidenceSection,
+          cdivider(),
+          cp(`<strong>Prochaines étapes :</strong>`),
+          clist([
+            "Le dépôt de garantie est maintenu actif.",
+            "Vous pouvez résoudre ce litige directement depuis votre tableau de bord.",
+            "Vous choisissez de capturer (conserver) ou libérer le dépôt.",
+            "Le client sera notifié de votre décision.",
+          ]),
+          details.signedAgreementUrl
+            ? cp(`Accord signé : ${clink("Télécharger le contrat signé", details.signedAgreementUrl)}`)
+            : "",
+          ccta("Gérer le litige", dashboardUrl),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeVendor},`),
+          cp(`Your dispute regarding the transaction with <strong>${safeClient}</strong> has been successfully recorded.`),
+          cdivider(),
+          cp(`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280">Case details</strong>`),
+          transactionSection,
+          cdivider(),
+          cp(`<strong>Your statement:</strong><br />${escapeHtml(summary)}`),
+          evidenceSection,
+          cdivider(),
+          cp(`<strong>Next steps:</strong>`),
+          clist([
+            "The deposit hold remains active.",
+            "You can resolve this dispute directly from your dashboard.",
+            "You choose to capture (keep) or release the deposit.",
+            "The client will be notified of your decision.",
+          ]),
+          details.signedAgreementUrl
+            ? cp(`Signed agreement: ${clink("Download signed contract", details.signedAgreementUrl)}`)
+            : "",
+          ccta("Manage dispute", dashboardUrl),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Litige ouvert — ${safeRef} — ${safeClient}`
+      : `Dispute opened — ${safeRef} — ${safeClient}`,
+    html,
+  })
+}
+
+/** Sent to client notifying them a dispute has been opened on their transaction. */
+export async function sendClientDisputeOpenedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  disputeId: string,
+  summary: string,
+  details: DisputeEmailDetails,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const safeRef = escapeHtml(details.transactionRef)
+  const safeTitle = details.transactionTitle ? escapeHtml(details.transactionTitle) : null
+  const depositFormatted = details.depositAmount && details.depositAmount > 0
+    ? formatEmailMoney(details.depositAmount, details.currency ?? "EUR")
+    : null
+
+  const transactionSection = [
+    cdetail(isFr ? "Prestataire" : "Vendor", safeVendor),
+    cdetail(isFr ? "Référence" : "Reference", safeRef),
+    safeTitle ? cdetail(isFr ? "Transaction" : "Transaction", safeTitle) : "",
+    depositFormatted ? cdetail(isFr ? "Dépôt de garantie" : "Deposit hold", depositFormatted) : "",
+    cdetail(isFr ? "ID du litige" : "Case ID", disputeId),
+  ].join("")
+
+  const evidenceSection = cevidenceSection(details.evidenceImages ?? [], isFr)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> a ouvert un litige concernant votre transaction <strong>${safeRef}</strong>.`),
+          cdivider(),
+          transactionSection,
+          cdivider(),
+          cp(`<strong>Déclaration du prestataire :</strong><br />${escapeHtml(summary)}`),
+          evidenceSection,
+          cdivider(),
+          cp(`<strong>Ce qu'il se passe :</strong>`),
+          clist([
+            "Le dépôt de garantie reste bloqué pendant la durée du litige.",
+            "Le prestataire examinera le dossier et prendra une décision.",
+            "Vous serez notifié(e) dès qu'une décision sera rendue.",
+          ]),
+          details.signedAgreementUrl
+            ? cp(`Accord signé : ${clink("Télécharger le contrat signé", details.signedAgreementUrl)}`)
+            : "",
+          cp(`<span style="color:#6b7280;font-size:13px">Si vous avez des questions, contactez directement ${safeVendor}.</span>`),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> has opened a dispute regarding your transaction <strong>${safeRef}</strong>.`),
+          cdivider(),
+          transactionSection,
+          cdivider(),
+          cp(`<strong>Vendor's statement:</strong><br />${escapeHtml(summary)}`),
+          evidenceSection,
+          cdivider(),
+          cp(`<strong>What this means:</strong>`),
+          clist([
+            "The deposit hold remains active while the dispute is open.",
+            "The vendor will review the case and make a decision.",
+            "You will be notified once a decision has been made.",
+          ]),
+          details.signedAgreementUrl
+            ? cp(`Signed agreement: ${clink("Download signed contract", details.signedAgreementUrl)}`)
+            : "",
+          cp(`<span style="color:#6b7280;font-size:13px">If you have questions, please contact ${safeVendor} directly.</span>`),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Litige ouvert — ${safeRef} — ${safeVendor}`
+      : `Dispute opened — ${safeRef} — ${safeVendor}`,
+    html,
+  })
+}
+
+/** Admin contact form notification. Always in French. */
+export async function sendAdminContactNotification(
+  adminEmail: string,
+  firstName: string,
+  lastName: string,
+  senderEmail: string,
+  message: string,
+  contactId: string,
+  locale: string
+) {
+  const siteUrl = getSiteUrl()
+
+  const html = buildCleanEmailHtml(
+    [
+      cp("Bonjour Admin,"),
+      cp("Un nouveau message a été soumis via le formulaire de contact Contrazy."),
+      cdivider(),
+      cdetail("Nom", escapeHtml(`${firstName} ${lastName}`)),
+      cdetail("Email", escapeHtml(senderEmail)),
+      cdetail("Langue", locale.toUpperCase()),
+      cdetail("ID message", contactId),
+      cdivider(),
+      cp(`<strong>Message :</strong><br /><span style="white-space:pre-wrap;color:#374151">${escapeHtml(message)}</span>`),
+      ccta("Voir dans le tableau de bord admin", `${siteUrl}/fr/admin`),
+      csig(true),
+    ].join(""),
+    { locale: "fr" }
+  )
+
+  return deliverEmail({
+    to: adminEmail,
+    subject: `[Nouveau contact] ${firstName} ${lastName} — ${senderEmail}`,
+    html,
+  })
+}
+
+// ─── Vendor email functions ───────────────────────────────────────────────────
+
+/** Vendor review status update — APPROVED uses clean professional template. */
 export async function sendVendorReviewStatusEmail(
   to: string,
   businessName: string,
@@ -926,76 +541,80 @@ export async function sendVendorReviewStatusEmail(
   vendorLogoUrl?: string | null,
   ownerFirstName?: string | null
 ) {
+  const siteUrl = getSiteUrl()
   const isFr = locale === "fr"
   const firstName = escapeHtml(ownerFirstName?.trim() || businessName)
   const company = escapeHtml(businessName)
+  const dashboardUrl = `${siteUrl}/${isFr ? "fr" : "en"}/vendor/profile`
 
   if (reviewStatus === "APPROVED") {
     const html = isFr
       ? buildCleanEmailHtml(
           [
-            cleanP(`Bonjour ${firstName},`),
-            cleanP(`Le profil de votre société <strong>« ${company} »</strong> a bien été créé sur notre plateforme et est désormais prêt à être utilisé.`),
-            cleanP("Afin d'activer définitivement votre compte, nous vous invitons à :"),
-            cleanList([
-              "Vérifier les informations renseignées",
-              "Connecter votre compte Stripe à la plateforme",
-              "Compléter les éventuels documents ou informations manquants si nécessaire",
+            cp(`Bonjour ${firstName},`),
+            cp(`Votre profil <strong>${company}</strong> a été validé par notre équipe.`),
+            cp("Votre compte est désormais entièrement actif. Vous pouvez maintenant :"),
+            clist([
+              "Créer et gérer vos contrats",
+              "Gérer vos cautions et paiements",
+              "Inviter vos clients et suivre vos transactions",
             ]),
-            cleanP("Une fois ces étapes finalisées, votre accès sera pleinement opérationnel."),
-            cleanP("Notre équipe reste à votre disposition pour toute question ou besoin d'accompagnement."),
-            cleanSignature(true),
+            ccta("Accéder à mon espace", dashboardUrl),
+            csig(true),
           ].join(""),
-          "fr"
+          { locale: "fr" }
         )
       : buildCleanEmailHtml(
           [
-            cleanP(`Hello ${firstName},`),
-            cleanP(`The profile for your company <strong>"${company}"</strong> has been successfully created on our platform and is now ready to use.`),
-            cleanP("To fully activate your account, please:"),
-            cleanList([
-              "Review the information provided",
-              "Connect your Stripe account to the platform",
-              "Complete any missing documents or information if required",
+            cp(`Hello ${firstName},`),
+            cp(`Your profile <strong>${company}</strong> has been approved by our team.`),
+            cp("Your account is now fully active. You can now:"),
+            clist([
+              "Create and manage contracts",
+              "Manage deposits and payments",
+              "Invite clients and track transactions",
             ]),
-            cleanP("Once these steps are completed, your account will be fully operational."),
-            cleanP("If you need any assistance, our team remains available to support you."),
-            cleanSignature(false),
+            ccta("Access my dashboard", dashboardUrl),
+            csig(false),
           ].join(""),
-          "en"
+          { locale: "en" }
         )
 
     return deliverEmail({
       to,
-      subject: isFr ? "Activation de votre compte Contrazy" : "Account Activation - Contrazy",
+      subject: isFr ? "Votre profil Contrazy a été approuvé" : "Your Contrazy profile has been approved",
       html,
     })
   }
 
-  // REJECTED / SUSPENDED — clean minimal format
-  const siteUrl = getSiteUrl()
   const html = isFr
     ? buildCleanEmailHtml(
         [
-          cleanP(`Bonjour ${firstName},`),
+          cp(`Bonjour ${firstName},`),
           reviewStatus === "REJECTED"
-            ? cleanP(`Après examen de votre profil, nous ne sommes pas en mesure d'approuver le compte <strong>« ${company} »</strong> pour le moment. Veuillez vérifier vos informations et soumettre à nouveau, ou contacter notre équipe si vous avez des questions.`)
-            : cleanP(`Le compte <strong>« ${company} »</strong> a été suspendu. Veuillez contacter notre équipe avant de reprendre toute activité sur la plateforme.`),
-          cleanP(`<a href="${siteUrl}/fr/contact" style="color:#0d9488">Contacter l'équipe Contrazy</a>`),
-          cleanSignature(true),
+            ? cp(`Après examen de votre profil <strong>${company}</strong>, nous ne sommes pas en mesure de le valider pour le moment.`)
+            : cp(`Le compte <strong>${company}</strong> a été suspendu sur notre plateforme.`),
+          reviewStatus === "REJECTED"
+            ? cp("Veuillez vérifier les informations renseignées et soumettre à nouveau votre profil, ou contacter notre équipe pour plus d'informations.")
+            : cp("Veuillez contacter notre équipe avant de reprendre toute activité sur la plateforme."),
+          cp(clink("Contacter l'équipe Contrazy", `${siteUrl}/fr/contact`)),
+          csig(true),
         ].join(""),
-        "fr"
+        { locale: "fr" }
       )
     : buildCleanEmailHtml(
         [
-          cleanP(`Hello ${firstName},`),
+          cp(`Hello ${firstName},`),
           reviewStatus === "REJECTED"
-            ? cleanP(`After reviewing your business profile, we are unable to approve the account <strong>"${company}"</strong> at this time. Please review your details and resubmit, or contact our team if you have any questions.`)
-            : cleanP(`The account <strong>"${company}"</strong> has been suspended. Please contact our team before resuming any activity on the platform.`),
-          cleanP(`<a href="${siteUrl}/en/contact" style="color:#0d9488">Contact the Contrazy team</a>`),
-          cleanSignature(false),
+            ? cp(`After reviewing your profile <strong>${company}</strong>, we are unable to approve it at this time.`)
+            : cp(`The account <strong>${company}</strong> has been suspended on our platform.`),
+          reviewStatus === "REJECTED"
+            ? cp("Please review your information and resubmit your profile, or contact our team if you have any questions.")
+            : cp("Please contact our team before resuming any activity on the platform."),
+          cp(clink("Contact the Contrazy team", `${siteUrl}/en/contact`)),
+          csig(false),
         ].join(""),
-        "en"
+        { locale: "en" }
       )
 
   const subjects = {
@@ -1018,51 +637,51 @@ export async function sendVendorWelcomeEmail(
 ) {
   const siteUrl = getSiteUrl()
   const isFr = locale === "fr"
-  const dashboardUrl = `${siteUrl}/${isFr ? "fr" : "en"}/vendor/profile`
   const safeName = escapeHtml(vendorName)
+  const dashboardUrl = `${siteUrl}/${isFr ? "fr" : "en"}/vendor/profile`
 
   const html = isFr
     ? buildCleanEmailHtml(
         [
-          cleanP(`Bonjour ${safeName},`),
-          cleanP("Bienvenue sur Contrazy ! Votre compte prestataire a bien été créé."),
-          cleanP("Pour commencer, nous vous invitons à :"),
-          cleanList([
-            `<a href="${dashboardUrl}" style="color:#0d9488">Compléter votre profil d’entreprise</a>`,
-            "Attendre la validation de l’équipe Contrazy",
-            "Connecter votre compte Stripe pour activer les paiements",
-            "Créer vos premiers modèles de contrat et envoyer des transactions",
+          cp(`Bonjour ${safeName},`),
+          cp("Votre inscription sur Contrazy a bien été prise en compte. Votre compte a été créé avec succès et est actuellement en cours de vérification par notre équipe."),
+          cp("Prochaines étapes :"),
+          clist([
+            "Vérifier votre adresse email",
+            "Compléter votre profil si nécessaire",
+            "Attendre la validation de votre compte par un administrateur",
           ]),
-          cleanP("Notre équipe reste à votre disposition pour toute question."),
-          cleanSignature(true),
+          cp("Vous recevrez une notification dès que votre profil sera approuvé."),
+          ccta("Accéder à mon espace", dashboardUrl),
+          csig(true),
         ].join(""),
-        "fr"
+        { locale: "fr" }
       )
     : buildCleanEmailHtml(
         [
-          cleanP(`Hello ${safeName},`),
-          cleanP("Welcome to Contrazy! Your vendor account has been successfully created."),
-          cleanP("To get started, please:"),
-          cleanList([
-            `<a href="${dashboardUrl}" style="color:#0d9488">Complete your business profile</a>`,
-            "Wait for Contrazy team approval",
-            "Connect your Stripe account to enable payments",
-            "Create your first contract templates and send transactions",
+          cp(`Hello ${safeName},`),
+          cp("Your Contrazy signup has been successfully completed. Your account has been created and is currently under review by our team."),
+          cp("Next steps:"),
+          clist([
+            "Verify your email address",
+            "Complete your profile if required",
+            "Wait for admin approval of your account",
           ]),
-          cleanP("Our team is available if you need any assistance."),
-          cleanSignature(false),
+          cp("You will receive a notification once your profile has been approved."),
+          ccta("Access my account", dashboardUrl),
+          csig(false),
         ].join(""),
-        "en"
+        { locale: "en" }
       )
 
   return deliverEmail({
     to,
-    subject: isFr ? "Bienvenue sur Contrazy !" : "Welcome to Contrazy!",
+    subject: isFr ? "Bienvenue sur Contrazy" : "Welcome to Contrazy",
     html,
   })
 }
 
-/** Password reset email — clean minimal format. */
+/** Password reset email. */
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
@@ -1073,30 +692,916 @@ export async function sendPasswordResetEmail(
   const html = isFr
     ? buildCleanEmailHtml(
         [
-          cleanP("Bonjour,"),
-          cleanP("Vous avez demandé la réinitialisation de votre mot de passe Contrazy."),
-          cleanP(`Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien est valable <strong>1 heure</strong>.`),
-          cleanP(`<a href="${resetUrl}" style="color:#0d9488;font-weight:600">Réinitialiser mon mot de passe</a>`),
-          cleanP(`<span style="font-size:13px;color:#6b7280">Si vous n'avez pas demandé cette réinitialisation, ignorez cet e-mail — votre mot de passe reste inchangé.</span>`),
-          cleanSignature(true),
+          cp("Bonjour,"),
+          cp("Vous avez demandé la réinitialisation de votre mot de passe Contrazy."),
+          cp(`Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien est valable <strong>1 heure</strong>.`),
+          ccta("Réinitialiser mon mot de passe", resetUrl),
+          cp(`<span style="font-size:13px;color:#6b7280">Si vous n'avez pas demandé cette réinitialisation, ignorez cet e-mail — votre mot de passe reste inchangé.</span>`),
+          csig(true),
         ].join(""),
-        "fr"
+        { locale: "fr" }
       )
     : buildCleanEmailHtml(
         [
-          cleanP("Hello,"),
-          cleanP("You requested a password reset for your Contrazy account."),
-          cleanP(`Click the link below to set a new password. This link expires in <strong>1 hour</strong>.`),
-          cleanP(`<a href="${resetUrl}" style="color:#0d9488;font-weight:600">Reset my password</a>`),
-          cleanP(`<span style="font-size:13px;color:#6b7280">If you didn't request this reset, you can safely ignore this email — your password remains unchanged.</span>`),
-          cleanSignature(false),
+          cp("Hello,"),
+          cp("You requested a password reset for your Contrazy account."),
+          cp(`Click the link below to set a new password. This link expires in <strong>1 hour</strong>.`),
+          ccta("Reset my password", resetUrl),
+          cp(`<span style="font-size:13px;color:#6b7280">If you didn't request this reset, you can safely ignore this email — your password remains unchanged.</span>`),
+          csig(false),
         ].join(""),
-        "en"
+        { locale: "en" }
       )
 
   return deliverEmail({
     to,
     subject: isFr ? "Réinitialisation de votre mot de passe Contrazy" : "Reset your Contrazy password",
+    html,
+  })
+}
+
+/** Vendor fee invoice email — sent after a fee-bearing deposit operation. */
+export async function sendVendorFeeReceiptEmail(
+  to: string,
+  vendorName: string,
+  transactionRef: string,
+  feeType: "long_deposit" | "deposit_capture",
+  depositAmount: number,
+  stripeFee: number,
+  platformFee: number,
+  currency: string,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeVendor = escapeHtml(vendorName)
+  const fmt = (n: number) => formatEmailMoney(n, currency)
+  const date = new Date().toLocaleDateString(isFr ? "fr-FR" : "en-GB", { dateStyle: "long" })
+  const typeLabel = isFr
+    ? feeType === "long_deposit" ? "Dépôt longue durée" : "Capture de caution"
+    : feeType === "long_deposit" ? "Extended deposit" : "Deposit capture"
+
+  // VAT breakdown — integer cents, platformFee is stored VAT-inclusive (TTC)
+  const feeInclVat = platformFee
+  const feeExclVat = Math.round(platformFee / 1.2)
+  const vatAmount = feeInclVat - feeExclVat
+
+  const siteUrl = getSiteUrl()
+  const billingUrl = `${siteUrl}/${isFr ? "fr" : "en"}/vendor/billing`
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeVendor},`),
+          cp(`Une facture de frais Contrazy a été générée pour la transaction <strong>${escapeHtml(transactionRef)}</strong>.`),
+          cdivider(),
+          cdetail("Date", date),
+          cdetail("Type d'opération", typeLabel),
+          cdivider(),
+          `<p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.07em">Frais de service Contrazy</p>`,
+          cdetail("Frais Contrazy (TTC)", fmt(feeInclVat)),
+          cdetail("Frais Contrazy (HT)", fmt(feeExclVat)),
+          cdetail("TVA (20 %)", fmt(vatAmount)),
+          `<p style="margin:12px 0 4px;font-size:15px;font-weight:800;color:#0f172a">Total à payer : <span style="color:#0d9488">${fmt(feeInclVat)}</span></p>`,
+          cdivider(),
+          `<p style="margin:0 0 4px;font-size:13px;color:#6b7280">À titre indicatif — Montant brut : <strong>${fmt(depositAmount)}</strong> | Frais Stripe : <strong>${fmt(stripeFee)}</strong></p>`,
+          cp(`<span style="font-size:12px;color:#9ca3af">Les frais Stripe sont facturés séparément et restent disponibles dans votre espace Stripe.</span>`),
+          ccta("Télécharger ma facture PDF", billingUrl),
+          cdivider(),
+          `<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Émis par</p>`,
+          `<p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#0f172a">${CONTRAZY_COMPANY.name}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">${CONTRAZY_COMPANY.email}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">${CONTRAZY_COMPANY.address.replace(/\n/g, ", ")}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">N° TVA : ${CONTRAZY_COMPANY.vatNumber}</p>`,
+          `<p style="margin:0 0 14px;font-size:12px;color:#6b7280">SIREN : ${CONTRAZY_COMPANY.registrationNumber}</p>`,
+          csig(true),
+        ].join(""),
+        { locale: "fr" }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeVendor},`),
+          cp(`A Contrazy fee invoice has been generated for transaction <strong>${escapeHtml(transactionRef)}</strong>.`),
+          cdivider(),
+          cdetail("Date", date),
+          cdetail("Operation type", typeLabel),
+          cdivider(),
+          `<p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.07em">Contrazy Service Charges</p>`,
+          cdetail("Contrazy fee (incl. VAT)", fmt(feeInclVat)),
+          cdetail("Contrazy fee (excl. VAT)", fmt(feeExclVat)),
+          cdetail("VAT (20%)", fmt(vatAmount)),
+          `<p style="margin:12px 0 4px;font-size:15px;font-weight:800;color:#0f172a">Total due: <span style="color:#0d9488">${fmt(feeInclVat)}</span></p>`,
+          cdivider(),
+          `<p style="margin:0 0 4px;font-size:13px;color:#6b7280">For reference — Gross amount: <strong>${fmt(depositAmount)}</strong> | Stripe fee: <strong>${fmt(stripeFee)}</strong></p>`,
+          cp(`<span style="font-size:12px;color:#9ca3af">Stripe fees are invoiced separately and remain available in your Stripe dashboard.</span>`),
+          ccta("Download my PDF invoice", billingUrl),
+          cdivider(),
+          `<p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Issued by</p>`,
+          `<p style="margin:0 0 2px;font-size:13px;font-weight:700;color:#0f172a">${CONTRAZY_COMPANY.name}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">${CONTRAZY_COMPANY.email}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">${CONTRAZY_COMPANY.address.replace(/\n/g, ", ")}</p>`,
+          `<p style="margin:0 0 2px;font-size:12px;color:#6b7280">VAT number: ${CONTRAZY_COMPANY.vatNumber}</p>`,
+          `<p style="margin:0 0 14px;font-size:12px;color:#6b7280">Reg. n°: ${CONTRAZY_COMPANY.registrationNumber}</p>`,
+          csig(false),
+        ].join(""),
+        { locale: "en" }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Facture de frais Contrazy — ${transactionRef}`
+      : `Contrazy fee invoice — ${transactionRef}`,
+    html,
+  })
+}
+
+/** Vendor notification that a deposit hold has been authorized by a client. */
+export async function sendVendorDepositAlert(
+  to: string,
+  vendorName: string,
+  clientName: string,
+  amount: number,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const siteUrl = getSiteUrl()
+  const isFr = locale === "fr"
+  const safeVendor = escapeHtml(vendorName)
+  const safeClient = escapeHtml(clientName)
+  const formatted = formatEmailMoney(amount, "EUR")
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeVendor},`),
+          cp(`Un dépôt de garantie de <strong>${formatted}</strong> a été autorisé par votre client <strong>${safeClient}</strong>.`),
+          cp("Vous pouvez capturer ou libérer ce dépôt depuis votre tableau de bord."),
+          cp(`<span style="font-size:13px;color:#6b7280">Le dépôt expirera automatiquement si aucune action n'est effectuée dans les 7 jours.</span>`),
+          ccta("Gérer le dépôt", `${siteUrl}/fr/vendor/transactions`),
+          csig(true),
+        ].join(""),
+        { locale: "fr" }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeVendor},`),
+          cp(`A deposit hold of <strong>${formatted}</strong> has been successfully authorized by your client <strong>${safeClient}</strong>.`),
+          cp("You can capture or release this hold from your vendor dashboard."),
+          cp(`<span style="font-size:13px;color:#6b7280">The deposit authorization will expire automatically if no action is taken within 7 days.</span>`),
+          ccta("Manage deposit", `${siteUrl}/en/vendor/transactions`),
+          csig(false),
+        ].join(""),
+        { locale: "en" }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Dépôt autorisé — ${clientName}` : `Deposit authorized — ${clientName}`,
+    html,
+  })
+}
+
+/** Vendor notification that their deposit was captured or released. */
+export async function sendVendorDepositStatusEmail(
+  to: string,
+  vendorName: string,
+  clientName: string,
+  amount: number,
+  currency: string,
+  action: "released" | "captured",
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeVendor = escapeHtml(vendorName)
+  const safeClient = escapeHtml(clientName)
+  const formatted = formatEmailMoney(amount, currency)
+  const isCaptured = action === "captured"
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeVendor},`),
+          cp(`Le dépôt de garantie de <strong>${formatted}</strong> pour votre client <strong>${safeClient}</strong> a été <strong>${isCaptured ? "capturé" : "libéré"}</strong>.`),
+          cp(isCaptured
+            ? "Le montant retenu a été converti en prélèvement définitif."
+            : "Le montant retenu a été libéré et restitué au client."),
+          csig(true),
+        ].join(""),
+        { locale: "fr" }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeVendor},`),
+          cp(`The deposit hold of <strong>${formatted}</strong> for your client <strong>${safeClient}</strong> was <strong>${action}</strong>.`),
+          cp(isCaptured
+            ? "The held amount has been converted into a permanent charge."
+            : "The held amount has been released back to the client."),
+          csig(false),
+        ].join(""),
+        { locale: "en" }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Dépôt ${isCaptured ? "capturé" : "libéré"} — ${clientName}`
+      : `Deposit ${action} — ${clientName}`,
+    html,
+  })
+}
+
+/** Vendor dispute resolved notification. */
+export async function sendVendorDisputeResolved(
+  to: string,
+  vendorName: string,
+  clientName: string,
+  outcome: "vendor_wins" | "client_wins",
+  resolution: string,
+  locale?: string,
+  vendorLogoUrl?: string | null,
+  details?: DisputeEmailDetails
+) {
+  const isFr = locale === "fr"
+  const won = outcome === "vendor_wins"
+  const safeVendor = escapeHtml(vendorName)
+  const safeClient = escapeHtml(clientName)
+  const safeResolution = resolution ? escapeHtml(resolution) : ""
+  const safeRef = details?.transactionRef ? escapeHtml(details.transactionRef) : null
+  const depositFormatted = details?.depositAmount && details.depositAmount > 0
+    ? formatEmailMoney(details.depositAmount, details.currency ?? "EUR")
+    : null
+
+  const breakdownSection = [
+    safeRef ? cdetail(isFr ? "Référence" : "Reference", safeRef) : "",
+    cdetail(isFr ? "Client" : "Client", safeClient),
+    depositFormatted ? cdetail(isFr ? "Dépôt de garantie" : "Deposit hold", depositFormatted) : "",
+    cdetail(isFr ? "Décision" : "Decision", isFr
+      ? (won ? "En votre faveur" : "En faveur du client")
+      : (won ? "In your favour" : "In the client's favour")),
+    cdetail(isFr ? "Résultat" : "Outcome", isFr
+      ? (won ? "Dépôt capturé — montant acquis." : "Dépôt libéré — remboursé au client.")
+      : (won ? "Deposit captured — funds retained." : "Deposit released — refunded to client.")),
+  ].join("")
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeVendor},`),
+          cp(`Le litige concernant votre transaction avec <strong>${safeClient}</strong> a été clôturé.`),
+          cdivider(),
+          breakdownSection,
+          safeResolution ? `${cdivider()}${cp(`<strong>Note de résolution :</strong> ${safeResolution}`)}` : "",
+          details?.signedAgreementUrl
+            ? cp(`Accord signé : ${clink("Télécharger le contrat signé", details.signedAgreementUrl)}`)
+            : "",
+          cdivider(),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeVendor},`),
+          cp(`The dispute regarding your transaction with <strong>${safeClient}</strong> has been closed.`),
+          cdivider(),
+          breakdownSection,
+          safeResolution ? `${cdivider()}${cp(`<strong>Resolution note:</strong> ${safeResolution}`)}` : "",
+          details?.signedAgreementUrl
+            ? cp(`Signed agreement: ${clink("Download signed contract", details.signedAgreementUrl)}`)
+            : "",
+          cdivider(),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Litige clôturé — ${won ? "Dépôt capturé" : "Dépôt libéré"}${safeRef ? ` — ${safeRef}` : ""}`
+      : `Dispute closed — ${won ? "Deposit captured" : "Deposit released"}${safeRef ? ` — ${safeRef}` : ""}`,
+    html,
+  })
+}
+
+// ─── Vendor-to-client email functions ─────────────────────────────────────────
+
+/** Secure link sent to a client to start the onboarding flow. */
+export async function sendBulkTransactionLinkEmail(
+  to: string,
+  vendorName: string,
+  transactionTitle: string,
+  transactionReference: string,
+  secureLink: string,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeVendorName = escapeHtml(vendorName)
+  const safeTitle = escapeHtml(transactionTitle)
+  const safeRef = escapeHtml(transactionReference)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp("Bonjour,"),
+          cp(`<strong>${safeVendorName}</strong> vous invite à compléter votre dossier pour : <strong>${safeTitle}</strong>.`),
+          cdivider(),
+          cdetail("Référence", safeRef),
+          cdivider(),
+          cp("Actions attendues :"),
+          clist([
+            "Vérifier vos informations personnelles",
+            "Fournir les documents demandés",
+            "Signer le contrat si demandé",
+            "Finaliser le paiement ou la caution",
+          ]),
+          ccta("Accéder au dossier sécurisé", secureLink),
+          cp(`<span style="font-size:13px;color:#6b7280">Si vous n'attendiez pas ce message, vous pouvez ignorer cet e-mail en toute sécurité.</span>`),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp("Hello,"),
+          cp(`<strong>${safeVendorName}</strong> invites you to complete your file for: <strong>${safeTitle}</strong>.`),
+          cdivider(),
+          cdetail("Reference", safeRef),
+          cdivider(),
+          cp("Required actions:"),
+          clist([
+            "Review your personal information",
+            "Provide the requested documents",
+            "Sign the contract if requested",
+            "Complete the payment or deposit",
+          ]),
+          ccta("Access your secure file", secureLink),
+          cp(`<span style="font-size:13px;color:#6b7280">If you weren't expecting this, you can safely ignore this email.</span>`),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Dossier sécurisé — ${vendorName}` : `Secure client link — ${vendorName}`,
+    html,
+  })
+}
+
+/** Transaction completed notification to the client. */
+export async function sendTransactionCompletedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionId: string,
+  signedAgreementUrl?: string | null,
+  locale?: string,
+  vendorLogoUrl?: string | null,
+  documents?: SubmittedDoc[]
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const safeRef = escapeHtml(transactionId)
+  const docList = documents && documents.length > 0 ? cdocumentList(documents, isFr) : ""
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`Votre transaction avec <strong>${safeVendor}</strong> a été complétée avec succès.`),
+          cdivider(),
+          cdetail("Référence", safeRef),
+          cdivider(),
+          docList,
+          signedAgreementUrl
+            ? cp(`Votre accord signé est disponible : ${clink("Télécharger le contrat signé", signedAgreementUrl)}`)
+            : "",
+          cp("Pour toute question, contactez le prestataire directement."),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`Your transaction with <strong>${safeVendor}</strong> has been successfully completed.`),
+          cdivider(),
+          cdetail("Reference", safeRef),
+          cdivider(),
+          docList,
+          signedAgreementUrl
+            ? cp(`Your signed agreement is available: ${clink("Download signed contract", signedAgreementUrl)}`)
+            : "",
+          cp("If you have any questions, please contact the vendor directly."),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Transaction complétée — ${vendorName}` : `Transaction completed — ${vendorName}`,
+    html,
+  })
+}
+
+type VendorTransactionCompletedInput = {
+  to: string
+  vendorName: string
+  clientName: string
+  clientEmail: string
+  clientPhone?: string | null
+  clientCompany?: string | null
+  transactionReference: string
+  transactionTitle: string
+  serviceDate?: Date | null
+  amount?: number | null
+  depositAmount?: number | null
+  currency: string
+  notes?: string | null
+  signedAgreementUrl?: string | null
+  documents?: SubmittedDoc[]
+  locale?: string
+  vendorLogoUrl?: string | null
+}
+
+/** Transaction completed notification to the vendor. */
+export async function sendVendorTransactionCompletedEmail(input: VendorTransactionCompletedInput) {
+  const {
+    to, vendorName, clientName, clientEmail, clientPhone, clientCompany,
+    transactionReference, transactionTitle, serviceDate, amount, depositAmount,
+    currency, notes, signedAgreementUrl, documents, locale, vendorLogoUrl,
+  } = input
+
+  const isFr = locale === "fr"
+  const safeVendor = escapeHtml(vendorName)
+  const safeClient = escapeHtml(clientName)
+  const safeRef = escapeHtml(transactionReference)
+  const safeTitle = escapeHtml(transactionTitle)
+
+  const formatMoney = (val: number) => formatEmailMoney(val, currency)
+
+  const serviceDateStr = serviceDate
+    ? serviceDate.toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
+    : null
+
+  const clientSection = [
+    cdetail(isFr ? "Nom" : "Name", safeClient),
+    cdetail(isFr ? "Email" : "Email", escapeHtml(clientEmail)),
+    clientPhone ? cdetail(isFr ? "Téléphone" : "Phone", escapeHtml(clientPhone)) : "",
+    clientCompany ? cdetail(isFr ? "Entreprise" : "Company", escapeHtml(clientCompany)) : "",
+  ].join("")
+
+  const transactionSection = [
+    cdetail(isFr ? "Référence" : "Reference", safeRef),
+    cdetail(isFr ? "Titre" : "Title", safeTitle),
+    serviceDateStr ? cdetail(isFr ? "Date de service" : "Service date", serviceDateStr) : "",
+    amount && amount > 0 ? cdetail(isFr ? "Montant" : "Amount", formatMoney(amount)) : "",
+    depositAmount && depositAmount > 0 ? cdetail(isFr ? "Dépôt de garantie" : "Deposit hold", formatMoney(depositAmount)) : "",
+  ].join("")
+
+  const notesSection = notes?.trim()
+    ? `${cdivider()}${cp(`<span style="color:#6b7280">${isFr ? "Notes :" : "Notes:"}</span> ${escapeHtml(notes.trim())}`)}`
+    : ""
+
+  const docList = documents && documents.length > 0 ? cdocumentList(documents, isFr) : ""
+
+  const agreementLine = signedAgreementUrl
+    ? cp(isFr
+        ? `L'accord signé est disponible : ${clink("Télécharger le contrat signé", signedAgreementUrl)}`
+        : `The signed agreement is available: ${clink("Download signed contract", signedAgreementUrl)}`)
+    : ""
+
+  const html = buildCleanEmailHtml(
+    [
+      cp(isFr ? `Bonjour ${safeVendor},` : `Hello ${safeVendor},`),
+      cp(isFr
+        ? `<strong>${safeClient}</strong> a finalisé la transaction <strong>${safeRef}</strong>.`
+        : `<strong>${safeClient}</strong> has completed transaction <strong>${safeRef}</strong>.`),
+      cdivider(),
+      cp(`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280">${isFr ? "Détails de la transaction" : "Transaction details"}</strong>`),
+      transactionSection,
+      cdivider(),
+      cp(`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280">${isFr ? "Informations client" : "Client information"}</strong>`),
+      clientSection,
+      notesSection,
+      docList ? cdivider() : "",
+      docList,
+      agreementLine ? cdivider() : "",
+      agreementLine,
+      cdivider(),
+      csig(isFr),
+    ].join(""),
+    { locale: isFr ? "fr" : "en", vendorLogoUrl, vendorName }
+  )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Transaction finalisée — ${safeRef} — ${safeClient}`
+      : `Transaction completed — ${safeRef} — ${safeClient}`,
+    html,
+  })
+}
+
+/** Client notification of a deposit charge. */
+export async function sendDepositChargedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  autoRefundAt: Date | null,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const formatted = formatEmailMoney(amount, currency)
+  const refundDateStr = autoRefundAt
+    ? autoRefundAt.toLocaleDateString(isFr ? "fr-FR" : "en-US", { dateStyle: "long" })
+    : null
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`Un dépôt de garantie de <strong>${formatted}</strong> a été débité pour votre transaction avec <strong>${safeVendor}</strong>.`),
+          refundDateStr
+            ? cp(`Un remboursement automatique sera effectué le <strong>${refundDateStr}</strong> si le prestataire ne décide pas de conserver le dépôt.`)
+            : "",
+          cp("Pour toute question, contactez le prestataire directement."),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`A security deposit of <strong>${formatted}</strong> has been charged for your transaction with <strong>${safeVendor}</strong>.`),
+          refundDateStr
+            ? cp(`An automatic refund will be issued on <strong>${refundDateStr}</strong> unless the vendor decides to keep the deposit.`)
+            : "",
+          cp("If you have any questions, please contact the vendor directly."),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Dépôt de garantie débité — ${vendorName}` : `Security deposit charged — ${vendorName}`,
+    html,
+  })
+}
+
+/** Client notification that their deposit was automatically refunded. */
+export async function sendDepositAutoRefundedEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const formatted = formatEmailMoney(amount, currency)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`Votre dépôt de garantie de <strong>${formatted}</strong> avec <strong>${safeVendor}</strong> a été remboursé automatiquement.`),
+          cp("Le remboursement devrait apparaître sur votre relevé bancaire dans les prochains jours ouvrables."),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`Your security deposit of <strong>${formatted}</strong> with <strong>${safeVendor}</strong> has been automatically refunded.`),
+          cp("The refund should appear on your bank statement within the next few business days."),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Dépôt remboursé — ${vendorName}` : `Security deposit refunded — ${vendorName}`,
+    html,
+  })
+}
+
+/** Client notification that their deposit was captured or released. */
+export async function sendCustomerDepositStatusEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  amount: number,
+  currency: string,
+  action: "released" | "captured",
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const formatted = formatEmailMoney(amount, currency)
+  const isCaptured = action === "captured"
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          isCaptured
+            ? cp(`Le prestataire <strong>${safeVendor}</strong> a prélevé <strong>${formatted}</strong> depuis votre dépôt de garantie autorisé.`)
+            : cp(`Votre dépôt de garantie de <strong>${formatted}</strong> avec <strong>${safeVendor}</strong> a été libéré. Aucun prélèvement ne sera effectué.`),
+          isCaptured
+            ? cp("Ce prélèvement apparaîtra sur votre relevé bancaire dans les prochains jours ouvrables.")
+            : cp("Le montant sera restitué sur votre compte selon les délais de votre banque."),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          isCaptured
+            ? cp(`Vendor <strong>${safeVendor}</strong> has charged <strong>${formatted}</strong> from your authorized security deposit.`)
+            : cp(`Your <strong>${formatted}</strong> security deposit hold with <strong>${safeVendor}</strong> has been released. You will not be charged.`),
+          isCaptured
+            ? cp("This charge will appear on your bank statement within a few business days.")
+            : cp("The hold has been lifted and funds will return to your account per your bank's timeline."),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Dépôt ${isCaptured ? "débité" : "libéré"} — ${vendorName}`
+      : `Deposit ${action} — ${vendorName}`,
+    html,
+  })
+}
+
+/** Client notification that a service payment is due (deferred payment flow). */
+export async function sendDeferredServicePaymentRequestEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionReference: string,
+  amount: number,
+  currency: string,
+  paymentUrl: string,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const formatted = formatEmailMoney(amount, currency)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> a demandé le paiement du service pour la transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
+          cdivider(),
+          cdetail("Prestataire", safeVendor),
+          cdetail("Référence", escapeHtml(transactionReference)),
+          cdetail("Montant dû", formatted),
+          cdivider(),
+          ccta("Effectuer le paiement", paymentUrl),
+          cp("Les autres détails de votre accord restent inchangés."),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> has requested the service payment for transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
+          cdivider(),
+          cdetail("Vendor", safeVendor),
+          cdetail("Reference", escapeHtml(transactionReference)),
+          cdetail("Amount due", formatted),
+          cdivider(),
+          ccta("Complete payment", paymentUrl),
+          cp("Your agreement details remain unchanged."),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Paiement demandé — ${vendorName}` : `Payment requested — ${vendorName}`,
+    html,
+  })
+}
+
+/** Client check-out request. */
+export async function sendCheckOutRequestEmail(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  transactionReference: string,
+  checkOutUrl: string,
+  locale?: string,
+  vendorLogoUrl?: string | null
+) {
+  const isFr = locale === "fr"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> vous invite à effectuer le check-out pour la transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
+          cp("Veuillez ouvrir le lien sécurisé ci-dessous afin de compléter le rapport de fin de service."),
+          ccta("Accéder au check-out sécurisé", checkOutUrl),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`<strong>${safeVendor}</strong> has requested the service check-out for transaction <strong>${escapeHtml(transactionReference)}</strong>.`),
+          cp("Please open the secure link below to complete your end-of-service report."),
+          ccta("Access secure check-out", checkOutUrl),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? `Check-out demandé — ${vendorName}` : `Check-out requested — ${vendorName}`,
+    html,
+  })
+}
+
+/** Client dispute resolved notification. */
+export async function sendClientDisputeResolved(
+  to: string,
+  clientName: string,
+  vendorName: string,
+  outcome: "vendor_wins" | "client_wins",
+  resolution: string,
+  locale?: string,
+  vendorLogoUrl?: string | null,
+  details?: DisputeEmailDetails
+) {
+  const isFr = locale === "fr"
+  const won = outcome === "client_wins"
+  const safeClient = escapeHtml(clientName)
+  const safeVendor = escapeHtml(vendorName)
+  const safeResolution = resolution ? escapeHtml(resolution) : ""
+  const safeRef = details?.transactionRef ? escapeHtml(details.transactionRef) : null
+  const depositFormatted = details?.depositAmount && details.depositAmount > 0
+    ? formatEmailMoney(details.depositAmount, details.currency ?? "EUR")
+    : null
+
+  const breakdownSection = [
+    cdetail(isFr ? "Prestataire" : "Vendor", safeVendor),
+    safeRef ? cdetail(isFr ? "Référence" : "Reference", safeRef) : "",
+    depositFormatted ? cdetail(isFr ? "Dépôt de garantie" : "Deposit hold", depositFormatted) : "",
+    cdetail(isFr ? "Décision" : "Decision", isFr
+      ? (won ? "En votre faveur" : "En faveur du prestataire")
+      : (won ? "In your favour" : "In the vendor's favour")),
+    cdetail(isFr ? "Résultat" : "Outcome", isFr
+      ? (won ? "Dépôt libéré — aucun prélèvement effectué." : "Dépôt capturé — la réclamation du prestataire a été retenue.")
+      : (won ? "Deposit released — no charge was made." : "Deposit captured — the vendor's claim was upheld.")),
+  ].join("")
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeClient},`),
+          cp(`Le litige soulevé par <strong>${safeVendor}</strong> concernant votre transaction a été clôturé.`),
+          cdivider(),
+          breakdownSection,
+          safeResolution ? `${cdivider()}${cp(`<strong>Note de résolution :</strong> ${safeResolution}`)}` : "",
+          details?.signedAgreementUrl
+            ? cp(`Accord signé : ${clink("Télécharger le contrat signé", details.signedAgreementUrl)}`)
+            : "",
+          cdivider(),
+          csig(true),
+        ].join(""),
+        { locale: "fr", vendorLogoUrl, vendorName }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeClient},`),
+          cp(`The dispute raised by <strong>${safeVendor}</strong> regarding your transaction has been closed.`),
+          cdivider(),
+          breakdownSection,
+          safeResolution ? `${cdivider()}${cp(`<strong>Resolution note:</strong> ${safeResolution}`)}` : "",
+          details?.signedAgreementUrl
+            ? cp(`Signed agreement: ${clink("Download signed contract", details.signedAgreementUrl)}`)
+            : "",
+          cdivider(),
+          csig(false),
+        ].join(""),
+        { locale: "en", vendorLogoUrl, vendorName }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr
+      ? `Litige clôturé — ${won ? "Dépôt libéré" : "Dépôt capturé"}${safeRef ? ` — ${safeRef}` : ""}`
+      : `Dispute closed — ${won ? "Deposit released" : "Deposit captured"}${safeRef ? ` — ${safeRef}` : ""}`,
+    html,
+  })
+}
+
+/** Contact form auto-reply to the sender. */
+export async function sendContactAutoReply(to: string, firstName: string, locale?: string) {
+  const isFr = locale === "fr"
+  const safeName = escapeHtml(firstName)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeName},`),
+          cp("Merci de nous avoir contactés. Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais."),
+          cp("Si votre demande est urgente, n'hésitez pas à nous relancer en répondant directement à cet e-mail."),
+          csig(true),
+        ].join(""),
+        { locale: "fr" }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeName},`),
+          cp("Thank you for reaching out. We've received your message and will get back to you as soon as possible."),
+          cp("If your request is urgent, feel free to follow up by replying directly to this email."),
+          csig(false),
+        ].join(""),
+        { locale: "en" }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? "Nous avons bien reçu votre message" : "We've received your message — Contrazy",
+    html,
+  })
+}
+
+/** Admin reply to a contact form message. */
+export async function sendContactReply(
+  to: string,
+  firstName: string,
+  replyText: string,
+  originalMessage: string,
+  locale?: string
+) {
+  const isFr = locale === "fr"
+  const safeName = escapeHtml(firstName)
+
+  const html = isFr
+    ? buildCleanEmailHtml(
+        [
+          cp(`Bonjour ${safeName},`),
+          cp("Merci pour votre message. Voici notre réponse :"),
+          cdivider(),
+          cp(`<span style="white-space:pre-wrap">${escapeHtml(replyText)}</span>`),
+          cdivider(),
+          cp(`<span style="font-size:13px;color:#6b7280"><strong>Votre message original :</strong><br /><span style="white-space:pre-wrap">${escapeHtml(originalMessage)}</span></span>`),
+          csig(true),
+        ].join(""),
+        { locale: "fr" }
+      )
+    : buildCleanEmailHtml(
+        [
+          cp(`Hello ${safeName},`),
+          cp("Thank you for your message. Here is our reply:"),
+          cdivider(),
+          cp(`<span style="white-space:pre-wrap">${escapeHtml(replyText)}</span>`),
+          cdivider(),
+          cp(`<span style="font-size:13px;color:#6b7280"><strong>Your original message:</strong><br /><span style="white-space:pre-wrap">${escapeHtml(originalMessage)}</span></span>`),
+          csig(false),
+        ].join(""),
+        { locale: "en" }
+      )
+
+  return deliverEmail({
+    to,
+    subject: isFr ? "Réponse à votre message — Contrazy" : "Reply to your message — Contrazy",
     html,
   })
 }

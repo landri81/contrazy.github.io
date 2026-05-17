@@ -7,6 +7,7 @@ import {
   getNextClientStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { destroyDocumentCloudinaryAssetIfUnreferenced } from "@/features/client-flow/server/client-document-assets"
+import { isRequirementSlotSatisfied, normalizeRequirementFileCount } from "@/features/transactions/contract-flow"
 import { completeTransactionWithoutPayment } from "@/features/transactions/server/transaction-finance"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
@@ -64,35 +65,47 @@ export async function POST(
     const existingDocuments = await prisma.documentAsset.findMany({
       where: { transactionId },
     })
-    const existingDocumentsByRequirementId = new Map(
+    const existingDocumentsByRequirementSlotKey = new Map(
       existingDocuments
         .filter((document) => Boolean(document.requirementId))
-        .map((document) => [document.requirementId as string, document])
+        .map((document) => [`${document.requirementId}:${document.slotIndex}`, document])
     )
-    const submittedRequirementIds = new Set<string>()
+    const submittedRequirementSlotKeys = new Set<string>()
+
+    const submittedDocuments = documents as Array<{
+      requirementId?: string
+      label?: string
+      type?: string
+      slotIndex?: number
+      slotLabel?: string
+      source?: "UPLOAD" | "LIVE_CAPTURE"
+      capturedAt?: string
+      secure_url?: string
+      public_id?: string
+      original_filename?: string
+      textValue?: string
+    }>
 
     for (const requirement of requirements.filter((entry) => entry.required)) {
-      const matchingDocument = (documents as Array<{
-        requirementId?: string
-        secure_url?: string
-        public_id?: string
-        textValue?: string
-      }>).find((document) => document.requirementId === requirement.id)
+      const matchingDocuments = submittedDocuments.filter(
+        (document) => document.requirementId === requirement.id
+      )
 
-      if (requirement.type === "TEXT") {
-        if (!matchingDocument?.textValue?.trim()) {
-          return NextResponse.json(
-            { success: false, message: "Complete every required text field before continuing." },
-            { status: 400 }
-          )
-        }
-
-        continue
-      }
-
-      if (!matchingDocument?.secure_url || !matchingDocument?.public_id) {
+      if (!isRequirementSlotSatisfied(requirement, matchingDocuments.map((d) => ({
+        requirementId: d.requirementId,
+        slotIndex: d.slotIndex,
+        textValue: d.textValue,
+        assetUrl: d.secure_url,
+        publicId: d.public_id,
+      })))) {
         return NextResponse.json(
-          { success: false, message: "Upload every required file before continuing." },
+          {
+            success: false,
+            message:
+              requirement.type === "TEXT"
+                ? "Complete every required text field before continuing."
+                : "Upload every required file before continuing.",
+          },
           { status: 400 }
         )
       }
@@ -108,38 +121,60 @@ export async function POST(
       requirementId?: string
       label?: string
       type: RequirementType
+      slotIndex: number
+      slotLabel: string | null
+      source: "UPLOAD" | "LIVE_CAPTURE"
+      capturedAt: Date | null
       secure_url?: string
       public_id?: string
       original_filename?: string
       textValue?: string | null
     }> = []
 
-    for (const document of documents as Array<{
-      requirementId?: string
-      label?: string
-      type?: string
-      secure_url?: string
-      public_id?: string
-      original_filename?: string
-      textValue?: string
-    }>) {
+    for (const document of submittedDocuments) {
       const requirement = document.requirementId ? requirementsById.get(document.requirementId) : null
       const resolvedType = (document.type || requirement?.type || "DOCUMENT") as RequirementType
       const trimmedTextValue = typeof document.textValue === "string" ? document.textValue.trim() : null
+      const slotIndex =
+        typeof document.slotIndex === "number" && Number.isInteger(document.slotIndex) && document.slotIndex >= 0
+          ? document.slotIndex
+          : 0
+      const slotLabel = typeof document.slotLabel === "string" && document.slotLabel.trim().length > 0
+        ? document.slotLabel.trim()
+        : null
+      const source = document.source === "LIVE_CAPTURE" ? "LIVE_CAPTURE" : "UPLOAD"
+      const capturedAt =
+        source === "LIVE_CAPTURE" && document.capturedAt
+          ? new Date(document.capturedAt)
+          : null
 
       if (document.requirementId && !requirement) {
         return NextResponse.json({ success: false, message: "A requested requirement could not be found." }, { status: 400 })
       }
 
       if (document.requirementId) {
-        if (submittedRequirementIds.has(document.requirementId)) {
+        const slotKey = `${document.requirementId}:${slotIndex}`
+
+        if (submittedRequirementSlotKeys.has(slotKey)) {
           return NextResponse.json(
             { success: false, message: "Duplicate document entries were submitted." },
             { status: 400 }
           )
         }
 
-        submittedRequirementIds.add(document.requirementId)
+        const maxSlotCount = normalizeRequirementFileCount(
+          resolvedType,
+          requirement?.requiredFileCount
+        )
+
+        if (slotIndex >= maxSlotCount) {
+          return NextResponse.json(
+            { success: false, message: "A submitted file slot is outside the configured requirement range." },
+            { status: 400 }
+          )
+        }
+
+        submittedRequirementSlotKeys.add(slotKey)
       }
 
       if (resolvedType === "TEXT" && !trimmedTextValue) {
@@ -150,15 +185,30 @@ export async function POST(
         return NextResponse.json({ success: false, message: "Upload every required file before continuing." }, { status: 400 })
       }
 
+      if (resolvedType === "CAPTURE") {
+        if (source !== "LIVE_CAPTURE" || !capturedAt || Number.isNaN(capturedAt.getTime())) {
+          return NextResponse.json(
+            { success: false, message: "Live capture requirements must be submitted from the in-app camera flow." },
+            { status: 400 }
+          )
+        }
+      }
+
       validatedDocuments.push({
         ...document,
         type: resolvedType,
+        slotIndex,
+        slotLabel,
+        source,
+        capturedAt,
         textValue: trimmedTextValue,
       })
     }
 
     const documentsToDelete = existingDocuments.filter(
-      (document) => document.requirementId && !submittedRequirementIds.has(document.requirementId)
+      (document) =>
+        document.requirementId &&
+        !submittedRequirementSlotKeys.has(`${document.requirementId}:${document.slotIndex}`)
     )
 
     await prisma.$transaction(async (tx) => {
@@ -170,6 +220,10 @@ export async function POST(
           requirementId: document.requirementId ?? null,
           label: requirement?.label || document.label || "Uploaded Document",
           type: document.type,
+          slotIndex: document.slotIndex,
+          slotLabel: document.slotLabel,
+          source: document.source,
+          capturedAt: document.capturedAt,
           assetUrl: document.type === "TEXT" ? null : document.secure_url!,
           textValue: document.type === "TEXT" ? document.textValue : null,
           publicId: document.type === "TEXT" ? null : document.public_id!,
@@ -177,7 +231,9 @@ export async function POST(
         }
 
         if (document.requirementId) {
-          const existingDocument = existingDocumentsByRequirementId.get(document.requirementId)
+          const existingDocument = existingDocumentsByRequirementSlotKey.get(
+            `${document.requirementId}:${document.slotIndex}`
+          )
 
           if (
             existingDocument &&
@@ -193,9 +249,10 @@ export async function POST(
 
           await tx.documentAsset.upsert({
             where: {
-              transactionId_requirementId: {
+              transactionId_requirementId_slotIndex: {
                 transactionId,
                 requirementId: document.requirementId,
+                slotIndex: document.slotIndex,
               },
             },
             update: nextData,

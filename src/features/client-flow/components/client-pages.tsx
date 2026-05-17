@@ -5,7 +5,18 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useTranslations } from "next-intl"
 import { useRouter } from "@/i18n/navigation"
 import { isValidPhoneNumber, parsePhoneNumber } from "react-phone-number-input"
-import { ArrowRight, Building2, CheckCircle2, Globe, Loader2, Mail, MapPin, ShieldCheck, UserCircle } from "lucide-react"
+import {
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  CheckCircle2,
+  Globe,
+  Loader2,
+  Mail,
+  MapPin,
+  ShieldCheck,
+  UserCircle,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -14,6 +25,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { PhoneInput } from "@/components/ui/phone-input"
 import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
+import { toDateOnlyInputValue } from "@/lib/date-only"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 export function ClientProfileForm({
@@ -27,6 +39,8 @@ export function ClientProfileForm({
     lastName?: string | null
     email?: string
     phone?: string | null
+    birthCity?: string | null
+    birthDate?: Date | string | null
     companyName?: string | null
     address?: string | null
     country?: string | null
@@ -38,11 +52,16 @@ export function ClientProfileForm({
   const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [birthDateError, setBirthDateError] = useState<string | null>(null)
+
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const [firstName, setFirstName] = useState(initialData?.firstName || "")
   const [lastName, setLastName] = useState(initialData?.lastName || "")
   const [email, setEmail] = useState(initialData?.email || "")
   const [phone, setPhone] = useState(initialData?.phone || "")
+  const [birthCity, setBirthCity] = useState(initialData?.birthCity || "")
+  const [birthDate, setBirthDate] = useState(toDateOnlyInputValue(initialData?.birthDate))
   const [companyName, setCompanyName] = useState(initialData?.companyName || "")
   const [address, setAddress] = useState(initialData?.address || "")
   const [country, setCountry] = useState(initialData?.country || "")
@@ -64,12 +83,27 @@ export function ClientProfileForm({
       return
     }
 
+    if (birthDate && birthDate > todayIso) {
+      setBirthDateError(t("birthDateFuture"))
+      return
+    }
+
     submission.start()
     try {
       const res = await fetch(`/api/client/${token}/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, email, phone, companyName, address, country }),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          phone,
+          birthCity,
+          birthDate,
+          companyName,
+          address,
+          country,
+        }),
       })
 
       if (res.ok) {
@@ -230,6 +264,58 @@ export function ClientProfileForm({
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="birthCity" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  {t("birthCity")} <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="birthCity"
+                    required
+                    className="h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white"
+                    placeholder={t("birthCityPlaceholder")}
+                    maxLength={INPUT_LIMITS.city}
+                    value={birthCity}
+                    onChange={(e) => setBirthCity(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="birthDate" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
+                  {t("birthDate")} <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="birthDate"
+                    type="date"
+                    required
+                    max={todayIso}
+                    className={`h-11 rounded-lg border-slate-200 bg-slate-50/60 pl-10 shadow-none focus-visible:bg-white ${birthDateError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    value={birthDate}
+                    onChange={(e) => {
+                      setBirthDate(e.target.value)
+                      setBirthDateError(null)
+                    }}
+                  />
+                </div>
+                <AnimatePresence initial={false}>
+                  {birthDateError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="text-xs text-destructive"
+                    >
+                      {birthDateError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
               <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor="address" className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
                   {t("address")} <span className="text-destructive">*</span>
@@ -300,7 +386,17 @@ export function ClientProfileForm({
             <Button
               type="submit"
               className="h-12 w-full gap-2 rounded-lg bg-[var(--contrazy-navy)] font-semibold text-white shadow-lg shadow-slate-900/15 hover:bg-[var(--contrazy-navy-soft)] disabled:cursor-not-allowed"
-              disabled={submission.isLocked || !firstName || !lastName || !email || !address || !country || (requireCompany && !companyName.trim())}
+              disabled={
+                submission.isLocked ||
+                !firstName ||
+                !lastName ||
+                !email ||
+                !birthCity ||
+                !birthDate ||
+                !address ||
+                !country ||
+                (requireCompany && !companyName.trim())
+              }
             >
               {submission.isLocked ? (
                 <>

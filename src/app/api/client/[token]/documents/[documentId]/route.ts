@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 
 import { destroyDocumentCloudinaryAssetIfUnreferenced } from "@/features/client-flow/server/client-document-assets"
 import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
+import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
@@ -57,11 +58,7 @@ export async function DELETE(
     const remainingDocuments = currentTransaction.documents.filter((entry) => entry.id !== document.id)
     const requiredRequirements = currentTransaction.requirements.filter((requirement) => requirement.required)
     const stillHasRequiredDocuments = requiredRequirements.every((requirement) =>
-      remainingDocuments.some(
-        (entry) =>
-          entry.requirementId === requirement.id &&
-          (requirement.type === "TEXT" ? Boolean(entry.textValue?.trim()) : Boolean(entry.assetUrl))
-      )
+      isRequirementSlotSatisfied(requirement, remainingDocuments)
     )
 
     const nextStatus =
@@ -90,6 +87,8 @@ export async function DELETE(
           documentId: document.id,
           label: document.label,
           type: document.type,
+          slotIndex: document.slotIndex,
+          slotLabel: document.slotLabel,
           revertedStatus: nextStatus,
         },
       })

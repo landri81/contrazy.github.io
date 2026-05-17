@@ -2,6 +2,7 @@ import type { DocumentAsset, RequirementType, TransactionRequirement } from "@pr
 
 import { cloudinary } from "@/lib/integrations/cloudinary"
 import { extractCloudinaryAssetDescriptor, isPdfAssetUrl } from "@/lib/integrations/cloudinary-assets"
+import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 
 type DocumentAssetCleanupInput = Pick<DocumentAsset, "assetUrl" | "fileName" | "publicId">
 
@@ -32,16 +33,12 @@ export async function destroyDocumentAssetUpload(document: DocumentAssetCleanupI
 }
 
 export function isRequirementSatisfied(
-  requirement: Pick<TransactionRequirement, "id" | "type">,
-  documents: Array<Pick<DocumentAsset, "requirementId" | "textValue" | "assetUrl">>
+  requirement: Pick<TransactionRequirement, "id" | "type" | "requiredFileCount">,
+  documents: Array<
+    Pick<DocumentAsset, "requirementId" | "slotIndex" | "textValue" | "assetUrl" | "publicId">
+  >
 ) {
-  return documents.some(
-    (document) =>
-      document.requirementId === requirement.id &&
-      (requirement.type === "TEXT"
-        ? Boolean(document.textValue?.trim())
-        : Boolean(document.assetUrl))
-  )
+  return isRequirementSlotSatisfied(requirement, documents)
 }
 
 export function resolveRequirementType(

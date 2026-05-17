@@ -30,6 +30,8 @@ export default async function VendorContractTemplateCreatePage() {
       mode="create"
       canEdit={isVendorPreparationAllowed(vendorProfile)}
       blockedMessage={getVendorStatusMessage(vendorProfile.reviewStatus)}
+      vendorName={vendorProfile.businessName}
+      vendorLogoUrl={vendorProfile.businessLogoUrl}
       templateLimit={templateLimit}
       templateCount={templateCount}
       templateLimitMessage={templateLimitMessage}

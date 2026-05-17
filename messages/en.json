@@ -390,21 +390,22 @@
             }
           },
           "metrics": {
-            "liveWorkflows": {
-              "label": "Live workflows",
-              "detail": "Currently moving through the client journey"
+            "solde": {
+              "label": "Revenue",
+              "detail": "{count} completed transactions"
             },
-            "completed": {
-              "label": "Completed",
-              "detail": "Finished customer workflows"
+            "transactions": {
+              "label": "Transactions",
+              "detail": "{live} in progress"
             },
-            "signedContracts": {
-              "label": "Signed contracts",
-              "detail": "Accepted agreements across the workspace"
+            "depositsCaptured": {
+              "label": "Deposits captured",
+              "detail": "No deposit decisions yet",
+              "detailWithRate": "{rate}% capture rate"
             },
-            "activeDeposits": {
-              "label": "Active deposits",
-              "detail": "Authorized holds still being monitored"
+            "depositsReleased": {
+              "label": "Deposits released",
+              "detail": "{count} released"
             }
           }
         },
@@ -616,7 +617,39 @@
           "status": "Status",
           "date": "Date"
         },
-        "empty": "No customer workflows have been created yet."
+        "empty": "No customer workflows have been created yet.",
+        "enums": {
+          "kind": {
+            "PAYMENT": "Payment",
+            "DEPOSIT": "Deposit",
+            "HYBRID": "Hybrid"
+          },
+          "kyc": {
+            "NOT_REQUIRED": "Not required",
+            "REQUIRED": "Required",
+            "PENDING": "Pending",
+            "VERIFIED": "Verified",
+            "FAILED": "Failed"
+          },
+          "contract": {
+            "NOT_REQUIRED": "Not required",
+            "ATTACHED": "Attached",
+            "SIGNED": "Signed"
+          },
+          "status": {
+            "DRAFT": "Draft",
+            "LINK_SENT": "Link sent",
+            "CUSTOMER_STARTED": "Customer started",
+            "DOCS_SUBMITTED": "Documents submitted",
+            "KYC_VERIFIED": "KYC verified",
+            "CONTRACT_GENERATED": "Contract generated",
+            "SIGNED": "Signed",
+            "PAYMENT_AUTHORIZED": "Payment authorized",
+            "COMPLETED": "Completed",
+            "CANCELLED": "Cancelled",
+            "DISPUTED": "Disputed"
+          }
+        }
       },
       "contracts": {
         "title": "Contract templates",
@@ -639,7 +672,14 @@
           "provider": "Provider",
           "note": "Note"
         },
-        "empty": "No identity checks are waiting right now."
+        "empty": "No identity checks are waiting right now.",
+        "enums": {
+          "status": {
+            "PENDING": "Pending",
+            "VERIFIED": "Verified",
+            "FAILED": "Failed"
+          }
+        }
       },
       "signatures": {
         "title": "Signatures",
@@ -665,7 +705,14 @@
           "unavailable": "No stored signature image is available for this record.",
           "failed": "The signature preview could not be loaded right now."
         },
-        "empty": "No signatures have been requested yet."
+        "empty": "No signatures have been requested yet.",
+        "enums": {
+          "status": {
+            "PENDING": "Pending",
+            "SIGNED": "Signed",
+            "EXPIRED": "Expired"
+          }
+        }
       },
       "deposits": {
         "title": "Deposits",
@@ -679,7 +726,18 @@
           "window": "Window",
           "actions": "Actions"
         },
-        "empty": "No deposit activity yet."
+        "empty": "No deposit activity yet.",
+        "enums": {
+          "status": {
+            "PENDING": "Pending",
+            "AUTHORIZED": "Authorized",
+            "SUCCEEDED": "Succeeded",
+            "CAPTURED": "Captured",
+            "RELEASED": "Released",
+            "FAILED": "Failed",
+            "CANCELLED": "Cancelled"
+          }
+        }
       },
       "payments": {
         "title": "Payments",
@@ -692,7 +750,18 @@
           "status": "Status",
           "date": "Date"
         },
-        "empty": "No payments have been recorded yet."
+        "empty": "No payments have been recorded yet.",
+        "enums": {
+          "status": {
+            "PENDING": "Pending",
+            "AUTHORIZED": "Authorized",
+            "SUCCEEDED": "Succeeded",
+            "CAPTURED": "Captured",
+            "RELEASED": "Released",
+            "FAILED": "Failed",
+            "CANCELLED": "Cancelled"
+          }
+        }
       },
       "disputes": {
         "title": "Disputes",
@@ -704,7 +773,99 @@
           "status": "Status",
           "summary": "Summary"
         },
-        "empty": "No disputes have been opened."
+        "empty": "No disputes have been opened.",
+        "enums": {
+          "status": {
+            "OPEN": "Open",
+            "UNDER_REVIEW": "Under review",
+            "RESOLVED": "Resolved",
+            "LOST": "Lost"
+          }
+        },
+        "backToDisputes": "← Back to disputes",
+        "caseTitle": "Dispute",
+        "detailClient": "CLIENT",
+        "detailDeposit": "DEPOSIT AMOUNT",
+        "detailStatus": "STATUS",
+        "openedOn": "OPENED ON",
+        "signedAgreement": "SIGNED AGREEMENT",
+        "downloadAgreement": "Download signed PDF",
+        "noAgreement": "Not available",
+        "evidenceFiles": "Evidence files",
+        "evidencePhotos": "Evidence photos",
+        "evidenceDocuments": "Evidence documents",
+        "viewFile": "View file",
+        "downloadFile": "Download file",
+        "downloadAllEvidence": "Download all evidence",
+        "resolutionNote": "RESOLUTION NOTE",
+        "historyLabel": "History",
+        "events": {
+          "LINK_CREATED": "Secure link created",
+          "TRANSACTION_RECREATED": "Transaction recreated",
+          "LINK_OPENED": "Client opened the secure link",
+          "LINK_UPDATED": "Link updated",
+          "LINK_CANCELLED": "Link cancelled",
+          "CONTRACT_SNAPSHOT_CREATED": "Contract snapshot created",
+          "PROFILE_SUBMITTED": "Client profile submitted",
+          "DOCUMENTS_SUBMITTED": "Client requirements submitted",
+          "CUSTOM_FIELDS_SUBMITTED": "Additional fields submitted",
+          "KYC_STARTED": "Identity verification started",
+          "KYC_VERIFIED": "Identity verified",
+          "KYC_FAILED": "Identity verification failed",
+          "CONTRACT_REVIEWED": "Agreement reviewed",
+          "SIGNATURE_COMPLETED": "Agreement signed",
+          "SIGNED_PDF_GENERATED": "Signed agreement generated",
+          "PAYMENT_SESSION_CREATED": "Payment session created",
+          "SERVICE_PAYMENT_REQUESTED": "Service payment requested",
+          "SERVICE_PAYMENT_SUCCEEDED": "Service payment succeeded",
+          "DEPOSIT_AUTHORIZED": "Deposit authorized",
+          "DEPOSIT_CAPTURED": "Deposit captured",
+          "DEPOSIT_RELEASED": "Deposit released",
+          "DISPUTE_OPENED": "Dispute opened",
+          "TRANSACTION_CANCELLED": "Transaction cancelled",
+          "COMPLETED": "Transaction completed",
+          "EMAIL_SENT": "Email sent",
+          "WEBHOOK_PROCESSED": "Webhook processed",
+          "CHECK_IN_SUBMITTED": "Check-in submitted",
+          "CHECK_OUT_REQUESTED": "Check-out requested",
+          "CHECK_OUT_SUBMITTED": "Check-out submitted",
+          "PENDING": "⏳ Decision pending"
+        }
+      },
+      "disputeActions": {
+        "banner": {
+          "title": "Action required.",
+          "body": "Review the dispute and choose how to resolve it. The client and signed agreement are on record."
+        },
+        "buttons": {
+          "keep": "Keep deposit",
+          "release": "Release deposit"
+        },
+        "resolved": {
+          "kept": "Dispute resolved — deposit retained.",
+          "released": "Dispute resolved — deposit released to client."
+        },
+        "modal": {
+          "keepTitle": "Keep deposit",
+          "releaseTitle": "Release deposit",
+          "keepDescription": "The deposit hold will be captured and the funds transferred to you. This cannot be undone.",
+          "releaseDescription": "The deposit hold will be released and refunded to the client. This cannot be undone.",
+          "resolutionLabel": "Resolution note (optional)",
+          "resolutionPlaceholder": "Briefly explain your decision…",
+          "cancel": "Cancel",
+          "processing": "Processing…",
+          "confirmKeep": "Confirm — keep deposit",
+          "confirmRelease": "Confirm — release deposit"
+        },
+        "toast": {
+          "keptTitle": "Deposit retained",
+          "releasedTitle": "Deposit released",
+          "bothNotified": "Both you and the client have been notified."
+        },
+        "errors": {
+          "unexpected": "Something went wrong. Please try again.",
+          "network": "Network error. Please check your connection and try again."
+        }
       },
       "clients": {
         "title": "Clients",
@@ -720,7 +881,13 @@
           "status": "Status",
           "recentTransaction": "Recent transaction"
         },
-        "empty": "No customer profiles have been captured yet."
+        "empty": "No customer profiles have been captured yet.",
+        "enums": {
+          "status": {
+            "TRACKED": "Tracked"
+          }
+        },
+        "noTransaction": "—"
       },
       "links": {
         "title": "Customer links",
@@ -766,7 +933,20 @@
         },
         "serviceAmount": "Service: {amount}",
         "depositAmount": "Deposit: {amount}",
-        "empty": "No customer links have been issued yet."
+        "empty": "No customer links have been issued yet.",
+        "enums": {
+          "kind": {
+            "PAYMENT": "Payment",
+            "DEPOSIT": "Deposit",
+            "HYBRID": "Hybrid"
+          },
+          "status": {
+            "ACTIVE": "Active",
+            "PROCESSING": "Processing",
+            "COMPLETED": "Completed",
+            "CANCELLED": "Cancelled"
+          }
+        }
       },
       "transactionDetailPage": {
         "reference": "Reference",
@@ -818,7 +998,47 @@
         "required": "required",
         "optional": "optional",
         "submitted": "Submitted",
-        "downloadUploadedFile": "Download uploaded file",
+        "downloadUploadedFile": "Download file",
+        "downloadAllPictures": "Download all pictures",
+        "downloading": "Downloading…",
+        "liveCapture": "Live capture",
+        "financialOverview": "Financial Overview",
+        "servicePaymentTitle": "Service Payment",
+        "securityDepositTitle": "Security Deposit",
+        "configuredAmount": "Configured amount",
+        "configured": "Configured",
+        "collected": "Collected",
+        "platformFees": "Platform fees",
+        "netToYou": "Net to you",
+        "authorizedHold": "Authorized hold",
+        "captured": "Captured",
+        "stripeFee": "Stripe fee",
+        "contrazyFeeInclVat": "Contrazy fee (incl. VAT)",
+        "netFromCapture": "Net from capture",
+        "releasedToClient": "Released to client",
+        "notYetCaptured": "Not yet captured",
+        "grossCaptured": "Gross captured",
+        "billedByStripe": "billed directly by Stripe",
+        "fieldHeader": "Field",
+        "valueHeader": "Value",
+        "notYetSubmitted": "Not yet submitted.",
+        "photosLabel": "Photos",
+        "noPhotosUploaded": "No photos uploaded.",
+        "pendingSubmission": "Pending submission.",
+        "checkInOutTitle": "Check-In / Check-Out",
+        "checkInOutDescription": "Track the service lifecycle. Request checkout once the service period is ending.",
+        "checkInLabel": "Check-In",
+        "checkOutLabel": "Check-Out",
+        "checkoutRequestLabel": "Checkout Request",
+        "submittedOn": "Submitted on {date}",
+        "checkOutSubmittedOn": "Check-out submitted on {date}",
+        "requestedOnAwaitingCustomer": "Requested on {date} — awaiting customer.",
+        "checkInPending": "Pending — customer has not completed check-in yet.",
+        "notRequestedYet": "Not requested yet.",
+        "requestCheckoutButton": "Request checkout",
+        "requestCheckoutError": "Failed to request checkout. Please try again.",
+        "conditionReportsTitle": "Condition Reports",
+        "conditionReportsDescription": "Customer-submitted readings and photos for each phase of this service.",
         "timelineDescription": "Activity log for this transaction",
         "transactionCreated": "Transaction created",
         "transactionStatus": {
@@ -900,7 +1120,14 @@
           "status": "Status",
           "date": "Date"
         },
-        "empty": "No event history is available yet."
+        "empty": "No event history is available yet.",
+        "enums": {
+          "status": {
+            "RECEIVED": "Received",
+            "PROCESSED": "Processed",
+            "FAILED": "Failed"
+          }
+        }
       },
       "stripe": {
         "payoutSetup": {
@@ -1105,11 +1332,15 @@
         },
         "disputeModal": {
           "title": "Open dispute",
-          "description": "Describe the dispute reason. The transaction will be marked as disputed and the deposit will remain held during resolution.",
-          "descriptionChargeRefund": "Describe the dispute reason. The transaction will be marked as disputed and the deposit charge will remain frozen during resolution.",
+          "description": "Describe the dispute reason and attach any evidence. The deposit will remain held during resolution.",
+          "descriptionChargeRefund": "Describe the dispute reason and attach any evidence. The deposit charge will remain frozen during resolution.",
           "reasonLabel": "Dispute reason",
           "placeholder": "Example: returned item has unreported damage...",
           "minChars": "{min} characters minimum",
+          "evidenceLabel": "Evidence (photos & documents)",
+          "evidenceHint": "Attach photos or PDFs that support your claim. These will be included in notification emails.",
+          "uploadCta": "Click to add photos or documents",
+          "filesAdded": "files attached",
           "cancel": "Cancel",
           "opening": "Opening...",
           "submit": "Open dispute"
@@ -1272,7 +1503,9 @@
           "generatedPeriod": "{used} generated this period",
           "generatedOf": "{used} / {total} generated",
           "verificationRequests": "{used} verification requests",
-          "kycUnavailableHint": "Available from Pro plan."
+          "kycUnavailableHint": "Available from Pro plan.",
+          "currentPeriod": "Current period",
+          "percentUsed": "{percent}% used"
         },
         "table": {
           "title": "Recent payment links",
@@ -1314,6 +1547,28 @@
           "description": "Your current progress inside the transaction modal will be lost.",
           "keepEditing": "Keep editing",
           "discard": "Discard"
+        },
+        "enums": {
+          "kind": {
+            "PAYMENT": "Payment",
+            "DEPOSIT": "Deposit",
+            "HYBRID": "Hybrid"
+          },
+          "status": {
+            "ACTIVE": "Active",
+            "PROCESSING": "Processing",
+            "COMPLETED": "Completed",
+            "CANCELLED": "Cancelled"
+          },
+          "subscriptionStatus": {
+            "ACTIVE": "Active",
+            "TRIALING": "Trial",
+            "PAST_DUE": "Past due",
+            "CANCELLED": "Cancelled",
+            "EXPIRED": "Expired",
+            "SUSPENDED": "Suspended",
+            "PENDING": "Pending"
+          }
         }
       },
       "stripePage": {
@@ -1500,14 +1755,21 @@
         "reqCategoryCompanyRegistration": "Company registration",
         "reqCategoryContractAttachment": "Contract attachment",
         "reqCategoryCustom": "Custom document",
-        "reqCategoryOther": "Other"
+        "reqCategoryOther": "Other",
+        "typeCapture": "Live capture",
+        "labelFileCount": "Required file count",
+        "fileCountHint": "Set the exact number of files the client must provide for this requirement.",
+        "slotLabelsTitle": "File slot labels",
+        "slotLabelsHint": "Each slot becomes a separate upload prompt for the client.",
+        "slotLabel": "Slot {index}",
+        "slotLabelPlaceholder": "Label for slot {index}"
       },
       "requirementExampleImage": {
         "label": "Example image",
         "description": "Optional reference image shown to the client before they upload their own file.",
         "emptyTitle": "No example image",
-        "emptyDescription": "Upload a photo example such as a car front, car back, or ID sample.",
-        "upload": "Upload example",
+        "emptyDescription": "Upload a sample photo for the client to take, such as an ID card, passport, or the front of the vehicle for a rental.",
+        "upload": "Upload a sample for the client",
         "uploading": "Uploading…",
         "replace": "Replace image",
         "remove": "Remove image",
@@ -1580,7 +1842,19 @@
         "successDelete": "Template deleted",
         "successDeleteDesc": "{name} has been removed.",
         "networkError": "Network error",
-        "networkErrorDesc": "Unable to delete this template right now."
+        "networkErrorDesc": "Unable to delete this template right now.",
+        "filterOptions": {
+          "all": "All templates",
+          "with_description": "With description",
+          "without_description": "Without description",
+          "updated_recent": "Updated last 30 days"
+        },
+        "sortOptions": {
+          "updated_desc": "Last updated",
+          "updated_asc": "Oldest updated",
+          "name_asc": "Name A–Z",
+          "name_desc": "Name Z–A"
+        }
       },
       "depositQuickActions": {
         "capture": "Capture",
@@ -1649,6 +1923,9 @@
         },
         "titleLabel": "Title",
         "titlePlaceholder": "e.g. Rental #104 — BMW X5, 3 days",
+        "signatureCityLabel": "Signature city",
+        "signatureCityPlaceholder": "e.g. Nice",
+        "serviceDateLabel": "Service date",
         "notesLabel": "Internal notes",
         "notesPrivate": "(private, not shown to client)",
         "notesPlaceholder": "Any internal reference or reminders…",
@@ -1672,13 +1949,10 @@
         "depositDurationStarterLocked": "Starter includes the standard 7-day card hold only.",
         "depositDurationChoiceHint": "Choose 7 days for the free card hold, or 8-30 days for a refundable deposit charge with vendor fees.",
         "longDepositWarning": "A {days}-day deposit applies a total fee of {totalFee} to this transaction.",
-        "longDepositStripe": "Stripe",
-        "longDepositContrazy": "Contrazy",
         "longDepositAcceptLabel": "I accept this fee for the deposit on this transaction.",
         "holdAmount": "Hold amount",
-        "stripeFeeEstimate": "Stripe fee estimate",
-        "platformMargin": "Conntrazy margin",
-        "ifCaptured": "If captured you receive {amount}.",
+        "vendorFeeEstimate": "Estimated vendor fees",
+        "noFeesUnlessCaptured": "No fees apply unless the deposit is captured.",
         "longDepositFeeSummary": "For long deposits, this vendor cost is collected when the refundable deposit is charged. The customer pays only the deposit amount.",
         "servicePaymentTitle": "Service Payment",
         "servicePaymentOptional": "Optional",
@@ -1693,6 +1967,9 @@
         "kindDeposit": "Deposit Hold only",
         "kindHybrid": "Payment + Deposit",
         "requiredUploads": "Required Uploads",
+        "addBundle": "+ Add a checklist bundle",
+        "allBundlesAdded": "All bundles added",
+        "removeBundle": "Remove bundle",
         "contractTemplate": "Contract Template",
         "noUploadsNeeded": "No uploads needed",
         "noContractNeeded": "No contract needed",
@@ -1755,7 +2032,10 @@
         "summaryDepositDurationDays": "{count} day(s)",
         "summaryService": "Service payment",
         "summaryTiming": "Payment timing",
+        "summaryBundles": "Checklist bundles",
         "summaryContract": "Contract",
+        "summarySignatureCity": "Signature city",
+        "summaryServiceDate": "Service date",
         "summaryRequirements": "Requirements",
         "summaryRequirementsOne": "1 item",
         "summaryRequirementsMany": "{count} items",
@@ -1845,6 +2125,8 @@
         "errorCustomFieldsContract": "Select a contract template before adding customer fields that must be completed before signing.",
         "errorNoStripe": "Connect Stripe before creating live customer transactions.",
         "errorAmountRequired": "Enter a service payment amount, a deposit hold amount, or both before generating a link.",
+        "errorSignatureCity": "Enter the city of signature before continuing.",
+        "errorServiceDate": "Choose the service date before continuing.",
         "errorCreate": "Failed to create transaction",
         "errorUnexpected": "An unexpected error occurred.",
         "reqLabelPlaceholder": "e.g. Driver's license",
@@ -1854,7 +2136,14 @@
         "paymentTimingAfterServiceDesc": "The client finishes onboarding now and you trigger the service payment later.",
         "reqTypeDocument": "Document",
         "reqTypePhoto": "Photo",
+        "reqTypeCapture": "Live capture",
         "reqTypeText": "Text input",
+        "reqFileCount": "Required file count",
+        "reqFileCountHint": "Choose the exact number of files the client must submit for this requirement.",
+        "reqSlotLabels": "File slot labels",
+        "reqSlotLabelsHint": "Each slot label is shown as a separate upload prompt in the client flow.",
+        "reqSlotLabel": "Slot {index}",
+        "reqSlotLabelPlaceholder": "Label for slot {index}",
         "reqCategoryId": "ID",
         "reqCategoryProofOfAddress": "Proof of address",
         "reqCategoryDriverLicense": "Driver license",
@@ -1940,6 +2229,8 @@
           "clientName": "Client name",
           "clientFirstName": "Client first name",
           "clientLastName": "Client last name",
+          "clientBirthCity": "Client birth city",
+          "clientBirthDate": "Client birth date",
           "clientEmail": "Client email",
           "clientPhone": "Client phone",
           "clientCompany": "Client company",
@@ -1949,6 +2240,8 @@
           "transactionReference": "Reference",
           "paymentAmount": "Service amount",
           "depositAmount": "Deposit amount",
+          "signatureCity": "Signature city",
+          "serviceDate": "Service date",
           "signerName": "Signer name",
           "signedDate": "Signed date",
           "signedTime": "Signed time",
@@ -1982,11 +2275,31 @@
         "toolAlignJustify": "Justify",
         "toolBlockquote": "Blockquote",
         "toolLink": "Insert / edit link",
+        "toolInlineImage": "Insert image",
+        "toolImportDocument": "Import DOCX or PDF",
         "toolClearFormat": "Clear formatting",
         "linkPlaceholder": "https://example.com",
         "linkApply": "Apply link",
         "linkRemove": "Remove link",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "uploadErrorTitle": "Editor upload failed",
+        "uploadInvalidImageType": "Only image files can be inserted into the contract.",
+        "uploadImageTooLarge": "Contract images must be 10 MB or smaller.",
+        "uploadInvalidImportType": "Only DOCX or PDF files can be imported.",
+        "uploadImportTooLarge": "Imported documents must be 20 MB or smaller.",
+        "uploadSigningFailed": "Upload signing is unavailable right now. Please try again.",
+        "uploadFailed": "The contract image could not be uploaded. Please try again.",
+        "importFailed": "The document could not be imported right now. Please try again.",
+        "uploadUnexpected": "An unexpected error occurred while preparing this file.",
+        "selectedImageTitle": "Selected image",
+        "selectedImageDesc": "Resize and align this image before saving so the contract preview and signed PDF stay clean.",
+        "imageWidthLabel": "Image width",
+        "imageWidthCurrent": "Current width",
+        "imageAlignLeft": "Align left",
+        "imageAlignCenter": "Align center",
+        "imageAlignRight": "Align right",
+        "imageInserted": "Image inserted",
+        "documentImported": "Document imported"
       },
       "subscribePage": {
         "badge": "Vendor billing",
@@ -2344,7 +2657,9 @@
         "detailStatus": "STATUS",
         "openedOn": "OPENED ON",
         "responseDeadline": "RESPONSE DEADLINE",
-        "attachments": "ATTACHMENTS"
+        "attachments": "ATTACHMENTS",
+        "auditTrailLabel": "Audit trail",
+        "auditTrailNote": "Disputes are resolved directly by the vendor. This panel is read-only — all actions and outcomes are recorded in the audit log above."
       },
       "contacts": {
         "listTitle": "Contact messages",
@@ -2523,6 +2838,7 @@
       "title": "Tell us who is completing this request",
       "description": "We use these details to prepare the agreement, payment receipt, and secure transaction updates.",
       "phoneInvalid": "Please enter a valid phone number",
+      "birthDateFuture": "Date of birth cannot be in the future",
       "contactTitle": "Contact information",
       "contactDescription": "Enter the details that should appear on this transaction.",
       "firstName": "First Name",
@@ -2531,12 +2847,15 @@
       "phone": "Phone Number",
       "country": "Country",
       "address": "Address",
+      "birthCity": "City of birth",
+      "birthDate": "Date of birth",
       "company": "Company",
       "companyOptional": "(Optional)",
       "firstNamePlaceholder": "Enter your first name",
       "lastNamePlaceholder": "Enter your last name",
       "emailPlaceholder": "Enter your email address",
       "addressPlaceholder": "Enter your address",
+      "birthCityPlaceholder": "Enter your city of birth",
       "companyPlaceholder": "Enter your company name",
       "companyOptionalPlaceholder": "Enter your company name (optional)",
       "companyRequired": "This transaction requires the company name for the agreement and records.",
@@ -2608,7 +2927,8 @@
       "completeRequest": "Complete your request with {vendorName}",
       "progressSaved": "Follow each step in order. Your progress is saved as you move through the secure flow.",
       "currentStep": "Current step",
-      "stepOf": "{current} of {total}"
+      "stepOf": "{current} of {total}",
+      "copyright": "{company}. All rights reserved."
     },
     "cancelLink": {
       "trigger": "Cancel request",
@@ -2679,7 +2999,10 @@
       "legalNote": "By tapping Sign and Continue, you confirm your intent to sign electronically. Your signature, name, email, timestamp, and IP address will be recorded.",
       "signAndContinue": "Sign and Continue",
       "recording": "Recording signature…",
-      "errorRecording": "Unable to record your signature right now."
+      "errorRecording": "Unable to record your signature right now.",
+      "signatureCityLabel": "City of signature",
+      "signatureCityPlaceholder": "e.g. Paris",
+      "errorCityRequired": "Please enter the city where you are signing."
     },
     "uploads": {
       "noUploadsRequired": "No uploads required.",
@@ -2691,10 +3014,23 @@
       "examplePreviewDescription": "Review this reference image before uploading your own file.",
       "textResponse": "Text response",
       "photoUpload": "Photo upload",
+      "captureUpload": "Live camera capture",
       "documentUpload": "Document upload",
       "clickToUpload": "Click to upload",
       "imagesOnly": "Images only",
       "pdfOrImage": "PDF or Image",
+      "captureSlotHint": "Use your device camera to capture this photo directly in Contrazy.",
+      "captureOnlyHint": "This requirement only supports live camera capture. Gallery, files, and drive uploads are blocked.",
+      "cameraUnsupported": "This requirement needs a camera-capable device and browser.",
+      "cameraRequired": "Camera access is required to complete this capture.",
+      "startCamera": "Start camera",
+      "startingCamera": "Starting camera…",
+      "capturePhoto": "Capture photo",
+      "capturingPhoto": "Capturing…",
+      "retakePhoto": "Retake photo",
+      "cancelCamera": "Cancel camera",
+      "captureFailed": "The live photo could not be captured. Please try again.",
+      "capturedAt": "Captured {value}",
       "uploadSigningError": "Upload signing is unavailable right now. Please try again.",
       "uploadFailed": "Upload failed. Please try again.",
       "uploadError": "Unable to save documents right now.",
@@ -3471,6 +3807,7 @@
       "agreement": "Agreement",
       "finalAgreement": "Final Agreement",
       "electronicallyExecuted": "Electronically executed · locked transaction snapshot",
+      "footerCredit": "Secured and generated by Contrazy",
       "name": "Name",
       "email": "Email",
       "ip": "IP",
@@ -3706,7 +4043,64 @@
       "statusIncomplete": "Incomplete",
       "statusCanceled": "Canceled",
       "statusExpired": "Expired",
-      "vatLabel": "excl. VAT"
+      "vatLabel": "excl. VAT",
+      "feeOperations": {
+        "title": "Transaction fee history",
+        "description": "All Contrazy and Stripe fees charged on your completed payment operations.",
+        "stripePortalNote": "Stripe fees are invoiced separately. You can retrieve Stripe fee invoices directly from your Stripe dashboard.",
+        "summary": {
+          "contrazyFees": "Total Contrazy fees",
+          "stripeFees": "Total Stripe fees (ref.)",
+          "operations": "Fee operations",
+          "latestOperation": "Latest billed"
+        },
+        "columns": {
+          "reference": "Reference",
+          "client": "Client",
+          "operation": "Operation",
+          "date": "Date",
+          "gross": "Gross",
+          "stripeFee": "Stripe fee",
+          "contrazyFee": "Contrazy fee",
+          "totalFees": "Total fees",
+          "vendorNet": "Net",
+          "invoice": "Invoice"
+        },
+        "kinds": {
+          "SERVICE_PAYMENT": "Service payment",
+          "DEPOSIT_AUTHORIZATION": "Deposit hold",
+          "DEPOSIT_CAPTURE": "Deposit capture",
+          "DEPOSIT_RELEASE": "Deposit release"
+        },
+        "downloadInvoice": "Download invoice",
+        "empty": "No fee operations recorded yet.",
+        "neverBilled": "Never",
+        "showingRange": "Showing {from}–{to} of {total}",
+        "prevPage": "Previous",
+        "nextPage": "Next",
+        "invoice": {
+          "title": "Contrazy Fee Invoice",
+          "invoiceNumber": "Invoice number",
+          "issueDate": "Issue date",
+          "issuedBy": "Issued by",
+          "billedTo": "Billed to",
+          "vatNumber": "VAT number",
+          "registrationNumber": "Reg. n°",
+          "transaction": "Transaction details",
+          "reference": "Reference",
+          "transactionTitle": "Title",
+          "client": "Client",
+          "operation": "Operation type",
+          "operationDate": "Operation date",
+          "chargesSection": "Contrazy Service Charges",
+          "contrazyFeeInclVat": "Contrazy fee (incl. VAT)",
+          "contrazyFeeExclVat": "Contrazy fee (excl. VAT)",
+          "vatLine": "VAT (20%)",
+          "totalDue": "Total due",
+          "stripeSeparateNote": "Stripe fees are invoiced separately and remain available in your Stripe dashboard.",
+          "footerNote": "This is an official Contrazy service fee invoice. VAT at 20% applies to Contrazy fees only. Stripe processing fees are invoiced directly by Stripe."
+        }
+      }
     },
     "subscribeSuccess": {
       "badge": "Success",

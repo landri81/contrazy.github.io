@@ -120,6 +120,8 @@ export async function POST(
       clientFullName: transaction.clientProfile?.fullName,
       clientEmail: transaction.clientProfile?.email,
       locale: transaction.locale,
+      vendorLocale: transaction.vendor?.preferredLocale,
+      vendorLogoUrl: transaction.vendor?.businessLogoUrl,
     })
 
     await recordFinanceAuditLog(prisma, {

@@ -113,7 +113,7 @@ export async function POST(
           transaction.depositLongTermStripeFeeEstimateAmount,
           transaction.depositLongTermPlatformFeeAmount,
           intent.currency.toUpperCase(),
-          transaction.locale ?? undefined
+          transaction.vendor.preferredLocale ?? transaction.locale ?? undefined
         ).catch(() => {})
       }
     } else if (intent.status === "requires_capture" && isDeposit) {

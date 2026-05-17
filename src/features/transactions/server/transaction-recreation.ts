@@ -3,6 +3,7 @@ import {
   Prisma,
   TransactionStatus,
   type DocumentAsset,
+  type DocumentAssetSource,
   type KycVerification,
   type TransactionCustomField,
   type TransactionReportField,
@@ -15,8 +16,13 @@ import type {
   TransactionCreationInitialRequirement,
   TransactionCreationInitialValues,
 } from "@/features/dashboard/transaction-creation"
+import {
+  isRequirementSlotSatisfied,
+  normalizeRequirementFileSlotLabels,
+} from "@/features/transactions/contract-flow"
 import { parseTransactionCustomFieldSelectOptions } from "@/features/transactions/custom-fields"
 import { prisma } from "@/lib/db/prisma"
+import { toDateOnlyInputValue } from "@/lib/date-only"
 
 const builtInRequirementCategories = new Set([
   "ID",
@@ -55,7 +61,7 @@ export const recreateSourceTransactionInclude = {
     orderBy: { sortOrder: "asc" },
   },
   documents: {
-    orderBy: { uploadedAt: "asc" },
+    orderBy: [{ slotIndex: "asc" }, { uploadedAt: "asc" }],
   },
 } satisfies Prisma.TransactionInclude
 
@@ -71,6 +77,8 @@ type RecreateInitialValueSource = {
   amount: number | null
   depositAmount: number | null
   depositHoldDays: number
+  signatureCity: string | null
+  serviceDate: Date | null
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean
@@ -89,6 +97,8 @@ type RecreateInitialValueSource = {
       | "category"
       | "customCategoryLabel"
       | "required"
+      | "requiredFileCount"
+      | "fileSlotLabels"
       | "exampleImageUrl"
       | "exampleImagePublicId"
       | "exampleImageFileName"
@@ -109,7 +119,16 @@ type RequirementReuseSource = {
   >
   document: Pick<
     DocumentAsset,
-    "label" | "type" | "assetUrl" | "publicId" | "fileName" | "textValue"
+    | "label"
+    | "type"
+    | "slotIndex"
+    | "slotLabel"
+    | "source"
+    | "capturedAt"
+    | "assetUrl"
+    | "publicId"
+    | "fileName"
+    | "textValue"
   >
 }
 
@@ -117,6 +136,10 @@ type RequirementReuseSeed = {
   requirementId: string
   label: string
   type: TransactionRequirement["type"]
+  slotIndex: number
+  slotLabel: string | null
+  source: DocumentAssetSource
+  capturedAt: Date | null
   assetUrl: string | null
   publicId: string | null
   fileName: string | null
@@ -159,6 +182,7 @@ export function buildTransactionCreationInitialValues(
     amount: formatAmountForInput(source.amount),
     depositAmount: formatAmountForInput(source.depositAmount),
     depositHoldDays: source.depositHoldDays ?? 7,
+    serviceDate: toDateOnlyInputValue(source.serviceDate),
     contractTemplateId: hasContractTemplate ? source.contractTemplateId : null,
     checklistTemplateId: hasChecklistTemplate ? source.checklistTemplateId : null,
     requiresKyc: source.requiresKyc,
@@ -206,48 +230,66 @@ export function buildReusableKycSeed(
 export function buildRecreatedRequirementDocumentSeeds(
   source: Pick<RecreateSourceTransaction, "requirements" | "documents">,
   targetRequirements: Array<
-    Pick<TransactionRequirement, "id" | "label" | "type" | "category" | "customCategoryLabel" | "required">
+    Pick<
+      TransactionRequirement,
+      | "id"
+      | "label"
+      | "type"
+      | "category"
+      | "customCategoryLabel"
+      | "required"
+      | "requiredFileCount"
+      | "fileSlotLabels"
+    >
   >
 ) {
-  const sourceDocumentsByRequirementId = new Map(
-    source.documents
-      .filter((document) => Boolean(document.requirementId))
-      .map((document) => [document.requirementId as string, document])
-  )
+  const sourceDocumentsByRequirementId = new Map<string, RequirementReuseSource["document"][]>()
 
-  const availableResponses: RequirementReuseSource[] = source.requirements.flatMap((requirement) => {
-    const document = sourceDocumentsByRequirementId.get(requirement.id)
-
-    if (!document || !isReusableRequirementDocument(requirement, document)) {
-      return []
+  for (const document of source.documents) {
+    if (!document.requirementId) {
+      continue
     }
 
-    return [{ requirement, document }]
+    const current = sourceDocumentsByRequirementId.get(document.requirementId) ?? []
+    current.push(document)
+    sourceDocumentsByRequirementId.set(document.requirementId, current)
+  }
+
+  const availableResponses: RequirementReuseSource[] = source.requirements.flatMap((requirement) => {
+    const documents = sourceDocumentsByRequirementId.get(requirement.id) ?? []
+
+    return documents.flatMap((document) =>
+      isReusableRequirementDocument(requirement, document) ? [{ requirement, document }] : []
+    )
   })
 
-  const usedSourceRequirementIds = new Set<string>()
+  const usedSourceDocumentKeys = new Set<string>()
   const documents: RequirementReuseSeed[] = []
   let reusedFileCount = 0
   let reusedTextCount = 0
 
   for (const requirement of targetRequirements) {
-    const match = availableResponses.find(
-      (candidate) =>
-        !usedSourceRequirementIds.has(candidate.requirement.id) &&
-        getRequirementReuseKey(candidate.requirement) === getRequirementReuseKey(requirement)
-    )
-
-    if (!match) {
-      continue
-    }
-
-    usedSourceRequirementIds.add(match.requirement.id)
-
     if (requirement.type === "TEXT") {
+      const match = availableResponses.find(
+        (candidate) =>
+          !usedSourceDocumentKeys.has(getRequirementReuseDocumentKey(candidate)) &&
+          getRequirementReuseKey(candidate.requirement) === getRequirementReuseKey(requirement)
+      )
+
+      if (!match) {
+        continue
+      }
+
+      usedSourceDocumentKeys.add(getRequirementReuseDocumentKey(match))
+
       documents.push({
         requirementId: requirement.id,
         label: requirement.label,
         type: requirement.type,
+        slotIndex: 0,
+        slotLabel: null,
+        source: match.document.source ?? "UPLOAD",
+        capturedAt: match.document.capturedAt ?? null,
         assetUrl: null,
         publicId: null,
         fileName: null,
@@ -257,26 +299,48 @@ export function buildRecreatedRequirementDocumentSeeds(
       continue
     }
 
-    documents.push({
-      requirementId: requirement.id,
-      label: requirement.label,
+    const targetSlotLabels = normalizeRequirementFileSlotLabels({
       type: requirement.type,
-      assetUrl: match.document.assetUrl ?? null,
-      publicId: match.document.publicId ?? null,
-      fileName: match.document.fileName ?? match.document.label,
-      textValue: null,
+      fileCount: requirement.requiredFileCount,
+      labels: requirement.fileSlotLabels,
+      requirementLabel: requirement.label,
     })
-    reusedFileCount += 1
+
+    const matches = availableResponses.filter(
+      (candidate) =>
+        !usedSourceDocumentKeys.has(getRequirementReuseDocumentKey(candidate)) &&
+        getRequirementReuseKey(candidate.requirement) === getRequirementReuseKey(requirement)
+    )
+
+    for (let slotIndex = 0; slotIndex < targetSlotLabels.length; slotIndex += 1) {
+      const match = matches.shift()
+
+      if (!match) {
+        break
+      }
+
+      usedSourceDocumentKeys.add(getRequirementReuseDocumentKey(match))
+
+      documents.push({
+        requirementId: requirement.id,
+        label: requirement.label,
+        type: requirement.type,
+        slotIndex,
+        slotLabel: targetSlotLabels[slotIndex] ?? null,
+        source: match.document.source ?? "UPLOAD",
+        capturedAt: match.document.capturedAt ?? null,
+        assetUrl: match.document.assetUrl ?? null,
+        publicId: match.document.publicId ?? null,
+        fileName: match.document.fileName ?? match.document.label,
+        textValue: null,
+      })
+      reusedFileCount += 1
+    }
   }
 
   const allRequiredDocumentsPresent = targetRequirements
     .filter((requirement) => requirement.required)
-    .every((requirement) =>
-      documents.some((document) =>
-        document.requirementId === requirement.id &&
-        (requirement.type === "TEXT" ? Boolean(document.textValue?.trim()) : Boolean(document.assetUrl && document.publicId))
-      )
-    )
+    .every((requirement) => isRequirementSlotSatisfied(requirement, documents))
 
   return {
     documents,
@@ -325,6 +389,13 @@ function toInitialRequirement(
     category: requirement.category,
     customCategoryLabel: requirement.customCategoryLabel ?? "",
     required: requirement.required,
+    requiredFileCount: requirement.requiredFileCount,
+    fileSlotLabels: normalizeRequirementFileSlotLabels({
+      type: requirement.type,
+      fileCount: requirement.requiredFileCount,
+      labels: requirement.fileSlotLabels,
+      requirementLabel: requirement.label,
+    }),
     exampleImage:
       requirement.exampleImageUrl && requirement.exampleImagePublicId
         ? {
@@ -387,6 +458,10 @@ function getRequirementReuseKey(
   }
 
   return `${requirement.type}:${requirement.category}:${normalizeRequirementMatchValue(requirement.label)}`
+}
+
+function getRequirementReuseDocumentKey(source: RequirementReuseSource) {
+  return `${source.requirement.id}:${source.document.slotIndex ?? 0}:${source.document.label}`
 }
 
 function normalizeRequirementMatchValue(value: string | null | undefined) {

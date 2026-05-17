@@ -32,7 +32,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/toast"
@@ -47,7 +46,13 @@ import {
   type RequirementExampleDraft,
   toRequirementExampleCleanupAsset,
 } from "@/features/dashboard/lib/vendor-requirement-example-images"
-import { requirementCategoryOptions } from "@/features/transactions/contract-flow"
+import {
+  normalizeRequirementFileCount,
+  normalizeRequirementFileSlotLabels,
+  parseRequirementFileSlotLabels,
+  requirementCategoryOptions,
+  requirementSupportsFileSlots,
+} from "@/features/transactions/contract-flow"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 
 type FullChecklist = ChecklistTemplate & { items: ChecklistItem[] }
@@ -59,7 +64,36 @@ type DraftItem = {
   category: string
   customCategoryLabel: string
   required: boolean
+  requiredFileCount: number
+  fileSlotLabels: string[]
   exampleImage: RequirementExampleDraft | null
+}
+
+function normalizeDraftItem(item: {
+  label: string
+  description: string
+  type: string
+  category: string
+  customCategoryLabel: string
+  required: boolean
+  requiredFileCount?: number
+  fileSlotLabels?: string[]
+  exampleImage: RequirementExampleDraft | null
+}): DraftItem {
+  const requiredFileCount = normalizeRequirementFileCount(item.type, item.requiredFileCount)
+
+  return {
+    ...item,
+    customCategoryLabel: item.category === "OTHER" ? item.customCategoryLabel : "",
+    requiredFileCount,
+    fileSlotLabels: normalizeRequirementFileSlotLabels({
+      type: item.type,
+      fileCount: requiredFileCount,
+      labels: item.fileSlotLabels,
+      requirementLabel: item.label,
+    }),
+    exampleImage: item.type === "TEXT" ? null : item.exampleImage,
+  }
 }
 
 function buildDraftItem(item?: Partial<ChecklistItem>): DraftItem {
@@ -74,13 +108,17 @@ function buildDraftItem(item?: Partial<ChecklistItem>): DraftItem {
       : null
 
   return {
-    label: item?.label ?? "",
-    description: item?.description ?? "",
-    type: item?.type ?? "DOCUMENT",
-    category: item?.category ?? "CUSTOM",
-    customCategoryLabel: item?.customCategoryLabel ?? "",
-    required: item?.required ?? true,
-    exampleImage,
+    ...normalizeDraftItem({
+      label: item?.label ?? "",
+      description: item?.description ?? "",
+      type: item?.type ?? "DOCUMENT",
+      category: item?.category ?? "CUSTOM",
+      customCategoryLabel: item?.customCategoryLabel ?? "",
+      required: item?.required ?? true,
+      requiredFileCount: item?.requiredFileCount ?? 1,
+      fileSlotLabels: parseRequirementFileSlotLabels(item?.fileSlotLabels),
+      exampleImage,
+    }),
   }
 }
 
@@ -131,6 +169,12 @@ export function ChecklistTemplateList({
     CONTRACT_ATTACHMENT: t("reqCategoryContractAttachment"),
     CUSTOM: t("reqCategoryCustom"),
     OTHER: t("reqCategoryOther"),
+  }
+  const reqTypeLabels: Record<string, string> = {
+    DOCUMENT: t("typeDocument"),
+    PHOTO: t("typePhoto"),
+    CAPTURE: t("typeCapture"),
+    TEXT: t("typeText"),
   }
 
   function translatedCategoryLabel(category: string, customLabel?: string | null) {
@@ -264,32 +308,37 @@ export function ChecklistTemplateList({
     setItems((current) => [...current, buildDraftItem()])
   }
 
-  function updateItem(index: number, field: keyof DraftItem, value: string | boolean) {
+  function updateItem(index: number, field: keyof DraftItem, value: string | boolean | number | string[]) {
     setItems((current) =>
       current.map((item, itemIndex) => {
         if (itemIndex !== index) {
           return item
         }
+        const next = {
+          ...item,
+          [field]: value,
+        } as DraftItem
 
-        if (field === "type" && value === "TEXT") {
-          return {
-            ...item,
-            type: "TEXT",
-            exampleImage: null,
-          }
-        }
-
-        if (field === "category") {
-          return {
-            ...item,
-            category: value as string,
-            customCategoryLabel: value === "OTHER" ? item.customCategoryLabel : "",
-          }
-        }
-
-        return { ...item, [field]: value }
+        return normalizeDraftItem(next)
       })
     )
+  }
+
+  function updateItemFileCount(index: number, nextValue: string) {
+    const parsed = Number.parseInt(nextValue.replace(/[^0-9]/g, ""), 10)
+    updateItem(index, "requiredFileCount", Number.isFinite(parsed) && parsed >= 1 ? Math.min(parsed, 5) : 1)
+  }
+
+  function updateItemSlotLabel(index: number, slotIndex: number, nextValue: string) {
+    const currentItem = items[index]
+
+    if (!currentItem) {
+      return
+    }
+
+    const nextLabels = [...currentItem.fileSlotLabels]
+    nextLabels[slotIndex] = nextValue
+    updateItem(index, "fileSlotLabels", nextLabels)
   }
 
   async function handleExampleUpload(index: number, file: File) {
@@ -398,6 +447,8 @@ export function ChecklistTemplateList({
           category: item.category,
           customCategoryLabel: item.category === "OTHER" ? item.customCategoryLabel || null : null,
           required: item.required,
+          requiredFileCount: item.requiredFileCount,
+          fileSlotLabels: item.fileSlotLabels,
           exampleImageUrl: item.type === "TEXT" ? null : item.exampleImage?.assetUrl ?? null,
           exampleImagePublicId: item.type === "TEXT" ? null : item.exampleImage?.publicId ?? null,
           exampleImageFileName: item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
@@ -554,11 +605,14 @@ export function ChecklistTemplateList({
                               }}
                             >
                               <SelectTrigger>
-                                <SelectValue />
+                                <span className="truncate text-sm">
+                                  {reqTypeLabels[item.type] ?? t("typeDocument")}
+                                </span>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="DOCUMENT">{t("typeDocument")}</SelectItem>
                                 <SelectItem value="PHOTO">{t("typePhoto")}</SelectItem>
+                                <SelectItem value="CAPTURE">{t("typeCapture")}</SelectItem>
                                 <SelectItem value="TEXT">{t("typeText")}</SelectItem>
                               </SelectContent>
                             </Select>
@@ -577,7 +631,9 @@ export function ChecklistTemplateList({
                               }}
                             >
                               <SelectTrigger>
-                                <SelectValue />
+                                <span className="truncate text-sm">
+                                  {translatedCategoryLabel(item.category, item.customCategoryLabel)}
+                                </span>
                               </SelectTrigger>
                               <SelectContent>
                                 {requirementCategoryOptions.map((option) => (
@@ -615,6 +671,54 @@ export function ChecklistTemplateList({
                             className="text-right"
                           />
                         </div>
+
+                        {requirementSupportsFileSlots(item.type) ? (
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="grid gap-1">
+                              <Label className="text-xs">{t("labelFileCount")}</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="5"
+                                step="1"
+                                value={String(item.requiredFileCount)}
+                                onChange={(event) => updateItemFileCount(index, event.target.value)}
+                              />
+                              <p className="text-[11px] leading-4 text-muted-foreground">
+                                {t("fileCountHint")}
+                              </p>
+                            </div>
+
+                            <div className="rounded-md border border-border/70 bg-background p-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {t("slotLabelsTitle")}
+                              </p>
+                              <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                                {t("slotLabelsHint")}
+                              </p>
+
+                              <div className="mt-3 space-y-2">
+                                {item.fileSlotLabels.map((slotLabel, slotIndex) => (
+                                  <div key={`${index}-slot-${slotIndex}`} className="grid gap-1">
+                                    <Label className="text-[11px]">
+                                      {t("slotLabel", { index: slotIndex + 1 })}
+                                    </Label>
+                                    <Input
+                                      value={slotLabel}
+                                      onChange={(event) =>
+                                        updateItemSlotLabel(index, slotIndex, event.target.value)
+                                      }
+                                      placeholder={t("slotLabelPlaceholder", {
+                                        index: slotIndex + 1,
+                                      })}
+                                      maxLength={INPUT_LIMITS.checklistItemLabel}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
 
                         {item.type !== "TEXT" ? (
                           <RequirementExampleImageField
@@ -727,7 +831,7 @@ export function ChecklistTemplateList({
                 <ul className="space-y-2 text-sm">
                   {template.items.slice(0, 3).map((item, index) => (
                     <li key={`${template.id}-${index}`} className="flex items-center gap-2 text-muted-foreground">
-                      {item.type === "PHOTO" ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                      {item.type === "PHOTO" || item.type === "CAPTURE" ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                       <span className="truncate">{item.label}</span>
                       <span className="rounded-full border border-border/70 bg-muted/30 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em]">
                         {translatedCategoryLabel(item.category, item.customCategoryLabel)}

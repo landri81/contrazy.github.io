@@ -15,7 +15,7 @@ type SignedAgreementPreviewProps = {
   signatureMethod: string
   ipAddress?: string | null
   signatureImageUrl?: string | null
-  brandIconSrc?: string
+  vendorLogoUrl?: string | null
   presentation?: "framed" | "plain"
   renderedHtml: string
 }
@@ -32,32 +32,39 @@ function formatMoney(amount: number | null | undefined, currency: string | null 
   }
 }
 
-function ContrazyWordmark({
-  size = "md",
-  muted = false,
-  brandIconSrc = "/logo/favicon-contrazy-64.png",
+function VendorBrand({
+  vendorName,
+  vendorLogoUrl,
 }: {
-  size?: "md" | "sm"
-  muted?: boolean
-  brandIconSrc?: string
+  vendorName: string
+  vendorLogoUrl?: string | null
 }) {
-  const iconSize = size === "md" ? 24 : 16
+  const displayName = vendorName.trim() || "Vendor"
+
+  if (vendorLogoUrl) {
+    return (
+      <div className="inline-flex min-h-10 items-center gap-3" aria-label={displayName}>
+        <div className="flex min-h-10 items-center">
+          <img
+            src={vendorLogoUrl}
+            alt={displayName}
+            className="max-h-10 max-w-[140px] object-contain object-left"
+          />
+        </div>
+        <span className="max-w-[220px] text-sm font-semibold tracking-tight text-slate-950">
+          {displayName}
+        </span>
+      </div>
+    )
+  }
 
   return (
-    <div className="inline-flex items-center gap-2" aria-label="Contrazy">
-      <img
-        src={brandIconSrc}
-        alt="Contrazy"
-        width={iconSize}
-        height={iconSize}
-        className={`${size === "md" ? "size-6" : "size-4"} ${muted ? "opacity-75" : ""}`}
-      />
-      <span
-        className={`font-sans font-extrabold tracking-tight ${
-          size === "md" ? "text-[1.05rem]" : "text-[0.78rem]"
-        } ${muted ? "text-slate-400" : "text-slate-950"}`}
-      >
-        Con<span className={muted ? "text-(--contrazy-teal) opacity-80" : "text-(--contrazy-teal)"}>trazy</span>
+    <div className="inline-flex items-center gap-2" aria-label={displayName}>
+      <div className="flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {displayName.slice(0, 2).toUpperCase() || "VD"}
+      </div>
+      <span className="font-sans text-[0.98rem] font-semibold tracking-tight text-slate-950">
+        {displayName}
       </span>
     </div>
   )
@@ -76,11 +83,12 @@ export async function SignedAgreementPreview({
   signatureMethod,
   ipAddress,
   signatureImageUrl,
-  brandIconSrc = "/logo/favicon-contrazy-64.png",
+  vendorLogoUrl = null,
   presentation = "framed",
   renderedHtml,
 }: SignedAgreementPreviewProps) {
   const t = await getTranslations("contracts.preview")
+  const contractsT = await getTranslations("contracts")
   const normalizedHtml = normalizeContractTemplateMarkup(renderedHtml)
 
   const serviceAmountLabel = formatMoney(amount, currency)
@@ -93,7 +101,7 @@ export async function SignedAgreementPreview({
               <header className="mb-5">
                 {/* Top bar: logo left · title right */}
                 <div className="flex items-end justify-between border-b border-slate-200 pb-3">
-                  <ContrazyWordmark brandIconSrc={brandIconSrc} />
+                  <VendorBrand vendorName={vendorName} vendorLogoUrl={vendorLogoUrl} />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
                     {t("signedAgreement")}
                   </p>
@@ -174,7 +182,18 @@ export async function SignedAgreementPreview({
 
               {/* ── FOOTER ─────────────────────────────────────────────────── */}
               <footer className="mt-5 flex items-center justify-between border-t border-slate-200 pt-3">
-                <ContrazyWordmark size="sm" muted brandIconSrc={brandIconSrc} />
+                <div className="inline-flex items-center gap-2" aria-label="Contrazy">
+                  <img
+                    src="/logo/favicon-contrazy-64.png"
+                    alt="Contrazy"
+                    width={16}
+                    height={16}
+                    className="size-4 opacity-75"
+                  />
+                  <span className="font-sans text-[0.78rem] font-semibold tracking-tight text-slate-400">
+                    {contractsT("preview.footerCredit")}
+                  </span>
+                </div>
                 <p className="font-mono text-[10px] text-slate-400">
                   {transactionReference} · contrazy.com
                 </p>

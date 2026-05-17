@@ -24,6 +24,7 @@ import { LocaleSwitcher } from "@/components/ui/locale-switcher"
 import { ClientCancelLinkAction } from "@/features/client-flow/components/client-cancel-link-action"
 import { Link, usePathname } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 type StepKey =
   | "profile"
@@ -65,6 +66,7 @@ const stepIcons: Record<StepKey, React.ComponentType<{ className?: string }>> = 
 
 type ClientFlowShellProps = {
   vendorName: string
+  businessLogoUrl: string | null
   reference: string | null
   token: string
   canCancel: boolean
@@ -78,6 +80,7 @@ const motionEase = [0.25, 0.46, 0.45, 0.94] as const
 
 export function ClientFlowShell({
   vendorName,
+  businessLogoUrl,
   reference,
   token,
   canCancel,
@@ -117,18 +120,14 @@ export function ClientFlowShell({
           <div className="flex min-w-0 items-center gap-3">
             <div
               aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-sm bg-[var(--contrazy-navy)] text-white"
+              className="flex size-8 shrink-0 items-center justify-center rounded-sm border text-white"
             >
-              <span className="text-xs font-extrabold tracking-tight">
-                C<span className="text-[var(--contrazy-teal)]">t</span>
-              </span>
+              <Image width={32} height={32} src={businessLogoUrl || "/favicon.png"} alt={vendorName} className="size-full object-contain" />
             </div>
 
             <div className="min-w-0 leading-tight">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {tShell("vendor")}
-              </p>
-              <p className="truncate text-sm font-semibold text-foreground">{vendorName}</p>
+              
+              <p className="truncate text-xl font-semibold text-foreground">{vendorName}</p>
             </div>
           </div>
 
@@ -223,6 +222,12 @@ export function ClientFlowShell({
           </AnimatePresence>
         </section>
       </main>
+      <footer>
+        <div className="mx-auto w-full max-w-5xl px-4 py-4 text-center text-xs text-muted-foreground sm:px-5 sm:py-5">
+          &copy; {new Date().getFullYear()} {tShell("copyright", { company: "Contrazy" })}
+        </div>
+
+      </footer>
     </div>
   )
 }

@@ -157,6 +157,8 @@ export async function POST(
       clientFullName: transaction.clientProfile?.fullName,
       clientEmail: transaction.clientProfile?.email,
       locale: transaction.locale,
+      vendorLocale: transaction.vendor?.preferredLocale,
+      vendorLogoUrl: transaction.vendor?.businessLogoUrl,
     })
 
     await recordFinanceAuditLog(prisma, {
@@ -195,7 +197,7 @@ export async function POST(
         feeBreakdown.stripeFeeAmount,
         feeBreakdown.platformFeeAmount,
         depositAuth.currency,
-        transaction.locale ?? undefined
+        transaction.vendor?.preferredLocale ?? transaction.locale ?? undefined
       ).catch(() => {})
     }
 

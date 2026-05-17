@@ -4,6 +4,7 @@ import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requi
 import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { getContractTemplateLimit, getContractTemplateLimitReachedMessage } from "@/features/subscriptions/server/feature-gates"
 import { stripContractMarkup } from "@/features/contracts/contract-content"
+import { assertValidVendorContractTemplateInlineImages } from "@/features/contracts/server/contract-template-assets"
 import {
   CONTRACT_TEMPLATE_PAGE_SIZE,
   DEFAULT_CONTRACT_TEMPLATE_FILTER,
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
 
     const { name, description, content } = parsedBody.data
     const sanitizedContent = sanitizeContractTemplateContent(content)
+    assertValidVendorContractTemplateInlineImages(sanitizedContent, vendorProfile.id)
 
     if (!stripContractMarkup(sanitizedContent).trim()) {
       return NextResponse.json(

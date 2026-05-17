@@ -390,6 +390,8 @@ export function ClientSignForm({
   const submission = useSubmissionLock()
   const [error, setError] = useState<string | null>(null)
   const [isReplacingSavedSignature, setIsReplacingSavedSignature] = useState(false)
+  const [signatureCity, setSignatureCity] = useState("")
+  const [cityError, setCityError] = useState<string | null>(null)
 
   // Per-method captured data URLs
   const [drawDataUrl, setDrawDataUrl] = useState<string | null>(
@@ -462,8 +464,15 @@ export function ClientSignForm({
     typedName?: string
     fontKey?: string
   }) {
+    const trimmedCity = signatureCity.trim()
+    if (!trimmedCity) {
+      setCityError(t("errorCityRequired"))
+      return
+    }
+
     submission.start()
     setError(null)
+    setCityError(null)
 
     const signedTimezone =
       typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined
@@ -473,6 +482,7 @@ export function ClientSignForm({
         signatureDataUrl: input.dataUrl,
         signedTimezone,
         signatureMethod: input.method,
+        signatureCity: trimmedCity,
       }
       if (input.method === "type") {
         body.typedValue = input.typedName ?? typedName
@@ -694,6 +704,35 @@ export function ClientSignForm({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-foreground" htmlFor="signature-city">
+          {t("signatureCityLabel")}
+          <span className="ml-1 text-destructive">*</span>
+        </label>
+        <input
+          id="signature-city"
+          type="text"
+          value={signatureCity}
+          onChange={(e) => { setSignatureCity(e.target.value); setCityError(null) }}
+          placeholder={t("signatureCityPlaceholder")}
+          maxLength={100}
+          className="w-full rounded-xl border border-border/60 bg-background px-3.5 py-2.5 text-base outline-none transition-colors focus:border-(--contrazy-teal) focus:ring-1 focus:ring-(--contrazy-teal)/20 md:text-sm"
+        />
+        <AnimatePresence>
+          {cityError && (
+            <motion.p
+              key="city-error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="text-xs text-destructive"
+            >
+              {cityError}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="flex items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3">

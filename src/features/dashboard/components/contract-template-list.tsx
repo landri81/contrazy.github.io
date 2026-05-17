@@ -443,7 +443,7 @@ export function ContractTemplateList({
                   <SelectContent>
                     {contractTemplateFilterOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(`filterOptions.${option.value}` as never)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -467,7 +467,7 @@ export function ContractTemplateList({
                   <SelectContent>
                     {contractTemplateSortOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(`sortOptions.${option.value}` as never)}
                       </SelectItem>
                     ))}
                   </SelectContent>

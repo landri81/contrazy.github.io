@@ -2,6 +2,7 @@ import { TransactionStatus } from "@prisma/client"
 import { NextResponse } from "next/server"
 
 import { destroyDocumentCloudinaryAssetIfUnreferenced } from "@/features/client-flow/server/client-document-assets"
+import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { canAccessAdminScope } from "@/lib/auth/roles"
 import { getAuthSession } from "@/lib/auth/session"
@@ -49,6 +50,7 @@ export async function DELETE(
                 id: true,
                 type: true,
                 required: true,
+                requiredFileCount: true,
               },
             },
             documents: {
@@ -61,6 +63,8 @@ export async function DELETE(
                 textValue: true,
                 publicId: true,
                 requirementId: true,
+                slotIndex: true,
+                slotLabel: true,
               },
             },
           },
@@ -81,11 +85,7 @@ export async function DELETE(
     const remainingDocuments = link.transaction.documents.filter((entry) => entry.id !== document.id)
     const requiredRequirements = link.transaction.requirements.filter((requirement) => requirement.required)
     const stillHasRequiredDocuments = requiredRequirements.every((requirement) =>
-      remainingDocuments.some(
-        (entry) =>
-          entry.requirementId === requirement.id &&
-          (requirement.type === "TEXT" ? Boolean(entry.textValue?.trim()) : Boolean(entry.assetUrl))
-      )
+      isRequirementSlotSatisfied(requirement, remainingDocuments)
     )
 
     const nextStatus =
@@ -122,6 +122,8 @@ export async function DELETE(
             documentId: document.id,
             label: document.label,
             type: document.type,
+            slotIndex: document.slotIndex,
+            slotLabel: document.slotLabel,
             revertedStatus: nextStatus,
           },
         },
@@ -137,6 +139,8 @@ export async function DELETE(
           documentId: document.id,
           label: document.label,
           type: document.type,
+          slotIndex: document.slotIndex,
+          slotLabel: document.slotLabel,
         },
       })
     })

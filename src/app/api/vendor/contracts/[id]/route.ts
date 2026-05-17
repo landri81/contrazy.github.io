@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
+import { extractManagedContractTemplateInlineImageAssets } from "@/features/contracts/contract-template-inline-assets"
 import { stripContractMarkup } from "@/features/contracts/contract-content"
+import {
+  assertValidVendorContractTemplateInlineImages,
+  deleteContractTemplateInlineImageIfUnreferenced,
+} from "@/features/contracts/server/contract-template-assets"
 import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { sanitizeContractTemplateContent } from "@/features/contracts/server/contract-rendering"
 import { prisma } from "@/lib/db/prisma"
@@ -36,6 +41,7 @@ export async function PUT(
 
     const { name, description, content } = parsedBody.data
     const sanitizedContent = sanitizeContractTemplateContent(content)
+    assertValidVendorContractTemplateInlineImages(sanitizedContent, vendorProfile.id)
 
     if (!stripContractMarkup(sanitizedContent).trim()) {
       return NextResponse.json(
@@ -55,6 +61,11 @@ export async function PUT(
       return NextResponse.json({ success: false, message: "Template not found" }, { status: 404 })
     }
 
+    const previousAssets = extractManagedContractTemplateInlineImageAssets(existing.content)
+    const nextAssets = extractManagedContractTemplateInlineImageAssets(sanitizedContent)
+    const nextPublicIds = new Set(nextAssets.map((asset) => asset.publicId))
+    const removedAssets = previousAssets.filter((asset) => !nextPublicIds.has(asset.publicId))
+
     const updated = await prisma.contractTemplate.update({
       where: { id: templateId },
       data: {
@@ -63,6 +74,14 @@ export async function PUT(
         content: sanitizedContent,
       },
     })
+
+    await Promise.allSettled(
+      removedAssets.map((asset) =>
+        deleteContractTemplateInlineImageIfUnreferenced(asset.publicId, {
+          ignoreTemplateId: templateId,
+        })
+      )
+    )
 
     return NextResponse.json(updated)
   } catch (error) {
@@ -101,9 +120,15 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: "Template not found" }, { status: 404 })
     }
 
+    const existingAssets = extractManagedContractTemplateInlineImageAssets(existing.content)
+
     await prisma.contractTemplate.delete({
       where: { id: templateId },
     })
+
+    await Promise.allSettled(
+      existingAssets.map((asset) => deleteContractTemplateInlineImageIfUnreferenced(asset.publicId))
+    )
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

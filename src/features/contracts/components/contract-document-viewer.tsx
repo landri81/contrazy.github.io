@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 export type ContractDocumentMeta = {
   title?: string | null
   vendorName?: string | null
+  vendorLogoUrl?: string | null
   clientName?: string | null
   reference?: string | null
   amount?: number | null
@@ -28,7 +29,45 @@ function formatMoney(amount: number | null | undefined, currency: string | null 
   }
 }
 
-function ContrazyWordmark() {
+function VendorBrand({
+  vendorName,
+  vendorLogoUrl,
+}: {
+  vendorName?: string | null
+  vendorLogoUrl?: string | null
+}) {
+  const displayName = vendorName?.trim() || "Vendor"
+
+  if (vendorLogoUrl) {
+    return (
+      <div className="inline-flex min-h-10 items-center gap-3" aria-label={displayName}>
+        <div className="flex min-h-10 items-center">
+          <img
+            src={vendorLogoUrl}
+            alt={displayName}
+            className="max-h-10 max-w-[140px] object-contain object-left"
+          />
+        </div>
+        <span className="max-w-[220px] text-sm font-semibold tracking-tight text-slate-950">
+          {displayName}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2" aria-label={displayName}>
+      <div className="flex size-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {displayName.slice(0, 2).toUpperCase() || "VD"}
+      </div>
+      <span className="font-sans text-[0.98rem] font-semibold tracking-tight text-slate-950">
+        {displayName}
+      </span>
+    </div>
+  )
+}
+
+function ContrazyFooterBadge({ creditText }: { creditText: string }) {
   return (
     <div className="inline-flex items-center gap-2" aria-label="Contrazy">
       <img
@@ -36,10 +75,10 @@ function ContrazyWordmark() {
         alt="Contrazy"
         width={24}
         height={24}
-        className="size-6"
+        className="size-4"
       />
-      <span className="font-sans text-[1.05rem] font-extrabold tracking-tight text-slate-950">
-        C<span className="text-[var(--contrazy-teal)]">on</span>trazy
+      <span className="font-sans text-[0.78rem] font-semibold tracking-tight text-slate-400">
+        {creditText}
       </span>
     </div>
   )
@@ -53,7 +92,7 @@ function DocumentHeader({ meta }: { meta: ContractDocumentMeta }) {
   return (
     <header className="mb-5">
       <div className="flex items-end justify-between border-b border-slate-200 pb-3">
-        <ContrazyWordmark />
+        <VendorBrand vendorName={meta.vendorName} vendorLogoUrl={meta.vendorLogoUrl} />
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
           {t("agreementReview")}
         </p>
@@ -107,20 +146,11 @@ function DocumentHeaderRow({
 }
 
 function ReviewFooter({ reference }: { reference?: string | null }) {
+  const contractsT = useTranslations("contracts")
+
   return (
     <footer className="mt-8 flex items-center justify-between border-t border-slate-200 pt-3">
-      <div className="inline-flex items-center gap-2" aria-label="Contrazy">
-        <img
-          src="/logo/favicon-contrazy-64.png"
-          alt="Contrazy"
-          width={16}
-          height={16}
-          className="size-4 opacity-75"
-        />
-        <span className="font-sans text-[0.78rem] font-extrabold tracking-tight text-slate-400">
-          C<span className="text-[var(--contrazy-teal)]">on</span>trazy
-        </span>
-      </div>
+      <ContrazyFooterBadge creditText={contractsT("preview.footerCredit")} />
       {reference ? (
         <p className="font-mono text-[10px] text-slate-400">
           {reference} - contrazy.com

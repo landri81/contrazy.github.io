@@ -5,11 +5,14 @@ import {
   escapeContractHtml,
   normalizeContractTemplateMarkup,
 } from "@/features/contracts/contract-content"
+import { formatDateOnlyValue } from "@/lib/date-only"
 
 type ContractClientSnapshot = {
   fullName?: string | null
   firstName?: string | null
   lastName?: string | null
+  birthCity?: string | null
+  birthDate?: Date | string | null
   email?: string | null
   phone?: string | null
   companyName?: string | null
@@ -24,6 +27,8 @@ type RenderContractContentInput = {
   transactionReference: string
   amount?: number | null
   depositAmount?: number | null
+  signatureCity?: string | null
+  serviceDate?: Date | string | null
   locale?: string | null
   customerDetails?: Array<{
     label: string
@@ -52,9 +57,11 @@ const contractSanitizeOptions: sanitizeHtml.IOptions = {
     "h2",
     "h3",
     "a",
+    "img",
   ],
   allowedAttributes: {
     a: ["href", "target", "rel"],
+    img: ["src", "alt", "title", "class", "style", "data-contract-width", "data-contract-align"],
     p: ["class"],
     h1: ["class"],
     h2: ["class"],
@@ -63,12 +70,18 @@ const contractSanitizeOptions: sanitizeHtml.IOptions = {
     blockquote: ["class"],
   },
   allowedClasses: {
+    img: ["contract-inline-image"],
     p: allowedClasses,
     h1: allowedClasses,
     h2: allowedClasses,
     h3: allowedClasses,
     li: allowedClasses,
     blockquote: allowedClasses,
+  },
+  allowedStyles: {
+    img: {
+      width: [/^\d{1,3}%$/],
+    },
   },
   allowedSchemes: ["http", "https", "mailto"],
   transformTags: {
@@ -184,6 +197,11 @@ export function renderContractContent(input: RenderContractContentInput) {
     ["{{clientName}}", escapeContractHtml(clientName)],
     ["{{clientFirstName}}", escapeContractHtml(input.clientProfile?.firstName?.trim() || "")],
     ["{{clientLastName}}", escapeContractHtml(input.clientProfile?.lastName?.trim() || "")],
+    ["{{clientBirthCity}}", escapeContractHtml(input.clientProfile?.birthCity?.trim() || "")],
+    [
+      "{{clientBirthDate}}",
+      escapeContractHtml(formatDateOnlyValue(input.clientProfile?.birthDate, input.locale)),
+    ],
     ["{{clientEmail}}", escapeContractHtml(input.clientProfile?.email || "")],
     ["{{clientPhone}}", escapeContractHtml(input.clientProfile?.phone || "")],
     ["{{clientCompany}}", escapeContractHtml(input.clientProfile?.companyName || "")],
@@ -193,6 +211,8 @@ export function renderContractContent(input: RenderContractContentInput) {
     ["{{transactionReference}}", escapeContractHtml(input.transactionReference)],
     ["{{paymentAmount}}", escapeContractHtml(formatMoney(input.amount))],
     ["{{depositAmount}}", escapeContractHtml(formatMoney(input.depositAmount))],
+    ["{{signatureCity}}", escapeContractHtml(input.signatureCity?.trim() || "")],
+    ["{{serviceDate}}", escapeContractHtml(formatDateOnlyValue(input.serviceDate, input.locale))],
     ["{{signerName}}", escapeContractHtml(input.signerName || "")],
     [
       "{{signedDate}}",
