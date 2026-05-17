@@ -4,7 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin"
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright"],
+  serverExternalPackages: ["@sparticuz/chromium", "playwright-core", "playwright", "pdfjs-dist", "mammoth"],
   outputFileTracingIncludes: {
     "/api/client/*/sign": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     "/api/vendor/billing/fee-invoices/*": ["./node_modules/@sparticuz/chromium/bin/**/*"],
