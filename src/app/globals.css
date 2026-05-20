@@ -568,6 +568,298 @@
   }
 }
 
+/* ── Blog editor toolbar (TipTap) ──────────────────────────────────────────── */
+
+.blog-editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgb(226 232 240 / 0.9);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.97) 0%, rgba(255, 255, 255, 0.99) 100%);
+  backdrop-filter: saturate(1.4) blur(10px);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+}
+
+/* ── Blog editor typography (shared between edit and preview) ──────────────── */
+
+.blog-editor-shell .ProseMirror,
+.blog-editor-preview {
+  font-family: var(--font-plus-jakarta);
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.blog-editor-shell .ProseMirror > * + *,
+.blog-editor-preview > * + * {
+  margin-top: 0.75em;
+}
+
+/* Headings */
+.blog-editor-shell .ProseMirror h1,
+.blog-editor-shell .ProseMirror h2,
+.blog-editor-shell .ProseMirror h3,
+.blog-editor-preview h1,
+.blog-editor-preview h2,
+.blog-editor-preview h3 {
+  font-family: var(--font-plus-jakarta);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+}
+
+.blog-editor-shell .ProseMirror h1,
+.blog-editor-preview h1 { font-size: 2rem; }
+.blog-editor-shell .ProseMirror h2,
+.blog-editor-preview h2 { font-size: 1.5rem; }
+.blog-editor-shell .ProseMirror h3,
+.blog-editor-preview h3 { font-size: 1.2rem; }
+
+/* Lists */
+.blog-editor-shell .ProseMirror ul,
+.blog-editor-shell .ProseMirror ol,
+.blog-editor-preview ul,
+.blog-editor-preview ol {
+  padding-left: 1.6rem;
+}
+
+.blog-editor-shell .ProseMirror ul,
+.blog-editor-preview ul { list-style-type: disc; }
+.blog-editor-shell .ProseMirror ol,
+.blog-editor-preview ol { list-style-type: decimal; }
+.blog-editor-shell .ProseMirror li + li,
+.blog-editor-preview li + li { margin-top: 0.3em; }
+.blog-editor-shell .ProseMirror li > p,
+.blog-editor-preview li > p { margin: 0; }
+
+/* Blockquote */
+.blog-editor-shell .ProseMirror blockquote,
+.blog-editor-preview blockquote {
+  border-left: 4px solid var(--contrazy-teal);
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0.75rem 0 0.75rem 1.25rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+  background: rgb(17 201 176 / 0.04);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Links */
+.blog-editor-shell .ProseMirror a,
+.blog-editor-preview a {
+  color: var(--contrazy-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s;
+}
+.blog-editor-shell .ProseMirror a:hover,
+.blog-editor-preview a:hover { opacity: 0.75; }
+
+/* Images */
+.blog-editor-shell .ProseMirror img,
+.blog-editor-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.1);
+}
+.blog-editor-shell .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid var(--contrazy-teal);
+  outline-offset: 4px;
+}
+
+/* Inline code */
+.blog-editor-shell .ProseMirror code,
+.blog-editor-preview code {
+  background: rgb(15 23 42 / 0.06);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Code block */
+.blog-editor-shell .ProseMirror pre,
+.blog-editor-preview pre {
+  background: rgb(15 23 42 / 0.06);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+}
+.blog-editor-shell .ProseMirror pre code,
+.blog-editor-preview pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+/* Embedded video (YouTube / Vimeo iframe) */
+.blog-editor-shell .ProseMirror iframe,
+.blog-editor-preview iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  margin: 1.25rem auto;
+  border: none;
+}
+
+/* Cloudinary video */
+.blog-editor-shell .ProseMirror video,
+.blog-editor-preview video {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 1.25rem auto;
+}
+
+/* Selection highlight */
+.blog-editor-shell .ProseMirror ::selection {
+  background: rgb(17 201 176 / 0.18);
+}
+
+/* Text alignment */
+.blog-editor-shell .ProseMirror [style*="text-align: center"],
+.blog-editor-preview [style*="text-align: center"] { text-align: center; }
+.blog-editor-shell .ProseMirror [style*="text-align: right"],
+.blog-editor-preview [style*="text-align: right"] { text-align: right; }
+.blog-editor-shell .ProseMirror [style*="text-align: justify"],
+.blog-editor-preview [style*="text-align: justify"] { text-align: justify; }
+
+/* Placeholder */
+.blog-editor-shell .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted-foreground);
+  opacity: 0.75;
+  font-style: normal;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Edit-mode only */
+.blog-editor-shell .ProseMirror {
+  min-height: 32rem;
+  padding: 1.5rem 2rem 3rem;
+  caret-color: var(--contrazy-teal);
+  outline: none;
+}
+
+/* Preview-mode only */
+.blog-editor-preview {
+  min-height: 32rem;
+  padding: 1.5rem 2rem 3rem;
+}
+
+/* ── NodeView-managed media — reset conflicting generic CSS rules ─────────────── */
+
+/* Images: NodeView owns sizing/margin — zero out the generic rules */
+.blog-editor-shell .ProseMirror .blog-resizable-img,
+.blog-editor-preview .blog-resizable-img {
+  margin: 0;
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+/* Videos: NodeView owns sizing/margin — zero out generic video rules */
+.blog-editor-shell .ProseMirror .blog-resizable-video,
+.blog-editor-shell .ProseMirror .blog-resizable-youtube,
+.blog-editor-preview .blog-resizable-video,
+.blog-editor-preview .blog-resizable-youtube {
+  margin: 0;
+  border-radius: 0.75rem;
+}
+
+/* NodeView wrappers — overflow visible so corner handles + toolbar aren't clipped */
+.blog-editor-shell .ProseMirror .blog-image-node,
+.blog-editor-shell .ProseMirror .blog-video-node,
+.blog-editor-shell .ProseMirror .blog-youtube-node,
+.blog-editor-shell .ProseMirror [data-node-view-wrapper] {
+  overflow: visible;
+}
+
+/* Floating toolbar z-index guard */
+.blog-image-toolbar {
+  z-index: 40;
+}
+
+/* ── Public blog post — layered on blog-editor-preview typography ─────────── */
+/*
+ * The public content div uses class="blog-editor-preview blog-post-content".
+ * blog-editor-preview  → all typography (headings, lists, blockquote, links,
+ *                         code, images, iframes, video — exactly as preview shows).
+ * blog-post-content    → strips editor-only chrome (min-height, padding).
+ * Rules below extend both contexts with things the editor CSS didn't need.
+ */
+
+.blog-post-content {
+  min-height: 0;
+  padding: 0;
+}
+
+/* TipTap serialises YouTube as div[data-youtube-video] > iframe.
+   Without this, the iframe inside inherits width:100%/aspect-ratio from the
+   generic iframe rule but the wrapper div has no margin. */
+.blog-editor-preview div[data-youtube-video],
+.blog-post-content   div[data-youtube-video] {
+  margin: 1.25rem auto;
+}
+.blog-editor-preview div[data-youtube-video] iframe,
+.blog-post-content   div[data-youtube-video] iframe {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: 12px;
+  margin: 0;
+}
+
+/* Tables (not used in editor, handled here for both contexts) */
+.blog-editor-preview table,
+.blog-post-content   table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.9375rem;
+}
+.blog-editor-preview th,
+.blog-editor-preview td,
+.blog-post-content   th,
+.blog-post-content   td {
+  border: 1px solid var(--border);
+  padding: 0.625rem 1rem;
+  text-align: left;
+}
+.blog-editor-preview th,
+.blog-post-content   th {
+  background: rgb(15 23 42 / 0.04);
+  font-weight: 600;
+}
+
+/* data-align on resized media (set by renderHTML of ResizableImage/Video/Youtube) */
+.blog-editor-preview img[data-align="left"],
+.blog-post-content   img[data-align="left"],
+.blog-editor-preview video[data-align="left"],
+.blog-post-content   video[data-align="left"]  { margin-left: 0; margin-right: auto; }
+
+.blog-editor-preview img[data-align="right"],
+.blog-post-content   img[data-align="right"],
+.blog-editor-preview video[data-align="right"],
+.blog-post-content   video[data-align="right"] { margin-left: auto; margin-right: 0; }
+
+.blog-editor-preview iframe[data-align="left"],
+.blog-post-content   iframe[data-align="left"]  { margin-left: 0; margin-right: auto; }
+.blog-editor-preview iframe[data-align="right"],
+.blog-post-content   iframe[data-align="right"] { margin-left: auto; margin-right: 0; }
+
 .contract-editor-shell .contract-merge-chip {
   position: relative;
   display: inline-flex;

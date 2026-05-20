@@ -203,6 +203,12 @@ enum ContactMessageStatus {
   ARCHIVED
 }
 
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum TransactionFlowType {
   STANDARD
   CHECK_IN_OUT
@@ -278,6 +284,7 @@ model User {
   sentInvitations  Invitation[]         @relation("InvitationInviter")
   auditLogs        AuditLog[]           @relation("AuditActor")
   passwordResets   PasswordResetToken[]
+  blogPosts        BlogPost[]
 }
 
 model VendorProfile {
@@ -842,6 +849,57 @@ model ContactMessage {
 
   @@index([status, createdAt])
   @@index([email])
+}
+
+model BlogPost {
+  id            String           @id @default(cuid())
+  status        BlogPostStatus   @default(DRAFT)
+  featured      Boolean          @default(false)
+  authorId      String?
+  publishedAt   DateTime?
+  coverUrl      String?
+  coverPublicId String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  author        User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  locales       BlogPostLocale[]
+  media         BlogMedia[]
+
+  @@index([status, publishedAt])
+}
+
+model BlogPostLocale {
+  id          String         @id @default(cuid())
+  postId      String
+  locale      LocaleCode
+  slug        String
+  title       String
+  excerpt     String         @db.Text
+  content     Json
+  contentHtml String         @db.Text
+  searchText  String         @db.Text
+  seoTitle    String?
+  seoDesc     String?
+  coverAlt    String?
+  category    String?
+  tags        String[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  post        BlogPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, locale])
+  @@unique([locale, slug])
+  @@index([locale, postId])
+}
+
+model BlogMedia {
+  id        String    @id @default(cuid())
+  postId    String?
+  publicId  String    @unique
+  url       String
+  mimeType  String?
+  createdAt DateTime  @default(now())
+  post      BlogPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
 }
 
 model PasswordResetToken {

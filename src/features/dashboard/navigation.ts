@@ -14,6 +14,7 @@ export type DashboardIconName =
   | "logs"
   | "mail"
   | "mapPinned"
+  | "newspaper"
   | "receiptText"
   | "scrollText"
   | "shield"
@@ -120,6 +121,12 @@ export function buildAdminNavigation(t: T): DashboardNavSection[] {
         { href: "/admin/logs", label: t("nav.admin.items.activityLogs"), icon: "bookText" },
       ],
     },
+    {
+      label: t("nav.admin.sections.content"),
+      items: [
+        { href: "/admin/blog", label: t("nav.admin.items.blog"), icon: "newspaper" },
+      ],
+    },
   ]
 }
 
@@ -202,6 +209,12 @@ export const adminNavigation: DashboardNavSection[] = [
     label: "Platform",
     items: [
       { href: "/admin/logs", label: "Activity logs", icon: "bookText" },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/blog", label: "Blog", icon: "newspaper" },
     ],
   },
 ]

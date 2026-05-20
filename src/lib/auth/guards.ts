@@ -61,6 +61,16 @@ export async function requireAdminAccess() {
   return context
 }
 
+export async function requireSuperAdminAccess() {
+  const context = await requireAuthenticatedUser()
+
+  if (context.session.user.role !== "SUPER_ADMIN") {
+    redirect(await getCurrentLocalePath("/admin"))
+  }
+
+  return context
+}
+
 export const requireVendorProfileAccess = cache(async function requireVendorProfileAccess() {
   const context = await requireVendorAccess()
 
