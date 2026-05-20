@@ -3,7 +3,7 @@ function assetPath(fileName: string) {
 }
 
 export const workflowStepArtwork = [
-  assetPath("Img41- Stripe Connect.jpg"),
+  assetPath("Img-step1-company-setup.jpg"),
   assetPath("Img22- contrat auto.jpg"),
   assetPath("Img1- Lien QR code.jpg"),
   assetPath("Img3- KYC.jpg"),

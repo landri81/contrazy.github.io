@@ -3138,26 +3138,26 @@
   "marketing": {
     "hero": {
       "eyebrow": "Opérations contractuelles sécurisées",
-      "titleBefore": "Gérez contrats, KYC, signatures, cautions et paiements dans un",
-      "titleEmphasis": "parcours guidé",
-      "description": "Contrazy aide les vendeurs à transformer des étapes fragmentées d'onboarding et de paiement en un parcours client sécurisé avec une visibilité claire pour les équipes opérationnelles.",
+      "titleBefore": "Gérez contrats, vérification d'identité (KYC), cautions et paiements dans un",
+      "titleEmphasis": "parcours unique et sécurisé",
+      "description": "Contrazy centralise les étapes clés de vos transactions – identité, signature électronique, photos et documents, caution et paiement – dans une seule plateforme simple pour vos équipes et vos clients.",
       "cta": "Démarrer l'essai gratuit",
       "stats": [
         {
           "value": "98%",
-          "label": "Contrôles d'identité"
+          "label": "Vérifications d'identité (KYC)"
         },
         {
           "value": "23",
-          "label": "Flux actifs"
+          "label": "Transactions actives"
         },
         {
           "value": "3 min",
-          "label": "Temps moyen"
+          "label": "Temps moyen de validation"
         },
         {
           "value": "8,4 k€",
-          "label": "Couverture des cautions"
+          "label": "Cautions sécurisées"
         }
       ]
     },
@@ -3170,65 +3170,65 @@
     },
     "workflow": {
       "eyebrow": "Fonctionnement",
-      "titleBefore": "Un flux sécurisé de la",
-      "titleEmphasis": "configuration",
-      "titleAfter": " au virement",
-      "description": "Contrazy garde chaque étape alignée afin que le client, le vendeur et le back-office travaillent à partir du même dossier de transaction.",
+      "titleBefore": "Un parcours sécurisé pour",
+      "titleEmphasis": "gérer",
+      "titleAfter": " chaque transaction",
+      "description": "Contrazy centralise les contrats, vérifications d’identité, justificatifs, signatures, cautions et paiements dans un seul espace partagé entre vos équipes et vos clients.",
       "ctaEyebrow": "Prêt à lancer",
-      "ctaTitle": "Créez une fois, faites passer chaque client dans le même flux sécurisé.",
-      "ctaDescription": "Conservez contrats, vérification d’identité, signatures, cautions et suivi des virements dans un seul dossier de transaction clair.",
+      "ctaTitle": "Créez votre parcours une seule fois et utilisez-le pour chaque transaction.",
+      "ctaDescription": "Contrats, identité, documents et photos, signatures, cautions et paiements restent centralisés dans un même dossier sécurisé.",
       "ctaButton": "Commencer avec Contrazy",
       "steps": [
         {
           "n": "01",
           "emoji": "🏢",
-          "title": "Configuration vendeur",
-          "desc": "Profil entreprise, approbation et connexion Stripe sont réunis dans un seul parcours."
+          "title": "Configuration entreprise",
+          "desc": "Configurez votre activité, vos informations Stripe et vos règles de transaction depuis un espace unique."
         },
         {
           "n": "02",
           "emoji": "🧩",
-          "title": "Conception du flux",
-          "desc": "Ajoutez modèles de contrat, documents, conditions de paiement et règles de caution."
+          "title": "Création du parcours",
+          "desc": "Ajoutez vos modèles de contrats, documents et justificatifs à demander au client, cautions, paiements et étapes de validation."
         },
         {
           "n": "03",
           "emoji": "🔗",
-          "title": "Lien sécurisé",
-          "desc": "Générez un lien sécurisé ou un QR code pour l'ensemble du parcours client."
+          "title": "Envoi sécurisé",
+          "desc": "Partagez un lien sécurisé ou un QR code pour démarrer le parcours client."
         },
         {
           "n": "04",
           "emoji": "🪪",
-          "title": "Onboarding client",
-          "desc": "Collectez les coordonnées, le KYC optionnel, les fichiers demandés et la revue du contrat."
+          "title": "Validation client",
+          "desc": "Collectez identité, signatures, documents et paiements dans un processus guidé."
         },
         {
           "n": "05",
           "emoji": "✍️",
           "title": "Signature et paiement",
-          "desc": "Capturez le consentement, le paiement du service et l'autorisation de caution dans l'ordre."
+          "desc": "Signez les documents, encaissez le paiement et sécurisez la caution dans un parcours unique."
         },
         {
           "n": "06",
           "emoji": "📊",
           "title": "Suivi opérationnel",
-          "desc": "Suivez statut, litiges et actions post-paiement depuis un même tableau de bord."
+          "desc": "Suivez chaque transaction, les validations, paiements et éventuels litiges depuis un tableau de bord centralisé."
         }
       ]
     },
     "features": {
       "eyebrow": "Modules clés",
-      "titleBefore": "Conçu pour les équipes qui ont besoin de",
-      "titleEmphasis": "contrôle",
-      "titleAfter": " sur toute la transaction",
-      "description": "Chaque module est relié au même état de transaction pour que les équipes opérationnelles ne perdent pas le contexte entre les outils.",
+      "titleBefore": "Une plateforme unifiée pour",
+      "titleEmphasis": "gérer",
+      "titleAfter": " chaque étape de vos transactions",
+      "description": "Toutes les étapes restent synchronisées pour offrir une visibilité claire aux équipes et une expérience fluide aux clients.",
       "items": [
         {
           "emoji": "🚀",
           "iconBg": "bg-sky-50",
           "title": "Onboarding vendeur",
-          "desc": "Profil entreprise, workflow d'approbation et préparation aux virements dans un seul flux.",
+          "desc": "Configurez votre activité, vos informations de paiement et vos règles de validation depuis un espace unique.",
           "tag": "Configuration",
           "tagColor": "text-sky-700",
           "tagBg": "bg-sky-50"
@@ -3237,7 +3237,7 @@
           "emoji": "🪪",
           "iconBg": "bg-emerald-50",
           "title": "Identité et documents",
-          "desc": "Contrôles d'identité optionnels, uploads et preuves rattachés à une seule transaction.",
+          "desc": "Vérifiez l'identité des utilisateurs et centralisez documents, justificatifs et preuves dans chaque transaction.",
           "tag": "Vérification",
           "tagColor": "text-emerald-700",
           "tagBg": "bg-emerald-50"
@@ -3255,7 +3255,7 @@
           "emoji": "💳",
           "iconBg": "bg-rose-50",
           "title": "Paiements et cautions",
-          "desc": "Encaissez les paiements, autorisez les cautions puis capturez ou libérez-les avec une trace d'audit.",
+          "desc": "Encaissez les paiements et sécurisez les cautions avec un suivi complet des autorisations et captures.",
           "tag": "Finance",
           "tagColor": "text-rose-700",
           "tagBg": "bg-rose-50"
@@ -3263,8 +3263,8 @@
         {
           "emoji": "🧭",
           "iconBg": "bg-violet-50",
-          "title": "Tableaux de bord opérationnels",
-          "desc": "Les espaces vendeur et admin gardent révision, encaissement et support bien organisés.",
+          "title": "Suivi opérationnel",
+          "desc": "Suivez validations, paiements, litiges et actions depuis un tableau de bord centralisé.",
           "tag": "Supervision",
           "tagColor": "text-violet-700",
           "tagBg": "bg-violet-50"
@@ -3273,7 +3273,7 @@
           "emoji": "📡",
           "iconBg": "bg-slate-100",
           "title": "Alertes et activité",
-          "desc": "Les événements importants, résultats de webhooks et mises à jour restent visibles au même endroit.",
+          "desc": "Recevez les événements importants, statuts et mises à jour en temps réel dans un seul espace.",
           "tag": "Opérations",
           "tagColor": "text-slate-700",
           "tagBg": "bg-slate-100"

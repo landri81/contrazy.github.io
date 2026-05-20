@@ -46,6 +46,7 @@ export function WorkflowSection() {
             <h2 className="text-4xl font-bold tracking-tight text-foreground lg:text-6xl lg:leading-[1.1]">
               {t("titleBefore")}{" "}
               <span className="text-teal-600 italic font-serif">{t("titleEmphasis")}</span>
+              {t("titleAfter")}
             </h2>
             <p className="mt-8 max-w-md text-lg leading-relaxed text-muted-foreground">
               {t("description")}
