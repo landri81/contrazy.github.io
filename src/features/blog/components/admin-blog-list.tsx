@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { Pencil, Plus, Search } from "lucide-react"
-import { useCallback, useRef } from "react"
+import { Loader2, Pencil, Plus, Search } from "lucide-react"
+import { useCallback, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/navigation"
@@ -30,6 +30,7 @@ export function AdminBlogList({ items, meta, searchParams: initialSearchParams }
   const q = searchParamsHook.get("q") ?? ""
   const status = searchParamsHook.get("status") ?? ""
   const searchRef = useRef<HTMLInputElement>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const buildUrl = useCallback(
     (updates: Record<string, string | number>) => {
@@ -165,12 +166,21 @@ export function AdminBlogList({ items, meta, searchParams: initialSearchParams }
                       {post.updatedAt.toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/admin/blog/${post.id}`}>
-                        <Button size="sm" variant="ghost" className="gap-1.5 text-xs">
-                          <Pencil className="size-3.5" />
-                          {t("editPost")}
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="gap-1.5 text-xs"
+                        disabled={loadingId === post.id}
+                        onClick={() => {
+                          setLoadingId(post.id)
+                          router.push(`/admin/blog/${post.id}`)
+                        }}
+                      >
+                        {loadingId === post.id
+                          ? <Loader2 className="size-3.5 animate-spin" />
+                          : <Pencil className="size-3.5" />}
+                        {t("editPost")}
+                      </Button>
                     </td>
                   </tr>
                 )
