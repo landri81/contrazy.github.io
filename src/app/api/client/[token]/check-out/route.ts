@@ -21,12 +21,18 @@ const checkOutBodySchema = z.object({
       value: z.string(),
     })
   ),
-  photos: z.array(
+  fieldAssets: z.array(
     z.object({
-      assetUrl: z.string().url(),
-      publicId: z.string().min(1),
-      fileName: z.string().min(1),
-      sortOrder: z.number().int().optional().default(0),
+      fieldId: z.string().min(1),
+      assets: z.array(
+        z.object({
+          assetUrl: z.string().url(),
+          publicId: z.string().min(1),
+          fileName: z.string().min(1),
+          mimeType: z.string().trim().min(1).nullable().optional(),
+          sortOrder: z.number().int().optional().default(0),
+        })
+      ),
     })
   ),
 })
@@ -83,11 +89,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Check-out has already been submitted." }, { status: 409 })
     }
 
-    const { responses, photos } = parsed.data
-
-    if (photos.length === 0) {
-      return NextResponse.json({ success: false, message: "At least one photo is required." }, { status: 400 })
-    }
+    const { responses, fieldAssets } = parsed.data
 
     const checkOutFields = transaction.reportFields.filter(
       (f) => f.reportType === TransactionReportType.CHECK_OUT
@@ -98,8 +100,60 @@ export async function POST(
       responseMap.set(r.fieldId, r.value.trim())
     }
 
+    const assetMap = new Map<
+      string,
+      Array<{
+        assetUrl: string
+        publicId: string
+        fileName: string
+        mimeType: string | null
+        sortOrder: number
+      }>
+    >()
+
+    for (const entry of fieldAssets) {
+      assetMap.set(
+        entry.fieldId,
+        [...entry.assets]
+          .map((asset) => ({
+            ...asset,
+            mimeType: asset.mimeType ?? null,
+          }))
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+      )
+    }
+
     for (const field of checkOutFields) {
       const value = responseMap.get(field.id) ?? ""
+      const assets = assetMap.get(field.id) ?? []
+
+      if (field.fieldType === "PHOTO" || field.fieldType === "FILE") {
+        if (assets.length === 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                field.fieldType === "PHOTO"
+                  ? `Upload at least one photo for "${field.label}".`
+                  : `Upload at least one file for "${field.label}".`,
+            },
+            { status: 400 }
+          )
+        }
+
+        if (
+          field.fieldType === "PHOTO" &&
+          assets.some((asset) => asset.mimeType && !asset.mimeType.startsWith("image/"))
+        ) {
+          return NextResponse.json(
+            { success: false, message: `"${field.label}" only accepts image uploads.` },
+            { status: 400 }
+          )
+        }
+
+        continue
+      }
+
       if (!value) {
         return NextResponse.json(
           { success: false, message: `"${field.label}" is required.` },
@@ -124,6 +178,16 @@ export async function POST(
     }
 
     const submittedAt = new Date()
+    const flattenedAssets = checkOutFields.flatMap((field) =>
+      (assetMap.get(field.id) ?? []).map((asset, index) => ({
+        fieldId: field.id,
+        assetUrl: asset.assetUrl,
+        publicId: asset.publicId,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType ?? null,
+        sortOrder: asset.sortOrder ?? index,
+      }))
+    )
 
     // Build comparison fields from check-in report
     const checkInReport = transaction.reports.find(
@@ -136,14 +200,6 @@ export async function POST(
       (checkInReport?.responses ?? []).map((r) => [r.fieldId, r.value])
     )
 
-    const comparisonFields = checkOutFields.flatMap((f) => {
-      const matchingCheckIn = checkInFields.find((ci) => ci.label === f.label)
-      if (!matchingCheckIn) return []
-      const priorValue = checkInResponseMap.get(matchingCheckIn.id)
-      if (!priorValue) return []
-      return [{ label: f.label, priorValue, currentValue: responseMap.get(f.id) ?? "" }]
-    })
-
     const artifactHtml = generateReportArtifactHtml({
       reportType: TransactionReportType.CHECK_OUT,
       transactionReference: transaction.reference,
@@ -152,10 +208,21 @@ export async function POST(
       submittedAt,
       fields: checkOutFields.map((f) => ({
         label: f.label,
+        type: f.fieldType,
         value: responseMap.get(f.id) ?? "",
+        priorValue: (() => {
+          if (f.fieldType === "PHOTO" || f.fieldType === "FILE") {
+            return null
+          }
+          const matchingCheckIn = checkInFields.find((field) => field.label === f.label)
+          return matchingCheckIn ? (checkInResponseMap.get(matchingCheckIn.id) ?? null) : null
+        })(),
+        assets: (assetMap.get(f.id) ?? []).map((asset) => ({
+          assetUrl: asset.assetUrl,
+          fileName: asset.fileName,
+          mimeType: asset.mimeType ?? null,
+        })),
       })),
-      assets: photos.map((p) => ({ assetUrl: p.assetUrl, fileName: p.fileName })),
-      comparisonFields,
     })
 
     await prisma.$transaction(async (tx) => {
@@ -193,14 +260,16 @@ export async function POST(
       }
 
       await tx.transactionReportAsset.deleteMany({ where: { reportId: report.id } })
-      if (photos.length > 0) {
+      if (flattenedAssets.length > 0) {
         await tx.transactionReportAsset.createMany({
-          data: photos.map((p) => ({
+          data: flattenedAssets.map((asset) => ({
             reportId: report.id,
-            assetUrl: p.assetUrl,
-            publicId: p.publicId,
-            fileName: p.fileName,
-            sortOrder: p.sortOrder,
+            fieldId: asset.fieldId,
+            assetUrl: asset.assetUrl,
+            publicId: asset.publicId,
+            fileName: asset.fileName,
+            mimeType: asset.mimeType,
+            sortOrder: asset.sortOrder,
           })),
         })
       }
@@ -209,7 +278,7 @@ export async function POST(
         transactionId,
         type: "CHECK_OUT_SUBMITTED",
         title: "Check-out report submitted",
-        detail: `${checkOutFields.length} field(s) and ${photos.length} photo(s) recorded.`,
+        detail: `${checkOutFields.length} field(s) and ${flattenedAssets.length} upload(s) recorded.`,
         dedupeKey: `event:check-out-submitted:${transactionId}`,
         occurredAt: submittedAt,
       })

@@ -59,6 +59,14 @@ export default async function VendorTransactionDetailPage(props: {
   const t = await getTranslations("dashboard.vendor.transactionDetailPage")
   const sharedT = await getTranslations("dashboard.shared")
 
+  type ReportAssetRecord = {
+    assetUrl: string
+    fileName: string
+    publicId: string
+    mimeType: string | null
+    fieldId: string | null
+  }
+
   const transactionStatusMap: Record<string, string> = {
     DRAFT: t("transactionStatus.DRAFT"),
     LINK_SENT: t("transactionStatus.LINK_SENT"),
@@ -663,6 +671,24 @@ export default async function VendorTransactionDetailPage(props: {
             )
             const hasCheckInData = Boolean(checkInReport?.submittedAt)
             const hasCheckOutData = Boolean(checkOutReport?.submittedAt)
+            const checkInAssetMap = new Map<string, ReportAssetRecord[]>()
+            const checkOutAssetMap = new Map<string, ReportAssetRecord[]>()
+            const checkInLegacyAssets = (checkInReport?.assets ?? []).filter((asset) => !asset.fieldId)
+            const checkOutLegacyAssets = (checkOutReport?.assets ?? []).filter((asset) => !asset.fieldId)
+
+            for (const asset of checkInReport?.assets ?? []) {
+              if (!asset.fieldId) continue
+              const current = checkInAssetMap.get(asset.fieldId) ?? []
+              current.push(asset)
+              checkInAssetMap.set(asset.fieldId, current)
+            }
+
+            for (const asset of checkOutReport?.assets ?? []) {
+              if (!asset.fieldId) continue
+              const current = checkOutAssetMap.get(asset.fieldId) ?? []
+              current.push(asset)
+              checkOutAssetMap.set(asset.fieldId, current)
+            }
 
             function toThumb(url: string) {
               if (!url.includes("/upload/")) return url
@@ -675,14 +701,31 @@ export default async function VendorTransactionDetailPage(props: {
               submittedAt,
               fields,
               responseMap,
-              assets,
+              assetMap,
+              legacyAssets,
             }: {
               label: string
               accent: "amber" | "rose"
               submittedAt: Date | null
               fields: typeof checkInFields
               responseMap: Map<string, string>
-              assets: Array<{ assetUrl: string; fileName: string; publicId: string }>
+              assetMap: Map<
+                string,
+                Array<{
+                  assetUrl: string
+                  fileName: string
+                  publicId: string
+                  mimeType: string | null
+                  fieldId: string | null
+                }>
+              >
+              legacyAssets: Array<{
+                assetUrl: string
+                fileName: string
+                publicId: string
+                mimeType: string | null
+                fieldId: string | null
+              }>
             }) {
               const borderCls = accent === "amber" ? "border-amber-200" : "border-rose-200"
               const badgeCls =
@@ -691,6 +734,13 @@ export default async function VendorTransactionDetailPage(props: {
                   : "border-rose-300 bg-rose-50 text-rose-800"
               const headingCls = accent === "amber" ? "text-amber-700" : "text-rose-700"
               const ringCls = accent === "amber" ? "ring-amber-100" : "ring-rose-100"
+              const scalarFields = fields.filter(
+                (field) => field.fieldType !== "PHOTO" && field.fieldType !== "FILE"
+              )
+              const uploadFields = fields.filter(
+                (field) => field.fieldType === "PHOTO" || field.fieldType === "FILE"
+              )
+
               return (
                 <div className={`flex flex-col gap-4 rounded-xl border ${borderCls} bg-white p-5 shadow-sm`}>
                   <div className="flex items-center justify-between gap-2">
@@ -703,7 +753,7 @@ export default async function VendorTransactionDetailPage(props: {
                       <span className="text-xs italic text-muted-foreground">{t("pending")}</span>
                     )}
                   </div>
-                  {fields.length > 0 && submittedAt ? (
+                  {scalarFields.length > 0 && submittedAt ? (
                     <div className="overflow-hidden rounded-lg border">
                       <table className="w-full border-collapse text-sm">
                         <thead>
@@ -713,7 +763,7 @@ export default async function VendorTransactionDetailPage(props: {
                           </tr>
                         </thead>
                         <tbody>
-                          {fields.map((field, i) => (
+                          {scalarFields.map((field, i) => (
                             <tr key={field.id} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
                               <td className="px-3 py-2.5 text-sm font-medium text-foreground">{field.label}</td>
                               <td className="px-3 py-2.5 text-sm text-foreground">{responseMap.get(field.id) ?? "—"}</td>
@@ -722,28 +772,73 @@ export default async function VendorTransactionDetailPage(props: {
                         </tbody>
                       </table>
                     </div>
-                  ) : fields.length === 0 ? null : (
+                  ) : scalarFields.length === 0 ? null : (
                     <p className="text-sm italic text-muted-foreground">{t("notYetSubmitted")}</p>
                   )}
-                  <div>
-                    <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
-                      {t("photosLabel")} {assets?.length ? `(${assets.length})` : ""}
-                    </p>
-                    {assets?.length ? (
+                  {uploadFields.length > 0 ? (
+                    <div className="space-y-3">
+                      {uploadFields.map((field) => {
+                        const assets = assetMap.get(field.id) ?? []
+                        const isPhotoField = field.fieldType === "PHOTO"
+
+                        return (
+                          <div key={field.id}>
+                            <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
+                              {field.label} {assets.length ? `(${assets.length})` : ""}
+                            </p>
+                            {assets.length > 0 ? (
+                              isPhotoField ? (
+                                <div className="grid grid-cols-3 gap-2">
+                                  {assets.map((asset, index) => (
+                                    <a key={`${asset.publicId}-${index}`} href={asset.assetUrl} target="_blank" rel="noreferrer" title={asset.fileName} className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}>
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={toThumb(asset.assetUrl)} alt={asset.fileName} className="aspect-square w-full object-cover" loading="lazy" />
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {assets.map((asset, index) => (
+                                    <a
+                                      key={`${asset.publicId}-${index}`}
+                                      href={asset.assetUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-sm text-foreground hover:bg-muted/35"
+                                    >
+                                      <FileText className="size-4 shrink-0 text-muted-foreground" />
+                                      <span className="truncate">{asset.fileName}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )
+                            ) : submittedAt ? (
+                              <p className="text-sm text-muted-foreground">
+                                {isPhotoField ? t("noPhotosUploaded") : t("noFilesUploaded")}
+                              </p>
+                            ) : (
+                              <p className="text-sm italic text-muted-foreground">{t("pendingSubmission")}</p>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                  {legacyAssets.length > 0 ? (
+                    <div>
+                      <p className={`mb-2 text-[11px] font-semibold uppercase tracking-widest ${headingCls}`}>
+                        {t("photosLabel")} ({legacyAssets.length})
+                      </p>
                       <div className="grid grid-cols-3 gap-2">
-                        {assets.map((asset, i) => (
-                          <a key={i} href={asset.assetUrl} target="_blank" rel="noreferrer" title={asset.fileName} className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}>
+                        {legacyAssets.map((asset, index) => (
+                          <a key={`${asset.publicId}-${index}`} href={asset.assetUrl} target="_blank" rel="noreferrer" title={asset.fileName} className={`block overflow-hidden rounded-lg ring-2 ${ringCls} transition-opacity hover:opacity-80`}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={toThumb(asset.assetUrl)} alt={asset.fileName} className="aspect-square w-full object-cover" loading="lazy" />
                           </a>
                         ))}
                       </div>
-                    ) : submittedAt ? (
-                      <p className="text-sm text-muted-foreground">{t("noPhotosUploaded")}</p>
-                    ) : (
-                      <p className="text-sm italic text-muted-foreground">{t("pendingSubmission")}</p>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               )
             }
@@ -772,7 +867,8 @@ export default async function VendorTransactionDetailPage(props: {
                           submittedAt={checkInReport?.submittedAt ?? null}
                           fields={checkInFields}
                           responseMap={checkInResponseMap}
-                          assets={checkInReport?.assets ?? []}
+                          assetMap={checkInAssetMap}
+                          legacyAssets={checkInLegacyAssets}
                         />
                         {hasCheckOutData ? (
                           <ReportPanel
@@ -781,7 +877,8 @@ export default async function VendorTransactionDetailPage(props: {
                             submittedAt={checkOutReport?.submittedAt ?? null}
                             fields={checkOutFields}
                             responseMap={checkOutResponseMap}
-                            assets={checkOutReport?.assets ?? []}
+                            assetMap={checkOutAssetMap}
+                            legacyAssets={checkOutLegacyAssets}
                           />
                         ) : null}
                       </div>

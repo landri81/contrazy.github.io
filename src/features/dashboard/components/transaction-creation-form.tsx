@@ -91,6 +91,10 @@ import {
   transactionCustomFieldTypeOptions,
   type TransactionCustomFieldTypeValue,
 } from "@/features/transactions/custom-fields"
+import {
+  transactionReportFieldTypeOptions,
+  type TransactionReportFieldTypeValue,
+} from "@/features/transactions/report-fields"
 
 type TransactionCreationFormProps = {
   contracts: ContractTemplate[]
@@ -133,7 +137,7 @@ type DraftReportField = {
   id: string
   label: string
   instructions: string
-  fieldType: TransactionCustomFieldTypeValue
+  fieldType: TransactionReportFieldTypeValue
   reportType: "CHECK_IN" | "CHECK_OUT"
   selectOptions: string[]
 }
@@ -512,7 +516,7 @@ type TransactionCreationFormSnapshot = Omit<
   reportFields: Array<{
     label: string
     instructions: string
-    fieldType: TransactionCustomFieldTypeValue
+    fieldType: TransactionReportFieldTypeValue
     reportType: "CHECK_IN" | "CHECK_OUT"
     selectOptions: string[]
   }>
@@ -924,6 +928,14 @@ export function TransactionCreationForm({
     TEXT: t("customFieldTypeText"),
     NUMBER: t("customFieldTypeNumber"),
     SELECT: t("customFieldTypeSelect"),
+  }
+
+  const reportFieldTypeLabels: Record<string, string> = {
+    TEXT: t("customFieldTypeText"),
+    NUMBER: t("customFieldTypeNumber"),
+    SELECT: t("customFieldTypeSelect"),
+    PHOTO: t("reportFieldTypePhoto"),
+    FILE: t("reportFieldTypeFile"),
   }
 
   const paymentTimingLabels: Record<string, { label: string; description: string }> = {
@@ -1552,7 +1564,7 @@ export function TransactionCreationForm({
     setReportFields((current) => current.filter((item) => item.id !== reportFieldId))
   }
 
-  function handleReportFieldTypeChange(reportFieldId: string, nextType: TransactionCustomFieldTypeValue) {
+  function handleReportFieldTypeChange(reportFieldId: string, nextType: TransactionReportFieldTypeValue) {
     updateReportField(reportFieldId, {
       fieldType: nextType,
       selectOptions: nextType === "SELECT" ? ["", ""] : [],
@@ -3669,18 +3681,18 @@ export function TransactionCreationForm({
                                         <Select
                                           value={item.fieldType}
                                           onValueChange={(value) =>
-                                            handleReportFieldTypeChange(item.id, value as TransactionCustomFieldTypeValue)
+                                            handleReportFieldTypeChange(item.id, value as TransactionReportFieldTypeValue)
                                           }
                                         >
                                           <SelectTrigger id={`${rowId}-rf-type`} className={cn(controlClass, "cursor-pointer")}>
                                             <span className="truncate text-sm">
-                                              {customFieldTypeLabels[item.fieldType] ?? t("customFieldTypeText")}
+                                              {reportFieldTypeLabels[item.fieldType] ?? t("customFieldTypeText")}
                                             </span>
                                           </SelectTrigger>
                                           <SelectContent>
-                                            {transactionCustomFieldTypeOptions.map((option) => (
+                                            {transactionReportFieldTypeOptions.map((option) => (
                                               <SelectItem key={option.value} value={option.value} className="cursor-pointer">
-                                                {customFieldTypeLabels[option.value] ?? option.label}
+                                                {reportFieldTypeLabels[option.value] ?? option.label}
                                               </SelectItem>
                                             ))}
                                           </SelectContent>

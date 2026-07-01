@@ -4,6 +4,7 @@ import type {
   RequirementTypeValue,
 } from "@/features/transactions/contract-flow"
 import type { TransactionCustomFieldTypeValue } from "@/features/transactions/custom-fields"
+import type { TransactionReportFieldTypeValue } from "@/features/transactions/report-fields"
 import type { RequirementExampleDraft } from "@/features/dashboard/lib/vendor-requirement-example-images"
 
 export type TransactionCreationInitialRequirement = {
@@ -30,7 +31,7 @@ export type TransactionReportFieldPhase = "CHECK_IN" | "CHECK_OUT"
 export type TransactionCreationInitialReportField = {
   label: string
   instructions: string
-  fieldType: TransactionCustomFieldTypeValue
+  fieldType: TransactionReportFieldTypeValue
   reportType: TransactionReportFieldPhase
   selectOptions: string[]
 }

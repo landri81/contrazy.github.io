@@ -27,6 +27,9 @@ export default async function ClientCheckOutPage(props: {
 
   const checkInReport =
     transaction.reports.find((r) => r.type === TransactionReportType.CHECK_IN) ?? null
+  const checkInFields = transaction.reportFields.filter(
+    (f) => f.reportType === TransactionReportType.CHECK_IN
+  )
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -38,7 +41,7 @@ export default async function ClientCheckOutPage(props: {
           Complete the check-out
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Record the return condition, final readings, and any changes since check-in. Upload at least one photo.
+          Record the return condition, final readings, and any requested files or photos. Prior check-in data is shown for comparison when available.
         </p>
       </div>
 
@@ -47,6 +50,7 @@ export default async function ClientCheckOutPage(props: {
         reportType="CHECK_OUT"
         fields={checkOutFields}
         priorReport={checkInReport}
+        priorFields={checkInFields}
         nextStep="complete"
       />
     </div>
