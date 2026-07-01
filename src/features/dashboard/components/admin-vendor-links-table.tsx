@@ -257,6 +257,7 @@ export function AdminVendorLinksTable({
       { value: "PAYMENT", label: t("transactions.filterOptions.kind.PAYMENT") },
       { value: "DEPOSIT", label: t("transactions.filterOptions.kind.DEPOSIT") },
       { value: "HYBRID", label: t("transactions.filterOptions.kind.HYBRID") },
+      { value: "WORKFLOW", label: t("transactions.filterOptions.kind.WORKFLOW") },
     ],
     [t]
   )

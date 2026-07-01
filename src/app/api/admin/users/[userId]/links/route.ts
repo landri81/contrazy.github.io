@@ -26,7 +26,7 @@ const querySchema = z.object({
       "DISPUTED",
     ])
     .optional(),
-  kind: z.enum(["PAYMENT", "DEPOSIT", "HYBRID"]).optional(),
+  kind: z.enum(["PAYMENT", "DEPOSIT", "HYBRID", "WORKFLOW"]).optional(),
 })
 
 function json(body: unknown, status: number = 200) {

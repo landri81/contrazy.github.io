@@ -624,7 +624,8 @@
           "kind": {
             "PAYMENT": "Payment",
             "DEPOSIT": "Deposit",
-            "HYBRID": "Hybrid"
+            "HYBRID": "Hybrid",
+            "WORKFLOW": "Workflow"
           },
           "kyc": {
             "NOT_REQUIRED": "Not required",
@@ -940,7 +941,8 @@
           "kind": {
             "PAYMENT": "Payment",
             "DEPOSIT": "Deposit",
-            "HYBRID": "Hybrid"
+            "HYBRID": "Hybrid",
+            "WORKFLOW": "Workflow"
           },
           "status": {
             "ACTIVE": "Active",
@@ -1486,12 +1488,12 @@
         "warnings": {
           "reviewRequired": "Vendor review required",
           "stripeRequired": "Stripe setup required",
-          "stripeRequiredDetail": "Connect Stripe before creating secure payment and deposit flows.",
+          "stripeRequiredDetail": "Connect Stripe before launching payments, deposits, or KYC verification.",
           "quotaReached": "Transaction quota reached",
           "quotaReachedDetail": "Upgrade your plan or wait for the next billing period to launch new transactions."
         },
         "blockedMessages": {
-          "noStripe": "Connect Stripe before creating live customer transactions.",
+          "noStripe": "Connect Stripe before launching payments, deposits, or KYC verification.",
           "quotaFull": "Your monthly transaction quota is fully used for this billing period."
         },
         "usage": {
@@ -1554,7 +1556,8 @@
           "kind": {
             "PAYMENT": "Payment",
             "DEPOSIT": "Deposit",
-            "HYBRID": "Hybrid"
+            "HYBRID": "Hybrid",
+            "WORKFLOW": "Workflow"
           },
           "status": {
             "ACTIVE": "Active",
@@ -1890,37 +1893,30 @@
         "completed": "Completed",
         "stepN": "Step {n}",
         "steps": {
-          "info": {
-            "label": "Info",
+          "modules": {
+            "label": "Modules",
+            "title": "Workflow modules",
+            "description": "Choose exactly which client steps this transaction should include."
+          },
+          "basics": {
+            "label": "Basics",
             "title": "Basics",
-            "description": "Set the internal title and context.",
-            "eyebrow": "Step one",
-            "stepTitle": "Name the transaction clearly",
-            "stepDescription": "Use a short operational title so you can find the workflow quickly later."
+            "description": "Set the internal title, service date, and any baseline options."
           },
-          "payment": {
-            "label": "Payment",
-            "title": "Amounts",
-            "description": "Choose the service payment, deposit, or both.",
-            "eyebrow": "Step two",
-            "stepTitle": "Choose the money flow",
-            "stepDescription": "Set a service payment, a deposit hold, or both. At least one amount is required to launch."
+          "finance": {
+            "label": "Finance",
+            "title": "Payment and deposit",
+            "description": "Configure only the financial steps you selected."
           },
-          "documents": {
-            "label": "Documents",
-            "title": "Requirements",
-            "description": "Add uploads, contract, customer fields, and optional KYC.",
-            "eyebrow": "Step three",
-            "stepTitle": "Attach the right requirements",
-            "stepDescription": "Choose what the client must upload, fill in, review, or verify before the workflow is complete."
+          "setup": {
+            "label": "Setup",
+            "title": "Client setup",
+            "description": "Configure contract, uploads, KYC, and any advanced workflow requirements."
           },
           "review": {
             "label": "Review",
             "title": "Launch",
-            "description": "Check the flow and decide on QR generation.",
-            "eyebrow": "Final step",
-            "stepTitle": "Review and launch",
-            "stepDescription": "Confirm the client journey, decide whether this transaction needs a QR, then create the secure link."
+            "description": "Check the generated flow, then create the secure link."
           }
         },
         "titleLabel": "Title",
@@ -1943,6 +1939,21 @@
         "bulkCsvInvalidType": "Upload a CSV file.",
         "recreateNotice": "Recreating completed transaction {reference}. Customer profile, matching requirement responses, and reusable identity verification will be prefilled where possible.",
         "recreateMissingContractWarning": "The original contract template \"{template}\" is no longer available. Choose a contract template before launching this recreated transaction.",
+        "modulesTitle": "Select the workflow modules",
+        "modulesDesc": "Pick only the steps this transaction needs. You can launch a contract-only, photos-only, payment-only, deposit-only, or KYC-only flow.",
+        "modulesPreview": "{count} top-level module(s) selected.",
+        "moduleKycTitle": "KYC",
+        "moduleKycDesc": "Verify the client identity inside the secure flow.",
+        "moduleContractTitle": "Contract to sign",
+        "moduleContractDesc": "Attach a contract template for review and signature.",
+        "modulePhotosTitle": "Photos",
+        "modulePhotosDesc": "Request photos, documents, or text responses from the client.",
+        "moduleDepositTitle": "Security deposit",
+        "moduleDepositDesc": "Collect a deposit hold or refundable long-duration deposit.",
+        "modulePaymentTitle": "Payment",
+        "modulePaymentDesc": "Collect the service amount now or request it later.",
+        "moduleStripeRequiredNote": "Requires Stripe.",
+        "moduleDisabledSummary": "{module} is not included in this transaction.",
         "depositTitle": "Security Deposit",
         "depositBadge": "Primary",
         "depositDesc": "Choose the security deposit amount and duration for this transaction.",
@@ -1961,13 +1972,14 @@
         "servicePaymentDesc": "Charged immediately. Stripe fees are deducted from the collected amount.",
         "amountLabel": "Amount (EUR)",
         "clientPays": "Client pays {amount}. Estimated payout after fees: {payout}.",
-        "stripeRequired": "Payment features require a connected Stripe account.",
+        "stripeRequired": "Payments, deposits, and KYC require a connected Stripe account.",
         "connectStripe": "Connect Stripe",
         "timingTitle": "Service payment timing",
         "timingDesc": "Choose whether the client pays the service amount during this flow or only after you request it later.",
         "kindPayment": "Service Payment only",
         "kindDeposit": "Deposit Hold only",
         "kindHybrid": "Payment + Deposit",
+        "kindWorkflow": "Workflow only",
         "requiredUploads": "Required Uploads",
         "addBundle": "+ Add a checklist bundle",
         "allBundlesAdded": "All bundles added",
@@ -2116,17 +2128,21 @@
         "createTransaction": "Create Transaction",
         "bulkCreateTransaction": "Create and send",
         "errorTitle": "Please enter a transaction title to continue.",
-        "errorAmount": "Set at least one amount — a deposit hold, a service payment, or both.",
+        "errorNoModules": "Select at least one workflow module to continue.",
+        "errorAmount": "Set a valid amount for each selected financial module.",
         "errorMinService": "Minimum service payment is €0.50",
         "errorMinDeposit": "Minimum deposit hold is €0.50",
+        "errorDepositAmountRequired": "Enter a deposit amount before generating this transaction.",
         "errorDepositDuration": "Deposit duration must be between 7 and 30 days.",
         "errorDepositDurationStarter": "Starter plan transactions must use the included 7-day deposit hold.",
         "errorLongDepositAcceptance": "Accept the long-deposit vendor fee before launching.",
+        "errorContractRequired": "Choose a contract template before launching a contract-to-sign transaction.",
+        "errorRequirementsRequired": "Add at least one upload or text requirement before launching a photos workflow.",
         "errorRequirements": "Complete every requirement label and add a custom category label when using Other.",
         "errorCustomFields": "Complete every customer field label and add at least two options for each select field.",
         "errorCustomFieldsContract": "Select a contract template before adding customer fields that must be completed before signing.",
-        "errorNoStripe": "Connect Stripe before creating live customer transactions.",
-        "errorAmountRequired": "Enter a service payment amount, a deposit hold amount, or both before generating a link.",
+        "errorNoStripe": "Connect Stripe before launching payments, deposits, or KYC verification.",
+        "errorAmountRequired": "Enter a service payment amount before generating this transaction.",
         "errorSignatureCity": "Enter the city of signature before continuing.",
         "errorServiceDate": "Choose the service date before continuing.",
         "errorCreate": "Failed to create transaction",
@@ -2486,11 +2502,12 @@
               "CANCELLED": "Cancelled",
               "DISPUTED": "Disputed"
             },
-            "kind": {
-              "PAYMENT": "Payment",
-              "DEPOSIT": "Deposit",
-              "HYBRID": "Hybrid"
-            },
+          "kind": {
+            "PAYMENT": "Payment",
+            "DEPOSIT": "Deposit",
+            "HYBRID": "Hybrid",
+            "WORKFLOW": "Workflow"
+          },
             "locale": {
               "en": "English",
               "fr": "French"

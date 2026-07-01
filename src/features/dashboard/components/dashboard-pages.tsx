@@ -816,10 +816,13 @@ export async function VendorLinksView({
             </p>
           </div>,
           <div key={`${record.reference}-amounts`} className="min-w-[132px] space-y-1">
-            {record.kind !== "DEPOSIT" && (
+            {record.kind === "WORKFLOW" && (
+              <p className="text-sm font-medium text-foreground">{t(`enums.kind.${record.kind}` as never)}</p>
+            )}
+            {record.kind !== "DEPOSIT" && record.kind !== "WORKFLOW" && (
               <p className="text-sm font-medium text-foreground">{t("serviceAmount", { amount: record.serviceAmount })}</p>
             )}
-            {record.kind !== "PAYMENT" && (
+            {record.kind !== "PAYMENT" && record.kind !== "WORKFLOW" && (
               <p className="text-xs text-muted-foreground">{t("depositAmount", { amount: record.depositAmount })}</p>
             )}
           </div>,

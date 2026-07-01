@@ -911,6 +911,7 @@ export async function AdminVendorLinkDetailView({
     PAYMENT: t("transactions.filterOptions.kind.PAYMENT"),
     DEPOSIT: t("transactions.filterOptions.kind.DEPOSIT"),
     HYBRID: t("transactions.filterOptions.kind.HYBRID"),
+    WORKFLOW: t("transactions.filterOptions.kind.WORKFLOW"),
   }
 
   const backHref = buildUserDetailHref(user.id, {

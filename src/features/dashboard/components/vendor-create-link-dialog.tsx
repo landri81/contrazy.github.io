@@ -84,9 +84,7 @@ export function VendorCreateLinkDialog({
 
   const createBlockedReason = !canLaunch
     ? blockedMessage
-    : !hasStripe
-      ? t("blockedMessages.noStripe")
-      : transactionLimitReached
+    : transactionLimitReached
         ? t("blockedMessages.quotaFull")
         : null
   const createBadge = createSuccess

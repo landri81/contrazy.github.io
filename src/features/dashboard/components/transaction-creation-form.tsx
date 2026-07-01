@@ -139,12 +139,17 @@ type DraftReportField = {
 }
 
 type StepDef = {
+  key: "modules" | "basics" | "finance" | "setup" | "review"
   id: number
   label: string
   title: string
   description: string
   icon: React.ComponentType<{ className?: string }>
 }
+
+type WorkflowModuleKey = "kyc" | "contract" | "photos" | "deposit" | "payment"
+
+type WorkflowModulesState = Record<WorkflowModuleKey, boolean>
 
 type BulkCsvPreview = {
   fileName: string
@@ -431,7 +436,33 @@ function getLocalRequirementExampleAssets(requirements: DraftRequirement[]) {
   )
 }
 
+function createInitialWorkflowModules(
+  initialValues?: TransactionCreationInitialValues | null
+): WorkflowModulesState {
+  const amount = Number.parseFloat(initialValues?.amount ?? "")
+  const depositAmount = Number.parseFloat(initialValues?.depositAmount ?? "")
+
+  return {
+    kyc: Boolean(initialValues?.requiresKyc),
+    contract: Boolean(
+      initialValues?.contractTemplateId ||
+        initialValues?.missingContractTemplateName ||
+        (initialValues?.customFields?.length ?? 0) > 0
+    ),
+    photos: Boolean(
+      initialValues?.checklistTemplateId || (initialValues?.requirements?.length ?? 0) > 0
+    ),
+    deposit: Number.isFinite(depositAmount) && depositAmount > 0,
+    payment: Number.isFinite(amount) && amount > 0,
+  }
+}
+
+function hasAnyWorkflowModuleSelected(modules: WorkflowModulesState) {
+  return Object.values(modules).some(Boolean)
+}
+
 type TransactionCreationFormState = {
+  enabledModules: WorkflowModulesState
   title: string
   notes: string
   amount: string
@@ -502,6 +533,7 @@ function createInitialFormState(
   initialValues?: TransactionCreationInitialValues | null
 ): TransactionCreationFormState {
   return {
+    enabledModules: createInitialWorkflowModules(initialValues),
     title: initialValues?.title ?? "",
     notes: initialValues?.notes ?? "",
     amount: initialValues?.amount ?? "",
@@ -529,6 +561,7 @@ function createInitialFormState(
 
 function buildFormSnapshot(state: TransactionCreationFormState): TransactionCreationFormSnapshot {
   return {
+    enabledModules: state.enabledModules,
     title: state.title,
     notes: state.notes,
     amount: state.amount,
@@ -747,6 +780,57 @@ function SwitchRow({
   )
 }
 
+function ModuleCard({
+  icon: Icon,
+  title,
+  description,
+  checked,
+  disabled = false,
+  note,
+  onToggle,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  checked: boolean
+  disabled?: boolean
+  note?: React.ReactNode
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      className={cn(
+        "flex w-full cursor-pointer flex-col rounded-sm border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0",
+        checked
+          ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)]/10"
+          : "border-border bg-background hover:bg-muted/35",
+        disabled && "cursor-not-allowed opacity-60 hover:bg-background"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-sm border",
+            checked
+              ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)] text-white"
+              : "border-border bg-muted text-muted-foreground"
+          )}
+        >
+          {checked ? <CheckCircle2 className="size-4" /> : <Icon className="size-4" />}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+          {note ? <div className="mt-2 text-xs leading-5 text-muted-foreground">{note}</div> : null}
+        </div>
+      </div>
+    </button>
+  )
+}
+
 function ErrorBlock({ error }: { error: string | null }) {
   return (
     <AnimatePresence initial={false}>
@@ -852,49 +936,10 @@ export function TransactionCreationForm({
       description: t("paymentTimingAfterServiceDesc"),
     },
   }
-
-  const steps = useMemo<StepDef[]>(
-    () => [
-      {
-        id: 1,
-        label: t("steps.info.label"),
-        title: t("steps.info.title"),
-        description: t("steps.info.description"),
-        icon: FileText,
-      },
-      {
-        id: 2,
-        label: t("steps.payment.label"),
-        title: t("steps.payment.title"),
-        description: t("steps.payment.description"),
-        icon: CreditCard,
-      },
-      {
-        id: 3,
-        label: t("summaryTiming"),
-        title: t("timingTitle"),
-        description: t("timingDesc"),
-        icon: Clock3,
-      },
-      {
-        id: 4,
-        label: t("steps.documents.label"),
-        title: t("steps.documents.title"),
-        description: t("steps.documents.description"),
-        icon: ShieldCheck,
-      },
-      {
-        id: 5,
-        label: t("steps.review.label"),
-        title: t("steps.review.title"),
-        description: t("steps.review.description"),
-        icon: LinkIcon,
-      },
-    ],
-    [t]
-  )
-
   const [step, setStep] = useState(1)
+  const [enabledModules, setEnabledModules] = useState<WorkflowModulesState>(
+    initialFormState.enabledModules
+  )
   const [title, setTitle] = useState(initialFormState.title)
   const [notes, setNotes] = useState(initialFormState.notes)
   const [amount, setAmount] = useState(initialFormState.amount)
@@ -959,13 +1004,71 @@ export function TransactionCreationForm({
     depositNum > 0 &&
     depositHoldDays !== "" &&
     !hasValidDepositHoldDays
-  const financeDisabled = !hasStripe || !canLaunch
+  const financeDisabled = !canLaunch
   const qrRemaining = usage?.qrCodes.remaining ?? null
   const canUseKycInPlan = usage?.kyc.allowed ?? false
   const remainingKyc = usage?.kyc.remaining ?? null
-  const qrToggleDisabled = isBulkMode || financeDisabled || (qrRemaining !== null && qrRemaining <= 0)
-  const kycDisabled =
-    financeDisabled || !canUseKycInPlan || (remainingKyc !== null && remainingKyc <= 0)
+  const qrToggleDisabled = isBulkMode || !canLaunch || (qrRemaining !== null && qrRemaining <= 0)
+  const hasFinanceStep = enabledModules.payment || enabledModules.deposit
+  const hasSetupStep =
+    enabledModules.contract ||
+    enabledModules.photos ||
+    enabledModules.kyc ||
+    enableCheckInOut
+  const requiresStripeForSelection =
+    enabledModules.payment || enabledModules.deposit || enabledModules.kyc
+  const stripeSelectionNotice = !hasStripe && requiresStripeForSelection
+
+  const steps = useMemo<StepDef[]>(
+    () =>
+      [
+        {
+          key: "modules",
+          label: t("steps.modules.label"),
+          title: t("steps.modules.title"),
+          description: t("steps.modules.description"),
+          icon: ClipboardList,
+        },
+        {
+          key: "basics",
+          label: t("steps.basics.label"),
+          title: t("steps.basics.title"),
+          description: t("steps.basics.description"),
+          icon: FileText,
+        },
+        hasFinanceStep
+          ? {
+              key: "finance",
+              label: t("steps.finance.label"),
+              title: t("steps.finance.title"),
+              description: t("steps.finance.description"),
+              icon: CreditCard,
+            }
+          : null,
+        hasSetupStep
+          ? {
+              key: "setup",
+              label: t("steps.setup.label"),
+              title: t("steps.setup.title"),
+              description: t("steps.setup.description"),
+              icon: ShieldCheck,
+            }
+          : null,
+        {
+          key: "review",
+          label: t("steps.review.label"),
+          title: t("steps.review.title"),
+          description: t("steps.review.description"),
+          icon: LinkIcon,
+        },
+      ]
+        .filter(Boolean)
+        .map((item, index) => ({
+          ...(item as Omit<StepDef, "id">),
+          id: index + 1,
+        })),
+    [hasFinanceStep, hasSetupStep, t]
+  )
 
   const selectedContract = contracts.find((contract) => contract.id === contractId)
   const contractLabel =
@@ -979,15 +1082,16 @@ export function TransactionCreationForm({
         ? "DEPOSIT"
         : amountNum > 0
           ? "PAYMENT"
-          : null
+          : "WORKFLOW"
 
   const kindLabels: Record<string, string> = {
     PAYMENT: t("kindPayment"),
     DEPOSIT: t("kindDeposit"),
     HYBRID: t("kindHybrid"),
+    WORKFLOW: t("kindWorkflow"),
   }
 
-  const activeStep = steps[step - 1]
+  const activeStep = steps[Math.min(step - 1, steps.length - 1)] || steps[0]!
 
   const clientSteps = [
     { key: "profile", label: t("clientStepProfile") },
@@ -995,6 +1099,7 @@ export function TransactionCreationForm({
     requiresKyc && { key: "kyc", label: t("clientStepKyc") },
     customFields.length > 0 && contractId !== "none" && { key: "details", label: t("clientStepDetails") },
     contractId !== "none" && { key: "contract", label: t("clientStepContract") },
+    enableCheckInOut && { key: "check-in", label: t("clientStepCheckIn") },
     depositNum > 0 && { key: "deposit", label: t("clientStepPayment") },
     amountNum > 0 && {
       key: "service-payment",
@@ -1004,7 +1109,6 @@ export function TransactionCreationForm({
           : t("clientStepServicePaymentOnly"),
     },
     { key: "complete", label: t("clientStepComplete") },
-    enableCheckInOut && { key: "check-in", label: t("clientStepCheckIn") },
     enableCheckInOut && { key: "check-out", label: t("clientStepCheckOut") },
   ].filter(Boolean) as { key: string; label: string }[]
 
@@ -1013,6 +1117,7 @@ export function TransactionCreationForm({
       JSON.stringify(
         {
           form: buildFormSnapshot({
+            enabledModules,
             title,
             notes,
             amount,
@@ -1041,6 +1146,7 @@ export function TransactionCreationForm({
     [
       amount,
       bulkCsvPreview,
+      enabledModules,
       checklistIds,
       contractId,
       depositAmount,
@@ -1117,6 +1223,45 @@ export function TransactionCreationForm({
     }
   }
 
+  function setWorkflowModuleEnabled(module: WorkflowModuleKey, checked: boolean) {
+    setEnabledModules((current) => ({
+      ...current,
+      [module]: checked,
+    }))
+    setStepError(null)
+    setError(null)
+
+    if (module === "payment" && !checked) {
+      setAmount("")
+      setPaymentCollectionTiming("AFTER_SIGNING")
+    }
+
+    if (module === "deposit" && !checked) {
+      setDepositAmount("")
+      setDepositHoldDays("7")
+      setLongDepositFeeAccepted(false)
+    }
+
+    if (module === "kyc") {
+      setRequiresKyc(checked)
+    }
+
+    if (module === "contract" && !checked) {
+      setContractId("none")
+      setCustomFields([])
+    }
+
+    if (module === "photos" && !checked) {
+      const removedLocalAssets = getLocalRequirementExampleAssets(requirements)
+      setChecklistIds([])
+      setRequirements([])
+
+      if (removedLocalAssets.length > 0) {
+        void cleanupRequirementExampleAssets(removedLocalAssets)
+      }
+    }
+  }
+
   useEffect(() => {
     pendingLocalAssetsRef.current = getLocalRequirementExampleAssets(requirements)
   }, [requirements])
@@ -1157,6 +1302,12 @@ export function TransactionCreationForm({
       setLongDepositFeeAccepted(false)
     }
   }, [isLongDeposit, longDepositFeeAccepted])
+
+  useEffect(() => {
+    if (step > steps.length) {
+      setStep(steps.length)
+    }
+  }, [step, steps.length])
 
   useEffect(() => {
     onDirtyChange?.(isDirty)
@@ -1525,17 +1676,22 @@ export function TransactionCreationForm({
   function validateCurrentStep() {
     setStepError(null)
 
-    if (step === 1 && !title.trim()) {
+    if (activeStep?.key === "modules" && !hasAnyWorkflowModuleSelected(enabledModules)) {
+      setStepError(t("errorNoModules"))
+      return false
+    }
+
+    if (activeStep?.key === "basics" && !title.trim()) {
       setStepError(t("errorTitle"))
       return false
     }
 
-    if (step === 1 && !serviceDate) {
+    if (activeStep?.key === "basics" && !serviceDate) {
       setStepError(t("errorServiceDate"))
       return false
     }
 
-    if (step === 1 && isBulkMode) {
+    if (activeStep?.key === "basics" && isBulkMode) {
       if (!bulkCsvPreview || bulkCsvPreview.validEmails.length === 0) {
         setStepError(t("bulkCsvRequired"))
         return false
@@ -1547,26 +1703,26 @@ export function TransactionCreationForm({
       }
     }
 
-    if (step === 2) {
-      if (hasStripe && canLaunch && amountNum <= 0 && depositNum <= 0) {
-        setStepError(t("errorAmount"))
-        return false
-      }
-
-      if (amount && (Number.isNaN(Number.parseFloat(amount)) || Number.parseFloat(amount) < 0.5)) {
+    if (activeStep?.key === "finance") {
+      if (
+        enabledModules.payment &&
+        (!amount || Number.isNaN(Number.parseFloat(amount)) || Number.parseFloat(amount) < 0.5)
+      ) {
         setStepError(t("errorMinService"))
         return false
       }
 
       if (
-        depositAmount &&
-        (Number.isNaN(Number.parseFloat(depositAmount)) || Number.parseFloat(depositAmount) < 0.5)
+        enabledModules.deposit &&
+        (!depositAmount ||
+          Number.isNaN(Number.parseFloat(depositAmount)) ||
+          Number.parseFloat(depositAmount) < 0.5)
       ) {
         setStepError(t("errorMinDeposit"))
         return false
       }
 
-      if (depositNum > 0) {
+      if (enabledModules.deposit && depositNum > 0) {
         if (
           !hasValidDepositHoldDays
         ) {
@@ -1586,12 +1742,22 @@ export function TransactionCreationForm({
       }
     }
 
-    if (step === 4) {
+    if (activeStep?.key === "setup") {
+      if (enabledModules.contract && contractId === "none") {
+        setStepError(t("errorContractRequired"))
+        return false
+      }
+
+      if (enabledModules.photos && requirements.length === 0) {
+        setStepError(t("errorRequirementsRequired"))
+        return false
+      }
+
       const invalidRequirement = requirements.find(
         (item) => !item.label.trim() || (item.category === "OTHER" && !item.customCategoryLabel.trim())
       )
 
-      if (invalidRequirement) {
+      if (enabledModules.photos && invalidRequirement) {
         setStepError(t("errorRequirements"))
         return false
       }
@@ -1648,54 +1814,79 @@ export function TransactionCreationForm({
       return
     }
 
-    if (!hasStripe) {
-      setError(t("errorNoStripe"))
+    if (!hasAnyWorkflowModuleSelected(enabledModules)) {
+      setError(t("errorNoModules"))
+      navigate(1)
       return
     }
 
-    if (amountNum <= 0 && depositNum <= 0) {
+    if (requiresStripeForSelection && !hasStripe) {
+      setError(t("errorNoStripe"))
+      navigate(enabledModules.payment || enabledModules.deposit ? steps.findIndex((item) => item.key === "finance") + 1 : steps.findIndex((item) => item.key === "setup") + 1)
+      return
+    }
+
+    if (enabledModules.payment && amountNum <= 0) {
       setError(t("errorAmountRequired"))
-      navigate(2)
+      navigate(steps.findIndex((item) => item.key === "finance") + 1)
+      return
+    }
+
+    if (enabledModules.deposit && depositNum <= 0) {
+      setError(t("errorDepositAmountRequired"))
+      navigate(steps.findIndex((item) => item.key === "finance") + 1)
       return
     }
 
     if (!serviceDate) {
       setError(t("errorServiceDate"))
-      navigate(1)
+      navigate(steps.findIndex((item) => item.key === "basics") + 1)
       return
     }
 
-    if (depositNum > 0) {
+    if (enabledModules.deposit && depositNum > 0) {
       if (
         !hasValidDepositHoldDays
       ) {
         setError(t("errorDepositDuration"))
-        navigate(2)
+        navigate(steps.findIndex((item) => item.key === "finance") + 1)
         return
       }
 
       if (isLongDeposit && !canChooseLongDeposit) {
         setError(t("errorDepositDurationStarter"))
-        navigate(2)
+        navigate(steps.findIndex((item) => item.key === "finance") + 1)
         return
       }
 
       if (isLongDeposit && !longDepositFeeAccepted) {
         setError(t("errorLongDepositAcceptance"))
-        navigate(2)
+        navigate(steps.findIndex((item) => item.key === "finance") + 1)
         return
       }
     }
 
+    if (enabledModules.contract && contractId === "none") {
+      setError(t("errorContractRequired"))
+      navigate(steps.findIndex((item) => item.key === "setup") + 1)
+      return
+    }
+
+    if (enabledModules.photos && requirements.length === 0) {
+      setError(t("errorRequirementsRequired"))
+      navigate(steps.findIndex((item) => item.key === "setup") + 1)
+      return
+    }
+
     if (customFields.length > 0 && contractId === "none") {
       setError(t("errorCustomFieldsContract"))
-      navigate(4)
+      navigate(steps.findIndex((item) => item.key === "setup") + 1)
       return
     }
 
     if (isBulkMode && (!bulkCsvPreview || bulkCsvPreview.validEmails.length === 0)) {
       setError(t("bulkCsvRequired"))
-      navigate(1)
+      navigate(steps.findIndex((item) => item.key === "basics") + 1)
       return
     }
 
@@ -1707,17 +1898,20 @@ export function TransactionCreationForm({
         title,
         serviceDate,
         notes,
-        contractTemplateId: contractId === "none" ? null : contractId,
-        checklistTemplateId: checklistIds[0] ?? null,
-        amount: amount ? parseEur(amount) : null,
-        depositAmount: depositAmount ? parseEur(depositAmount) : null,
-        depositHoldDays: depositNum > 0 ? depositHoldDaysNum : 7,
-        depositLongTermFeeAccepted: isLongDeposit && longDepositFeeAccepted,
-        requiresKyc,
+        contractTemplateId:
+          enabledModules.contract && contractId !== "none" ? contractId : null,
+        checklistTemplateId: enabledModules.photos ? checklistIds[0] ?? null : null,
+        amount: enabledModules.payment && amount ? parseEur(amount) : null,
+        depositAmount:
+          enabledModules.deposit && depositAmount ? parseEur(depositAmount) : null,
+        depositHoldDays: enabledModules.deposit && depositNum > 0 ? depositHoldDaysNum : 7,
+        depositLongTermFeeAccepted:
+          enabledModules.deposit && isLongDeposit && longDepositFeeAccepted,
+        requiresKyc: enabledModules.kyc && requiresKyc,
         generateQr: isBulkMode ? false : generateQr,
         paymentCollectionTiming,
         requireClientCompany,
-        requirements: requirements.map((item) => ({
+        requirements: (enabledModules.photos ? requirements : []).map((item) => ({
           label: item.label,
           description: item.description || null,
           type: item.type,
@@ -1733,7 +1927,7 @@ export function TransactionCreationForm({
           exampleImageFileName:
             item.type === "TEXT" ? null : item.exampleImage?.fileName ?? null,
         })),
-        customFields: customFields.map((item) => ({
+        customFields: (enabledModules.contract ? customFields : []).map((item) => ({
           label: item.label,
           instructions: item.instructions || null,
           type: item.type,
@@ -1826,6 +2020,7 @@ export function TransactionCreationForm({
     setSuccessError(null)
     setCopied(false)
     setBulkCsvPreview(null)
+    setEnabledModules(nextInitialState.enabledModules)
     setTitle(nextInitialState.title)
     setNotes(nextInitialState.notes)
     setContractId(nextInitialState.contractId)
@@ -2309,12 +2504,115 @@ export function TransactionCreationForm({
           >
             <StepHeader step={activeStep} />
 
-            {step === 1 ? (
+            {activeStep?.key === "modules" ? (
               <div>
                 {recreateSourceReference ? (
                   <Section>
                     <InlineNotice>
                       {t("recreateNotice", { reference: recreateSourceReference })}
+                    </InlineNotice>
+                  </Section>
+                ) : null}
+
+                <Section>
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-[var(--contrazy-teal)]/25 bg-[var(--contrazy-teal)]/10 text-[var(--contrazy-teal)]">
+                      <ClipboardList className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{t("modulesTitle")}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {t("modulesDesc")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <ModuleCard
+                      icon={ShieldCheck}
+                      title={t("moduleKycTitle")}
+                      description={t("moduleKycDesc")}
+                      checked={enabledModules.kyc}
+                      note={t("moduleStripeRequiredNote")}
+                      onToggle={() => setWorkflowModuleEnabled("kyc", !enabledModules.kyc)}
+                    />
+                    <ModuleCard
+                      icon={FileText}
+                      title={t("moduleContractTitle")}
+                      description={t("moduleContractDesc")}
+                      checked={enabledModules.contract}
+                      onToggle={() =>
+                        setWorkflowModuleEnabled("contract", !enabledModules.contract)
+                      }
+                    />
+                    <ModuleCard
+                      icon={ClipboardList}
+                      title={t("modulePhotosTitle")}
+                      description={t("modulePhotosDesc")}
+                      checked={enabledModules.photos}
+                      onToggle={() => setWorkflowModuleEnabled("photos", !enabledModules.photos)}
+                    />
+                    <ModuleCard
+                      icon={Wallet}
+                      title={t("moduleDepositTitle")}
+                      description={t("moduleDepositDesc")}
+                      checked={enabledModules.deposit}
+                      note={t("moduleStripeRequiredNote")}
+                      onToggle={() =>
+                        setWorkflowModuleEnabled("deposit", !enabledModules.deposit)
+                      }
+                    />
+                    <ModuleCard
+                      icon={CreditCard}
+                      title={t("modulePaymentTitle")}
+                      description={t("modulePaymentDesc")}
+                      checked={enabledModules.payment}
+                      note={t("moduleStripeRequiredNote")}
+                      onToggle={() =>
+                        setWorkflowModuleEnabled("payment", !enabledModules.payment)
+                      }
+                    />
+                  </div>
+
+                  {!hasAnyWorkflowModuleSelected(enabledModules) ? (
+                    <div className="mt-4">
+                      <InlineNotice tone="warning" icon={AlertCircle}>
+                        {t("errorNoModules")}
+                      </InlineNotice>
+                    </div>
+                  ) : null}
+
+                  {stripeSelectionNotice ? (
+                    <div className="mt-4">
+                      <InlineNotice>
+                        {t("stripeRequired")}{" "}
+                        <Link
+                          href="/vendor/stripe"
+                          className="font-semibold underline underline-offset-2"
+                        >
+                          {t("connectStripe")} →
+                        </Link>
+                      </InlineNotice>
+                    </div>
+                  ) : null}
+                </Section>
+
+                <Section>
+                  <InlineNotice>
+                    {t("modulesPreview", {
+                      count: Object.values(enabledModules).filter(Boolean).length,
+                    })}
+                  </InlineNotice>
+                </Section>
+              </div>
+            ) : null}
+
+            {activeStep?.key === "basics" ? (
+              <div>
+                {!canLaunch ? (
+                  <Section>
+                    <InlineNotice tone="warning" icon={AlertCircle}>
+                      {blockedMessage}
                     </InlineNotice>
                   </Section>
                 ) : null}
@@ -2343,10 +2641,7 @@ export function TransactionCreationForm({
                     hint={
                       <div className="flex items-center justify-between gap-3">
                         <span>{t("notesPrivate")}</span>
-                        <CharacterCount
-                          current={notes.length}
-                          limit={INPUT_LIMITS.transactionNotes}
-                        />
+                        <CharacterCount current={notes.length} limit={INPUT_LIMITS.transactionNotes} />
                       </div>
                     }
                   >
@@ -2441,7 +2736,9 @@ export function TransactionCreationForm({
                                   ))}
                                   {bulkCsvPreview.validEmails.length > 20 ? (
                                     <span className="inline-flex rounded-full border border-border bg-background px-2 py-0.5">
-                                      {t("bulkCsvMore", { count: bulkCsvPreview.validEmails.length - 20 })}
+                                      {t("bulkCsvMore", {
+                                        count: bulkCsvPreview.validEmails.length - 20,
+                                      })}
                                     </span>
                                   ) : null}
                                 </div>
@@ -2453,256 +2750,264 @@ export function TransactionCreationForm({
                     </div>
                   </Section>
                 ) : null}
+
+                <Section>
+                  <SwitchRow
+                    id="require-client-company"
+                    icon={Building2}
+                    title={t("requireCompanyTitle")}
+                    description={t("requireCompanyDesc")}
+                    checked={requireClientCompany}
+                    onCheckedChange={setRequireClientCompany}
+                  />
+
+                  <SwitchRow
+                    id="enable-checkinout"
+                    icon={Clock3}
+                    title={t("checkInOutTitle")}
+                    description={t("checkInOutDesc")}
+                    checked={enableCheckInOut}
+                    onCheckedChange={(checked) => setEnableCheckInOut(Boolean(checked))}
+                    disabled={isBulkMode}
+                  >
+                    {isBulkMode ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{t("checkInOutBulkDisabled")}</p>
+                    ) : null}
+                  </SwitchRow>
+                </Section>
               </div>
             ) : null}
 
-            {step === 2 ? (
+            {activeStep?.key === "finance" ? (
               <div>
-                {(!hasStripe || !canLaunch) ? (
-                  <Section className="space-y-2">
-                    {!canLaunch ? (
-                      <InlineNotice tone="warning" icon={AlertCircle}>
-                        {blockedMessage}
-                      </InlineNotice>
-                    ) : null}
-
-                    {!hasStripe ? (
+                <Section>
+                  {stripeSelectionNotice ? (
+                    <div className="mb-3">
                       <InlineNotice>
-                        {t("stripeRequired")} {" "}
-                        <Link href="/vendor/stripe" className="font-semibold underline underline-offset-2">
+                        {t("stripeRequired")}{" "}
+                        <Link
+                          href="/vendor/stripe"
+                          className="font-semibold underline underline-offset-2"
+                        >
                           {t("connectStripe")} →
                         </Link>
                       </InlineNotice>
-                    ) : null}
-                  </Section>
-                ) : null}
+                    </div>
+                  ) : null}
 
-                <Section>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-2">
-                        <Wallet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t("depositTitle")}</p>
-                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{t("depositDesc")}</p>
-                        </div>
-                      </div>
-
-                      <Field id="depositAmount" label={t("depositHoldLabel")}>
-                        <Input
-                          id="depositAmount"
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="0.00"
-                          value={depositAmount}
-                          onChange={(event) => {
-                            setDepositAmount(event.target.value)
-                            setLongDepositFeeAccepted(false)
-                            setStepError(null)
-                          }}
-                          disabled={financeDisabled}
-                          className={controlClass}
-                        />
-                      </Field>
-
-                      {depositNum > 0 ? (
-                        <div className="space-y-2 rounded-sm border border-border bg-muted/20 p-3">
-                          <Field id="depositHoldDays" label={t("depositDurationLabel")}>
-                            <Input
-                              id="depositHoldDays"
-                              type="number"
-                              min="7"
-                              max="30"
-                              step="1"
-                              value={canChooseLongDeposit ? depositHoldDays : "7"}
-                              onChange={(event) => {
-                                const raw = event.target.value
-                                // Allow free typing but strip decimals and leading zeros
-                                const cleaned = raw.replace(/[^0-9]/g, "")
-                                setDepositHoldDays(cleaned === "" ? "" : String(parseInt(cleaned, 10)))
-                                setLongDepositFeeAccepted(false)
-                                setStepError(null)
-                              }}
-                              onBlur={(event) => {
-                                if (!canChooseLongDeposit) return
-                                const val = parseInt(event.target.value, 10)
-                                if (isNaN(val) || val < 7) {
-                                  setDepositHoldDays("7")
-                                } else if (val > 30) {
-                                  setDepositHoldDays("30")
-                                } else {
-                                  setDepositHoldDays(String(val))
-                                }
-                              }}
-                              disabled={financeDisabled || !canChooseLongDeposit}
-                              className={`${controlClass} ${depositDaysInvalid ? "border-destructive ring-destructive/20" : ""}`}
-                            />
-                          </Field>
-
-                          {!canChooseLongDeposit ? (
-                            <p className="text-xs leading-5 text-muted-foreground">
-                              {t("depositDurationStarterLocked")}
-                            </p>
-                          ) : depositDaysInvalid ? (
-                            <p className="text-xs leading-5 text-destructive">
-                              {t("errorDepositDuration")}
-                            </p>
-                          ) : (
-                            <p className="text-xs leading-5 text-muted-foreground">
-                              {t("depositDurationChoiceHint")}
-                            </p>
-                          )}
-
-                          {isLongDeposit && depositPricing ? (
-                            <div className="space-y-3 rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
-                              <div className="flex items-start gap-2">
-                                <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
-                                <p className="leading-5 font-medium">
-                                  {t("longDepositWarning", {
-                                    days: depositHoldDaysNum,
-                                    totalFee: `€${depositPricing.total.toFixed(2)}`,
-                                  })}
-                                </p>
-                              </div>
-                              <label className="flex cursor-pointer items-start gap-2 text-xs font-medium leading-5 text-destructive pl-5">
-                                <input
-                                  type="checkbox"
-                                  checked={longDepositFeeAccepted}
-                                  onChange={(event) => {
-                                    setLongDepositFeeAccepted(event.target.checked)
-                                    setStepError(null)
-                                  }}
-                                  className="mt-1 size-3.5 cursor-pointer accent-red-600"
-                                />
-                                <span>{t("longDepositAcceptLabel")}</span>
-                              </label>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      {depositNum > 0 ? (
-                        <dl className="space-y-1 border-t border-border pt-2 text-xs">
-                          <div className="flex justify-between gap-3">
-                            <dt className="text-muted-foreground">{t("holdAmount")}</dt>
-                            <dd className="font-medium text-foreground">€{depositNum.toFixed(2)}</dd>
+                    {enabledModules.deposit ? (
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2">
+                          <Wallet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{t("depositTitle")}</p>
+                            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{t("depositDesc")}</p>
                           </div>
-                          <div className="flex justify-between gap-3">
-                            <dt className="text-muted-foreground">{t("vendorFeeEstimate")}</dt>
-                            <dd>€{depositPricing?.total.toFixed(2)}</dd>
-                          </div>
-                          <div className="border-t border-border pt-1.5 text-muted-foreground">
-                            {isLongDeposit
-                              ? t("longDepositFeeSummary")
-                              : t("noFeesUnlessCaptured")}
-                          </div>
-                        </dl>
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-3 border-t border-border pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
-                      <div className="flex items-start gap-2">
-                        <CreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t("servicePaymentTitle")}</p>
-                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{t("servicePaymentDesc")}</p>
                         </div>
-                      </div>
 
-                      <Field id="amount" label={t("amountLabel")}>
-                        <Input
-                          id="amount"
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="0.00"
-                          value={amount}
-                          onChange={(event) => {
-                            setAmount(event.target.value)
-                            setStepError(null)
-                          }}
-                          disabled={financeDisabled}
-                          className={controlClass}
-                        />
-                      </Field>
+                        <Field id="depositAmount" label={t("depositHoldLabel")} required>
+                          <Input
+                            id="depositAmount"
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0.00"
+                            value={depositAmount}
+                            onChange={(event) => {
+                              setDepositAmount(event.target.value)
+                              setLongDepositFeeAccepted(false)
+                              setStepError(null)
+                            }}
+                            disabled={financeDisabled}
+                            className={controlClass}
+                          />
+                        </Field>
 
-                      {amountNum > 0 ? (
-                        <p className="border-t border-border pt-2 text-xs leading-5 text-muted-foreground">
-                          {t("clientPays", {
-                            amount: `€${amountNum.toFixed(2)}`,
-                            payout: `€${(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}`,
-                          })}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </Section>
+                        {depositNum > 0 ? (
+                          <div className="space-y-2 rounded-sm border border-border bg-muted/20 p-3">
+                            <Field id="depositHoldDays" label={t("depositDurationLabel")}>
+                              <Input
+                                id="depositHoldDays"
+                                type="number"
+                                min="7"
+                                max="30"
+                                step="1"
+                                value={canChooseLongDeposit ? depositHoldDays : "7"}
+                                onChange={(event) => {
+                                  const raw = event.target.value
+                                  const cleaned = raw.replace(/[^0-9]/g, "")
+                                  setDepositHoldDays(
+                                    cleaned === "" ? "" : String(parseInt(cleaned, 10))
+                                  )
+                                  setLongDepositFeeAccepted(false)
+                                  setStepError(null)
+                                }}
+                                onBlur={(event) => {
+                                  if (!canChooseLongDeposit) return
+                                  const val = parseInt(event.target.value, 10)
+                                  if (isNaN(val) || val < 7) {
+                                    setDepositHoldDays("7")
+                                  } else if (val > 30) {
+                                    setDepositHoldDays("30")
+                                  } else {
+                                    setDepositHoldDays(String(val))
+                                  }
+                                }}
+                                disabled={financeDisabled || !canChooseLongDeposit}
+                                className={`${controlClass} ${depositDaysInvalid ? "border-destructive ring-destructive/20" : ""}`}
+                              />
+                            </Field>
 
-                {txKind ? (
-                  <Section>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className={fieldLabelClass}>{t("summaryType")}</span>
-                      <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-                        {kindLabels[txKind]}
-                      </span>
-                    </div>
-                  </Section>
-                ) : null}
-              </div>
-            ) : null}
-
-            {step === 3 ? (
-              <div>
-                <Section>
-                  {amountNum > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {paymentCollectionTimingOptions.map((option) => {
-                        const active = paymentCollectionTiming === option.value
-                        const optionId = `payment-timing-${option.value}`
-
-                        return (
-                          <button
-                            key={option.value}
-                            id={optionId}
-                            type="button"
-                            onClick={() => setPaymentCollectionTiming(option.value)}
-                            className={cn(
-                              "cursor-pointer rounded-sm border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0",
-                              active
-                                ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)]/10"
-                                : "border-border bg-background hover:bg-muted/35"
+                            {!canChooseLongDeposit ? (
+                              <p className="text-xs leading-5 text-muted-foreground">
+                                {t("depositDurationStarterLocked")}
+                              </p>
+                            ) : depositDaysInvalid ? (
+                              <p className="text-xs leading-5 text-destructive">
+                                {t("errorDepositDuration")}
+                              </p>
+                            ) : (
+                              <p className="text-xs leading-5 text-muted-foreground">
+                                {t("depositDurationChoiceHint")}
+                              </p>
                             )}
-                          >
-                            <div className="flex items-start gap-2">
-                              <span
-                                className={cn(
-                                  "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
-                                  active
-                                    ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)]"
-                                    : "border-border bg-background"
-                                )}
-                              >
-                                {active ? <CheckCircle2 className="size-3 text-white" /> : null}
-                              </span>
-                              <span>
-                                <span className="block text-sm font-medium text-foreground">
-                                  {paymentTimingLabels[option.value]?.label ?? option.label}
-                                </span>
-                                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                                  {paymentTimingLabels[option.value]?.description ?? option.description}
-                                </span>
-                              </span>
+
+                            {isLongDeposit && depositPricing ? (
+                              <div className="space-y-3 rounded-sm border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                                  <p className="leading-5 font-medium">
+                                    {t("longDepositWarning", {
+                                      days: depositHoldDaysNum,
+                                      totalFee: `€${depositPricing.total.toFixed(2)}`,
+                                    })}
+                                  </p>
+                                </div>
+                                <label className="flex cursor-pointer items-start gap-2 pl-5 text-xs font-medium leading-5 text-destructive">
+                                  <input
+                                    type="checkbox"
+                                    checked={longDepositFeeAccepted}
+                                    onChange={(event) => {
+                                      setLongDepositFeeAccepted(event.target.checked)
+                                      setStepError(null)
+                                    }}
+                                    className="mt-1 size-3.5 cursor-pointer accent-red-600"
+                                  />
+                                  <span>{t("longDepositAcceptLabel")}</span>
+                                </label>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {depositNum > 0 ? (
+                          <dl className="space-y-1 border-t border-border pt-2 text-xs">
+                            <div className="flex justify-between gap-3">
+                              <dt className="text-muted-foreground">{t("holdAmount")}</dt>
+                              <dd className="font-medium text-foreground">€{depositNum.toFixed(2)}</dd>
                             </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <InlineNotice>
-                      {t("servicePaymentTitle")} — {t("servicePaymentOptional")}
-                    </InlineNotice>
-                  )}
+                            <div className="flex justify-between gap-3">
+                              <dt className="text-muted-foreground">{t("vendorFeeEstimate")}</dt>
+                              <dd>€{depositPricing?.total.toFixed(2)}</dd>
+                            </div>
+                            <div className="border-t border-border pt-1.5 text-muted-foreground">
+                              {isLongDeposit ? t("longDepositFeeSummary") : t("noFeesUnlessCaptured")}
+                            </div>
+                          </dl>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {enabledModules.payment ? (
+                      <div
+                        className={cn(
+                          "space-y-3",
+                          enabledModules.deposit &&
+                            "border-t border-border pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0"
+                        )}
+                      >
+                        <div className="flex items-start gap-2">
+                          <CreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{t("servicePaymentTitle")}</p>
+                            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{t("servicePaymentDesc")}</p>
+                          </div>
+                        </div>
+
+                        <Field id="amount" label={t("amountLabel")} required>
+                          <Input
+                            id="amount"
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0.00"
+                            value={amount}
+                            onChange={(event) => {
+                              setAmount(event.target.value)
+                              setStepError(null)
+                            }}
+                            disabled={financeDisabled}
+                            className={controlClass}
+                          />
+                        </Field>
+
+                        {amountNum > 0 ? (
+                          <>
+                            <p className="border-t border-border pt-2 text-xs leading-5 text-muted-foreground">
+                              {t("clientPays", {
+                                amount: `€${amountNum.toFixed(2)}`,
+                                payout: `€${(amountNum - amountNum * 0.014 - 0.25).toFixed(2)}`,
+                              })}
+                            </p>
+
+                            <div className="grid gap-3 pt-1">
+                              {paymentCollectionTimingOptions.map((option) => {
+                                const active = paymentCollectionTiming === option.value
+                                const optionId = `payment-timing-${option.value}`
+
+                                return (
+                                  <button
+                                    key={option.value}
+                                    id={optionId}
+                                    type="button"
+                                    onClick={() => setPaymentCollectionTiming(option.value)}
+                                    className={cn(
+                                      "cursor-pointer rounded-sm border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--contrazy-teal)] focus-visible:ring-offset-0",
+                                      active
+                                        ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)]/10"
+                                        : "border-border bg-background hover:bg-muted/35"
+                                    )}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <span
+                                        className={cn(
+                                          "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
+                                          active
+                                            ? "border-[var(--contrazy-teal)] bg-[var(--contrazy-teal)]"
+                                            : "border-border bg-background"
+                                        )}
+                                      >
+                                        {active ? <CheckCircle2 className="size-3 text-white" /> : null}
+                                      </span>
+                                      <span>
+                                        <span className="block text-sm font-medium text-foreground">
+                                          {paymentTimingLabels[option.value]?.label ?? option.label}
+                                        </span>
+                                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                                          {paymentTimingLabels[option.value]?.description ?? option.description}
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </Section>
 
                 {amountNum > 0 && paymentCollectionTiming === "AFTER_SERVICE" ? (
@@ -2712,12 +3017,21 @@ export function TransactionCreationForm({
                     </InlineNotice>
                   </Section>
                 ) : null}
+
+                <Section>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={fieldLabelClass}>{t("summaryType")}</span>
+                    <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                      {kindLabels[txKind]}
+                    </span>
+                  </div>
+                </Section>
               </div>
             ) : null}
 
-            {step === 4 ? (
+            {activeStep?.key === "setup" ? (
               <div>
-                {missingSourceContractTemplateName && contractId === "none" ? (
+                {enabledModules.contract && missingSourceContractTemplateName && contractId === "none" ? (
                   <Section>
                     <InlineNotice tone="warning" icon={AlertCircle}>
                       {t("recreateMissingContractWarning", {
@@ -2727,84 +3041,109 @@ export function TransactionCreationForm({
                   </Section>
                 ) : null}
 
-                <Section>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        {t("requiredUploads")}
-                      </label>
-                      {selectedChecklistTemplates.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {selectedChecklistTemplates.map((bundle) => (
-                            <span
-                              key={bundle.id}
-                              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground"
+                {enabledModules.photos || enabledModules.contract ? (
+                  <Section>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {enabledModules.photos ? (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {t("requiredUploads")}
+                          </label>
+                          {selectedChecklistTemplates.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedChecklistTemplates.map((bundle) => (
+                                <span
+                                  key={bundle.id}
+                                  className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-muted/40 px-2 py-1 text-xs font-medium text-foreground"
+                                >
+                                  <ClipboardList className="size-3 shrink-0 text-muted-foreground" />
+                                  <span className="max-w-[140px] truncate">
+                                    {getTemplateLabel(bundle, t("untitledChecklist"))}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    aria-label={t("removeBundle")}
+                                    onClick={() => handleRemoveBundle(bundle.id)}
+                                    className="ml-0.5 rounded text-muted-foreground transition-colors hover:text-destructive"
+                                  >
+                                    <X className="size-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {checklists.filter((c) => !checklistIds.includes(c.id)).length > 0 ? (
+                            <Select
+                              onValueChange={(value: string | null) => {
+                                if (value) handleAddBundle(value)
+                              }}
                             >
-                              <ClipboardList className="size-3 shrink-0 text-muted-foreground" />
-                              <span className="max-w-[140px] truncate">
-                                {getTemplateLabel(bundle, t("untitledChecklist"))}
-                              </span>
-                              <button
-                                type="button"
-                                aria-label={t("removeBundle")}
-                                onClick={() => handleRemoveBundle(bundle.id)}
-                                className="ml-0.5 rounded text-muted-foreground transition-colors hover:text-destructive"
-                              >
-                                <X className="size-3" />
-                              </button>
-                            </span>
-                          ))}
+                              <SelectTrigger className={cn(controlClass, "cursor-pointer")}>
+                                <span className="truncate text-sm text-muted-foreground">
+                                  {t("addBundle")}
+                                </span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {checklists
+                                  .filter((c) => !checklistIds.includes(c.id))
+                                  .map((checklist) => (
+                                    <SelectItem
+                                      key={checklist.id}
+                                      value={checklist.id}
+                                      className="cursor-pointer"
+                                    >
+                                      <span className="block max-w-60 truncate">
+                                        {getTemplateLabel(checklist, t("untitledChecklist"))}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          ) : checklists.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">{t("noUploadsNeeded")}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{t("allBundlesAdded")}</span>
+                          )}
                         </div>
-                      )}
-                      {checklists.filter((c) => !checklistIds.includes(c.id)).length > 0 ? (
-                        <Select onValueChange={(value: string | null) => { if (value) handleAddBundle(value) }}>
-                          <SelectTrigger className={cn(controlClass, "cursor-pointer")}>
-                            <span className="truncate text-sm text-muted-foreground">
-                              {t("addBundle")}
-                            </span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {checklists
-                              .filter((c) => !checklistIds.includes(c.id))
-                              .map((checklist) => (
-                                <SelectItem key={checklist.id} value={checklist.id} className="cursor-pointer">
+                      ) : null}
+
+                      {enabledModules.contract ? (
+                        <Field id="contract" label={t("contractTemplate")} required>
+                          <Select
+                            value={contractId}
+                            onValueChange={(value) => setContractId(value ?? "none")}
+                          >
+                            <SelectTrigger id="contract" className={cn(controlClass, "cursor-pointer")}>
+                              <span
+                                className={cn(
+                                  "truncate text-sm",
+                                  contractId === "none" && "text-muted-foreground"
+                                )}
+                              >
+                                {contractLabel}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none" className="cursor-pointer">
+                                {t("noContractNeeded")}
+                              </SelectItem>
+                              {contracts.map((contract) => (
+                                <SelectItem key={contract.id} value={contract.id} className="cursor-pointer">
                                   <span className="block max-w-60 truncate">
-                                    {getTemplateLabel(checklist, t("untitledChecklist"))}
+                                    {getTemplateLabel(contract, t("untitledContract"))}
                                   </span>
                                 </SelectItem>
                               ))}
-                          </SelectContent>
-                        </Select>
-                      ) : checklists.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">{t("noUploadsNeeded")}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{t("allBundlesAdded")}</span>
-                      )}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      ) : null}
                     </div>
+                  </Section>
+                ) : null}
 
-                    <Field id="contract" label={t("contractTemplate")}>
-                      <Select value={contractId} onValueChange={(value) => setContractId(value ?? "none")}>
-                        <SelectTrigger id="contract" className={cn(controlClass, "cursor-pointer")}>
-                          <span className={cn("truncate text-sm", contractId === "none" && "text-muted-foreground")}>{contractLabel}</span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none" className="cursor-pointer">
-                            {t("noContractNeeded")}
-                          </SelectItem>
-                          {contracts.map((contract) => (
-                            <SelectItem key={contract.id} value={contract.id} className="cursor-pointer">
-                              <span className="block max-w-60 truncate">
-                                {getTemplateLabel(contract, t("untitledContract"))}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-                </Section>
-
-                <Section>
+                {enabledModules.photos ? (
+                  <Section>
                   <div className="mb-3 flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-medium text-foreground">{t("perTransactionTitle")}</p>
@@ -3039,7 +3378,9 @@ export function TransactionCreationForm({
                     </div>
                   )}
                 </Section>
+                ) : null}
 
+                {enabledModules.contract ? (
                 <Section>
                   <div className="mb-3 flex items-center justify-between gap-4">
                     <div>
@@ -3240,26 +3581,16 @@ export function TransactionCreationForm({
                     </div>
                   )}
                 </Section>
+                ) : null}
 
+                {enableCheckInOut ? (
                 <Section>
-                  <SwitchRow
-                    id="check-in-out"
-                    icon={ClipboardList}
-                    title={t("checkInOutTitle")}
-                    description={t("checkInOutDesc")}
-                    checked={enableCheckInOut}
-                    onCheckedChange={(checked) => {
-                      setEnableCheckInOut(Boolean(checked))
-                      if (!checked) setReportFields([])
-                    }}
-                    disabled={isBulkMode}
-                  >
-                    {isBulkMode ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{t("checkInOutBulkDisabled")}</p>
-                    ) : null}
-                  </SwitchRow>
-
-                  {enableCheckInOut ? (
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-foreground">{t("checkInOutTitle")}</p>
+                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                        {t("checkInOutDesc")}
+                      </p>
+                    </div>
                     <div className="mt-4 space-y-4">
                       {(["CHECK_IN", "CHECK_OUT"] as const).map((phase) => {
                         const phaseFields = reportFields.filter((f) => f.reportType === phase)
@@ -3419,47 +3750,50 @@ export function TransactionCreationForm({
                         )
                       })}
                     </div>
-                  ) : null}
                 </Section>
+                ) : null}
 
-                <Section>
-                  <SwitchRow
-                    id="require-client-company"
-                    icon={Building2}
-                    title={t("requireCompanyTitle")}
-                    description={t("requireCompanyDesc")}
-                    checked={requireClientCompany}
-                    onCheckedChange={setRequireClientCompany}
-                  />
+                {enabledModules.kyc ? (
+                  <Section className="space-y-3">
+                    <InlineNotice icon={ShieldCheck}>
+                      {t("requireIdDesc")}
+                    </InlineNotice>
 
-                  <SwitchRow
-                    id="requires-kyc"
-                    icon={ShieldCheck}
-                    title={t("requireIdTitle")}
-                    description={t("requireIdDesc")}
-                    checked={requiresKyc}
-                    onCheckedChange={setRequiresKyc}
-                    disabled={kycDisabled}
-                  >
                     {!canUseKycInPlan ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{t("kycPlanRequired")}</p>
+                      <InlineNotice tone="warning" icon={AlertCircle}>
+                        {t("kycPlanRequired")}
+                      </InlineNotice>
                     ) : remainingKyc !== null && remainingKyc <= 0 ? (
-                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{t("kycQuotaUsed")}</p>
+                      <InlineNotice tone="warning" icon={AlertCircle}>
+                        {t("kycQuotaUsed")}
+                      </InlineNotice>
                     ) : remainingKyc !== null ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <InlineNotice>
                         {remainingKyc === 1 ? t("kycRemainingOne") : t("kycRemainingMany", { count: remainingKyc })}
-                      </p>
+                      </InlineNotice>
                     ) : null}
 
-                    {requiresKyc ? (
-                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">{t("kycNote")}</p>
+                    {stripeSelectionNotice ? (
+                      <InlineNotice>
+                        {t("stripeRequired")}{" "}
+                        <Link
+                          href="/vendor/stripe"
+                          className="font-semibold underline underline-offset-2"
+                        >
+                          {t("connectStripe")} →
+                        </Link>
+                      </InlineNotice>
                     ) : null}
-                  </SwitchRow>
-                </Section>
+
+                    <InlineNotice tone="warning" icon={AlertCircle}>
+                      {t("kycNote")}
+                    </InlineNotice>
+                  </Section>
+                ) : null}
               </div>
             ) : null}
 
-            {step === 5 ? (
+            {activeStep?.key === "review" ? (
               <div>
                 <Section>
                   <div className="grid gap-6 md:grid-cols-[minmax(0,1.35fr)_minmax(220px,0.75fr)]">
@@ -3484,7 +3818,7 @@ export function TransactionCreationForm({
 
                         <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
                           <dt className="text-muted-foreground">{t("summaryType")}</dt>
-                          <dd className="font-medium text-foreground">{txKind ? kindLabels[txKind] : "—"}</dd>
+                          <dd className="font-medium text-foreground">{kindLabels[txKind]}</dd>
                         </div>
 
                         <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">

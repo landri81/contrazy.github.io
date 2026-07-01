@@ -21,6 +21,7 @@ export const vendorTransactionKindOptions: DashboardFilterOption[] = [
   { label: "Payment", value: "PAYMENT" },
   { label: "Deposit", value: "DEPOSIT" },
   { label: "Hybrid", value: "HYBRID" },
+  { label: "Workflow", value: "WORKFLOW" },
 ]
 
 export const vendorKycStatusOptions: DashboardFilterOption[] = [

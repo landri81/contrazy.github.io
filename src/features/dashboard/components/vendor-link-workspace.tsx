@@ -232,10 +232,13 @@ function MobileTransactionCard({
             {t("table.columns.amount")}
           </p>
           <div className="mt-1 space-y-0.5">
-            {record.kind !== "DEPOSIT" ? (
+            {record.kind === "WORKFLOW" ? (
+              <p className="font-semibold text-foreground">{t(`enums.kind.${record.kind}` as never)}</p>
+            ) : null}
+            {record.kind !== "DEPOSIT" && record.kind !== "WORKFLOW" ? (
               <p className="font-semibold text-foreground">{record.serviceAmount}</p>
             ) : null}
-            {record.kind !== "PAYMENT" ? (
+            {record.kind !== "PAYMENT" && record.kind !== "WORKFLOW" ? (
               <p className="text-xs text-muted-foreground">
                 {t("table.holdPrefix")} {record.depositAmount}
               </p>
@@ -679,13 +682,18 @@ export function VendorLinkWorkspace({
               </div>,
 
               <div key={`${record.id}-amounts`} className="min-w-[132px] space-y-0.5">
-                {record.kind !== "DEPOSIT" ? (
+                {record.kind === "WORKFLOW" ? (
+                  <p className="text-sm font-semibold text-foreground">
+                    {t(`enums.kind.${record.kind}` as never)}
+                  </p>
+                ) : null}
+                {record.kind !== "DEPOSIT" && record.kind !== "WORKFLOW" ? (
                   <p className="text-sm font-semibold text-foreground">
                     {record.serviceAmount}
                   </p>
                 ) : null}
 
-                {record.kind !== "PAYMENT" ? (
+                {record.kind !== "PAYMENT" && record.kind !== "WORKFLOW" ? (
                   <p className="text-xs text-muted-foreground">
                     {t("table.holdPrefix")} {record.depositAmount}
                   </p>

@@ -54,6 +54,7 @@ enum TransactionKind {
   PAYMENT
   DEPOSIT
   HYBRID
+  WORKFLOW
 }
 
 enum PaymentCollectionTiming {

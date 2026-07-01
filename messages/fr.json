@@ -624,7 +624,8 @@
           "kind": {
             "PAYMENT": "Paiement",
             "DEPOSIT": "Caution",
-            "HYBRID": "Hybride"
+            "HYBRID": "Hybride",
+            "WORKFLOW": "Flux"
           },
           "kyc": {
             "NOT_REQUIRED": "Non requis",
@@ -940,7 +941,8 @@
           "kind": {
             "PAYMENT": "Paiement",
             "DEPOSIT": "Caution",
-            "HYBRID": "Hybride"
+            "HYBRID": "Hybride",
+            "WORKFLOW": "Flux"
           },
           "status": {
             "ACTIVE": "Actif",
@@ -1486,12 +1488,12 @@
         "warnings": {
           "reviewRequired": "Révision vendeur requise",
           "stripeRequired": "Configuration Stripe requise",
-          "stripeRequiredDetail": "Connectez Stripe avant de créer des flux de paiement et de caution sécurisés.",
+          "stripeRequiredDetail": "Connectez Stripe avant de lancer des paiements, cautions ou vérifications KYC.",
           "quotaReached": "Quota de transactions atteint",
           "quotaReachedDetail": "Mettez à niveau votre plan ou attendez la prochaine période de facturation pour lancer de nouvelles transactions."
         },
         "blockedMessages": {
-          "noStripe": "Connectez Stripe avant de créer des transactions clients en direct.",
+          "noStripe": "Connectez Stripe avant de lancer des paiements, cautions ou vérifications KYC.",
           "quotaFull": "Votre quota mensuel de transactions est entièrement utilisé pour cette période de facturation."
         },
         "usage": {
@@ -1554,7 +1556,8 @@
           "kind": {
             "PAYMENT": "Paiement",
             "DEPOSIT": "Caution",
-            "HYBRID": "Hybride"
+            "HYBRID": "Hybride",
+            "WORKFLOW": "Flux"
           },
           "status": {
             "ACTIVE": "Actif",
@@ -1890,37 +1893,30 @@
         "completed": "Terminé",
         "stepN": "Étape {n}",
         "steps": {
-          "info": {
-            "label": "Infos",
+          "modules": {
+            "label": "Modules",
+            "title": "Modules du flux",
+            "description": "Choisissez exactement les étapes client à inclure dans cette transaction."
+          },
+          "basics": {
+            "label": "Bases",
             "title": "Bases",
-            "description": "Définir le titre interne et le contexte.",
-            "eyebrow": "Étape un",
-            "stepTitle": "Nommer clairement la transaction",
-            "stepDescription": "Utilisez un titre opérationnel court pour retrouver rapidement ce flux de travail."
+            "description": "Définissez le titre interne, la date de service et les options de base."
           },
-          "payment": {
-            "label": "Paiement",
-            "title": "Montants",
-            "description": "Choisir le paiement de service, la caution, ou les deux.",
-            "eyebrow": "Étape deux",
-            "stepTitle": "Choisir le flux financier",
-            "stepDescription": "Définissez un paiement de service, une caution, ou les deux. Au moins un montant est requis pour lancer."
+          "finance": {
+            "label": "Finance",
+            "title": "Paiement et caution",
+            "description": "Configurez uniquement les étapes financières sélectionnées."
           },
-          "documents": {
-            "label": "Documents",
-            "title": "Exigences",
-            "description": "Ajouter des téléchargements, un contrat, des champs client et une vérification KYC facultative.",
-            "eyebrow": "Étape trois",
-            "stepTitle": "Joindre les bonnes exigences",
-            "stepDescription": "Choisissez ce que le client doit télécharger, renseigner, examiner ou vérifier avant que le flux de travail soit terminé."
+          "setup": {
+            "label": "Configuration",
+            "title": "Configuration client",
+            "description": "Configurez le contrat, les téléchargements, le KYC et les options avancées du flux."
           },
           "review": {
             "label": "Vérification",
             "title": "Lancement",
-            "description": "Vérifier le flux et décider de la génération de QR.",
-            "eyebrow": "Étape finale",
-            "stepTitle": "Vérifier et lancer",
-            "stepDescription": "Confirmez le parcours client, décidez si cette transaction nécessite un QR, puis créez le lien sécurisé."
+            "description": "Vérifiez le flux généré puis créez le lien sécurisé."
           }
         },
         "titleLabel": "Titre",
@@ -1943,6 +1939,21 @@
         "bulkCsvInvalidType": "Importez un fichier CSV.",
         "recreateNotice": "Recréation de la transaction terminée {reference}. Le profil client, les réponses d'exigence correspondantes et la vérification d'identité réutilisable seront préremplis lorsque possible.",
         "recreateMissingContractWarning": "Le modèle de contrat d'origine \"{template}\" n'est plus disponible. Choisissez un modèle de contrat avant de lancer cette transaction recréée.",
+        "modulesTitle": "Sélectionnez les modules du flux",
+        "modulesDesc": "Choisissez uniquement les étapes nécessaires. Vous pouvez lancer un flux contrat seul, photos seules, paiement seul, caution seule ou KYC seul.",
+        "modulesPreview": "{count} module(s) principal(aux) sélectionné(s).",
+        "moduleKycTitle": "KYC",
+        "moduleKycDesc": "Vérifiez l'identité du client dans le flux sécurisé.",
+        "moduleContractTitle": "Contrat à signer",
+        "moduleContractDesc": "Ajoutez un modèle de contrat pour révision et signature.",
+        "modulePhotosTitle": "Photos",
+        "modulePhotosDesc": "Demandez des photos, documents ou réponses texte au client.",
+        "moduleDepositTitle": "Caution de sécurité",
+        "moduleDepositDesc": "Collectez un blocage de caution ou une caution remboursable longue durée.",
+        "modulePaymentTitle": "Paiement",
+        "modulePaymentDesc": "Encaissez le montant du service maintenant ou demandez-le plus tard.",
+        "moduleStripeRequiredNote": "Nécessite Stripe.",
+        "moduleDisabledSummary": "{module} n'est pas inclus dans cette transaction.",
         "depositTitle": "Caution de sécurité",
         "depositBadge": "Prioritaire",
         "depositDesc": "Choisissez le montant et la durée de la caution pour cette transaction.",
@@ -1961,13 +1972,14 @@
         "servicePaymentDesc": "Débité immédiatement. Les frais Stripe sont déduits du montant collecté.",
         "amountLabel": "Montant (EUR)",
         "clientPays": "Le client paie {amount}. Paiement estimé après frais : {payout}.",
-        "stripeRequired": "Les fonctionnalités de paiement nécessitent un compte Stripe connecté.",
+        "stripeRequired": "Les paiements, cautions et vérifications KYC nécessitent un compte Stripe connecté.",
         "connectStripe": "Connecter Stripe",
         "timingTitle": "Calendrier de paiement du service",
         "timingDesc": "Choisissez si le client paie le montant du service pendant ce flux ou seulement après votre demande ultérieure.",
         "kindPayment": "Paiement de service uniquement",
         "kindDeposit": "Caution uniquement",
         "kindHybrid": "Paiement + Caution",
+        "kindWorkflow": "Flux uniquement",
         "requiredUploads": "Téléchargements requis",
         "addBundle": "+ Ajouter un lot de liste",
         "allBundlesAdded": "Tous les lots ajoutés",
@@ -2116,17 +2128,21 @@
         "createTransaction": "Créer la transaction",
         "bulkCreateTransaction": "Créer et envoyer",
         "errorTitle": "Veuillez saisir un titre de transaction pour continuer.",
-        "errorAmount": "Définissez au moins un montant — un blocage de caution, un paiement de service, ou les deux.",
+        "errorNoModules": "Sélectionnez au moins un module de flux pour continuer.",
+        "errorAmount": "Définissez un montant valide pour chaque module financier sélectionné.",
         "errorMinService": "Le paiement de service minimum est de €0,50",
         "errorMinDeposit": "Le blocage de caution minimum est de €0,50",
+        "errorDepositAmountRequired": "Saisissez un montant de caution avant de générer cette transaction.",
         "errorDepositDuration": "La durée de caution doit être comprise entre 7 et 30 jours.",
         "errorDepositDurationStarter": "Les transactions du plan Starter doivent utiliser le blocage de caution inclus de 7 jours.",
         "errorLongDepositAcceptance": "Acceptez les frais vendeur de caution longue avant de lancer.",
+        "errorContractRequired": "Choisissez un modèle de contrat avant de lancer une transaction avec contrat à signer.",
+        "errorRequirementsRequired": "Ajoutez au moins une exigence de téléchargement ou de texte avant de lancer un flux photos.",
         "errorRequirements": "Complétez chaque libellé d'exigence et ajoutez un libellé de catégorie personnalisée lorsque vous utilisez Autre.",
         "errorCustomFields": "Complétez chaque libellé de champ client et ajoutez au moins deux options pour chaque champ de type liste.",
         "errorCustomFieldsContract": "Choisissez un modèle de contrat avant d'ajouter des champs client à compléter avant la signature.",
-        "errorNoStripe": "Connectez Stripe avant de créer des transactions clients en direct.",
-        "errorAmountRequired": "Saisissez un montant de paiement de service, un montant de blocage de caution, ou les deux avant de générer un lien.",
+        "errorNoStripe": "Connectez Stripe avant de lancer des paiements, cautions ou vérifications KYC.",
+        "errorAmountRequired": "Saisissez un montant de paiement de service avant de générer cette transaction.",
         "errorSignatureCity": "Saisissez la ville de signature avant de continuer.",
         "errorServiceDate": "Choisissez la date de la prestation avant de continuer.",
         "errorCreate": "Échec de la création de la transaction",
@@ -2486,11 +2502,12 @@
               "CANCELLED": "Annulé",
               "DISPUTED": "Contesté"
             },
-            "kind": {
-              "PAYMENT": "Paiement",
-              "DEPOSIT": "Caution",
-              "HYBRID": "Hybride"
-            },
+          "kind": {
+            "PAYMENT": "Paiement",
+            "DEPOSIT": "Caution",
+            "HYBRID": "Hybride",
+            "WORKFLOW": "Flux"
+          },
             "locale": {
               "en": "Anglais",
               "fr": "Français"

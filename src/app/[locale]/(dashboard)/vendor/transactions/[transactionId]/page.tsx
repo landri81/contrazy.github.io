@@ -192,6 +192,8 @@ export default async function VendorTransactionDetailPage(props: {
   const servicePayment = transaction.payments.find((p) => p.kind === "SERVICE_PAYMENT")
   const depositCapturePmt = transaction.payments.find((p) => p.kind === "DEPOSIT_CAPTURE")
   const depositReleasePmt = transaction.payments.find((p) => p.kind === "DEPOSIT_RELEASE")
+  const hasServiceFinance = Boolean(transaction.amount || servicePayment)
+  const hasDepositFinance = Boolean(transaction.depositAmount || transaction.depositAuthorization)
 
   const servicePaymentAlreadyCollected =
     servicePayment?.status === "SUCCEEDED" || servicePayment?.status === "CAPTURED"
@@ -366,7 +368,12 @@ export default async function VendorTransactionDetailPage(props: {
       </div>
 
       {/* ── Stat cards row ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div
+        className={cn(
+          "grid gap-3",
+          hasServiceFinance || hasDepositFinance ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-2"
+        )}
+      >
         {/* Client */}
         <Card className="shadow-sm">
           <CardHeader className="pb-1">
@@ -386,53 +393,53 @@ export default async function VendorTransactionDetailPage(props: {
           </CardContent>
         </Card>
 
-        {/* Service payment status */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("paymentStatusLabel")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-base font-bold">
-              {transaction.amount
-                ? (fmt(servicePayment?.amount ?? transaction.amount))
-                : t("na")}
-            </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {servicePayment
-                ? (paymentStatusMap[servicePayment.status] ?? servicePayment.status)
-                : transaction.amount
-                  ? t("pending")
-                  : t("na")}
-            </div>
-          </CardContent>
-        </Card>
+        {hasServiceFinance ? (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("paymentStatusLabel")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-base font-bold">
+                {transaction.amount ? fmt(servicePayment?.amount ?? transaction.amount) : t("na")}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {servicePayment
+                  ? paymentStatusMap[servicePayment.status] ?? servicePayment.status
+                  : transaction.amount
+                    ? t("pending")
+                    : t("na")}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
-        {/* Deposit status */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("depositStatus")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-base font-bold">
-              {transaction.depositAuthorization
-                ? fmt(transaction.depositAuthorization.amount)
-                : transaction.depositAmount
-                  ? fmt(transaction.depositAmount)
-                  : t("none")}
-            </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">
-              {transaction.depositAuthorization
-                ? (paymentStatusMap[transaction.depositAuthorization.status] ?? transaction.depositAuthorization.status)
-                : transaction.depositAmount
-                  ? t("pending")
-                  : t("none")}
-            </div>
-          </CardContent>
-        </Card>
+        {hasDepositFinance ? (
+          <Card className="shadow-sm">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("depositStatus")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-base font-bold">
+                {transaction.depositAuthorization
+                  ? fmt(transaction.depositAuthorization.amount)
+                  : transaction.depositAmount
+                    ? fmt(transaction.depositAmount)
+                    : t("none")}
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {transaction.depositAuthorization
+                  ? paymentStatusMap[transaction.depositAuthorization.status] ?? transaction.depositAuthorization.status
+                  : transaction.depositAmount
+                    ? t("pending")
+                    : t("none")}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Documents */}
         <Card className="shadow-sm">

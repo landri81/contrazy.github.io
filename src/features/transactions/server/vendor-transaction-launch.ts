@@ -6,6 +6,7 @@ import {
   Prisma,
   LocaleCode,
   StripeConnectionStatus,
+  TransactionKind,
   TransactionFlowType,
   TransactionLinkStatus,
   TransactionStatus,
@@ -100,7 +101,7 @@ export type PreparedVendorTransactionLaunch = {
   customFieldDefinitions: CustomFieldDefinition[]
   reportFieldDefinitions: ReportFieldDefinition[]
   flowType: TransactionFlowType
-  kind: "PAYMENT" | "DEPOSIT" | "HYBRID"
+  kind: TransactionKind
   locale: LocaleCode
   baseUrl: string
   recreateSource: RecreateSourceTransaction | null
@@ -305,16 +306,6 @@ export async function prepareVendorTransactionLaunch({
       ? estimateLongDepositVendorFee(normalizedDepositAmount)
       : null
 
-  if (normalizedAmount === null && normalizedDepositAmount === null && requiresKyc) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { success: false, message: "Identity verification requires a connected Stripe account and a live transaction setup." },
-        { status: 422 }
-      ),
-    }
-  }
-
   const effectiveGenerateQr = forceGenerateQr ?? generateQr
   const needsStripe = Boolean(normalizedAmount || normalizedDepositAmount || requiresKyc)
   const remainingTransactionCount = remainingTransactions(subscription)
@@ -488,20 +479,33 @@ export async function prepareVendorTransactionLaunch({
       ? TransactionFlowType.CHECK_IN_OUT
       : (flowType ?? TransactionFlowType.STANDARD)
 
-  if (!normalizedAmount && !normalizedDepositAmount) {
+  const hasWorkflowModule = Boolean(
+    normalizedAmount ||
+      normalizedDepositAmount ||
+      requiresKyc ||
+      contractTemplate ||
+      requirementDefinitions.length > 0
+  )
+
+  if (!hasWorkflowModule) {
     return {
       ok: false,
       response: NextResponse.json(
-        { success: false, message: "A service payment amount or deposit hold amount is required." },
+        {
+          success: false,
+          message:
+            "Select at least one workflow module before launching this transaction.",
+        },
         { status: 422 }
       ),
     }
   }
 
-  let kind: "PAYMENT" | "DEPOSIT" | "HYBRID"
+  let kind: TransactionKind
   if (normalizedAmount && normalizedDepositAmount) kind = "HYBRID"
   else if (normalizedDepositAmount) kind = "DEPOSIT"
-  else kind = "PAYMENT"
+  else if (normalizedAmount) kind = "PAYMENT"
+  else kind = "WORKFLOW"
 
   return {
     ok: true,
