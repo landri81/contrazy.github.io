@@ -35,7 +35,7 @@ export default async function ClientCheckInPage(props: {
           Complete the check-in
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Record the current condition, readings, and any relevant details. You will also need to upload at least one photo.
+          Record the current condition, readings, and any requested files or photos before the service begins.
         </p>
       </div>
 
@@ -44,6 +44,7 @@ export default async function ClientCheckInPage(props: {
         reportType="CHECK_IN"
         fields={checkInFields}
         priorReport={null}
+        priorFields={[]}
         nextStep="payment"
       />
     </div>

@@ -22,12 +22,18 @@ const checkInBodySchema = z.object({
       value: z.string(),
     })
   ),
-  photos: z.array(
+  fieldAssets: z.array(
     z.object({
-      assetUrl: z.string().url(),
-      publicId: z.string().min(1),
-      fileName: z.string().min(1),
-      sortOrder: z.number().int().optional().default(0),
+      fieldId: z.string().min(1),
+      assets: z.array(
+        z.object({
+          assetUrl: z.string().url(),
+          publicId: z.string().min(1),
+          fileName: z.string().min(1),
+          mimeType: z.string().trim().min(1).nullable().optional(),
+          sortOrder: z.number().int().optional().default(0),
+        })
+      ),
     })
   ),
 })
@@ -84,11 +90,7 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Check-in has already been submitted." }, { status: 409 })
     }
 
-    const { responses, photos } = parsed.data
-
-    if (photos.length === 0) {
-      return NextResponse.json({ success: false, message: "At least one photo is required." }, { status: 400 })
-    }
+    const { responses, fieldAssets } = parsed.data
 
     const checkInFields = transaction.reportFields.filter(
       (f) => f.reportType === TransactionReportType.CHECK_IN
@@ -99,8 +101,60 @@ export async function POST(
       responseMap.set(r.fieldId, r.value.trim())
     }
 
+    const assetMap = new Map<
+      string,
+      Array<{
+        assetUrl: string
+        publicId: string
+        fileName: string
+        mimeType: string | null
+        sortOrder: number
+      }>
+    >()
+
+    for (const entry of fieldAssets) {
+      assetMap.set(
+        entry.fieldId,
+        [...entry.assets]
+          .map((asset) => ({
+            ...asset,
+            mimeType: asset.mimeType ?? null,
+          }))
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+      )
+    }
+
     for (const field of checkInFields) {
       const value = responseMap.get(field.id) ?? ""
+      const assets = assetMap.get(field.id) ?? []
+
+      if (field.fieldType === "PHOTO" || field.fieldType === "FILE") {
+        if (assets.length === 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                field.fieldType === "PHOTO"
+                  ? `Upload at least one photo for "${field.label}".`
+                  : `Upload at least one file for "${field.label}".`,
+            },
+            { status: 400 }
+          )
+        }
+
+        if (
+          field.fieldType === "PHOTO" &&
+          assets.some((asset) => asset.mimeType && !asset.mimeType.startsWith("image/"))
+        ) {
+          return NextResponse.json(
+            { success: false, message: `"${field.label}" only accepts image uploads.` },
+            { status: 400 }
+          )
+        }
+
+        continue
+      }
+
       if (!value) {
         return NextResponse.json(
           { success: false, message: `"${field.label}" is required.` },
@@ -125,6 +179,16 @@ export async function POST(
     }
 
     const submittedAt = new Date()
+    const flattenedAssets = checkInFields.flatMap((field) =>
+      (assetMap.get(field.id) ?? []).map((asset, index) => ({
+        fieldId: field.id,
+        assetUrl: asset.assetUrl,
+        publicId: asset.publicId,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType ?? null,
+        sortOrder: asset.sortOrder ?? index,
+      }))
+    )
 
     const artifactHtml = generateReportArtifactHtml({
       reportType: TransactionReportType.CHECK_IN,
@@ -134,9 +198,14 @@ export async function POST(
       submittedAt,
       fields: checkInFields.map((f) => ({
         label: f.label,
+        type: f.fieldType,
         value: responseMap.get(f.id) ?? "",
+        assets: (assetMap.get(f.id) ?? []).map((asset) => ({
+          assetUrl: asset.assetUrl,
+          fileName: asset.fileName,
+          mimeType: asset.mimeType ?? null,
+        })),
       })),
-      assets: photos.map((p) => ({ assetUrl: p.assetUrl, fileName: p.fileName })),
     })
 
     await prisma.$transaction(async (tx) => {
@@ -177,14 +246,16 @@ export async function POST(
 
       // Delete and re-save assets for idempotency
       await tx.transactionReportAsset.deleteMany({ where: { reportId: report.id } })
-      if (photos.length > 0) {
+      if (flattenedAssets.length > 0) {
         await tx.transactionReportAsset.createMany({
-          data: photos.map((p) => ({
+          data: flattenedAssets.map((asset) => ({
             reportId: report.id,
-            assetUrl: p.assetUrl,
-            publicId: p.publicId,
-            fileName: p.fileName,
-            sortOrder: p.sortOrder,
+            fieldId: asset.fieldId,
+            assetUrl: asset.assetUrl,
+            publicId: asset.publicId,
+            fileName: asset.fileName,
+            mimeType: asset.mimeType,
+            sortOrder: asset.sortOrder,
           })),
         })
       }
@@ -193,7 +264,7 @@ export async function POST(
         transactionId,
         type: "CHECK_IN_SUBMITTED",
         title: "Check-in report submitted",
-        detail: `${checkInFields.length} field(s) and ${photos.length} photo(s) recorded.`,
+        detail: `${checkInFields.length} field(s) and ${flattenedAssets.length} upload(s) recorded.`,
         dedupeKey: `event:check-in-submitted:${transactionId}`,
         occurredAt: submittedAt,
       })
