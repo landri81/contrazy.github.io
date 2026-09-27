@@ -52,29 +52,30 @@ The full RentHub data was exported the same day (see [Section 12](#12-data-migra
 ## 3. Product boundary — who does what
 
 ```
-                ┌───────────────────────────┐
-  locaz.co ───▶ │  Landing page (existing)  │  SEO, marketing, FR / EN / IT
-                └─────────────┬─────────────┘
-                              │ "Book now" (dates first)
-                              ▼
-                ┌───────────────────────────┐        ┌──────────────────────────────┐
-                │  LOCAZ BOOKING PLATFORM   │  API   │           CONTRAZY           │
-                │  booking.locaz.co         │◀──────▶│  (LOCAZ = first vendor)       │
-                │                           │        │                              │
-                │ • Search & price engine   │        │ • Identity check (KYC)        │
-                │ • Vehicle & options       │        │ • ID / licence / address docs │
-                │ • Customer account        │        │ • Rental contract + e-sign    │
-                │ • Admin back office       │        │ • Payment + deposit (Stripe)  │
-                │ • Fleet calendar          │        │ • Check-in / check-out photos │
-                │ • Public API              │        │ • Disputes & evidence         │
-                └─────────────┬─────────────┘        └──────────────────────────────┘
-                              │ API (Phase 3)
-                              ▼
-                ┌───────────────────────────┐        ┌──────────────────────────────┐
-                │  Vehicle devices          │        │  LOCAZ mobile app (Phase 4)   │
-                │ • Lock / unlock key box   │        │  built on the same API by a   │
-                │ • GPS tracker (km, fuel)  │        │  mobile developer             │
-                └───────────────────────────┘        └──────────────────────────────┘
+    +------------------------------+
+    | Landing page (existing)      |
+    | locaz.co                     |
+    +------------------------------+
+                   |  "Book now" (dates first)
+                   v
+    +------------------------------+                 +------------------------------+
+    | LOCAZ BOOKING PLATFORM       |                 | CONTRAZY                     |
+    | booking.locaz.co             |  <--- API --->  | (LOCAZ = first vendor)       |
+    |                              |                 |                              |
+    | - Search & price engine      |                 | - Identity check (KYC)       |
+    | - Vehicle & options          |                 | - ID / licence / address     |
+    | - Customer account           |                 | - Contract + e-signature     |
+    | - Admin back office          |                 | - Payment + deposit (Stripe) |
+    | - Fleet calendar             |                 | - Check-in / check-out       |
+    | - Public API                 |                 | - Disputes & evidence        |
+    +------------------------------+                 +------------------------------+
+                   |  API
+                   v
+    +------------------------------+                 +------------------------------+
+    | Vehicle devices (Phase 3)    |                 | Mobile app (Phase 4)         |
+    | - Lock / unlock key box      |                 | Built on the same API        |
+    | - GPS tracker (km, fuel)     |                 | by a mobile developer        |
+    +------------------------------+                 +------------------------------+
 ```
 
 | Area | Owner |
@@ -117,7 +118,7 @@ RentHub has about 110 screens. Most were never used by LOCAZ. The table below li
 | RentHub screen | What it is | Decision |
 |---|---|---|
 | Company data & configuration | Legal info, tax IDs, operating rules | **P1** — simplified company settings (Section 7.10) |
-| Users / Teams | Staff accounts and groups | **P1** — users with 3 roles; teams **P3** |
+| Users / Teams | Staff accounts and groups | **P1** — Super admin + 3 staff roles (Section 4); teams **P3** |
 | Blacklist | Reasons to block a customer (Smoker, Dirty, Fuel) with colours | **P1** |
 | Document types | ID card, passport, proof of address (< 3 months) | **P1** — handled by Contrazy |
 | Licence types | International licence / other | **P1** — handled by Contrazy |
@@ -436,7 +437,7 @@ LOCAZ becomes a Contrazy vendor (a business account). Each confirmed booking cre
 | Contract with customer data, e-signature, signed PDF | Yes — contract templates with merge fields, signature pad, signed PDF |
 | Rental payment + deposit in one flow | Yes — "hybrid" transactions (payment + deposit) on the vendor's Stripe account |
 | Deposit capture (full/partial) or release | Yes |
-| Long deposits (8–30 days) | Yes — charge & automatic refund, with fee shown |
+| Long deposits (8–30 days) | Yes — charge & automatic refund, with fee shown (Contrazy Pro or Business plan) |
 | Pickup / return reports with photos, km, fuel | Yes — check-in / check-out reports (text, number, choice, photo, file fields) |
 | Disputes with evidence pack | Yes |
 | Audit trail and emails | Yes |
@@ -570,6 +571,15 @@ Each phase ends with a demo and LOCAZ's acceptance before the next one starts. P
 
 ---
 
+## 15. Next steps
+
+1. **LOCAZ** reviews this document, answers the decisions in Section 14 and adds any missing need.
+2. **Review meeting** to go through the answers and freeze the scope of Phase 1.
+3. **LOCAZ** creates or confirms its Stripe account and shares the device supplier's API access.
+4. **Development starts** with Phase 1 (admin core) and the import of the RentHub data.
+
+---
+
 ## Appendix A — Current LOCAZ configuration (from RentHub, 27 Sept 2026)
 
 ### A.1 Daily prices — weekday (incl. VAT, 100 km/day included, extra km €0.35)
@@ -583,6 +593,8 @@ Each phase ends with a demo and LOCAZ's acceptance before the next one starts. P
 | Medium van (Trafic) | 70.00 | 139.20 | 205.20 | 268.80 | 330.00 | 388.80 | 360.00 | 1,350.00 |
 | Large van (Master / Daily) | 75.00 | 146.00 | 208.80 | 273.60 | 342.00 | 403.20 | 370.00 | 1,550.00 |
 | Tipper truck (Cabstar) | 102.00 | 198.00 | 285.00 | 364.00 | 440.00 | 510.00 | 672.00 | 1,600.00 |
+
+"—" means no price is set for that duration. The daily rate of the last tier applies, e.g. Small car 5 days = 5 × €38.50 = €192.50, Large car 10 days = 10 × €45 = €450. Prices checked against the live RentHub booking page on 27 Sept 2026.
 
 ### A.2 Weekend daily prices (incl. VAT)
 
