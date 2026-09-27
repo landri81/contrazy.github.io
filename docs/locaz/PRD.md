@@ -25,7 +25,7 @@ The heavy, sensitive steps — **identity check, documents, contract, e-signatur
 
 This document is based on:
 - our meeting of 28 August 2026 (full transcript reviewed);
-- a complete read-only review of the LOCAZ RentHub account on 27 September 2026 (all ~110 admin screens, every price list, vehicle, model, service and setting);
+- a complete read-only review of the LOCAZ RentHub account on 27 September 2026 (all ~110 admin screens, every price list, vehicle, model, service and setting), plus the public RentHub booking page tested with several dates and places;
 - LOCAZ's published CGV (v3.0, March 2026), rental contract and privacy policy;
 - the current Contrazy codebase.
 
@@ -193,6 +193,22 @@ RentHub has about 110 screens. Most were never used by LOCAZ. The table below li
 
 The customer never creates an account before they have chosen a vehicle and seen the price. This keeps the site free to browse, and avoids empty accounts ("like e-commerce").
 
+### 6.0 Today's RentHub booking page (reviewed 27 Sept 2026)
+
+For reference, the current RentHub booking engine works like this:
+
+1. **Search form**: pickup place, return place, type, category, minimum seats, dates and times (30-minute slots).
+2. **Results**: one card per model with fuel, seats, gearbox, doors and air-con, the price list used, the total price, the km included and the extra km price. Packages appear as a separate "fixed price" card next to the daily price.
+3. **One-page checkout**: options (extra driver, baby seat, delivery, protection), personal details (name, email, mobile, address), card details (Stripe), marketing opt-in, CGV and privacy checkboxes, coupon code, summary. Two buttons: "Confirm and pay online" or "Request a quote".
+
+What we keep: the dates-first search, the clear result cards, and live option prices.
+
+What we change:
+- The customer gets a real account and verified identity, which RentHub does not do.
+- The deposit and cancellation rules are shown before payment. Today the checkout never mentions the €1,500 deposit.
+- The best price (package or daily) is chosen automatically, so two prices are never shown for the same car.
+- The contract is signed before pickup.
+
 ### 6.1 Steps
 
 | # | Step | What happens | Built in |
@@ -247,11 +263,14 @@ Prices are set **per category, not per model**: a Renault Master and an Iveco Da
 **Price per duration**
 - A total price is set for 1, 2, 3, 4, 5 and 6 days (each duration can have its own total, e.g. Medium van: 1 day €70, 2 days €139.20, 3 days €205.20…).
 - Optional longer tiers (e.g. Small car: from 7 days €31.92/day, from 30 days €30/day).
-- **Packages** replace the daily price when the duration matches: *Week* = exactly 7 days, 700 km included; *Month* = 29–31 days, 3,000 km included. The customer always gets the **cheapest valid price**.
+- Beyond the last tier, the price is **the daily rate of the last tier × number of days**. This is how RentHub calculates it today, e.g. Large car 10 days = 10 × €45 = €450.
+- **Packages** replace the daily price when the duration matches: *Week* = exactly 7 days, 700 km included; *Month* = 29–31 days, 3,000 km included. The customer always gets the **cheapest valid price**, shown as one price.
+  - RentHub today shows the week package and the daily price side by side. For the truck, the package (€672) is more expensive than 7 daily prices (€595).
+  - The month packages are never offered to customers: a 30-day Large van shows €2,016 instead of the €1,550 package.
 - Each price has a validity period (from / to), so seasonal prices can be prepared in advance.
 
 **Mileage**
-- Km included per day (100 km today; 10 km per hour for hourly rentals), or per package.
+- Km included per day (100 km today; 10 km per hour for hourly rentals), per package, or **unlimited** (used today for the Small car at weekends).
 - Extra km price (€0.35 incl. VAT today; €0.39 for the truck at weekends). Charged at return from the recorded km (manual reading at launch, tracker in Phase 3).
 
 **Options and fees**
@@ -508,7 +527,9 @@ Customer records, reservations and invoices were **not** exported, because they 
 - Service and insurance prices exist only for **Small** and **Medium cars**. Vans and the truck have no option prices.
 - The **Small van weekly package** expired on 11/07/2026.
 - **Medium car** has prices but no model or vehicle.
-- The **Small car weekend** price is €80/day with 0 km included (weekday: €39.90 with 100 km). This looks unfinished.
+- The **Small car weekend** price is €80/day with unlimited km (weekday: €39.90 with 100 km/day). This is double the weekday price; to confirm.
+- **Month packages are never applied** on the booking page. A 30-day rental shows €1,800 (Small van), €2,016 (Large van) or €2,550 (truck) instead of the €1,000 / €1,550 / €1,600 packages.
+- The **truck week package** (€672) costs more than 7 daily prices (€595).
 - The website says "from €29/day", but the lowest daily price in RentHub is €39.90 and the minimum booking is €35.
 
 ---
@@ -544,6 +565,8 @@ Each phase ends with a demo and LOCAZ's acceptance before the next one starts. P
 | 10 | Device suppliers: key box and tracker final choice, and test devices | After LOCAZ's supplier meetings |
 | 11 | Domain: `booking.locaz.co` (agreed in meeting) or `app.locaz.co`? | `booking.locaz.co` |
 | 12 | Monthly rentals for **cars**: add a month package (vans/truck have one; cars use the 30-day price)? | Add one for consistency |
+| 13 | Truck week package (€672) is more expensive than 7 daily prices (€595). Which is correct? | Fix before import |
+| 14 | Keep "Request a quote" (no payment) as an option for professional customers? | Yes, as a P2 option |
 
 ---
 
@@ -565,7 +588,7 @@ Each phase ends with a demo and LOCAZ's acceptance before the next one starts. P
 
 | Category | 1 day | 2 days | Other |
 |---|---|---|---|
-| Small car | 80.00 (0 km included — to check) | — | |
+| Small car | 80.00 (unlimited km) | — | |
 | Large car | 65.00 | — | |
 | Small van | 80.00 | 156.00 | |
 | Medium van | 75.00 | 144.00 | 3–6 days: 212.40 / 278.40 / 342.00 / 403.20 |
