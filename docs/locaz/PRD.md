@@ -5,9 +5,9 @@
 | **Product** | LOCAZ — self-service car & van rental platform (web app, admin back office, API) |
 | **Prepared for** | Aziz LANDRI, LOCAZ |
 | **Prepared by** | Shakil Khan |
-| **Version** | 1.0 — for review |
-| **Date** | 27 September 2026 |
-| **Status** | Draft for validation — decisions requested in [Section 14](#14-decisions-needed-from-locaz) |
+| **Version** | 1.1 — decisions confirmed by LOCAZ |
+| **Date** | 1 October 2026 |
+| **Status** | Final for approval — all open questions answered by LOCAZ on 1 October 2026 (Section 14) |
 
 ---
 
@@ -17,7 +17,7 @@ LOCAZ rents cars, vans and trucks in Nice on a self-service basis: customers boo
 
 We will build **LOCAZ's own platform**, made of three parts:
 
-1. **Booking website** (`booking.locaz.co`) — the customer picks dates, place and vehicle, sees the price instantly, adds options, and only then creates an account and pays.
+1. **Booking website** (`locaz.co/booking`) — the customer picks dates, place and vehicle, sees the price instantly, adds options, and only then creates an account and pays.
 2. **Admin back office** — for Aziz and his team to manage the fleet, prices, calendar, reservations, customers and company rules.
 3. **API** — so the future LOCAZ mobile app and the vehicle devices (remote lock/unlock and GPS tracker) can connect to the same system.
 
@@ -60,7 +60,7 @@ The full RentHub data was exported the same day (see [Section 12](#12-data-migra
                    v
     +------------------------------+                 +------------------------------+
     | LOCAZ BOOKING PLATFORM       |                 | CONTRAZY                     |
-    | booking.locaz.co             |  <--- API --->  | (LOCAZ = first vendor)       |
+    | locaz.co/booking             |  <--- API --->  | (LOCAZ = first vendor)       |
     |                              |                 |                              |
     | - Search & price engine      |                 | - Identity check (KYC)       |
     | - Vehicle & options          |                 | - ID / licence / address     |
@@ -122,7 +122,7 @@ RentHub has about 110 screens. Most were never used by LOCAZ. The table below li
 | Blacklist | Reasons to block a customer (Smoker, Dirty, Fuel) with colours | **P1** |
 | Document types | ID card, passport, proof of address (< 3 months) | **P1** — handled by Contrazy |
 | Licence types | International licence / other | **P1** — handled by Contrazy |
-| Opening hours (timetable) | Office hours per place | **P2** — self-service is 24/7; used only for staffed services (delivery) |
+| Opening hours (timetable) | Office hours per place | **P1** — self-service is 24/7; hours are used for staffed airport/station delivery (kept at launch) |
 | Sources (origins) | App, signage, call, visit, campaigns | — ("we don't need it") — we only store *web / admin / app* automatically |
 | IBAN | Bank accounts for invoices | — (Stripe payouts) |
 | WhatsApp status | WhatsApp server link (not activated) | **P3** — WhatsApp notifications later |
@@ -166,10 +166,10 @@ RentHub has about 110 screens. Most were never used by LOCAZ. The table below li
 
 | RentHub screen | What LOCAZ has today | Decision |
 |---|---|---|
-| Price lists | Daily weekday, daily weekend, hourly weekday, hourly weekend | **P1** daily weekday/weekend · **P2** hourly |
+| Price lists | Daily weekday, daily weekend, hourly weekday, hourly weekend | **P1** — daily and hourly, weekday and weekend |
 | Rental rates per category | 1–6 day prices, km included, extra km | **P1** |
-| Packages | Week (7 days, 700 km), Month (29–31 days, 3,000 km) | **P1** |
-| Service prices | Daily or fixed price per category | **P1** |
+| Packages | Week (7 days, 700 km), Month (29–31 days, 3,000 km) | **P1** — week and month package for **every** category |
+| Service prices | Daily or fixed price per category | **P1** — same prices for all categories by default, editable per category |
 | One-way (transfer) fees | €59 between places | **P1** |
 | Dynamic pricing (seasons, demand) | Not set up ("I will set it up myself") | **P2** — simple rules the admin can manage |
 | Advanced dynamic pricing (night rate, web discount…) | Not set up | **P3** |
@@ -216,11 +216,11 @@ What we change:
 |---|---|---|---|
 | 1 | **Search** | Pickup place, return place (default: same), pickup date & time, return date & time. Visible straight away on the landing page (sticky box while scrolling). | LOCAZ |
 | 2 | **Results** | Available categories with photo, "Model or equivalent", seats, gearbox, fuel, volume (vans), km included, **total price** and price per day. Sorted by price. Unavailable vehicles shown greyed out. | LOCAZ |
-| 3 | **Options** | Protection level (Standard included, Comfort, Zero deductible), extra driver, baby seat, hand truck, airport/station delivery. Price updates live. | LOCAZ |
-| 4 | **Summary** | Full breakdown: rental, options, one-way fee, km included, extra km price, deposit amount, cancellation rules. Accept CGV. | LOCAZ |
+| 3 | **Options** | Protection level (Standard included, Comfort, 0 Franchise), extra driver, baby seat, hand truck, airport/station delivery. Price updates live. | LOCAZ |
+| 4 | **Summary** | Full breakdown: rental, options, one-way fee, km included, extra km price, deposit amount, cancellation rules. Accept CGV and agree that the card is saved for amounts due after the rental (fines, damages). | LOCAZ |
 | 5 | **Create account** | Email + phone (verified by code), or Google. Name, date of birth. Minimum age check. | LOCAZ |
 | 6 | **Verification & contract** | Driving licence (front/back), ID or passport, selfie, proof of address if requested. Contract generated with booking details and signed on the phone. | **Contrazy** |
-| 7 | **Payment** | Rental paid in full by card (3-D Secure). Deposit authorised on a card in the renter's name. | **Contrazy** (Stripe) |
+| 7 | **Payment** | Rental paid in full by card (3-D Secure). Deposit authorised on a card in the renter's name. The card is saved securely by Stripe for later charges. | **Contrazy** (Stripe) |
 | 8 | **Confirmation** | Booking confirmed by email (and later WhatsApp/SMS), with place, time and instructions. | LOCAZ |
 | 9 | **Pickup** | Customer goes to the vehicle, does the pickup check (photos, fuel, km), then unlocks it (key box / app, Phase 3). | **Contrazy** check-in (+ devices) |
 | 10 | **Return** | Return check (photos, fuel, km). Extra km, fuel and penalties are calculated. Deposit released or partially captured. | **Contrazy** check-out |
@@ -232,7 +232,7 @@ If verification or payment fails, the vehicle is held for a limited time (e.g. 3
 | Rule | Value | Configurable |
 |---|---|---|
 | Minimum age | 21 years | Yes |
-| Licence held for at least | 1 year per CGV (**the FAQ says 2 years — to confirm**) | Yes |
+| Licence held for at least | 1 year (confirmed; the website FAQ will be corrected from "2 years") | Yes |
 | Maximum rental length | 30 consecutive days | Yes |
 | Book up to | 6 months in advance | Yes |
 | Minimum notice before pickup | 60 minutes (RentHub setting) | Yes, per place/category |
@@ -245,7 +245,8 @@ If verification or payment fails, the vehicle is held for a limited time (e.g. 3
 
 - Upcoming, current and past bookings; download contract and invoice.
 - Request an extension, cancel (with the refund rule shown), add a driver.
-- Saved documents (re-used for the next rental while valid).
+- Saved documents (re-used for the next rental while valid) and saved card.
+- "Request a quote" without payment, for professional customers (**P2**).
 - Language: French and English at launch (Italian as on the landing page — **P2**).
 
 ---
@@ -258,14 +259,14 @@ Prices are set **per category, not per model**: a Renault Master and an Iveco Da
 
 **Price list selection**
 - *Weekday* and *weekend* daily price lists; the weekend list applies when the rental falls on a weekend.
-- *Hourly* price lists (weekday / weekend) exist in RentHub but are **not shown to customers**. Hourly rental is a **P2** option (the blog mentions "location à l'heure").
+- *Hourly* price lists (weekday / weekend) are offered online **from launch** (P1). RentHub has them but never showed them to customers. Hourly rental can be switched on or off per category.
 - Tolerance: a rental of 24 h + up to 1 h counts as 1 day (RentHub setting). Hourly tolerance: 29 minutes.
 
 **Price per duration**
 - A total price is set for 1, 2, 3, 4, 5 and 6 days (each duration can have its own total, e.g. Medium van: 1 day €70, 2 days €139.20, 3 days €205.20…).
 - Optional longer tiers (e.g. Small car: from 7 days €31.92/day, from 30 days €30/day).
 - Beyond the last tier, the price is **the daily rate of the last tier × number of days**. This is how RentHub calculates it today, e.g. Large car 10 days = 10 × €45 = €450.
-- **Packages** replace the daily price when the duration matches: *Week* = exactly 7 days, 700 km included; *Month* = 29–31 days, 3,000 km included. The customer always gets the **cheapest valid price**, shown as one price.
+- **Packages** replace the daily price when the duration matches: *Week* = exactly 7 days, 700 km included; *Month* = 29–31 days, 3,000 km included. Every category has both packages. The customer always gets the **cheapest valid price**, shown as one price.
   - RentHub today shows the week package and the daily price side by side. For the truck, the package (€672) is more expensive than 7 daily prices (€595).
   - The month packages are never offered to customers: a 30-day Large van shows €2,016 instead of the €1,550 package.
 - Each price has a validity period (from / to), so seasonal prices can be prepared in advance.
@@ -275,8 +276,8 @@ Prices are set **per category, not per model**: a Renault Master and an Iveco Da
 - Extra km price (€0.35 incl. VAT today; €0.39 for the truck at weekends). Charged at return from the recorded km (manual reading at launch, tracker in Phase 3).
 
 **Options and fees**
-- Options priced **per day** (extra driver €9.90/day, baby seat €4/day, protection) or **fixed per rental** (airport/station delivery €60). Options can have a maximum number of billable days.
-- Protection levels (daily): *Standard* included (liability capped at €3,000 per claim), *Comfort* €19/day (€500 for the first claim), *Zero deductible* €34/day (€0 for the first claim). Theft, fire and glass are excluded, as in the CGV.
+- Options priced **per day** (extra driver €9.90/day, baby seat €4/day, protection) or **fixed per rental** (airport/station delivery €60). Options can have a maximum number of billable days. The same option prices apply to every category by default; LOCAZ can change them per category in the admin.
+- Protection levels (daily), named **Standard / Comfort / 0 Franchise** everywhere: *Standard* included (liability capped at €3,000 per claim), *Comfort* €19/day (€500 for the first claim), *0 Franchise* €34/day (€0 for the first claim). Theft, fire and glass are excluded, as in the CGV.
 - One-way fee when the return place differs from the pickup place (€59 between Gare / Aéroport / Ville today, both directions).
 - Place fee for pickup/return at a specific place (currently €0).
 
@@ -353,8 +354,8 @@ Pickup and return use the **Contrazy check-in/check-out** flow. It already suppo
 - **Return check (mandatory)**: same photos, km, fuel, keys returned to the glove box, return place confirmed.
 - **Automatic calculation at return** (the operator confirms before charging):
   - Extra km: (km driven − km included) × extra km price.
-  - Fuel: if the level is lower than at pickup, flat fee + price per litre (**CGV: €20 + €2.20/L; RentHub: €36 + €2.40/L — to align**).
-  - Late return: tolerance 29 min, then **one extra rental day** (CGV) — the RentHub setting differs (see decisions).
+  - Fuel: if the level is lower than at pickup, **€36 + €3.50 per litre** missing.
+  - Late return: **30-minute tolerance**, then **one extra rental day** (CGV article 3.3). Not returned 2 h after the end without an extension = non-return procedure (CGV article 12).
   - Return outside the zone: €150 + repatriation cost.
   - Cleaning: light / medium / heavy = €35 / €50 / €130; extreme cleaning €250.
 - Charges are **taken from the deposit** first, then from the customer's card for any balance (RentHub setting: "take fees from the deposit and the balance from the customer's card"), with an itemised receipt sent to the customer.
@@ -365,11 +366,21 @@ Pickup and return use the **Contrazy check-in/check-out** flow. It already suppo
 All money flows through **LOCAZ's own Stripe account**, connected to Contrazy (Stripe Connect). LOCAZ is paid directly by Stripe.
 
 - **Rental payment**: charged in full at booking (card, Apple Pay / Google Pay), 3-D Secure forced (RentHub setting).
-- **Deposit**: €1,500 per model today (configurable per model and per protection option). It is an authorisation — the money is blocked, not debited — on a card in the renter's name.
+- **Deposit**: €1,500 per model today (configurable per model and per protection option). It is an authorisation — the money is blocked, not debited — on a card in the renter's name. How long it is held is explained below.
+- **Saved card**: the card is saved by Stripe at checkout (`setup_future_usage = off_session`), with the customer's explicit consent. LOCAZ never stores card numbers. The card stays available after the deposit is released, so fines, damages or extra km that arrive weeks or months later can be charged (see below).
 - **Refunds** follow the cancellation rules automatically.
 - **Extensions and extra charges** are paid by card; the invoice is updated.
 
-> **Important — deposit length.** A card authorisation can only be held for **7 days** by Stripe. Rentals longer than 7 days (up to 30 days) need another method. Contrazy already supports this: for longer rentals it **charges the deposit and refunds it automatically** after the rental, at a small cost (Stripe fee ~1.5% + €0.25 + 0.5% platform margin). **Decision needed**: accept this for rentals over 7 days, or re-authorise the deposit every 7 days (possible, but can fail if the card has no funds). The CGV (article 7) mentions a 30-day pre-authorisation and the provider "Swikly"; it will need a small update.
+#### Deposit hold for the whole rental
+- Every deposit requests a **30-day extended authorisation** from Stripe. Card networks allow this for vehicle rental (Visa, Mastercard, American Express). LOCAZ's Stripe account must be registered as car rental and be on IC+ pricing, or have the feature enabled by Stripe support.
+- If a card is not eligible (for example Maestro), the hold is valid for 7 days. For rentals longer than that, the platform **re-authorises automatically** before the hold expires, using the saved card, and then releases the previous hold.
+- If a new hold fails (card limit reached, card blocked), LOCAZ and the customer are alerted immediately and the rental is flagged in the calendar.
+
+#### Charges after the rental (fines, damages, extra km)
+- They are charged to the saved card as **off-session, merchant-initiated payments**, with the evidence attached to the booking.
+- The bank may still ask the customer to confirm, because SCA exemptions are decided by the bank. In that case the customer automatically receives a secure payment link, and the case continues as a dispute if unpaid.
+- Payment data is kept for the period in the LOCAZ privacy policy (transaction + 13 months). This covers fines that arrive up to several months later.
+- The CGV (article 7) already allow LOCAZ to charge amounts due after the rental. The checkout consent makes it explicit. The CGV mention of "Swikly" will be replaced by Stripe.
 
 ### 7.8 Damages, fines and disputes
 
@@ -377,9 +388,9 @@ Uses the **Contrazy dispute module** (already built: dispute record, statuses Op
 
 - The operator opens a dispute from a booking: damage, fine (PV), towing (fourrière), accident, non-return, other.
 - Amounts are suggested from the **LOCAZ damage and penalty scale** (CGV annexes 1 and 2), stored as an editable list in admin. Examples: scratch 2–5 cm €250, bumper repair €450, lost key €600, undeclared damage €90, GPS tampering €1,000, fine handling €25, towing actual cost + €90, dispute handling fee €72 excl. VAT (RentHub setting).
-- The protection option chosen caps the customer's liability automatically (Standard €3,000 / Comfort €500 first claim / Zero €0 first claim).
+- The protection option chosen caps the customer's liability automatically (Standard €3,000 / Comfort €500 first claim / 0 Franchise €0 first claim).
 - The customer is notified with evidence (pickup vs return photos) and can respond. Payment is taken from the deposit or requested by card.
-- Fines (ANTAI): record the fine and designate the driver from the booking data.
+- Fines (ANTAI): as a rental company, LOCAZ must **designate the driver within 45 days** (otherwise ANTAI fines the company €675). The platform prepares the designation details from the booking, so the fine goes to the customer directly. LOCAZ then charges its €25 handling fee to the saved card.
 
 ### 7.9 Users, roles and security
 
@@ -394,9 +405,9 @@ One settings page, grouped by topic, replacing RentHub's ~30 configuration panel
 | Group | Settings (current value) |
 |---|---|
 | Company | Name LOCAZ SAS, SIREN 994 107 696, VAT FR94994107696, APE 7711A, address 22 Avenue Robert Schuman 06000 Nice, email, phone, logo, website |
-| Booking rules | Minimum age (21), licence held (1 year), max length (30 days), book ahead (6 months), minimum notice (60 min), minimum price (€35), buffer between rentals |
-| Return | Late tolerance (29 min), late penalty (1 day), fuel refill fee and €/L, out-of-zone fee (€150), mandatory photos at pickup/return (10), fuel and km mandatory (yes) |
-| Deposit | Default amount, release automatically after return (yes), release delay |
+| Booking rules | Minimum age (21), licence held (1 year), max length (30 days), book ahead (6 months), minimum notice (60 min), minimum price (€35), buffer between rentals, hourly rental on/off per category |
+| Return | Late tolerance (30 min), late penalty (1 day), fuel refill (€36 + €3.50/L), out-of-zone fee (€150), mandatory photos at pickup/return (10), fuel and km mandatory (yes) |
+| Deposit | Default amount, 30-day extended hold (yes), automatic re-authorisation (yes), release automatically after return (yes), release delay |
 | Payments | 3-D Secure forced (yes), accepted methods, VAT rates |
 | Cancellation | Refund tiers (24 h / 1 h), reason mandatory (yes) |
 | Documents | ID required (yes), licence required (yes), proof of address (when requested), selfie check (yes) |
@@ -437,7 +448,7 @@ LOCAZ becomes a Contrazy vendor (a business account). Each confirmed booking cre
 | Contract with customer data, e-signature, signed PDF | Yes — contract templates with merge fields, signature pad, signed PDF |
 | Rental payment + deposit in one flow | Yes — "hybrid" transactions (payment + deposit) on the vendor's Stripe account |
 | Deposit capture (full/partial) or release | Yes |
-| Long deposits (8–30 days) | Yes — charge & automatic refund, with fee shown (Contrazy Pro or Business plan) |
+| Long deposits (8–30 days) | Partly — today by charge & automatic refund. Replaced for LOCAZ by extended authorisation + re-authorisation (see 8.2) |
 | Pickup / return reports with photos, km, fuel | Yes — check-in / check-out reports (text, number, choice, photo, file fields) |
 | Disputes with evidence pack | Yes |
 | Audit trail and emails | Yes |
@@ -449,11 +460,14 @@ LOCAZ becomes a Contrazy vendor (a business account). Each confirmed booking cre
 |---|---|
 | **Partner API** with secure API keys | So the LOCAZ platform can create and read transactions automatically (today transactions are created from the Contrazy dashboard) |
 | **Webhooks to LOCAZ** | Tell LOCAZ when documents are approved, the contract is signed, payment/deposit succeeded, check-in/out is submitted, or a dispute changes |
-| **Return link** | Send the customer back to `booking.locaz.co` after each step |
+| **Return link** | Send the customer back to `locaz.co/booking` after each step |
 | **Rental fields in the contract** | Vehicle, plate, category, pickup/return place and date-time, km included, extra km price, options, protection level, fuel and km at pickup |
 | **Start/end date-time on transactions** | Today a transaction has a single service date |
 | **Extra charges after return** | Charge extra km, fuel, late fees from the deposit or card, with an itemised receipt |
 | **Re-use verified documents** | A returning customer does not upload the same licence twice while it is valid |
+| **Extended deposit hold + automatic re-authorisation** | Hold the deposit for the whole rental (30-day extended authorisation, or re-authorisation every 7 days) |
+| **Saved card and off-session charges** | Save the card at checkout and charge fines, damages and extra km after the rental, with a payment-link fallback |
+| **ANTAI driver designation export** | Driver details ready to submit within the 45-day legal deadline |
 
 These extensions are general-purpose: they also make Contrazy sellable to other rental businesses.
 
@@ -508,7 +522,7 @@ The goal is 100% keyless rental. Two devices are planned (final choice by LOCAZ 
 
 Same proven stack as Contrazy, to share code and skills: Next.js (web + API), PostgreSQL with Prisma, Stripe, Cloudinary (photos/documents), Resend (email), hosted on Vercel.
 
-The LOCAZ platform lives in the same code repository as Contrazy, as a separate application deployed to its own domain (`booking.locaz.co`). The existing landing page stays at `locaz.co`.
+The LOCAZ platform lives in the same code repository as Contrazy, as a separate application. Everything stays on **one domain**: the existing landing page at `locaz.co`, and the booking platform at `locaz.co/booking` (Vercel rewrites / multi-zones). The domain's DNS moves from GoDaddy hosting to Vercel at launch. One domain is also better for SEO.
 
 ---
 
@@ -524,11 +538,11 @@ These are imported into the new platform during Phase 1.
 
 Customer records, reservations and invoices were **not** exported, because they contain personal data. They can be exported on LOCAZ's request while RentHub access still works.
 
-**Data issues found (to fix during import)**
+**Data issues found in RentHub** (LOCAZ will set the final prices in the admin after development; vans and trucks get the car option prices by default)
 - Service and insurance prices exist only for **Small** and **Medium cars**. Vans and the truck have no option prices.
 - The **Small van weekly package** expired on 11/07/2026.
 - **Medium car** has prices but no model or vehicle.
-- The **Small car weekend** price is €80/day with unlimited km (weekday: €39.90 with 100 km/day). This is double the weekday price; to confirm.
+- The **Small car weekend** price is €80/day with unlimited km (weekday: €39.90 with 100 km/day). LOCAZ will set the final price in the admin.
 - **Month packages are never applied** on the booking page. A 30-day rental shows €1,800 (Small van), €2,016 (Large van) or €2,550 (truck) instead of the €1,000 / €1,550 / €1,600 packages.
 - The **truck week package** (€672) costs more than 7 daily prices (€595).
 - The website says "from €29/day", but the lowest daily price in RentHub is €39.90 and the minimum booking is €35.
@@ -539,46 +553,50 @@ Customer records, reservations and invoices were **not** exported, because they 
 
 | Phase | Content | Target |
 |---|---|---|
-| **0 — Validation** | PRD review and decisions (Section 14); LOCAZ Stripe account; device supplier choice | Early October 2026 |
-| **1 — Admin core** | Company settings, users & roles, places, categories, models, vehicles, price engine (daily, weekend, packages, km, options, one-way), fleet calendar, manual bookings, customers & blacklist, RentHub data import | October – November 2026 |
-| **2 — Booking & Contrazy** | Public booking site (search → options → account → Contrazy verification/contract/payment → confirmation), customer area, Contrazy Partner API & webhooks, pickup/return checks, extra charges, deposit handling, disputes, emails, invoices | November – December 2026 |
+| **0 — Kick-off** | PRD approval; LOCAZ Stripe account (car rental category, extended authorisation enabled); device supplier choice | Early October 2026 |
+| **1 — Admin core** | Company settings, users & roles, places, opening hours, categories, models, vehicles, price engine (daily, weekend, hourly, packages, km, options, one-way), fleet calendar, manual bookings, customers & blacklist, RentHub data import | October – November 2026 |
+| **2 — Booking & Contrazy** | Public booking site at locaz.co/booking (search → options → account → Contrazy verification/contract/payment → confirmation), customer area, Contrazy Partner API & webhooks, saved card, extended deposit hold & re-authorisation, pickup/return checks, extra charges, disputes & ANTAI designation, emails, invoices | November – December 2026 |
 | **3 — Devices** | Key box lock/unlock, tracker (GPS, km, fuel), fleet map, zone and late-return alerts | December 2026 – January 2027 |
 | **Pilot launch** | Nice, current fleet, real customers | **January 2027** |
-| **4 — Growth** | Public API documentation for the mobile app, dynamic pricing, coupons, hourly rental, reports, WhatsApp/SMS, vehicle deadlines & expenses, second city | From Q1 2027 |
+| **4 — Growth** | Public API documentation for the mobile app, dynamic pricing, coupons, "request a quote", reports, WhatsApp/SMS, vehicle deadlines & expenses, second city | From Q1 2027 |
 
 Each phase ends with a demo and LOCAZ's acceptance before the next one starts. Phase 3 dates depend on device delivery and supplier API access.
 
 ---
 
-## 14. Decisions needed from LOCAZ
+## 14. Decisions confirmed by LOCAZ (1 October 2026)
 
-| # | Question | Our suggestion |
+| # | Topic | Decision |
 |---|---|---|
-| 1 | Minimum licence age: **1 year** (CGV) or **2 years** (website FAQ)? | Align both documents |
-| 2 | Late return: **1 extra day after 30 min** (CGV), or RentHub's rule (29 min tolerance then extra hours/flat fee)? | Keep the CGV rule; simple and clear |
-| 3 | Fuel refill: **€20 + €2.20/L** (CGV) or **€36 + €2.40/L** (RentHub)? | One value in settings, same in the CGV |
-| 4 | Deposit for rentals over 7 days: **charge & refund** (small fee) or **re-authorise every 7 days**? | Charge & refund (already built, more reliable) |
-| 5 | Protection option names: "Basique / Intermédiaire / Premium" (website), "Essentielle / Confort / Sérénité" (CGV) or "Standard / Comfort / 0 Franchise" (RentHub)? | One set of names everywhere |
-| 6 | Option and insurance prices for **vans and trucks** (none today)? | Provide prices before import |
-| 7 | Should **hourly rental** be offered online at launch? | P2, after launch |
-| 8 | Airport/station **delivery by staff** at launch (needs opening hours)? | Keep, with a fixed fee and hours |
-| 9 | Selfie identity check for **every** customer, or only above a risk threshold? | Every customer at launch |
-| 10 | Device suppliers: key box and tracker final choice, and test devices | After LOCAZ's supplier meetings |
-| 11 | Domain: `booking.locaz.co` (agreed in meeting) or `app.locaz.co`? | `booking.locaz.co` |
-| 12 | Monthly rentals for **cars**: add a month package (vans/truck have one; cars use the 30-day price)? | Add one for consistency |
-| 13 | Truck week package (€672) is more expensive than 7 daily prices (€595). Which is correct? | Fix before import |
-| 14 | Keep "Request a quote" (no payment) as an option for professional customers? | Yes, as a P2 option |
+| 1 | Driver requirements | Minimum age 21, licence held for at least 1 year |
+| 2 | Late return | 30-minute tolerance, then one extra rental day |
+| 3 | Fuel refill | €36 + €3.50 per litre |
+| 4 | Deposit for long rentals | 30-day extended hold; automatic re-authorisation every 7 days when a card is not eligible |
+| 5 | Protection names | Standard / Comfort / 0 Franchise, everywhere |
+| 6 | Option prices for vans and trucks | Same as cars by default; LOCAZ sets final prices in the admin |
+| 7 | Hourly rental | Online from launch (P1) |
+| 8 | Airport/station delivery | Kept at launch, fixed fee and opening hours |
+| 9 | Selfie identity check | Every customer |
+| 10 | Device suppliers | Chosen by LOCAZ after supplier meetings |
+| 11 | Domain | `locaz.co/booking`, same domain as the landing page |
+| 12 | Month package | One for every category |
+| 13 | Truck week package and all prices | Set by LOCAZ in the admin after development |
+| 14 | "Request a quote" | Kept, P2 |
+| — | Charges after the rental | Card saved at checkout (off-session); fines handled by ANTAI driver designation + €25 fee |
+
+**Documents to align with these decisions** (LOCAZ side; we can provide the exact wording):
+- website FAQ: licence 1 year;
+- CGV: fuel €36 + €3.50/L, protection names, saved-card consent, Stripe instead of Swikly;
+- website: the "from €29/day" claim, to match the real prices.
 
 ---
 
 ## 15. Next steps
 
-1. **LOCAZ** reviews this document, answers the decisions in Section 14 and adds any missing need.
-2. **Review meeting** to go through the answers and freeze the scope of Phase 1.
-3. **LOCAZ** creates or confirms its Stripe account and shares the device supplier's API access.
-4. **Development starts** with Phase 1 (admin core) and the import of the RentHub data.
-
----
+1. **LOCAZ** approves this PRD and the budget, and pays the upfront amount.
+2. **LOCAZ** opens or confirms its Stripe account (car rental category, extended authorisation enabled), and shares the device supplier's API access when chosen.
+3. **Development starts** with Phase 1 (admin core) and the import of the RentHub data.
+4. **Demo at the end of each phase**; pilot launch in January 2027.
 
 ## Appendix A — Current LOCAZ configuration (from RentHub, 27 Sept 2026)
 
@@ -609,13 +627,13 @@ Each phase ends with a demo and LOCAZ's acceptance before the next one starts. P
 
 Hourly prices exist for Small car (€19.90/h) and for vans/truck (€30–39 for the first hour, 10 km/h included). They are not shown online.
 
-### A.3 Options (Small and Medium cars; incl. VAT)
+### A.3 Options (incl. VAT — today's car prices, applied to every category by default)
 
 | Option | Price | Charged |
 |---|---|---|
 | Standard protection | Included (mandatory) | — |
 | Comfort protection | €19 | per day |
-| Zero-deductible protection | €34 | per day |
+| 0 Franchise protection | €34 | per day |
 | Extra driver | €9.90 | per day |
 | Baby seat | €4.00 | per day |
 | Delivery to airport / station | €60.00 | once |

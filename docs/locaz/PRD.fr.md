@@ -5,9 +5,9 @@
 | **Produit** | LOCAZ — plateforme de location de voitures et utilitaires en self-service (application web, back-office d'administration, API) |
 | **Préparé pour** | Aziz LANDRI, LOCAZ |
 | **Préparé par** | Shakil Khan |
-| **Version** | 1.0 — pour relecture |
-| **Date** | 27 septembre 2026 |
-| **Statut** | Projet à valider — décisions attendues en section 14 |
+| **Version** | 1.1 — décisions confirmées par LOCAZ |
+| **Date** | 1er octobre 2026 |
+| **Statut** | Version finale pour validation — toutes les questions ont reçu une réponse de LOCAZ le 1er octobre 2026 (section 14) |
 
 ---
 
@@ -17,7 +17,7 @@ LOCAZ loue des voitures, des utilitaires et des camions à Nice en self-service 
 
 Nous allons construire **la plateforme propre à LOCAZ**, composée de trois parties :
 
-1. **Site de réservation** (`booking.locaz.co`) — le client choisit ses dates, son lieu et son véhicule, voit le prix immédiatement, ajoute des options, et seulement ensuite crée son compte et paie.
+1. **Site de réservation** (`locaz.co/booking`) — le client choisit ses dates, son lieu et son véhicule, voit le prix immédiatement, ajoute des options, et seulement ensuite crée son compte et paie.
 2. **Back-office d'administration** — pour qu'Aziz et son équipe gèrent la flotte, les tarifs, le planning, les réservations, les clients et les règles de l'entreprise.
 3. **API** — pour que la future application mobile LOCAZ et les boîtiers des véhicules (ouverture/fermeture à distance et traceur GPS) se connectent au même système.
 
@@ -60,7 +60,7 @@ L'ensemble des données RentHub a été exporté le même jour (voir section 12)
                    v
     +--------------------------------+                 +--------------------------------+
     | PLATEFORME LOCAZ               |                 | CONTRAZY                       |
-    | booking.locaz.co               |  <--- API --->  | (LOCAZ = premier vendeur)      |
+    | locaz.co/booking               |  <--- API --->  | (LOCAZ = premier vendeur)      |
     |                                |                 |                                |
     | - Recherche & moteur de prix   |                 | - Verification d'identite      |
     | - Vehicule & options           |                 | - Identite / permis / domicile |
@@ -122,7 +122,7 @@ RentHub compte environ 110 écrans. La plupart n'ont jamais été utilisés par 
 | Blacklist | Motifs de blocage d'un client (Fumeur, Saleté, Carburant) avec couleurs | **P1** |
 | Typologie des documents | Carte d'identité, passeport, justificatif de domicile (< 3 mois) | **P1** — géré par Contrazy |
 | Types de permis | Permis international / autre | **P1** — géré par Contrazy |
-| Horaires | Horaires d'ouverture par lieu | **P2** — le self-service est 24h/24 ; utile seulement pour les services avec personnel (livraison) |
+| Horaires | Horaires d'ouverture par lieu | **P1** — le self-service est 24h/24 ; les horaires servent à la livraison aéroport/gare par un collaborateur (conservée au lancement) |
 | Provenances | Application, signalétique, appel, visite, campagnes | — (« on n'en a pas besoin ») — nous enregistrons seulement *web / admin / application* automatiquement |
 | IBAN | Comptes bancaires pour les factures | — (virements Stripe) |
 | Statut WhatsApp | Liaison serveur WhatsApp (non activée) | **P3** — notifications WhatsApp plus tard |
@@ -166,10 +166,10 @@ RentHub compte environ 110 écrans. La plupart n'ont jamais été utilisés par 
 
 | Écran RentHub | Situation actuelle de LOCAZ | Décision |
 |---|---|---|
-| Listes des tarifs | Journalier semaine, journalier week-end, horaire semaine, horaire week-end | **P1** journalier semaine/week-end · **P2** horaire |
+| Listes des tarifs | Journalier semaine, journalier week-end, horaire semaine, horaire week-end | **P1** — journalier et horaire, semaine et week-end |
 | Tarifs de location par catégorie | Prix de 1 à 6 jours, km inclus, km supplémentaire | **P1** |
-| Paquets | Semaine (7 jours, 700 km), Mois (29–31 jours, 3 000 km) | **P1** |
-| Tarifs des services | Prix journalier ou fixe par catégorie | **P1** |
+| Paquets | Semaine (7 jours, 700 km), Mois (29–31 jours, 3 000 km) | **P1** — paquet semaine et mois pour **chaque** catégorie |
+| Tarifs des services | Prix journalier ou fixe par catégorie | **P1** — mêmes prix pour toutes les catégories par défaut, modifiables par catégorie |
 | Tarifs de déplacement (aller simple) | 59 € entre lieux | **P1** |
 | Tarifs dynamiques (saisons, demande) | Non configurés (« je le ferai moi-même ») | **P2** — règles simples gérées par l'administrateur |
 | Tarification dynamique avancée (tarif de nuit, remise web…) | Non configurée | **P3** |
@@ -216,11 +216,11 @@ Ce que nous changeons :
 |---|---|---|---|
 | 1 | **Recherche** | Lieu de prise en charge, lieu de restitution (par défaut : le même), date et heure de départ, date et heure de retour. Visible dès la landing page (bloc fixe pendant le défilement). | LOCAZ |
 | 2 | **Résultats** | Catégories disponibles avec photo, « Modèle ou équivalent », places, boîte, carburant, volume (utilitaires), km inclus, **prix total** et prix par jour. Triées par prix. Véhicules indisponibles grisés. | LOCAZ |
-| 3 | **Options** | Niveau de protection (Standard inclus, Confort, Zéro franchise), conducteur supplémentaire, siège bébé, diable, livraison aéroport/gare. Prix mis à jour en direct. | LOCAZ |
-| 4 | **Récapitulatif** | Détail complet : location, options, frais d'aller simple, km inclus, prix du km supplémentaire, montant de la caution, conditions d'annulation. Acceptation des CGV. | LOCAZ |
+| 3 | **Options** | Niveau de protection (Standard inclus, Comfort, 0 Franchise), conducteur supplémentaire, siège bébé, diable, livraison aéroport/gare. Prix mis à jour en direct. | LOCAZ |
+| 4 | **Récapitulatif** | Détail complet : location, options, frais d'aller simple, km inclus, prix du km supplémentaire, montant de la caution, conditions d'annulation. Acceptation des CGV et de l'enregistrement de la carte pour les sommes dues après la location (amendes, dégâts). | LOCAZ |
 | 5 | **Création du compte** | E-mail + téléphone (vérifiés par code), ou Google. Nom, date de naissance. Contrôle de l'âge minimum. | LOCAZ |
 | 6 | **Vérification et contrat** | Permis de conduire (recto/verso), carte d'identité ou passeport, selfie, justificatif de domicile si demandé. Contrat généré avec les détails de la réservation et signé sur le téléphone. | **Contrazy** |
-| 7 | **Paiement** | Location payée en totalité par carte (3-D Secure). Caution autorisée sur une carte au nom du locataire. | **Contrazy** (Stripe) |
+| 7 | **Paiement** | Location payée en totalité par carte (3-D Secure). Caution autorisée sur une carte au nom du locataire. La carte est enregistrée de façon sécurisée par Stripe pour les prélèvements ultérieurs. | **Contrazy** (Stripe) |
 | 8 | **Confirmation** | Réservation confirmée par e-mail (puis WhatsApp/SMS), avec lieu, heure et instructions. | LOCAZ |
 | 9 | **Prise en charge** | Le client se rend au véhicule, fait l'état des lieux de départ (photos, carburant, km), puis le déverrouille (boîte à clé / application, phase 3). | État des lieux **Contrazy** (+ boîtiers) |
 | 10 | **Restitution** | État des lieux de retour (photos, carburant, km). Km supplémentaires, carburant et pénalités sont calculés. Caution libérée ou prélevée en partie. | État des lieux **Contrazy** |
@@ -232,7 +232,7 @@ Si la vérification ou le paiement échoue, le véhicule reste bloqué pendant u
 | Règle | Valeur | Réglable |
 |---|---|---|
 | Âge minimum | 21 ans | Oui |
-| Permis détenu depuis au moins | 1 an selon les CGV (**la FAQ du site indique 2 ans — à confirmer**) | Oui |
+| Permis détenu depuis au moins | 1 an (confirmé ; la FAQ du site sera corrigée, elle indique « 2 ans ») | Oui |
 | Durée maximale de location | 30 jours consécutifs | Oui |
 | Réservation jusqu'à | 6 mois à l'avance | Oui |
 | Délai minimum avant la prise en charge | 60 minutes (paramètre RentHub) | Oui, par lieu/catégorie |
@@ -245,7 +245,8 @@ Si la vérification ou le paiement échoue, le véhicule reste bloqué pendant u
 
 - Réservations à venir, en cours et passées ; téléchargement du contrat et de la facture.
 - Demander une prolongation, annuler (avec la règle de remboursement affichée), ajouter un conducteur.
-- Documents enregistrés (réutilisés pour la location suivante tant qu'ils sont valides).
+- Documents enregistrés (réutilisés pour la location suivante tant qu'ils sont valides) et carte enregistrée.
+- « Demander un devis » sans paiement, pour les clients professionnels (**P2**).
 - Langue : français et anglais au lancement (italien comme sur la landing page — **P2**).
 
 ---
@@ -258,14 +259,14 @@ Les tarifs sont fixés **par catégorie, pas par modèle** : un Renault Master e
 
 **Choix de la liste de prix**
 - Listes journalières *semaine* et *week-end* ; la liste week-end s'applique quand la location tombe un week-end.
-- Des listes *horaires* (semaine / week-end) existent dans RentHub mais **ne sont pas proposées aux clients**. La location à l'heure est une option **P2** (le blog mentionne la « location à l'heure »).
+- Les listes *horaires* (semaine / week-end) sont proposées en ligne **dès le lancement** (P1). RentHub les avait mais ne les montrait jamais aux clients. La location à l'heure s'active ou se désactive par catégorie.
 - Tolérance : une location de 24 h + jusqu'à 1 h compte pour 1 jour (paramètre RentHub). Tolérance horaire : 29 minutes.
 
 **Prix selon la durée**
 - Un prix total est fixé pour 1, 2, 3, 4, 5 et 6 jours (chaque durée peut avoir son propre total, par ex. Moyen fourgon : 1 jour 70 €, 2 jours 139,20 €, 3 jours 205,20 €…).
 - Paliers longs optionnels (par ex. Petite voiture : à partir de 7 jours 31,92 €/jour, à partir de 30 jours 30 €/jour).
 - Au-delà du dernier palier, le prix est **le tarif journalier du dernier palier × le nombre de jours**. C'est le calcul actuel de RentHub, par ex. Grande voiture 10 jours = 10 × 45 € = 450 €.
-- Les **paquets** remplacent le prix journalier quand la durée correspond : *Semaine* = exactement 7 jours, 700 km inclus ; *Mois* = 29 à 31 jours, 3 000 km inclus. Le client obtient toujours **le prix valide le moins cher**, affiché comme un seul prix.
+- Les **paquets** remplacent le prix journalier quand la durée correspond : *Semaine* = exactement 7 jours, 700 km inclus ; *Mois* = 29 à 31 jours, 3 000 km inclus. Chaque catégorie a les deux paquets. Le client obtient toujours **le prix valide le moins cher**, affiché comme un seul prix.
   - Aujourd'hui, RentHub affiche le paquet semaine et le prix journalier côte à côte. Pour le camion, le paquet (672 €) est plus cher que 7 prix journaliers (595 €).
   - Les paquets mensuels ne sont jamais proposés aux clients : un Grand fourgon sur 30 jours s'affiche à 2 016 € au lieu du paquet à 1 550 €.
 - Chaque prix a une période de validité (du / au), pour préparer les prix saisonniers à l'avance.
@@ -275,8 +276,8 @@ Les tarifs sont fixés **par catégorie, pas par modèle** : un Renault Master e
 - Prix du km supplémentaire (0,35 € TTC aujourd'hui ; 0,39 € pour le camion le week-end). Facturé au retour d'après le kilométrage relevé (relevé manuel au lancement, traceur en phase 3).
 
 **Options et frais**
-- Options facturées **par jour** (conducteur supplémentaire 9,90 €/jour, siège bébé 4 €/jour, protection) ou **au forfait par location** (livraison aéroport/gare 60 €). Une option peut avoir un nombre maximum de jours facturables.
-- Niveaux de protection (par jour) : *Standard* inclus (responsabilité plafonnée à 3 000 € par sinistre), *Confort* 19 €/jour (500 € pour le premier sinistre), *Zéro franchise* 34 €/jour (0 € pour le premier sinistre). Vol, incendie et bris de glace exclus, comme dans les CGV.
+- Options facturées **par jour** (conducteur supplémentaire 9,90 €/jour, siège bébé 4 €/jour, protection) ou **au forfait par location** (livraison aéroport/gare 60 €). Une option peut avoir un nombre maximum de jours facturables. Les mêmes prix d'options s'appliquent à toutes les catégories par défaut ; LOCAZ peut les modifier par catégorie dans l'administration.
+- Niveaux de protection (par jour), nommés **Standard / Comfort / 0 Franchise** partout : *Standard* inclus (responsabilité plafonnée à 3 000 € par sinistre), *Comfort* 19 €/jour (500 € pour le premier sinistre), *0 Franchise* 34 €/jour (0 € pour le premier sinistre). Vol, incendie et bris de glace exclus, comme dans les CGV.
 - Frais d'aller simple quand le lieu de restitution diffère du lieu de départ (59 € entre Gare / Aéroport / Ville aujourd'hui, dans les deux sens).
 - Frais de lieu pour une prise en charge/restitution à un lieu précis (0 € actuellement).
 
@@ -289,7 +290,7 @@ Code, % ou montant fixe, dates de validité, nombre d'utilisations maximum.
 **TVA**
 Les prix sont saisis et affichés TTC (20 %). Les options d'assurance ont leur propre taux (0 % dans RentHub aujourd'hui — à confirmer avec l'expert-comptable).
 
-> **Exemple chiffré (tarifs actuels)** — Moyen fourgon, départ lundi 9h00 à Nice Ville, retour mercredi 9h00 à Nice Aéroport, avec protection Confort :
+> **Exemple chiffré (tarifs actuels)** — Moyen fourgon, départ lundi 9h00 à Nice Ville, retour mercredi 9h00 à Nice Aéroport, avec protection Comfort :
 > location 2 jours 139,20 € + protection 2 × 19 € = 38 € + frais d'aller simple 59 € = **236,20 €** TTC. 200 km inclus, puis 0,35 €/km. Caution : 1 500 € (autorisation).
 
 ### 7.2 Disponibilité
@@ -353,8 +354,8 @@ La prise en charge et la restitution utilisent l'**état des lieux Contrazy** (c
 - **État des lieux de retour (obligatoire)** : mêmes photos, km, carburant, clés remises dans la boîte à gants, lieu de restitution confirmé.
 - **Calcul automatique au retour** (l'opérateur valide avant de facturer) :
   - Km supplémentaires : (km parcourus − km inclus) × prix du km supplémentaire.
-  - Carburant : si le niveau est inférieur au départ, forfait + prix au litre (**CGV : 20 € + 2,20 €/L ; RentHub : 36 € + 2,40 €/L — à harmoniser**).
-  - Retard de restitution : tolérance de 29 min, puis **une journée de location supplémentaire** (CGV) — le paramètre RentHub est différent (voir décisions).
+  - Carburant : si le niveau est inférieur au départ, **36 € + 3,50 € par litre** manquant.
+  - Retard de restitution : **tolérance de 30 minutes**, puis **une journée de location supplémentaire** (article 3.3 des CGV). Véhicule non rendu 2 h après la fin sans prolongation = procédure de non-restitution (article 12 des CGV).
   - Restitution hors zone : 150 € + frais de rapatriement.
   - Nettoyage : léger / moyen / excessif = 35 € / 50 € / 130 € ; nettoyage extrême 250 €.
 - Les frais sont **prélevés d'abord sur la caution**, puis sur la carte du client pour le solde (paramètre RentHub : « prélever les frais sur la caution et le solde sur la carte du client »), avec un reçu détaillé envoyé au client.
@@ -365,11 +366,21 @@ La prise en charge et la restitution utilisent l'**état des lieux Contrazy** (c
 Tous les flux d'argent passent par **le compte Stripe de LOCAZ**, connecté à Contrazy (Stripe Connect). LOCAZ est payé directement par Stripe.
 
 - **Paiement de la location** : débité en totalité à la réservation (carte, Apple Pay / Google Pay), 3-D Secure obligatoire (paramètre RentHub).
-- **Caution** : 1 500 € par modèle aujourd'hui (réglable par modèle et par option de protection). C'est une autorisation — l'argent est bloqué, pas débité — sur une carte au nom du locataire.
+- **Caution** : 1 500 € par modèle aujourd'hui (réglable par modèle et par option de protection). C'est une autorisation — l'argent est bloqué, pas débité — sur une carte au nom du locataire. Sa durée de blocage est expliquée ci-dessous.
+- **Carte enregistrée** : la carte est enregistrée par Stripe au paiement (`setup_future_usage = off_session`), avec l'accord explicite du client. LOCAZ ne stocke jamais les numéros de carte. La carte reste disponible après la libération de la caution, pour prélever les amendes, dégâts ou km supplémentaires qui arrivent des semaines ou des mois plus tard (voir ci-dessous).
 - **Remboursements** : selon les conditions d'annulation, automatiquement.
 - **Prolongations et frais supplémentaires** : payés par carte ; la facture est mise à jour.
 
-> **Important — durée de la caution.** Stripe ne peut maintenir une autorisation bancaire que **7 jours**. Les locations de plus de 7 jours (jusqu'à 30 jours) nécessitent une autre méthode. Contrazy le gère déjà : pour les locations longues, il **débite la caution et la rembourse automatiquement** après la location, pour un petit coût (frais Stripe ~1,5 % + 0,25 € + 0,5 % de marge plateforme). **Décision attendue** : accepter cette méthode au-delà de 7 jours, ou renouveler l'autorisation tous les 7 jours (possible, mais peut échouer si la carte n'est pas approvisionnée). Les CGV (article 7) mentionnent une pré-autorisation de 30 jours et le prestataire « Swikly » ; elles devront être légèrement mises à jour.
+#### Caution bloquée pendant toute la location
+- Chaque caution demande à Stripe une **autorisation prolongée de 30 jours**. Les réseaux de cartes l'autorisent pour la location de véhicules (Visa, Mastercard, American Express). Le compte Stripe de LOCAZ doit être enregistré dans la catégorie location de véhicules et être en tarification IC+, ou avoir la fonction activée par le support Stripe.
+- Si une carte n'est pas éligible (par exemple Maestro), le blocage est valable 7 jours. Pour les locations plus longues, la plateforme **renouvelle automatiquement l'autorisation** avant son expiration, avec la carte enregistrée, puis libère la précédente.
+- Si un nouveau blocage échoue (plafond atteint, carte bloquée), LOCAZ et le client sont alertés immédiatement et la location est signalée dans le planning.
+
+#### Prélèvements après la location (amendes, dégâts, km supplémentaires)
+- Ils sont prélevés sur la carte enregistrée en **paiement hors session, initié par le marchand**, avec les preuves jointes à la réservation.
+- La banque peut tout de même demander une confirmation au client, car les exemptions SCA sont décidées par la banque. Dans ce cas, le client reçoit automatiquement un lien de paiement sécurisé, et le dossier se poursuit en litige si rien n'est payé.
+- Les données de paiement sont conservées selon la politique de confidentialité LOCAZ (transaction + 13 mois). Cela couvre les amendes qui arrivent plusieurs mois plus tard.
+- L'article 7 des CGV autorise déjà LOCAZ à prélever les sommes dues après la location. L'accord donné au paiement le rend explicite. La mention de « Swikly » dans les CGV sera remplacée par Stripe.
 
 ### 7.8 Dégâts, amendes et litiges
 
@@ -377,9 +388,9 @@ Utilise le **module litiges de Contrazy** (déjà développé : dossier de litig
 
 - L'opérateur ouvre un litige depuis une réservation : dégât, amende (PV), fourrière, accident, non-restitution, autre.
 - Les montants sont proposés d'après le **barème des dommages et pénalités LOCAZ** (annexes 1 et 2 des CGV), enregistré comme liste modifiable dans l'administration. Exemples : rayure 2–5 cm 250 €, réparation pare-chocs 450 €, clé perdue 600 €, dommage non déclaré 90 €, désactivation du GPS 1 000 €, traitement d'une contravention 25 €, fourrière frais réels + 90 €, frais de gestion du litige 72 € HT (paramètre RentHub).
-- L'option de protection choisie plafonne automatiquement la responsabilité du client (Standard 3 000 € / Confort 500 € au premier sinistre / Zéro 0 € au premier sinistre).
+- L'option de protection choisie plafonne automatiquement la responsabilité du client (Standard 3 000 € / Comfort 500 € au premier sinistre / 0 Franchise 0 € au premier sinistre).
 - Le client est informé avec les preuves (photos de départ et de retour) et peut répondre. Le paiement est prélevé sur la caution ou demandé par carte.
-- Amendes (ANTAI) : enregistrer l'amende et désigner le conducteur d'après les données de la réservation.
+- Amendes (ANTAI) : en tant que loueur, LOCAZ doit **désigner le conducteur sous 45 jours** (sinon l'ANTAI inflige 675 € d'amende à la société). La plateforme prépare les informations de désignation depuis la réservation : l'amende est envoyée directement au client. LOCAZ prélève ensuite ses 25 € de frais de traitement sur la carte enregistrée.
 
 ### 7.9 Utilisateurs, rôles et sécurité
 
@@ -394,9 +405,9 @@ Une seule page de paramètres, organisée par thème, qui remplace la trentaine 
 | Thème | Paramètres (valeur actuelle) |
 |---|---|
 | Entreprise | Raison sociale LOCAZ SAS, SIREN 994 107 696, TVA FR94994107696, APE 7711A, adresse 22 avenue Robert Schuman 06000 Nice, e-mail, téléphone, logo, site web |
-| Règles de réservation | Âge minimum (21), ancienneté du permis (1 an), durée max. (30 jours), réservation à l'avance (6 mois), délai minimum (60 min), prix minimum (35 €), marge entre locations |
-| Restitution | Tolérance de retard (29 min), pénalité de retard (1 jour), forfait carburant et €/L, restitution hors zone (150 €), photos obligatoires au départ/retour (10), carburant et km obligatoires (oui) |
-| Caution | Montant par défaut, libération automatique après le retour (oui), délai de libération |
+| Règles de réservation | Âge minimum (21), ancienneté du permis (1 an), durée max. (30 jours), réservation à l'avance (6 mois), délai minimum (60 min), prix minimum (35 €), marge entre locations, location à l'heure activée ou non par catégorie |
+| Restitution | Tolérance de retard (30 min), pénalité de retard (1 jour), remise à niveau du carburant (36 € + 3,50 €/L), restitution hors zone (150 €), photos obligatoires au départ/retour (10), carburant et km obligatoires (oui) |
+| Caution | Montant par défaut, autorisation prolongée de 30 jours (oui), renouvellement automatique (oui), libération automatique après le retour (oui), délai de libération |
 | Paiements | 3-D Secure obligatoire (oui), moyens acceptés, taux de TVA |
 | Annulation | Paliers de remboursement (24 h / 1 h), motif obligatoire (oui) |
 | Documents | Pièce d'identité exigée (oui), permis exigé (oui), justificatif de domicile (si demandé), vérification par selfie (oui) |
@@ -437,7 +448,7 @@ LOCAZ devient un vendeur Contrazy (un compte professionnel). Chaque réservation
 | Contrat avec les données du client, signature électronique, PDF signé | Oui — modèles de contrat avec champs de fusion, pavé de signature, PDF signé |
 | Paiement de la location + caution dans un seul parcours | Oui — transactions « hybrides » (paiement + caution) sur le compte Stripe du vendeur |
 | Prélèvement (total/partiel) ou libération de la caution | Oui |
-| Cautions longues (8 à 30 jours) | Oui — débit et remboursement automatique, frais affichés (offre Contrazy Pro ou Business) |
+| Cautions longues (8 à 30 jours) | En partie — aujourd'hui par débit et remboursement automatique. Remplacé pour LOCAZ par l'autorisation prolongée + renouvellement (voir 8.2) |
 | États des lieux de départ/retour avec photos, km, carburant | Oui — rapports check-in / check-out (champs texte, nombre, choix, photo, fichier) |
 | Litiges avec dossier de preuves | Oui |
 | Traçabilité et e-mails | Oui |
@@ -449,11 +460,14 @@ LOCAZ devient un vendeur Contrazy (un compte professionnel). Chaque réservation
 |---|---|
 | **API partenaire** avec clés API sécurisées | Pour que la plateforme LOCAZ crée et lise les transactions automatiquement (aujourd'hui, elles sont créées depuis le tableau de bord Contrazy) |
 | **Webhooks vers LOCAZ** | Prévenir LOCAZ quand les documents sont validés, le contrat signé, le paiement/la caution réussis, l'état des lieux envoyé ou un litige modifié |
-| **Lien de retour** | Renvoyer le client vers `booking.locaz.co` après chaque étape |
+| **Lien de retour** | Renvoyer le client vers `locaz.co/booking` après chaque étape |
 | **Champs location dans le contrat** | Véhicule, immatriculation, catégorie, lieux et dates/heures de départ et de retour, km inclus, prix du km supplémentaire, options, niveau de protection, carburant et km au départ |
 | **Date/heure de début et de fin sur les transactions** | Aujourd'hui une transaction n'a qu'une date de prestation |
 | **Frais supplémentaires après le retour** | Facturer km supplémentaires, carburant, retard sur la caution ou la carte, avec un reçu détaillé |
 | **Réutilisation des documents vérifiés** | Un client fidèle ne renvoie pas le même permis tant qu'il est valide |
+| **Caution prolongée + renouvellement automatique** | Bloquer la caution pendant toute la location (autorisation prolongée de 30 jours, ou renouvellement tous les 7 jours) |
+| **Carte enregistrée et prélèvements hors session** | Enregistrer la carte au paiement et prélever amendes, dégâts et km supplémentaires après la location, avec un lien de paiement en secours |
+| **Export de désignation ANTAI** | Informations du conducteur prêtes à transmettre dans le délai légal de 45 jours |
 
 Ces extensions sont génériques : elles rendent aussi Contrazy vendable à d'autres loueurs.
 
@@ -508,7 +522,7 @@ L'objectif est la location 100 % sans clé. Deux boîtiers sont prévus (choix f
 
 Même technologie éprouvée que Contrazy, pour partager le code et les compétences : Next.js (web + API), PostgreSQL avec Prisma, Stripe, Cloudinary (photos/documents), Resend (e-mails), hébergement sur Vercel.
 
-La plateforme LOCAZ est dans le même dépôt de code que Contrazy, comme application séparée déployée sur son propre domaine (`booking.locaz.co`). La landing page existante reste sur `locaz.co`.
+La plateforme LOCAZ est dans le même dépôt de code que Contrazy, comme application séparée. Tout reste sur **un seul domaine** : la landing page existante sur `locaz.co`, et la plateforme de réservation sur `locaz.co/booking` (redirections Vercel / multi-zones). Le DNS du domaine passe de l'hébergement GoDaddy à Vercel au lancement. Un seul domaine est aussi meilleur pour le SEO.
 
 ---
 
@@ -524,11 +538,11 @@ Ces données sont importées dans la nouvelle plateforme pendant la phase 1.
 
 Les fiches clients, réservations et factures n'ont **pas** été exportées, car elles contiennent des données personnelles. Elles peuvent être exportées à la demande de LOCAZ tant que l'accès à RentHub fonctionne.
 
-**Anomalies relevées (à corriger lors de l'import)**
+**Anomalies relevées dans RentHub** (LOCAZ fixera les prix définitifs dans l'administration après le développement ; utilitaires et camion reprennent par défaut les prix d'options des voitures)
 - Les tarifs des services et assurances n'existent que pour les **Petites** et **Moyennes voitures**. Les utilitaires et le camion n'ont aucun tarif d'option.
 - Le **paquet semaine du Petit fourgon** a expiré le 11/07/2026.
 - La **Moyenne voiture** a des tarifs mais aucun modèle ni véhicule.
-- Le tarif **week-end de la Petite voiture** est de 80 €/jour en km illimités (semaine : 39,90 € avec 100 km/jour). C'est le double du tarif semaine ; à confirmer.
+- Le tarif **week-end de la Petite voiture** est de 80 €/jour en km illimités (semaine : 39,90 € avec 100 km/jour). LOCAZ fixera le prix final dans l'administration.
 - **Les paquets mensuels ne sont jamais appliqués** sur la page de réservation. Une location de 30 jours s'affiche à 1 800 € (Petit fourgon), 2 016 € (Grand fourgon) ou 2 550 € (camion) au lieu des paquets à 1 000 € / 1 550 € / 1 600 €.
 - Le **paquet semaine du camion** (672 €) est plus cher que 7 prix journaliers (595 €).
 - Le site annonce « dès 29 €/jour », alors que le prix journalier le plus bas dans RentHub est 39,90 € et que la réservation minimum est de 35 €.
@@ -539,46 +553,50 @@ Les fiches clients, réservations et factures n'ont **pas** été exportées, ca
 
 | Phase | Contenu | Échéance |
 |---|---|---|
-| **0 — Validation** | Relecture du PRD et décisions (section 14) ; compte Stripe LOCAZ ; choix des fournisseurs de boîtiers | Début octobre 2026 |
-| **1 — Socle administration** | Paramètres de l'entreprise, utilisateurs et rôles, lieux, catégories, modèles, véhicules, moteur de prix (journalier, week-end, paquets, km, options, aller simple), planning de la flotte, réservations manuelles, clients et liste noire, import des données RentHub | Octobre – novembre 2026 |
-| **2 — Réservation et Contrazy** | Site de réservation public (recherche → options → compte → vérification/contrat/paiement Contrazy → confirmation), espace client, API partenaire et webhooks Contrazy, états des lieux, frais supplémentaires, gestion de la caution, litiges, e-mails, factures | Novembre – décembre 2026 |
+| **0 — Lancement du projet** | Validation du PRD ; compte Stripe LOCAZ (catégorie location de véhicules, autorisation prolongée activée) ; choix des fournisseurs de boîtiers | Début octobre 2026 |
+| **1 — Socle administration** | Paramètres de l'entreprise, utilisateurs et rôles, lieux, horaires, catégories, modèles, véhicules, moteur de prix (journalier, week-end, horaire, paquets, km, options, aller simple), planning de la flotte, réservations manuelles, clients et liste noire, import des données RentHub | Octobre – novembre 2026 |
+| **2 — Réservation et Contrazy** | Site de réservation public sur locaz.co/booking (recherche → options → compte → vérification/contrat/paiement Contrazy → confirmation), espace client, API partenaire et webhooks Contrazy, carte enregistrée, caution prolongée et renouvellement, états des lieux, frais supplémentaires, litiges et désignation ANTAI, e-mails, factures | Novembre – décembre 2026 |
 | **3 — Boîtiers** | Ouverture/fermeture par boîte à clé, traceur (GPS, km, carburant), carte de la flotte, alertes de zone et de retard | Décembre 2026 – janvier 2027 |
 | **Lancement pilote** | Nice, flotte actuelle, vrais clients | **Janvier 2027** |
-| **4 — Croissance** | Documentation de l'API publique pour l'application mobile, tarifs dynamiques, coupons, location à l'heure, rapports, WhatsApp/SMS, échéances et dépenses véhicules, deuxième ville | À partir du T1 2027 |
+| **4 — Croissance** | Documentation de l'API publique pour l'application mobile, tarifs dynamiques, coupons, « Demander un devis », rapports, WhatsApp/SMS, échéances et dépenses véhicules, deuxième ville | À partir du T1 2027 |
 
 Chaque phase se termine par une démonstration et la validation de LOCAZ avant la suivante. Les dates de la phase 3 dépendent de la livraison des boîtiers et de l'accès aux API des fournisseurs.
 
 ---
 
-## 14. Décisions attendues de LOCAZ
+## 14. Décisions confirmées par LOCAZ (1er octobre 2026)
 
-| # | Question | Notre suggestion |
+| # | Sujet | Décision |
 |---|---|---|
-| 1 | Ancienneté minimale du permis : **1 an** (CGV) ou **2 ans** (FAQ du site) ? | Harmoniser les deux documents |
-| 2 | Retard de restitution : **1 jour supplémentaire après 30 min** (CGV), ou la règle RentHub (tolérance de 29 min puis heures supplémentaires/forfait) ? | Garder la règle des CGV, simple et claire |
-| 3 | Remise à niveau du carburant : **20 € + 2,20 €/L** (CGV) ou **36 € + 2,40 €/L** (RentHub) ? | Une seule valeur dans les paramètres, identique aux CGV |
-| 4 | Caution pour les locations de plus de 7 jours : **débit et remboursement** (petits frais) ou **nouvelle autorisation tous les 7 jours** ? | Débit et remboursement (déjà développé, plus fiable) |
-| 5 | Noms des protections : « Basique / Intermédiaire / Premium » (site), « Essentielle / Confort / Sérénité » (CGV) ou « Standard / Comfort / 0 Franchise » (RentHub) ? | Un seul jeu de noms partout |
-| 6 | Tarifs des options et assurances pour les **utilitaires et le camion** (aucun aujourd'hui) ? | Fournir les tarifs avant l'import |
-| 7 | La **location à l'heure** doit-elle être proposée en ligne dès le lancement ? | P2, après le lancement |
-| 8 | **Livraison par un collaborateur** à l'aéroport/à la gare dès le lancement (nécessite des horaires) ? | Garder, avec un forfait et des horaires |
-| 9 | Vérification d'identité par selfie pour **chaque** client, ou seulement au-delà d'un seuil de risque ? | Chaque client au lancement |
-| 10 | Fournisseurs de boîtiers : choix final de la boîte à clé et du traceur, et boîtiers de test | Après les rendez-vous fournisseurs de LOCAZ |
-| 11 | Domaine : `booking.locaz.co` (convenu en réunion) ou `app.locaz.co` ? | `booking.locaz.co` |
-| 12 | Locations mensuelles pour les **voitures** : ajouter un paquet mois (les utilitaires et le camion en ont un ; les voitures utilisent le prix 30 jours) ? | En ajouter un, par cohérence |
-| 13 | Le paquet semaine du camion (672 €) est plus cher que 7 prix journaliers (595 €). Lequel est correct ? | Corriger avant l'import |
-| 14 | Garder « Demander un devis » (sans paiement) comme option pour les clients professionnels ? | Oui, en option P2 |
+| 1 | Conditions du conducteur | Âge minimum 21 ans, permis détenu depuis au moins 1 an |
+| 2 | Retard de restitution | Tolérance de 30 minutes, puis une journée de location supplémentaire |
+| 3 | Remise à niveau du carburant | 36 € + 3,50 € par litre |
+| 4 | Caution des locations longues | Autorisation prolongée de 30 jours ; renouvellement automatique tous les 7 jours si la carte n'est pas éligible |
+| 5 | Noms des protections | Standard / Comfort / 0 Franchise, partout |
+| 6 | Prix des options pour utilitaires et camion | Identiques aux voitures par défaut ; LOCAZ fixe les prix définitifs dans l'administration |
+| 7 | Location à l'heure | En ligne dès le lancement (P1) |
+| 8 | Livraison aéroport/gare | Conservée au lancement, forfait et horaires |
+| 9 | Vérification par selfie | Pour chaque client |
+| 10 | Fournisseurs de boîtiers | Choisis par LOCAZ après les rendez-vous fournisseurs |
+| 11 | Domaine | `locaz.co/booking`, même domaine que la landing page |
+| 12 | Paquet mois | Un pour chaque catégorie |
+| 13 | Paquet semaine du camion et tous les prix | Fixés par LOCAZ dans l'administration après le développement |
+| 14 | « Demander un devis » | Conservé, P2 |
+| — | Prélèvements après la location | Carte enregistrée au paiement (hors session) ; amendes gérées par désignation ANTAI + 25 € de frais |
+
+**Documents à mettre en cohérence avec ces décisions** (côté LOCAZ ; nous pouvons fournir la rédaction exacte) :
+- FAQ du site : permis de 1 an ;
+- CGV : carburant 36 € + 3,50 €/L, noms des protections, accord pour la carte enregistrée, Stripe au lieu de Swikly ;
+- site : l'annonce « dès 29 €/jour », à aligner sur les vrais prix.
 
 ---
 
 ## 15. Prochaines étapes
 
-1. **LOCAZ** relit ce document, répond aux décisions de la section 14 et ajoute tout besoin manquant.
-2. **Réunion de revue** pour passer en revue les réponses et figer le périmètre de la phase 1.
-3. **LOCAZ** crée ou confirme son compte Stripe et transmet l'accès à l'API du fournisseur de boîtiers.
-4. **Démarrage du développement** avec la phase 1 (socle administration) et l'import des données RentHub.
-
----
+1. **LOCAZ** valide ce PRD et le budget, et règle l'acompte.
+2. **LOCAZ** ouvre ou confirme son compte Stripe (catégorie location de véhicules, autorisation prolongée activée) et transmet l'accès à l'API du fournisseur de boîtiers une fois choisi.
+3. **Démarrage du développement** avec la phase 1 (socle administration) et l'import des données RentHub.
+4. **Démonstration à la fin de chaque phase** ; lancement pilote en janvier 2027.
 
 ## Annexe A — Configuration actuelle de LOCAZ (depuis RentHub, 27 sept. 2026)
 
@@ -609,13 +627,13 @@ Chaque phase se termine par une démonstration et la validation de LOCAZ avant l
 
 Des tarifs horaires existent pour la Petite voiture (19,90 €/h) et pour les utilitaires/le camion (30 à 39 € la première heure, 10 km/h inclus). Ils ne sont pas proposés en ligne.
 
-### A.3 Options (Petites et Moyennes voitures ; TTC)
+### A.3 Options (TTC — prix actuels des voitures, appliqués à toutes les catégories par défaut)
 
 | Option | Prix | Facturation |
 |---|---|---|
 | Protection Standard | Incluse (obligatoire) | — |
-| Protection Confort | 19 € | par jour |
-| Protection Zéro franchise | 34 € | par jour |
+| Protection Comfort | 19 € | par jour |
+| Protection 0 Franchise | 34 € | par jour |
 | Conducteur supplémentaire | 9,90 € | par jour |
 | Siège bébé | 4,00 € | par jour |
 | Livraison aéroport / gare | 60,00 € | une fois |
