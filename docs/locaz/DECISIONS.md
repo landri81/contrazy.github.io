@@ -32,3 +32,15 @@ For fines, LOCAZ designates the driver to ANTAI within 45 days and charges the �
 
 - Total: **9,500 USD** for the scope of PRD v1.1, Phases 0–3. The native mobile app is not included.
 - **3,000 USD upfront** to start; **6,500 USD** balance on delivery.
+
+## Update — 13 October 2026
+
+- **Price:** Aziz rejected the 9,500 USD full scope (maximum 3,000 USD, compared with Fleetee at about 97 € HT/month).
+- **Final offer:** 3,000 USD, 100% upfront by payment link, for the launch version. Phase 2 is quoted separately.
+- **Scope request:** Aziz confirmed "same scope", but needs a real solution to keep customers' card tokens for 90 days. He sent *LOCAZ Stripe Deposit Spec v2.1* (saved card via SetupIntent / `setup_future_usage`, hold at pickup, French consent clause, caps, idempotency, retry policy by decline type, payment links, refunds, 90-day window, QA checklist).
+- **Decision:**
+  - A **basic version** is included in the 3,000 USD: card saved and consent logged, hold at pickup, admin charge with proof, caps and 90-day guard, payment link on failure, admin refunds.
+  - The **full automation of spec V1** (automatic retries, reminders, D+75 alert, auto-detach, versioned caps, full QA) is an add-on quoted separately.
+  - Spec Phase 2 (dispute workflow, roles/approval, monitoring) comes later.
+- **Didit** (didit.me), suggested by Aziz for identity checks: 500 free full KYC checks per month, then $0.33. Stripe Identity is about $1.50. Launch uses Stripe Identity (already built in Contrazy); switching to Didit is an add-on.
+- Meeting brief: [LOCAZ-Meeting-Brief-2026-10-13.pdf](LOCAZ-Meeting-Brief-2026-10-13.pdf).
