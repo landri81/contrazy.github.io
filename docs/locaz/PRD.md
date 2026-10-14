@@ -5,9 +5,9 @@
 | **Product** | LOCAZ — self-service car & van rental platform (web app, admin back office, API) |
 | **Prepared for** | Aziz LANDRI, LOCAZ |
 | **Prepared by** | Shakil Khan |
-| **Version** | 2.0 — final MVP scope |
-| **Date** | 14 October 2026 |
-| **Status** | For approval — replaces v1.1 |
+| **Version** | 2.1 — final MVP scope |
+| **Date** | 15 October 2026 |
+| **Status** | For approval — replaces v1.1 and v2.0 |
 
 ---
 
@@ -111,7 +111,7 @@ This version is based on:
 - **Search → results → options → summary → account → verification & contract → payment → confirmation.**
 - **Results:** one card per category ("Model or equivalent"), with photo, seats, gearbox, fuel, km included and the **total price**. The best price (daily or package) is chosen automatically.
 - **Summary:** shows the rental, options, one-way fee, km included, extra-km price, deductible, deposit, cancellation rules and the **90-day card consent**, all before payment.
-- **Account:** created only at checkout (email and phone verified by code, or Google).
+- **Account:** created only at checkout. The email is verified by a one-time code; the phone number is collected.
 - **Customer area:** bookings, documents, contract, receipts; cancel with the refund rule shown.
 - **Emails:** confirmation, pickup reminder, return reminder, return receipt, every post-rental charge with its proof.
 
@@ -119,12 +119,12 @@ This version is based on:
 
 | Step | Included |
 |---|---|
-| **Identity check** | ID or passport, selfie (Stripe Identity), driving licence front and back, proof of address when required |
+| **Identity check** | ID or passport with matching selfie (Stripe Identity), driving licence front and back, proof of address when required |
 | **Contract** | Rental contract generated with the booking details (vehicle, plate, dates, places, km, options, protection, deductible, deposit) and signed on the phone; signed PDF stored |
-| **Payment** | Rental paid online in full (card, Apple Pay, Google Pay, 3-D Secure) to LOCAZ's Stripe account |
-| **Check-in / check-out** | **Mandatory photos** at pickup and return (guided: outside, dashboard with km and fuel, interior), km and fuel readings, damage marks; automatic calculation of extra km, fuel and late return at check-out |
+| **Payment** | Rental paid online in full by card (3-D Secure) to LOCAZ's Stripe account |
+| **Check-in / check-out** | **Mandatory photos** at pickup and return (guided: outside, dashboard with km and fuel, interior), km and fuel readings, damage photos and notes; automatic calculation of extra km, fuel and late return at check-out |
 | **Disputes** | Damage and claim cases with the evidence pack (contract, photos, consent, notices) |
-| **Partner API** | Contrazy extensions so the LOCAZ platform creates bookings in Contrazy and receives each step's result automatically (API keys, webhooks, return link to `locaz.co/booking`) |
+| **Contrazy extensions** | Built as part of the MVP: partner API (API keys) so the LOCAZ platform creates bookings in Contrazy; webhooks back to LOCAZ for each step; return link to `locaz.co/booking`; rental fields in the contract; start/end date-time on bookings; selfie option in identity checks; saved card and post-rental charges (4.4) |
 
 ### 4.4 90-day card protection (Stripe Deposit Spec v2.1 — V1)
 
@@ -181,6 +181,9 @@ These are planned and the MVP is built to accept them, but they are **not includ
 | Switching identity checks to Didit (free up to 500 checks/month) | The MVP uses Stripe Identity, already built |
 | Full accounting (purchase orders, suppliers, cash book) and French e-invoicing | Handled by the accountant; the MVP exports CSV |
 | Multiple agencies with agency managers | One company, several places, in the MVP |
+| Apple Pay / Google Pay, Google sign-in, SMS phone verification | The MVP uses card payment and email verification |
+| Two-factor authentication for admins | The MVP uses roles and strong passwords |
+| Damage marks on a car diagram | The MVP records damage with photos and notes |
 
 ---
 
@@ -205,7 +208,7 @@ These are planned and the MVP is built to accept them, but they are **not includ
 |---|---|
 | Mobile first | Every customer step works on a phone |
 | Performance | Search results in under 2 seconds |
-| Security | HTTPS; card data only at Stripe; signed webhooks; role-based access; 2FA for admins; secrets outside the code |
+| Security | HTTPS; card data only at Stripe; signed webhooks; role-based access; strong passwords; secrets outside the code |
 | GDPR | Consent, privacy policy, retention periods (identity documents, photos, payment data), export/deletion on request |
 | Languages | French (default) and English |
 | Hosting | Vercel + managed PostgreSQL (EU), daily backups |
@@ -224,7 +227,7 @@ Work starts when the upfront payment is received. A demo is given at the weekly 
 | Weeks 3–4 | Pricing engine, options and protection, planning calendar, manual bookings, customers |
 | Weeks 5–6 | Booking website, Contrazy connection (identity, contract, payment), card secured + consent |
 | Weeks 7–8 | Check-in/check-out photos, 90-day charges (caps, retries, links, refunds, window), dashboard, emails |
-| Week 9 (mid-December) | Full QA in Stripe test mode, fixes, go-live on `locaz.co/booking`, **MVP delivery** |
+| Week 9 (14–18 December) | Full QA in Stripe test mode, fixes, go-live on `locaz.co/booking`, **final MVP delivery** (mid-December, at the latest in the 3rd week of December) |
 | January 2027 | After MVP: C-Access integration (once the device or dev kit is available) |
 | February 2027 | After MVP: LOCAZ mobile app (offline + Bluetooth unlock) |
 
@@ -235,16 +238,17 @@ Work starts when the upfront payment is received. A demo is given at the weekly 
 | Item | Terms |
 |---|---|
 | **MVP fixed price** | **3,000 USD** for everything in Section 4 |
-| **Payment** | **1,500 USD upfront** to start (October 2026) · **1,500 USD at MVP delivery** (December 2026) |
+| **Payment** | **1,800 USD upfront** to start (October 2026), of which 300 USD covers the AI development tools used throughout the project · **1,200 USD at final delivery** (mid-December, at the latest the 3rd week of December 2026) |
+| **Total** | **3,000 USD** — the 300 USD is part of this total, not an extra |
 | **Ownership** | Code and data belong to LOCAZ; no licence fee or subscription |
-| **Not included** | Section 5 items; third-party costs paid directly by LOCAZ: Stripe fees, hosting (Vercel, database, Cloudinary, Resend), Convadis devices and subscription (€215/device + €4.40/month), Convadis dev kit (€350, refundable) |
+| **Not included** | Section 5 items; third-party costs paid directly by LOCAZ: Stripe fees (payments and Stripe Identity checks, about $1.50 each), hosting (Vercel, database, Cloudinary, Resend), Convadis devices and subscription (€215/device + €4.40/month), Convadis dev kit (€350, refundable) |
 | **After the MVP** | Next phases (key box, app, extras) are scoped and agreed in writing before work starts |
 
 ---
 
 ## 10. What LOCAZ provides
 
-1. Upfront payment.
+1. Upfront payment (1,800 USD).
 2. Connects Stripe in Contrazy (about 10 minutes, business type "car rental").
 3. Access to the domain (GoDaddy) to set up `locaz.co/booking`.
 4. Final prices per category: daily, packages, options, protection, deductibles, deposits. They can also be set directly in the admin.
@@ -276,7 +280,7 @@ Built from the RentHub review (27 Sept 2026) and the Fleetee trial review (14 Oc
 | Coupons | Yes | Yes (validity, max uses, duration, category) | After |
 | Online booking website | Yes (booking engine) | Yes (website builder, deposit %, customer date changes) | **MVP** (`locaz.co/booking`, account at checkout) |
 | Online check-in before rental (driver info, licence) | Not used | Yes (3 days before) | **MVP** (via Contrazy, at checkout) |
-| Identity check with selfie | No | Not shown (licence upload, manual validation) | **MVP** (Contrazy / Stripe Identity) |
+| Identity check with selfie | No | Not shown (licence upload, manual validation) | **MVP** (Contrazy / Stripe Identity, selfie option enabled) |
 | E-signed rental contract | Remote signature setting | Yes (documents center) | **MVP** (Contrazy) |
 | Online payment | Yes | Yes (payment links) | **MVP** |
 | Online deposit | Card deposit settings | Yes (online deposit) | **MVP** (pickup hold + **90-day saved card**) |

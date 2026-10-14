@@ -56,3 +56,16 @@ For fines, LOCAZ designates the driver to ANTAI within 45 days and charges the â
 - **Dashboard:** Aziz wants the platform to replace his Excel tracking (revenue by channel, month and vehicle; vehicle costs; margin). Included in the MVP, with a one-time import of the Excel history.
 - **Fleetee:** trial reviewed read-only on 14 October 2026; comparison in PRD Appendix A.
 - **Archive:** PRD v1.1 (EN PDF, FR markdown and PDF) moved to `archive/`.
+
+## PRD v2.1 (15 October 2026)
+
+- **Payment terms changed:** **1,800 USD upfront** (includes 300 USD for the AI development tools used throughout the project) + **1,200 USD at final delivery** (mid-December, at the latest the 3rd week of December 2026). Total unchanged: **3,000 USD**; the 300 USD is not an extra.
+- **Buildability recheck against the Contrazy code.** These are moved out of the MVP because they would be new work:
+  - Apple Pay / Google Pay (Contrazy accepts cards only);
+  - Google sign-in for customers;
+  - SMS phone verification (no SMS provider; email code instead);
+  - admin 2FA;
+  - damage marks on a car diagram (photos and notes instead).
+- **Kept in the MVP as a small change:** the Stripe Identity matching-selfie option (not enabled in Contrazy today).
+- **Third-party costs:** Stripe Identity fees (about $1.50 per check) added to the list.
+- The v2.0 PDF is replaced by `LOCAZ-Booking-Platform-PRD-v2.1.pdf`.
