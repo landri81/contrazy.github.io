@@ -5,51 +5,54 @@
 | **Product** | LOCAZ — self-service car & van rental platform (web app, admin back office, API) |
 | **Prepared for** | Aziz LANDRI, LOCAZ |
 | **Prepared by** | Shakil Khan |
-| **Version** | 1.1 — decisions confirmed by LOCAZ |
-| **Date** | 1 October 2026 |
-| **Status** | Final for approval — all open questions answered by LOCAZ on 1 October 2026 (Section 14) |
+| **Version** | 2.0 — final MVP scope |
+| **Date** | 14 October 2026 |
+| **Status** | For approval — replaces v1.1 |
 
 ---
 
 ## 1. Summary
 
-LOCAZ rents cars, vans and trucks in Nice on a self-service basis: customers book, sign, pay and pick up the vehicle without a counter. Until now the fleet and prices were managed in RentHub. That contract has ended, and RentHub was too complex for LOCAZ's needs and missing key payment features.
+LOCAZ rents cars, vans and trucks in Nice on a self-service basis. RentHub has ended. LOCAZ needs its own platform, running **before the end of 2026**, that it can show to investors and banks in early 2027.
 
-We will build **LOCAZ's own platform**, made of three parts:
+This document defines **exactly** what the first version (the **MVP**) includes for the agreed fixed price of **3,000 USD**, and what comes after.
 
-1. **Booking website** (`locaz.co/booking`) — the customer picks dates, place and vehicle, sees the price instantly, adds options, and only then creates an account and pays.
-2. **Admin back office** — for Aziz and his team to manage the fleet, prices, calendar, reservations, customers and company rules.
-3. **API** — so the future LOCAZ mobile app and the vehicle devices (remote lock/unlock and GPS tracker) can connect to the same system.
+**The rule is simple:** everything listed in Section 4 is in the MVP; everything else is not.
 
-The heavy, sensitive steps — **identity check, documents, contract, e-signature, payment, deposit, check-in/check-out photos and disputes** — are already built in **Contrazy**. LOCAZ will be **Contrazy's first client**: the booking platform hands each confirmed booking to Contrazy, and Contrazy reports back when each step is done. The customer never has to know Contrazy is involved.
+**The MVP is a web platform:**
 
-This document is based on:
-- our meeting of 28 August 2026 (full transcript reviewed);
-- a complete read-only review of the LOCAZ RentHub account on 27 September 2026 (all ~110 admin screens, every price list, vehicle, model, service and setting), plus the public RentHub booking page tested with several dates and places;
-- LOCAZ's published CGV (v3.0, March 2026), rental contract and privacy policy;
-- the current Contrazy codebase.
+1. **Booking website** on `locaz.co/booking` — search, price, options, account at checkout, verification, contract, payment.
+2. **Admin back office** — fleet, prices, planning, bookings, customers, and a dashboard that replaces LOCAZ's Excel tracking.
+3. **Contrazy** as the engine for identity checks, documents, contract and e-signature, payment, deposit, **check-in/check-out photos** and disputes.
+4. **90-day card protection**: the customer's card is secured at booking, so LOCAZ can charge damage, fuel, tolls, towing, parking fines (FPS) and ticket admin fees for **90 days after return**. This follows LOCAZ's *Stripe Deposit Spec v2.1* (its V1 part).
 
-The full RentHub data was exported the same day (see [Section 12](#12-data-migration-from-renthub)).
+**After the MVP:** the C-Access key box (Convadis) and the LOCAZ mobile app, which is needed for offline use in parking garages.
+
+This version is based on:
+- the meeting of 13 October 2026 (full transcript reviewed);
+- LOCAZ's *Stripe Deposit Spec v2.1*;
+- the Convadis C-Access documents, offer and API documentation;
+- LOCAZ's revenue and fleet spreadsheet;
+- a complete read-only review of Fleetee (trial account, 14 October 2026);
+- the earlier review and data export of RentHub;
+- the current Contrazy code.
 
 ---
 
 ## 2. Goals
 
-| Goal | How we measure it |
+| Goal | Measure |
 |---|---|
-| Replace RentHub with a simpler tool LOCAZ fully owns | All daily operations run without RentHub |
-| Let customers book 100% from their phone, 24/7 | A booking can be completed on mobile in under 5 minutes, without calling or WhatsApp |
-| Show a correct, transparent price before any account is created | Price shown = price paid; no account needed to search and compare |
-| Secure every rental (identity, contract, deposit, photos) | Every rental has verified ID + licence, a signed contract, a deposit, and pickup/return photos |
-| Grow from ~10 to 30+ vehicles and to other French cities | Adding a city, place, category or vehicle needs no developer |
-| Delegate work to a team | Staff can be invited with limited rights |
-| Be ready for keyless rental and the mobile app | Devices and the mobile app plug into the documented API |
-
-**Target:** pilot launch in Nice at the **beginning of 2027**.
+| Replace RentHub and the Excel files | Bookings, fleet, prices, costs and revenue are all managed in the platform |
+| Customers book 100% online, on their phone | A booking takes less than 5 minutes, without calling or WhatsApp |
+| Secure every rental | Verified ID and licence, signed contract, pickup/return photos, card secured for 90 days |
+| Show the business to investors and banks | Dashboard with revenue, occupancy, channels and margin per vehicle |
+| Be ready to grow (9 vehicles today → 50 by end of 2027) | Adding vehicles, places or categories needs no developer |
+| Prepare keyless rental and the app | The platform is built so the device and the app plug in without rework |
 
 ---
 
-## 3. Product boundary — who does what
+## 3. Product boundary
 
 ```
     +------------------------------+
@@ -65,624 +68,261 @@ The full RentHub data was exported the same day (see [Section 12](#12-data-migra
     | - Search & price engine      |                 | - Identity check (KYC)       |
     | - Vehicle & options          |                 | - ID / licence / address     |
     | - Customer account           |                 | - Contract + e-signature     |
-    | - Admin back office          |                 | - Payment + deposit (Stripe) |
-    | - Fleet calendar             |                 | - Check-in / check-out       |
+    | - Admin back office          |                 | - Payment + 90-day card      |
+    | - Planning & dashboard       |                 | - Check-in / check-out       |
     | - Public API                 |                 | - Disputes & evidence        |
     +------------------------------+                 +------------------------------+
-                   |  API
+                   |  API (after MVP)
                    v
     +------------------------------+                 +------------------------------+
-    | Vehicle devices (Phase 3)    |                 | Mobile app (Phase 4)         |
-    | - Lock / unlock key box      |                 | Built on the same API        |
-    | - GPS tracker (km, fuel)     |                 | by a mobile developer        |
+    | C-Access key box (Convadis)  |                 | LOCAZ mobile app             |
+    | - Digital keys via CCom API  |                 | - Offline check-in photos    |
+    | - Unlock with phone (BLE)    |                 | - Bluetooth unlock           |
     +------------------------------+                 +------------------------------+
 ```
 
-| Area | Owner |
+- **Money:** all payments go to **LOCAZ's own Stripe account**, connected through Contrazy (about 10 minutes to set up, business type "car rental"). LOCAZ is paid directly by Stripe.
+- **Domain:** `locaz.co/booking`, on the same domain as the landing page.
+
+---
+
+## 4. MVP — included in the 3,000 USD
+
+### 4.1 Admin back office
+
+| Area | What is included |
 |---|---|
-| Landing page, SEO, blog | Existing `locaz.co` static site (kept; "Book now" goes to the booking platform) |
-| Search, price calculation, availability, options | **LOCAZ platform** (new) |
-| Fleet, places, categories, prices, services, rules | **LOCAZ platform** admin (new) |
-| Reservations, fleet calendar, customers, blacklist | **LOCAZ platform** admin (new) |
-| Identity, documents, contract, signature | **Contrazy** (existing, small extensions) |
-| Rental payment, deposit hold/capture/release | **Contrazy** via LOCAZ's Stripe account (existing) |
-| Pickup/return photos, fuel and km readings | **Contrazy** check-in / check-out (existing) |
-| Damage claims, fines, disputes | **Contrazy** disputes (existing) + LOCAZ penalty scale |
-| Lock/unlock, GPS, mileage, fuel level | Device providers, connected through the LOCAZ API (Phase 3) |
-| Native mobile app | Mobile developer, using the LOCAZ API (Phase 4) |
+| **Company settings** | Company details, logo, booking rules (minimum age 21, licence 1 year, minimum notice, maximum length 30 days, booking up to 6 months ahead), return rules (30-minute late tolerance then 1 extra day, fuel €36 + €3.50/L), cancellation rules |
+| **Users and roles** | Super admin (Aziz), Administrator, Operator, Operator assistant; invite by email; audit trail of changes |
+| **Places** | Pickup/return places (Nice Gare, Aéroport, Ville, Collinettes…) grouped by city; address, opening hours for staffed delivery |
+| **Fleet** | Categories, models ("Renault Master or equivalent"), vehicles. Vehicle record follows LOCAZ's fleet sheet: plate, VIN, brand, model, trim, first registration, fuel, seats, category (car / van / truck), current km, status, insurer and renewal date, technical inspection date, purchase price, preparation costs, market value |
+| **Pricing** | Per category, not per model. Daily prices weekday and weekend; prices for 1–6 days and longer tiers; hourly prices; week and month packages; km included per day or package, or unlimited; extra-km price; one-way fees between places |
+| **Options and protection** | Options per day or fixed (extra driver, baby seat, tow bar, hand truck, airport/station delivery), with optional maximum price. Protection levels **Standard / Comfort / 0 Franchise** with daily price, deductible and deposit per category (e.g. deductible €1,600 vans / €1,200 cars; Comfort €650; 0 Franchise €0) |
+| **Planning calendar** | One row per vehicle, bookings and unavailability (maintenance, repair) on a timeline; day / week / month views; filters; create a booking or a block by selecting dates; move a booking to another vehicle of the same category |
+| **Bookings** | Manual bookings (phone, walk-in, Getaround, Turo, friends) with a **source** field; manual discount (e.g. direct-customer discount) with reason; status flow from *Pending payment* to *Closed*; send the customer a secure link to complete verification, contract and payment |
+| **Customers** | Customer list and profile (identity, licence, bookings, payments, notes); **blacklist** with reasons (Smoker, Dirty, Fuel not refilled); a blacklisted customer cannot book online |
+| **Vehicle costs** | Enter costs per vehicle (insurance, registration, repairs, tyres, servicing, tolls, Getaround box…) with date and amount |
+| **Dashboard** | Replaces the Excel tracking: revenue by month, **by channel** (website, direct, Getaround, Turo, friends) and by vehicle/category; number of rentals; days rented; average price per day and per rental; average rental length; occupancy rate; **margin per vehicle** (revenue − costs) and payback vs purchase and preparation price; insurance cost per month; CSV export |
+| **Data import** | One-time import of the existing data: fleet list, customers (with blacklist flag), RentHub settings and prices, and the revenue and cost history from the Excel file, so the dashboard starts with real numbers |
 
----
+### 4.2 Booking website (`locaz.co/booking`)
 
-## 4. Users and roles
+- French and English. Mobile first. Dates-first search box, also embeddable on the landing page.
+- **Search → results → options → summary → account → verification & contract → payment → confirmation.**
+- **Results:** one card per category ("Model or equivalent"), with photo, seats, gearbox, fuel, km included and the **total price**. The best price (daily or package) is chosen automatically.
+- **Summary:** shows the rental, options, one-way fee, km included, extra-km price, deductible, deposit, cancellation rules and the **90-day card consent**, all before payment.
+- **Account:** created only at checkout (email and phone verified by code, or Google).
+- **Customer area:** bookings, documents, contract, receipts; cancel with the refund rule shown.
+- **Emails:** confirmation, pickup reminder, return reminder, return receipt, every post-rental charge with its proof.
 
-| Role | Who | Can do |
-|---|---|---|
-| **Super admin** | Aziz | Everything, including company settings, prices, users and payments |
-| **Administrator** | Trusted manager | Everything except billing/Stripe settings and deleting data |
-| **Operator** | Fleet staff | Reservations, calendar, pickups/returns, customers, vehicle status. No price or rule changes |
-| **Operator assistant** | Support / cleaning / delivery staff | View calendar and reservations, record check-in/out, damages and vehicle status |
-| **Customer** | Renter | Search, book, manage own bookings, documents, payments |
+### 4.3 Contrazy connection
 
-Roles match what LOCAZ asked for in the meeting ("Administrator, operator, assistant of operator — that's enough"). Staff are invited by email. Every action is recorded in an audit log. Staff can later be limited to one city or place group, for the national expansion.
-
----
-
-## 5. What we keep from RentHub — priorities
-
-RentHub has about 110 screens. Most were never used by LOCAZ. The table below lists every RentHub area and our decision, based on the meeting and on what was actually configured in the account.
-
-**Priority key:** **P1** = needed for launch · **P2** = shortly after launch · **P3** = later / optional · **—** = not needed
-
-### 5.1 Administration
-
-| RentHub screen | What it is | Decision |
-|---|---|---|
-| Company data & configuration | Legal info, tax IDs, operating rules | **P1** — simplified company settings (Section 7.10) |
-| Users / Teams | Staff accounts and groups | **P1** — Super admin + 3 staff roles (Section 4); teams **P3** |
-| Blacklist | Reasons to block a customer (Smoker, Dirty, Fuel) with colours | **P1** |
-| Document types | ID card, passport, proof of address (< 3 months) | **P1** — handled by Contrazy |
-| Licence types | International licence / other | **P1** — handled by Contrazy |
-| Opening hours (timetable) | Office hours per place | **P1** — self-service is 24/7; hours are used for staffed airport/station delivery (kept at launch) |
-| Sources (origins) | App, signage, call, visit, campaigns | — ("we don't need it") — we only store *web / admin / app* automatically |
-| IBAN | Bank accounts for invoices | — (Stripe payouts) |
-| WhatsApp status | WhatsApp server link (not activated) | **P3** — WhatsApp notifications later |
-
-### 5.2 Rental (reservations)
-
-| RentHub screen | Decision |
+| Step | Included |
 |---|---|
-| Reservations + fleet planning calendar | **P1** — the most important screen (Section 7.4) |
-| Manual booking by phone / on site | **P1** |
-| Disputes | **P1** — via Contrazy disputes |
-| Cancellation reasons (mandatory) | **P1** |
-| Unavailability reasons (maintenance, repair…) | **P1** |
-| Pickup/return checklist | **P1** — via Contrazy check-in/out |
-| Lead time (minimum notice before pickup, set to 60 min) | **P1** |
-| Internal vehicle movements | **P2** |
-| Review requests | **P3** |
-| Reservation import, free-sale allocation, broker hooks | — |
+| **Identity check** | ID or passport, selfie (Stripe Identity), driving licence front and back, proof of address when required |
+| **Contract** | Rental contract generated with the booking details (vehicle, plate, dates, places, km, options, protection, deductible, deposit) and signed on the phone; signed PDF stored |
+| **Payment** | Rental paid online in full (card, Apple Pay, Google Pay, 3-D Secure) to LOCAZ's Stripe account |
+| **Check-in / check-out** | **Mandatory photos** at pickup and return (guided: outside, dashboard with km and fuel, interior), km and fuel readings, damage marks; automatic calculation of extra km, fuel and late return at check-out |
+| **Disputes** | Damage and claim cases with the evidence pack (contract, photos, consent, notices) |
+| **Partner API** | Contrazy extensions so the LOCAZ platform creates bookings in Contrazy and receives each step's result automatically (API keys, webhooks, return link to `locaz.co/booking`) |
 
-### 5.3 Fleet
+### 4.4 90-day card protection (Stripe Deposit Spec v2.1 — V1)
 
-| RentHub screen | What LOCAZ has today | Decision |
-|---|---|---|
-| Place groups | 1 group: Nice | **P1** (one group per city, for expansion) |
-| Places | Nice Gare, Nice Aéroport, Nice Ville, Nice Collinettes | **P1** |
-| Brands | Renault, Iveco, Fiat, Mercedes, Toyota, Peugeot, Nissan | **P1** |
-| Vehicle types | Car, Van, Truck | **P1** |
-| Categories | 7 (Small / Medium / Large car; Small / Medium / Large van; Tipper truck) | **P1** — pricing is set per category |
-| Models | 8 ("Renault Master or equivalent", etc.) | **P1** |
-| Vehicles | 5 active vehicles with plate and mileage | **P1** |
-| Additional services | Extra driver, baby seat, hand truck, delivery, 3 insurance levels | **P1** |
-| Deductible & deposit rules | €1,500 deposit per model; deductibles €1,500 / €2,500 | **P1** |
-| Damage markers | Scratch (X), Dent (O) | **P1** — used on the check-in/out car diagram |
-| Vehicle expenses (washing, energy, service, insurance, tyres) | Cost types | **P2** |
-| Deadlines (insurance, MOT, service dates) | Calendar of vehicle deadlines | **P2** ("we don't care for now"; useful reminders later) |
-| GPS tracking map | Not connected | **P3** — replaced by our device integration (Phase 3) |
-| Damage report templates, damage categories/fees | Case-by-case, not set up | — (use the CGV damage scale inside disputes) |
-| Vehicle owners/suppliers, ACRISS codes, custom status 1–4, alarms | Empty | — |
+How it works for the customer: at booking, the card is **secured by Stripe** (3-D Secure once) and the customer ticks the consent box. This is a security step like Swikly or Gando, not "save my card for next time". LOCAZ never sees or stores the card number.
 
-### 5.4 Pricing
-
-| RentHub screen | What LOCAZ has today | Decision |
-|---|---|---|
-| Price lists | Daily weekday, daily weekend, hourly weekday, hourly weekend | **P1** — daily and hourly, weekday and weekend |
-| Rental rates per category | 1–6 day prices, km included, extra km | **P1** |
-| Packages | Week (7 days, 700 km), Month (29–31 days, 3,000 km) | **P1** — week and month package for **every** category |
-| Service prices | Daily or fixed price per category | **P1** — same prices for all categories by default, editable per category |
-| One-way (transfer) fees | €59 between places | **P1** |
-| Dynamic pricing (seasons, demand) | Not set up ("I will set it up myself") | **P2** — simple rules the admin can manage |
-| Advanced dynamic pricing (night rate, web discount…) | Not set up | **P3** |
-| Coupons | None | **P2** |
-| Damage fees | Not set up | — (CGV scale in disputes) |
-
-### 5.5 Other RentHub modules
-
-| Module | Decision |
+| Spec section | Included in the MVP |
 |---|---|
-| Customer database (contacts) | **P1** — customer list with documents, bookings, blacklist |
-| Invoices | **P1** — simple invoice/receipt PDF per rental. Full accounting (cash book, fiscal archive, purchase invoices) — not needed |
-| Payments / due dates | **P1** — handled by Contrazy + Stripe |
-| Leads (CRM), marketing campaigns, message templates | **P3** |
-| Upselling groups | **P3** |
-| AI credits / document scanning | — |
-| Car-sharing, online check-in, desk signature (not activated in RentHub) | Covered by our own booking flow + Contrazy |
+| §4 Card secured at booking | Stripe customer + card token on LOCAZ's Stripe account. Paid online bookings save the card with the payment; cash or agency bookings use a "card as security only" step |
+| §5 Hold at pickup | Optional hold (e.g. €800) placed when the vehicle is handed over; captured (full or partial) or cancelled at return |
+| §6 Consent | Mandatory checkbox, unticked by default, French text (English shown alongside); logged with date, IP, browser, terms version and exact text |
+| §7 Charges after return | Admin selects booking, charge type (damage, fuel, toll, towing, FPS, ticket admin fee), amount and proof → card charged off-session; customer receives the receipt and proof |
+| §8 Caps | Server-side limits editable in the admin: global cap per booking (= deductible), cap per charge type, one ticket admin fee per notice, proof required for FPS / tolls / towing |
+| §9 Safety and retries | One idempotency key per attempt and one charge per row (no double charge); signed Stripe webhooks; automatic retry rules by decline type (e.g. insufficient funds: up to 3 retries; authentication required: no retry, payment link) |
+| §10 Failed charges | Secure payment link sent automatically; reminders at D+3, D+7, D+14; flag for collection after D+14 |
+| §11 Refunds | Full or partial refunds (e.g. FPS cancelled on appeal), executed at Stripe, with a reason |
+| §12 Evidence and data | Stripe IDs, consent log, contract, photos, notices, invoice and emails kept 13 months after the last charge; card data only at Stripe |
+| §13 90-day window | `return date + 90 days` shown on each booking; new charges blocked after it; admin alert at D+75; card detached automatically after the window if nothing is open |
+| §17–§18 Quality | Separate test and live Stripe keys, secrets outside the code, full QA checklist (15 scenarios) passed in Stripe test mode before going live |
+
+**Traffic fines** (speed camera, red light) are **never charged** by LOCAZ. LOCAZ designates the driver on ANTAI (legal deadline: 45 days) and only charges its admin fee. The platform shows the driver details needed for the designation.
+
+**Adjustments to the spec** (agreed approach):
+- The card and customer are saved on **LOCAZ's own Stripe account** through Contrazy.
+- There is **one Stripe customer per client**, reused for every booking, not one per booking.
+- Stripe may update reissued cards automatically. This doesn't work for every card, so the card-update link from the spec is kept.
+- A 30-day hold for car rental is possible if Stripe enables it on LOCAZ's account. It's optional, and the saved card covers everything else.
+- The consent text and price schedule need a **legal check** by LOCAZ before launch.
+- The ID-retention period must be aligned with the privacy policy (spec: 13 months; current policy: 12 months).
+
+### 4.5 Delivered with the MVP
+
+- Setup of `locaz.co/booking` on LOCAZ's domain (Vercel), with LOCAZ's Stripe account connected through Contrazy.
+- A simple invoice/receipt PDF per rental.
+- A short admin guide, plus a handover session.
+- Bug fixes for the delivered scope after launch.
 
 ---
 
-## 6. Customer booking journey
+## 5. Not in the MVP — after the MVP
 
-The customer never creates an account before they have chosen a vehicle and seen the price. This keeps the site free to browse, and avoids empty accounts ("like e-commerce").
+These are planned and the MVP is built to accept them, but they are **not included in the 3,000 USD**. Each one is agreed in writing before work starts.
 
-### 6.0 Today's RentHub booking page (reviewed 27 Sept 2026)
-
-For reference, the current RentHub booking engine works like this:
-
-1. **Search form**: pickup place, return place, type, category, minimum seats, dates and times (30-minute slots).
-2. **Results**: one card per model with fuel, seats, gearbox, doors and air-con, the price list used, the total price, the km included and the extra km price. Packages appear as a separate "fixed price" card next to the daily price.
-3. **One-page checkout**: options (extra driver, baby seat, delivery, protection), personal details (name, email, mobile, address), card details (Stripe), marketing opt-in, CGV and privacy checkboxes, coupon code, summary. Two buttons: "Confirm and pay online" or "Request a quote".
-
-What we keep: the dates-first search, the clear result cards, and live option prices.
-
-What we change:
-- The customer gets a real account and verified identity, which RentHub does not do.
-- The deposit and cancellation rules are shown before payment. Today the checkout never mentions the €1,500 deposit.
-- The best price (package or daily) is chosen automatically, so two prices are never shown for the same car.
-- The contract is signed before pickup.
-
-### 6.1 Steps
-
-| # | Step | What happens | Built in |
-|---|---|---|---|
-| 1 | **Search** | Pickup place, return place (default: same), pickup date & time, return date & time. Visible straight away on the landing page (sticky box while scrolling). | LOCAZ |
-| 2 | **Results** | Available categories with photo, "Model or equivalent", seats, gearbox, fuel, volume (vans), km included, **total price** and price per day. Sorted by price. Unavailable vehicles shown greyed out. | LOCAZ |
-| 3 | **Options** | Protection level (Standard included, Comfort, 0 Franchise), extra driver, baby seat, hand truck, airport/station delivery. Price updates live. | LOCAZ |
-| 4 | **Summary** | Full breakdown: rental, options, one-way fee, km included, extra km price, deposit amount, cancellation rules. Accept CGV and agree that the card is saved for amounts due after the rental (fines, damages). | LOCAZ |
-| 5 | **Create account** | Email + phone (verified by code), or Google. Name, date of birth. Minimum age check. | LOCAZ |
-| 6 | **Verification & contract** | Driving licence (front/back), ID or passport, selfie, proof of address if requested. Contract generated with booking details and signed on the phone. | **Contrazy** |
-| 7 | **Payment** | Rental paid in full by card (3-D Secure). Deposit authorised on a card in the renter's name. The card is saved securely by Stripe for later charges. | **Contrazy** (Stripe) |
-| 8 | **Confirmation** | Booking confirmed by email (and later WhatsApp/SMS), with place, time and instructions. | LOCAZ |
-| 9 | **Pickup** | Customer goes to the vehicle, does the pickup check (photos, fuel, km), then unlocks it (key box / app, Phase 3). | **Contrazy** check-in (+ devices) |
-| 10 | **Return** | Return check (photos, fuel, km). Extra km, fuel and penalties are calculated. Deposit released or partially captured. | **Contrazy** check-out |
-
-If verification or payment fails, the vehicle is held for a limited time (e.g. 30 minutes, adjustable) and then released.
-
-### 6.2 Booking rules (from LOCAZ CGV v3.0)
-
-| Rule | Value | Configurable |
-|---|---|---|
-| Minimum age | 21 years | Yes |
-| Licence held for at least | 1 year (confirmed; the website FAQ will be corrected from "2 years") | Yes |
-| Maximum rental length | 30 consecutive days | Yes |
-| Book up to | 6 months in advance | Yes |
-| Minimum notice before pickup | 60 minutes (RentHub setting) | Yes, per place/category |
-| Simultaneous bookings per customer | 1 | Yes |
-| Minimum booking price | €35 incl. VAT (RentHub setting) | Yes |
-| Cancellation refund | > 24 h before: 100% · < 24 h: 50% · < 1 h: 0% · cancelled by LOCAZ: 100% · fraud/invalid documents: 0% | Yes |
-| Extension | Requested in the app before the end; accepted only if the vehicle is free; paid immediately | Yes |
-
-### 6.3 Customer account area
-
-- Upcoming, current and past bookings; download contract and invoice.
-- Request an extension, cancel (with the refund rule shown), add a driver.
-- Saved documents (re-used for the next rental while valid) and saved card.
-- "Request a quote" without payment, for professional customers (**P2**).
-- Language: French and English at launch (Italian as on the landing page — **P2**).
-
----
-
-## 7. Functional requirements — LOCAZ platform
-
-### 7.1 Price engine
-
-Prices are set **per category, not per model**: a Renault Master and an Iveco Daily in "Large van" cost the same. This was agreed in the meeting and matches the RentHub setup.
-
-**Price list selection**
-- *Weekday* and *weekend* daily price lists; the weekend list applies when the rental falls on a weekend.
-- *Hourly* price lists (weekday / weekend) are offered online **from launch** (P1). RentHub has them but never showed them to customers. Hourly rental can be switched on or off per category.
-- Tolerance: a rental of 24 h + up to 1 h counts as 1 day (RentHub setting). Hourly tolerance: 29 minutes.
-
-**Price per duration**
-- A total price is set for 1, 2, 3, 4, 5 and 6 days (each duration can have its own total, e.g. Medium van: 1 day €70, 2 days €139.20, 3 days €205.20…).
-- Optional longer tiers (e.g. Small car: from 7 days €31.92/day, from 30 days €30/day).
-- Beyond the last tier, the price is **the daily rate of the last tier × number of days**. This is how RentHub calculates it today, e.g. Large car 10 days = 10 × €45 = €450.
-- **Packages** replace the daily price when the duration matches: *Week* = exactly 7 days, 700 km included; *Month* = 29–31 days, 3,000 km included. Every category has both packages. The customer always gets the **cheapest valid price**, shown as one price.
-  - RentHub today shows the week package and the daily price side by side. For the truck, the package (€672) is more expensive than 7 daily prices (€595).
-  - The month packages are never offered to customers: a 30-day Large van shows €2,016 instead of the €1,550 package.
-- Each price has a validity period (from / to), so seasonal prices can be prepared in advance.
-
-**Mileage**
-- Km included per day (100 km today; 10 km per hour for hourly rentals), per package, or **unlimited** (used today for the Small car at weekends).
-- Extra km price (€0.35 incl. VAT today; €0.39 for the truck at weekends). Charged at return from the recorded km (manual reading at launch, tracker in Phase 3).
-
-**Options and fees**
-- Options priced **per day** (extra driver €9.90/day, baby seat €4/day, protection) or **fixed per rental** (airport/station delivery €60). Options can have a maximum number of billable days. The same option prices apply to every category by default; LOCAZ can change them per category in the admin.
-- Protection levels (daily), named **Standard / Comfort / 0 Franchise** everywhere: *Standard* included (liability capped at €3,000 per claim), *Comfort* €19/day (€500 for the first claim), *0 Franchise* €34/day (€0 for the first claim). Theft, fire and glass are excluded, as in the CGV.
-- One-way fee when the return place differs from the pickup place (€59 between Gare / Aéroport / Ville today, both directions).
-- Place fee for pickup/return at a specific place (currently €0).
-
-**Dynamic pricing (P2)**
-Simple rules managed by the admin: +/- % or fixed amount by date range (e.g. Cannes Festival, Monaco Grand Prix, summer), by category, by place, by day of week, or by how early the customer books. A "preview" shows the resulting price before saving.
-
-**Coupons (P2)**
-Code, % or fixed amount, validity dates, usage limit.
-
-**VAT**
-Prices are entered and displayed incl. VAT (20%). Insurance options carry their own VAT rate (0% in RentHub today — to confirm with the accountant).
-
-> **Worked example (today's prices)** — Medium van, pickup Monday 09:00 at Nice Ville, return Wednesday 09:00 at Nice Aéroport, with Comfort protection:
-> rental 2 days €139.20 + protection 2 × €19 = €38 + one-way fee €59 = **€236.20** incl. VAT. 200 km included, then €0.35/km. Deposit: €1,500 (authorisation).
-
-### 7.2 Availability
-
-- A vehicle is available if it has no booking, maintenance or unavailability block overlapping the requested period, **plus a buffer** between rentals (cleaning/check time, configurable, e.g. 60 min).
-- Availability is checked **per category**: the customer books a category, and a specific vehicle is assigned automatically (or by the operator). An operator can swap the vehicle later without changing the price.
-- Vehicles can be limited to certain places or to a place group, and can return to a different place (one-way).
-- Overbooking protection: the last vehicle of a category is locked during checkout.
-
-### 7.3 Fleet management
-
-| Object | Main fields |
+| Item | Why it comes after |
 |---|---|
-| **Place group** (city) | Name, colour |
-| **Place** | Name, type (airport / station / city / port / other), address, GPS point, group, phone, email, available online (yes/no), pickup/return fee, VAT rate, safety radius (for GPS return check), instructions/photos for finding the vehicle |
-| **Brand** | Name, logo |
-| **Type** | Car / Van / Truck; check-in required (yes) |
-| **Category** | Name (FR/EN), type, display order, description, photo |
-| **Model** | Name ("Renault Master or equivalent"), brand, category, fuel, gearbox, seats, doors, air-con, tank litres, load volume m³ / payload (vans), towbar, photos, hidden online (yes/no), **deposit amount**, **deductibles** (damage, theft/fire, liability) |
-| **Vehicle** | Plate, VIN, model, colour, current km, status (active / inactive / maintenance), date added / removed, available online, allowed places, GPS device ID, lock box ID, remote engine block (yes/no), documents (registration, insurance), deadlines (MOT, service, insurance) **P2**, expenses **P2** |
-
-Today's data: 7 categories, 8 models, 5 vehicles, 4 places. It is imported from the RentHub export (Section 12).
-
-### 7.4 Fleet calendar and reservations (admin)
-
-The calendar is the main admin screen ("the most important line for me").
-
-- **Planning view**: one row per vehicle, grouped by category; days (or hours) as columns; bookings as coloured bars by status; maintenance/unavailability blocks shown differently. Navigate by day, week and month; filter by type, category, place, fuel, gearbox, status.
-- Counters per day: vehicles available / booked / blocked.
-- **Drag and drop** to move a booking to another vehicle of the same category.
-- **Create a booking from the calendar** (phone or walk-in customer): same price engine, with manual discount/override (reason required), send the customer a link to complete verification, contract and payment on their phone (the Contrazy link).
-- **Booking detail** (tabs, simplified from RentHub's 13 tabs):
-  - Status & price breakdown
-  - Customer & drivers
-  - Options
-  - Documents & verification
-  - Contract & signature
-  - Payments & deposit
-  - Pickup / return checks (photos, km, fuel, damages)
-  - Extra charges
-  - Dispute
-  - History (audit log)
-- **Statuses**: *Pending payment* → *Confirmed* → *In progress* (picked up) → *Returned* (return check done) → *Closed* (final charges settled, deposit released). Also *Cancelled* (with mandatory reason) and *No-show*.
-- **Unavailability blocks**: reason (maintenance, repair, cleaning, internal use…), dates, vehicle.
-- **Internal movements** (P2): move a vehicle between places without a customer.
-- Search by plate, customer name, booking number.
-
-### 7.5 Customers
-
-- Customer list with search: name, email, phone, number of rentals, total spent, verification status, blacklist flag.
-- Customer page: identity & licence (from Contrazy), drivers, bookings, payments, disputes, internal notes.
-- **Blacklist** with coloured reasons (today: Smoker 🔴, Dirty, Fuel not refilled). A blacklisted customer cannot book online; the admin sees a warning on phone bookings.
-- Company customers (P2): company name, SIRET, VAT number, invoice to the company.
-- GDPR: export and delete a customer's data on request, with the retention periods from the LOCAZ privacy policy (identity documents 12 months after last check, GPS/telemetry 60 days after rental, inspection photos 6 months, invoices 10 years).
-
-### 7.6 Rental operations: pickup, return and extra charges
-
-Pickup and return use the **Contrazy check-in/check-out** flow. It already supports photos, numbers, choices and files per step.
-
-- **Pickup check (mandatory before unlocking)**: 10 photos minimum (RentHub setting) following a guided sequence (4 sides, 4 corners, dashboard with km and fuel, interior), km reading, fuel level, existing damages marked on a car diagram (Scratch = X, Dent = O).
-- **Return check (mandatory)**: same photos, km, fuel, keys returned to the glove box, return place confirmed.
-- **Automatic calculation at return** (the operator confirms before charging):
-  - Extra km: (km driven − km included) × extra km price.
-  - Fuel: if the level is lower than at pickup, **€36 + €3.50 per litre** missing.
-  - Late return: **30-minute tolerance**, then **one extra rental day** (CGV article 3.3). Not returned 2 h after the end without an extension = non-return procedure (CGV article 12).
-  - Return outside the zone: €150 + repatriation cost.
-  - Cleaning: light / medium / heavy = €35 / €50 / €130; extreme cleaning €250.
-- Charges are **taken from the deposit** first, then from the customer's card for any balance (RentHub setting: "take fees from the deposit and the balance from the customer's card"), with an itemised receipt sent to the customer.
-- Damages and fines follow the dispute process (7.8).
-
-### 7.7 Payments and deposit
-
-All money flows through **LOCAZ's own Stripe account**, connected to Contrazy (Stripe Connect). LOCAZ is paid directly by Stripe.
-
-- **Rental payment**: charged in full at booking (card, Apple Pay / Google Pay), 3-D Secure forced (RentHub setting).
-- **Deposit**: €1,500 per model today (configurable per model and per protection option). It is an authorisation — the money is blocked, not debited — on a card in the renter's name. How long it is held is explained below.
-- **Saved card**: the card is saved by Stripe at checkout (`setup_future_usage = off_session`), with the customer's explicit consent. LOCAZ never stores card numbers. The card stays available after the deposit is released, so fines, damages or extra km that arrive weeks or months later can be charged (see below).
-- **Refunds** follow the cancellation rules automatically.
-- **Extensions and extra charges** are paid by card; the invoice is updated.
-
-#### Deposit hold for the whole rental
-- Every deposit requests a **30-day extended authorisation** from Stripe. Card networks allow this for vehicle rental (Visa, Mastercard, American Express). LOCAZ's Stripe account must be registered as car rental and be on IC+ pricing, or have the feature enabled by Stripe support.
-- If a card is not eligible (for example Maestro), the hold is valid for 7 days. For rentals longer than that, the platform **re-authorises automatically** before the hold expires, using the saved card, and then releases the previous hold.
-- If a new hold fails (card limit reached, card blocked), LOCAZ and the customer are alerted immediately and the rental is flagged in the calendar.
-
-#### Charges after the rental (fines, damages, extra km)
-- They are charged to the saved card as **off-session, merchant-initiated payments**, with the evidence attached to the booking.
-- The bank may still ask the customer to confirm, because SCA exemptions are decided by the bank. In that case the customer automatically receives a secure payment link, and the case continues as a dispute if unpaid.
-- Payment data is kept for the period in the LOCAZ privacy policy (transaction + 13 months). This covers fines that arrive up to several months later.
-- The CGV (article 7) already allow LOCAZ to charge amounts due after the rental. The checkout consent makes it explicit. The CGV mention of "Swikly" will be replaced by Stripe.
-
-### 7.8 Damages, fines and disputes
-
-Uses the **Contrazy dispute module** (already built: dispute record, statuses Open / Under review / Resolved / Lost, evidence pack as a ZIP with contract, photos and logs).
-
-- The operator opens a dispute from a booking: damage, fine (PV), towing (fourrière), accident, non-return, other.
-- Amounts are suggested from the **LOCAZ damage and penalty scale** (CGV annexes 1 and 2), stored as an editable list in admin. Examples: scratch 2–5 cm €250, bumper repair €450, lost key €600, undeclared damage €90, GPS tampering €1,000, fine handling €25, towing actual cost + €90, dispute handling fee €72 excl. VAT (RentHub setting).
-- The protection option chosen caps the customer's liability automatically (Standard €3,000 / Comfort €500 first claim / 0 Franchise €0 first claim).
-- The customer is notified with evidence (pickup vs return photos) and can respond. Payment is taken from the deposit or requested by card.
-- Fines (ANTAI): as a rental company, LOCAZ must **designate the driver within 45 days** (otherwise ANTAI fines the company €675). The platform prepares the designation details from the booking, so the fine goes to the customer directly. LOCAZ then charges its €25 handling fee to the saved card.
-
-### 7.9 Users, roles and security
-
-- Invite staff by email; roles as in Section 4; deactivate at any time.
-- Two-factor authentication for Super admin and Administrators.
-- Full audit log (who changed which price, booking or setting, and when).
-
-### 7.10 Company settings
-
-One settings page, grouped by topic, replacing RentHub's ~30 configuration panels. Launch values come from RentHub and the CGV:
-
-| Group | Settings (current value) |
-|---|---|
-| Company | Name LOCAZ SAS, SIREN 994 107 696, VAT FR94994107696, APE 7711A, address 22 Avenue Robert Schuman 06000 Nice, email, phone, logo, website |
-| Booking rules | Minimum age (21), licence held (1 year), max length (30 days), book ahead (6 months), minimum notice (60 min), minimum price (€35), buffer between rentals, hourly rental on/off per category |
-| Return | Late tolerance (30 min), late penalty (1 day), fuel refill (€36 + €3.50/L), out-of-zone fee (€150), mandatory photos at pickup/return (10), fuel and km mandatory (yes) |
-| Deposit | Default amount, 30-day extended hold (yes), automatic re-authorisation (yes), release automatically after return (yes), release delay |
-| Payments | 3-D Secure forced (yes), accepted methods, VAT rates |
-| Cancellation | Refund tiers (24 h / 1 h), reason mandatory (yes) |
-| Documents | ID required (yes), licence required (yes), proof of address (when requested), selfie check (yes) |
-| Legal | CGV version, rental contract template (managed in Contrazy), privacy policy link |
-| Notifications | Sender email, admin alert emails, WhatsApp (P3) |
-
-### 7.11 Notifications
-
-Email at launch (the Resend provider is already used by Contrazy); SMS/WhatsApp in P3.
-
-| When | To | Content |
-|---|---|---|
-| Booking created, payment pending | Customer | Link to finish verification and payment |
-| Booking confirmed | Customer + admin | Details, place, time, how to find the vehicle |
-| 24 h and 1 h before pickup | Customer | Reminder, pickup check instructions |
-| 1 h before end | Customer | Return reminder, how to extend |
-| Late return | Customer + admin | Warning, then penalty notice |
-| Return processed | Customer | Final receipt, extra charges, deposit release |
-| New dispute / fine | Customer | Evidence and amount |
-| Vehicle deadlines (P2) | Admin | MOT, service, insurance due |
-
-### 7.12 Reports (P2)
-
-Dashboard with the essentials: bookings and revenue by day/month, occupancy rate per category and per vehicle, average rental length and price, top options, cancellations, open disputes.
+| **C-Access key box integration** (Convadis CCom API: vehicles, digital keys per booking, C-App profile QR code, usage events) | Needs the sample device or the development kit, and the web platform live first |
+| **LOCAZ mobile app** (iOS / Android): offline check-in photos, Bluetooth unlock via the Convadis SDK, push notifications | A website cannot work without network in a parking garage; only an installed app can |
+| Spec v2.1 Phase 2: full chargeback workflow, two-person approval above €200, roles per agency, monitoring and alerts | Spec marks them Phase 2; the MVP has the V1 minimum (admin email on dispute, single admin role for charges) |
+| Quotes with expiry date and 50% advance payment | The MVP covers direct customers with a manual discount + payment link |
+| Coupons / promo codes, seasonal and dynamic pricing | Can be added once real booking data exists |
+| Maintenance module (interventions, vehicle reports with photos, deadline reminders) | The MVP has vehicle costs and inspection/insurance dates |
+| Traffic ticket workflow (statuses, contest tracking, automated ANTAI export) | The MVP charges the admin fee and shows driver details |
+| Getaround / Turo automatic sync | The MVP records their bookings manually with the source |
+| Customer reviews, SMS/WhatsApp, marketing emails | Not needed to run the business at launch |
+| Switching identity checks to Didit (free up to 500 checks/month) | The MVP uses Stripe Identity, already built |
+| Full accounting (purchase orders, suppliers, cash book) and French e-invoicing | Handled by the accountant; the MVP exports CSV |
+| Multiple agencies with agency managers | One company, several places, in the MVP |
 
 ---
 
-## 8. Contrazy integration
+## 6. Customer journey (web)
 
-LOCAZ becomes a Contrazy vendor (a business account). Each confirmed booking creates a **Contrazy transaction** with the rental amount, deposit, documents required, contract and check-in/out steps. The customer completes these steps in a LOCAZ-branded flow (LOCAZ logo and name), then returns to the LOCAZ site.
-
-### 8.1 What Contrazy already provides
-
-| Need | Contrazy today |
-|---|---|
-| ID, passport, proof of address, driving licence upload | Yes — document requirements (ID, proof of address, driver licence, custom) |
-| Identity check with selfie | Yes — Stripe Identity (optional per transaction) |
-| Contract with customer data, e-signature, signed PDF | Yes — contract templates with merge fields, signature pad, signed PDF |
-| Rental payment + deposit in one flow | Yes — "hybrid" transactions (payment + deposit) on the vendor's Stripe account |
-| Deposit capture (full/partial) or release | Yes |
-| Long deposits (8–30 days) | Partly — today by charge & automatic refund. Replaced for LOCAZ by extended authorisation + re-authorisation (see 8.2) |
-| Pickup / return reports with photos, km, fuel | Yes — check-in / check-out reports (text, number, choice, photo, file fields) |
-| Disputes with evidence pack | Yes |
-| Audit trail and emails | Yes |
-| French / English | Yes |
-
-### 8.2 What we add to Contrazy (small extensions)
-
-| Extension | Why |
-|---|---|
-| **Partner API** with secure API keys | So the LOCAZ platform can create and read transactions automatically (today transactions are created from the Contrazy dashboard) |
-| **Webhooks to LOCAZ** | Tell LOCAZ when documents are approved, the contract is signed, payment/deposit succeeded, check-in/out is submitted, or a dispute changes |
-| **Return link** | Send the customer back to `locaz.co/booking` after each step |
-| **Rental fields in the contract** | Vehicle, plate, category, pickup/return place and date-time, km included, extra km price, options, protection level, fuel and km at pickup |
-| **Start/end date-time on transactions** | Today a transaction has a single service date |
-| **Extra charges after return** | Charge extra km, fuel, late fees from the deposit or card, with an itemised receipt |
-| **Re-use verified documents** | A returning customer does not upload the same licence twice while it is valid |
-| **Extended deposit hold + automatic re-authorisation** | Hold the deposit for the whole rental (30-day extended authorisation, or re-authorisation every 7 days) |
-| **Saved card and off-session charges** | Save the card at checkout and charge fines, damages and extra km after the rental, with a payment-link fallback |
-| **ANTAI driver designation export** | Driver details ready to submit within the 45-day legal deadline |
-
-These extensions are general-purpose: they also make Contrazy sellable to other rental businesses.
+1. **Search:** pickup and return place, dates and times.
+2. **Results:** vehicles with total price and km included.
+3. **Options:** protection, extra driver, baby seat, delivery…
+4. **Summary:** full price, deductible, deposit, cancellation rules, 90-day card consent.
+5. **Account:** created at checkout.
+6. **Verify and sign:** licence, ID, selfie, contract signed on the phone.
+7. **Pay:** rental paid; card secured for 90 days.
+8. **Pickup:** guided photos, km and fuel; vehicle access (key handover at launch, key box after the MVP).
+9. **Return:** photos, km and fuel; extra km, fuel and late fees calculated; hold settled.
+10. **Up to 90 days after return:** FPS, tolls, towing or ticket admin fees charged with proof if needed.
 
 ---
 
-## 9. Vehicle devices (Phase 3)
-
-The goal is 100% keyless rental. Two devices are planned (final choice by LOCAZ after supplier meetings):
-
-| Device | Purpose | Candidates discussed |
-|---|---|---|
-| **Key box** (battery, Bluetooth, placed in the car with the key) | Lock / unlock from the app, no wiring | Supplier shared by LOCAZ by email (API documentation and test access received) |
-| **Plug-in tracker** (OBD port, plug & play) | GPS position, mileage, fuel level | Teltonika (e.g. FMB003 OBD), Invers |
-
-**What we prepare from Phase 1** (so nothing needs redesign):
-- Each vehicle stores its **key box ID** and **tracker ID**.
-- A device layer in the LOCAZ API with one standard set of actions — *unlock*, *lock*, *get position*, *get km*, *get fuel* — and one adapter per supplier, so suppliers can be changed later.
-- Access rules: unlock works only for the renter, only between pickup and return time, only after the pickup check is complete and the deposit is authorised.
-
-**What devices add in Phase 3**
-- Unlock/lock from the booking page (web) and later from the mobile app.
-- Automatic km and fuel at pickup and return (no manual reading; manual stays as a fallback).
-- Live fleet map in admin; alert when a vehicle leaves the allowed zone or is not returned 2 h after the end (CGV article 12).
-- Return place check with the place's safety radius.
-- Remote engine block (RentHub shows it active on 4 vehicles) — only if supported by the chosen device and legally allowed.
-
----
-
-## 10. Mobile app and public API (Phase 4)
-
-- Everything the website does goes through a **documented API** (OpenAPI/Swagger), so a mobile developer can build the iOS/Android app without changing the backend.
-- The web booking site is **mobile-first** from day one and installable on the phone (PWA), so LOCAZ is usable on mobile before the native app exists.
-- The native app adds: Bluetooth unlock (if the key box requires it), push notifications, guided photo capture, and "find my car" navigation.
-
----
-
-## 11. Non-functional requirements
+## 7. Non-functional requirements
 
 | Topic | Requirement |
 |---|---|
-| Mobile first | Designed for phones first; every step usable with one hand; fast on 4G |
-| Performance | Search results in under 2 seconds; price updates instantly when options change |
-| Availability | 24/7 service; hosted on Vercel with a managed PostgreSQL database in the EU; daily backups |
-| Security | HTTPS everywhere; card data never touches LOCAZ servers (Stripe); documents stored encrypted; 2FA for admins; role-based access; rate limiting on login and booking |
-| GDPR | Consent and privacy policy; retention periods as in the LOCAZ privacy policy; data export/deletion on request; EU data hosting where possible |
-| Languages | French (default) and English; Italian P2 |
-| SEO | Landing page stays static and SEO-optimised; booking pages have clean URLs and metadata per place/category (e.g. "Location utilitaire Nice Aéroport") |
-| Scalability | Multi-city ready (place groups); no hard limit on vehicles |
-| Traceability | Audit log for bookings, prices, settings and payments |
-
-### Technology
-
-Same proven stack as Contrazy, to share code and skills: Next.js (web + API), PostgreSQL with Prisma, Stripe, Cloudinary (photos/documents), Resend (email), hosted on Vercel.
-
-The LOCAZ platform lives in the same code repository as Contrazy, as a separate application. Everything stays on **one domain**: the existing landing page at `locaz.co`, and the booking platform at `locaz.co/booking` (Vercel rewrites / multi-zones). The domain's DNS moves from GoDaddy hosting to Vercel at launch. One domain is also better for SEO.
+| Mobile first | Every customer step works on a phone |
+| Performance | Search results in under 2 seconds |
+| Security | HTTPS; card data only at Stripe; signed webhooks; role-based access; 2FA for admins; secrets outside the code |
+| GDPR | Consent, privacy policy, retention periods (identity documents, photos, payment data), export/deletion on request |
+| Languages | French (default) and English |
+| Hosting | Vercel + managed PostgreSQL (EU), daily backups |
+| Technology | Same stack as Contrazy: Next.js, PostgreSQL/Prisma, Stripe, Cloudinary, Resend |
+| Device-ready | Each vehicle stores its C-Access ID; the booking model already holds start/end times and authorised drivers needed for digital keys |
 
 ---
 
-## 12. Data migration from RentHub
+## 8. Timeline
 
-The RentHub account was reviewed and exported on **27 September 2026**, before access ends. The export (CSV files, screenshots and raw data) is in the `LOCAZ-RentHub-Export-2026-09-27` folder:
+Work starts when the upfront payment is received. A demo is given at the weekly Tuesday meeting.
 
-- Fleet: 7 categories, 3 types, 7 brands, 8 models, 5 vehicles (plates, km, deductibles), 4 places.
-- Pricing: 4 price lists, all rates per category and duration, 2 packages, service prices, one-way fees.
-- Rules: company settings, blacklist reasons, document and licence types, damage markers, cost types.
-
-These are imported into the new platform during Phase 1.
-
-Customer records, reservations and invoices were **not** exported, because they contain personal data. They can be exported on LOCAZ's request while RentHub access still works.
-
-**Data issues found in RentHub** (LOCAZ will set the final prices in the admin after development; vans and trucks get the car option prices by default)
-- Service and insurance prices exist only for **Small** and **Medium cars**. Vans and the truck have no option prices.
-- The **Small van weekly package** expired on 11/07/2026.
-- **Medium car** has prices but no model or vehicle.
-- The **Small car weekend** price is €80/day with unlimited km (weekday: €39.90 with 100 km/day). LOCAZ will set the final price in the admin.
-- **Month packages are never applied** on the booking page. A 30-day rental shows €1,800 (Small van), €2,016 (Large van) or €2,550 (truck) instead of the €1,000 / €1,550 / €1,600 packages.
-- The **truck week package** (€672) costs more than 7 daily prices (€595).
-- The website says "from €29/day", but the lowest daily price in RentHub is €39.90 and the minimum booking is €35.
+| Period | Delivered |
+|---|---|
+| Weeks 1–2 (from ~20 Oct) | Setup, data model, company settings, users, places, fleet, data import |
+| Weeks 3–4 | Pricing engine, options and protection, planning calendar, manual bookings, customers |
+| Weeks 5–6 | Booking website, Contrazy connection (identity, contract, payment), card secured + consent |
+| Weeks 7–8 | Check-in/check-out photos, 90-day charges (caps, retries, links, refunds, window), dashboard, emails |
+| Week 9 (mid-December) | Full QA in Stripe test mode, fixes, go-live on `locaz.co/booking`, **MVP delivery** |
+| January 2027 | After MVP: C-Access integration (once the device or dev kit is available) |
+| February 2027 | After MVP: LOCAZ mobile app (offline + Bluetooth unlock) |
 
 ---
 
-## 13. Delivery plan (proposal)
+## 9. Commercial terms
 
-| Phase | Content | Target |
-|---|---|---|
-| **0 — Kick-off** | PRD approval; LOCAZ Stripe account (car rental category, extended authorisation enabled); device supplier choice | Early October 2026 |
-| **1 — Admin core** | Company settings, users & roles, places, opening hours, categories, models, vehicles, price engine (daily, weekend, hourly, packages, km, options, one-way), fleet calendar, manual bookings, customers & blacklist, RentHub data import | October – November 2026 |
-| **2 — Booking & Contrazy** | Public booking site at locaz.co/booking (search → options → account → Contrazy verification/contract/payment → confirmation), customer area, Contrazy Partner API & webhooks, saved card, extended deposit hold & re-authorisation, pickup/return checks, extra charges, disputes & ANTAI designation, emails, invoices | November – December 2026 |
-| **3 — Devices** | Key box lock/unlock, tracker (GPS, km, fuel), fleet map, zone and late-return alerts | December 2026 – January 2027 |
-| **Pilot launch** | Nice, current fleet, real customers | **January 2027** |
-| **4 — Growth** | Public API documentation for the mobile app, dynamic pricing, coupons, "request a quote", reports, WhatsApp/SMS, vehicle deadlines & expenses, second city | From Q1 2027 |
-
-Each phase ends with a demo and LOCAZ's acceptance before the next one starts. Phase 3 dates depend on device delivery and supplier API access.
+| Item | Terms |
+|---|---|
+| **MVP fixed price** | **3,000 USD** for everything in Section 4 |
+| **Payment** | **1,500 USD upfront** to start (October 2026) · **1,500 USD at MVP delivery** (December 2026) |
+| **Ownership** | Code and data belong to LOCAZ; no licence fee or subscription |
+| **Not included** | Section 5 items; third-party costs paid directly by LOCAZ: Stripe fees, hosting (Vercel, database, Cloudinary, Resend), Convadis devices and subscription (€215/device + €4.40/month), Convadis dev kit (€350, refundable) |
+| **After the MVP** | Next phases (key box, app, extras) are scoped and agreed in writing before work starts |
 
 ---
 
-## 14. Decisions confirmed by LOCAZ (1 October 2026)
+## 10. What LOCAZ provides
 
-| # | Topic | Decision |
-|---|---|---|
-| 1 | Driver requirements | Minimum age 21, licence held for at least 1 year |
-| 2 | Late return | 30-minute tolerance, then one extra rental day |
-| 3 | Fuel refill | €36 + €3.50 per litre |
-| 4 | Deposit for long rentals | 30-day extended hold; automatic re-authorisation every 7 days when a card is not eligible |
-| 5 | Protection names | Standard / Comfort / 0 Franchise, everywhere |
-| 6 | Option prices for vans and trucks | Same as cars by default; LOCAZ sets final prices in the admin |
-| 7 | Hourly rental | Online from launch (P1) |
-| 8 | Airport/station delivery | Kept at launch, fixed fee and opening hours |
-| 9 | Selfie identity check | Every customer |
-| 10 | Device suppliers | Chosen by LOCAZ after supplier meetings |
-| 11 | Domain | `locaz.co/booking`, same domain as the landing page |
-| 12 | Month package | One for every category |
-| 13 | Truck week package and all prices | Set by LOCAZ in the admin after development |
-| 14 | "Request a quote" | Kept, P2 |
-| — | Charges after the rental | Card saved at checkout (off-session); fines handled by ANTAI driver designation + €25 fee |
-
-**Documents to align with these decisions** (LOCAZ side; we can provide the exact wording):
-- website FAQ: licence 1 year;
-- CGV: fuel €36 + €3.50/L, protection names, saved-card consent, Stripe instead of Swikly;
-- website: the "from €29/day" claim, to match the real prices.
+1. Upfront payment.
+2. Connects Stripe in Contrazy (about 10 minutes, business type "car rental").
+3. Access to the domain (GoDaddy) to set up `locaz.co/booking`.
+4. Final prices per category: daily, packages, options, protection, deductibles, deposits. They can also be set directly in the admin.
+5. Legal check of the 90-day consent text and the charge price schedule; updated CGV and privacy policy (fuel €36 + €3.50/L, protection names, licence 1 year, Stripe instead of Swikly, 90-day card clause).
+6. Photos of the vehicles and places, and the logo.
+7. For after the MVP: the C-Access sample or dev kit, and CCom API access from Convadis.
 
 ---
 
-## 15. Next steps
+## Appendix A — Feature comparison: RentHub, Fleetee, LOCAZ
 
-1. **LOCAZ** approves this PRD and the budget, and pays the upfront amount.
-2. **LOCAZ** opens or confirms its Stripe account (car rental category, extended authorisation enabled), and shares the device supplier's API access when chosen.
-3. **Development starts** with Phase 1 (admin core) and the import of the RentHub data.
-4. **Demo at the end of each phase**; pilot launch in January 2027.
+Built from the RentHub review (27 Sept 2026) and the Fleetee trial review (14 Oct 2026). **MVP** = included in the 3,000 USD. **After** = Section 5.
 
-## Appendix A — Current LOCAZ configuration (from RentHub, 27 Sept 2026)
-
-### A.1 Daily prices — weekday (incl. VAT, 100 km/day included, extra km €0.35)
-
-| Category | 1 day | 2 days | 3 days | 4 days | 5 days | 6 days | Week pkg (700 km) | Month pkg (3,000 km) |
-|---|---|---|---|---|---|---|---|---|
-| Small car (Twingo / Aygo) | 39.90 | 78.50 | 115.50 | — | — | — | 223.44 | — (7+ d: 31.92/d; 30+ d: 30.00/d) |
-| Medium car | 44.90 | 88.50 | 129.90 | 169.90 | — | — | 290.00 | — |
-| Large car (Fiat 500X) | 49.90 | 95.00 | 140.00 | 180.00 | — | — | 290.00 | — |
-| Small van (Citan) | 65.00 | 127.20 | 187.20 | 244.80 | 300.00 | 360.00 | 350.00 (expired) | 1,000.00 |
-| Medium van (Trafic) | 70.00 | 139.20 | 205.20 | 268.80 | 330.00 | 388.80 | 360.00 | 1,350.00 |
-| Large van (Master / Daily) | 75.00 | 146.00 | 208.80 | 273.60 | 342.00 | 403.20 | 370.00 | 1,550.00 |
-| Tipper truck (Cabstar) | 102.00 | 198.00 | 285.00 | 364.00 | 440.00 | 510.00 | 672.00 | 1,600.00 |
-
-"—" means no price is set for that duration. The daily rate of the last tier applies, e.g. Small car 5 days = 5 × €38.50 = €192.50, Large car 10 days = 10 × €45 = €450. Prices checked against the live RentHub booking page on 27 Sept 2026.
-
-### A.2 Weekend daily prices (incl. VAT)
-
-| Category | 1 day | 2 days | Other |
+| Feature | RentHub | Fleetee | LOCAZ |
 |---|---|---|---|
-| Small car | 80.00 (unlimited km) | — | |
-| Large car | 65.00 | — | |
-| Small van | 80.00 | 156.00 | |
-| Medium van | 75.00 | 144.00 | 3–6 days: 212.40 / 278.40 / 342.00 / 403.20 |
-| Large van | 85.00 | 160.00 | |
-| Tipper truck | 120.00 | 230.00 | extra km €0.39 |
+| Fleet: categories, models, vehicles | Yes | Yes (types, categories, assets, Excel import) | **MVP** |
+| Places / agencies with opening hours | Yes | Yes (agencies) | **MVP** (places) · multi-agency after |
+| Planning calendar (day/week/month) | Yes | Yes (day, week, month, 3 months) | **MVP** |
+| Booking sources | Yes (origins) | Yes (on site, phone, online + custom) | **MVP** (website, direct, Getaround, Turo, friends…) |
+| Booking rules (minimum notice, max advance, min duration) | Yes | Yes (+ overbooking, manual price edit, past bookings) | **MVP** |
+| Daily prices, weekday/weekend, duration tiers | Yes | Yes (price grid by category) | **MVP** |
+| Hourly prices | Yes | Yes | **MVP** |
+| Packages (week / month, km included) | Yes | Yes (tariff packages by start day, duration, km, season) | **MVP** (week, month) |
+| Km tiers / unlimited km | Yes | Yes (km tiers, priced) | **MVP** |
+| Options (per day / fixed, max price) | Yes | Yes (+ option groups) | **MVP** |
+| Protection levels with deductible and deposit | Yes | Yes (franchise levels, deposits per category) | **MVP** |
+| One-way / return fees | Yes | Yes (return fees, cancellation fees) | **MVP** |
+| Seasons and dynamic pricing | Yes | Yes (season calendar, pricing groups) | After |
+| Coupons | Yes | Yes (validity, max uses, duration, category) | After |
+| Online booking website | Yes (booking engine) | Yes (website builder, deposit %, customer date changes) | **MVP** (`locaz.co/booking`, account at checkout) |
+| Online check-in before rental (driver info, licence) | Not used | Yes (3 days before) | **MVP** (via Contrazy, at checkout) |
+| Identity check with selfie | No | Not shown (licence upload, manual validation) | **MVP** (Contrazy / Stripe Identity) |
+| E-signed rental contract | Remote signature setting | Yes (documents center) | **MVP** (Contrazy) |
+| Online payment | Yes | Yes (payment links) | **MVP** |
+| Online deposit | Card deposit settings | Yes (online deposit) | **MVP** (pickup hold + **90-day saved card**) |
+| Charges after return (fines, tolls, damage) with consent | No | Not shown | **MVP** (spec v2.1 V1) |
+| Check-in / check-out with photos | Yes (checklist) | Yes (Fleetee Check app, vehicle tour) | **MVP** (web) · offline app after |
+| Damage claims / disputes | Yes | Yes (claims list) | **MVP** (Contrazy disputes) |
+| Traffic tickets | Yes | Yes (statuses, contest) | **MVP** admin fee + driver details · full workflow after |
+| Quotes | Yes | Yes (expiry date) | After (MVP: discount + payment link) |
+| Customers, blacklist | Yes | Yes (private / business, import) | **MVP** |
+| Users and roles | Yes | Yes (admin, agency manager, agent, per-module access) | **MVP** (4 roles) |
+| Vehicle costs / maintenance | Yes | Yes (interventions, reports) | **MVP** costs · maintenance module after |
+| Dashboard (revenue, occupancy, channels, avg price) | Basic | Yes | **MVP** (+ margin per vehicle, payback) |
+| Invoices | Yes (full accounting) | Yes (deposit / rental / balance invoices) | **MVP** simple receipt · full accounting after |
+| Customer reviews, emails log | Yes | Yes | After |
+| GPS / keyless device | GPS menu (not used) | Not shown | After (C-Access) |
+| Mobile app | No | Fleetee Check (staff inspections) | After (customer app, offline) |
+| Monthly cost | Subscription | From 97 € HT/month (complete plan, < 20 vehicles) | None (owned) |
 
-Hourly prices exist for Small car (€19.90/h) and for vans/truck (€30–39 for the first hour, 10 km/h included). They are not shown online.
+## Appendix B — C-Access (Convadis) integration plan (after MVP)
 
-### A.3 Options (incl. VAT — today's car prices, applied to every category by default)
+**What C-Access is**
+- A Bluetooth (BLE) key actuator: the original vehicle key goes inside, and the box presses lock/unlock.
+- It can also block starting the car, for keyless vehicles.
+- The battery lasts about 3 years, with AES-encrypted communication.
+- Once the reservation is on the phone, it works fully offline.
 
-| Option | Price | Charged |
-|---|---|---|
-| Standard protection | Included (mandatory) | — |
-| Comfort protection | €19 | per day |
-| 0 Franchise protection | €34 | per day |
-| Extra driver | €9.90 | per day |
-| Baby seat | €4.00 | per day |
-| Delivery to airport / station | €60.00 | once |
-| Hand truck (diable) | no price set | — |
+**How the platform connects**
+1. Create each vehicle in Convadis's CCom server (REST API, OAuth2).
+2. For each booking, create a **reservation** in CCom: vehicle, start/end time, authorised user.
+3. Give the customer access to **C-App** (Convadis's app) through a profile QR code or link generated by CCom. Later, the LOCAZ app replaces C-App using Convadis's SDK (CAppLib).
+4. Read usage events (unlock/lock times) back from CCom into the booking.
 
-### A.4 Places and one-way fees
+**Commercial and practical**
+- Device pricing: €215 per device (10–49 devices) + €4.40 per device per month. Payment: 50% upfront, the rest in 3 instalments.
+- Development kit: €350, refundable within 6 months.
+- For vehicles with a physical key, a second key stays in the vehicle and is not secured, as Convadis notes.
 
-| Place | Type | Address |
-|---|---|---|
-| Nice Gare | Station | Avenue Thiers, 06000 Nice |
-| Nice Aéroport | Airport | 19 Rue Costes et Bellonte, 06200 Nice |
-| Nice Ville | City | 11 Avenue Auber, 06000 Nice |
-| Nice Collinettes | Other | 22 Rue Robert Schuman, 06000 Nice |
-
-One-way fee: **€59** for Gare ↔ Aéroport, Ville ↔ Aéroport, Gare ↔ Ville (both directions).
-
-### A.5 Fleet
-
-| Model | Category | Fuel / gearbox | Seats | Deposit | Deductibles (damage / theft-fire / liability) |
-|---|---|---|---|---|---|
-| Renault Twingo or equiv. | Small car | — | 4 | €1,500 | €1,500 / €2,500 / €1,500 |
-| Toyota Aygo or equiv. | Small car | Petrol, manual | 4 | €1,500 | same |
-| Fiat 500X or equiv. | Large car | Petrol, automatic | 5 | €1,500 | same |
-| Mercedes Citan or equiv. | Small van | Diesel, manual | 2 | €1,500 | same |
-| Renault Trafic or equiv. | Medium van | — | 3 | €1,500 | same |
-| Renault Master or equiv. | Large van | Diesel, manual | 3 | €1,500 | same |
-| Iveco Daily or equiv. | Large van | Diesel, manual | 3 | €1,500 | same |
-| Nissan Cabstar or equiv. | Tipper truck | Diesel, manual | 3 | €1,500 | same |
-
-5 vehicles are registered: Iveco Daily, Fiat 500X, Mercedes Citan, Toyota Aygo and Nissan Cabstar. They are available at all 4 places.
-
-### A.6 Reference lists
-
-- **Blacklist reasons**: Smoker, Dirty, Fuel not refilled.
-- **Required documents**: ID card, passport, proof of address (less than 3 months old); licence types: international licence, other.
-- **Damage markers**: Scratch (X), Dent (O).
-- **Vehicle cost types**: Washing, Energy, Service, Insurance, Tyres.
-
-## Appendix B — Glossary
+## Appendix C — Glossary
 
 | Term | Meaning |
 |---|---|
-| Category | Group of equivalent vehicles priced the same (e.g. Large van) |
-| Model | "Renault Master or equivalent" — what the customer sees |
-| Vehicle | One physical vehicle with a plate |
-| Place / place group | Pickup/return point / city |
-| Package | Fixed price for a week or a month with a km allowance |
-| Deposit (caution) | Amount blocked on the customer's card during the rental |
+| MVP | The first version, included in the 3,000 USD (Section 4) |
+| Card secured / saved card | Card token kept by Stripe, used for charges after the rental with the customer's consent |
+| Hold (pre-authorisation) | Amount blocked on the card from pickup to return (about 7 days maximum) |
+| Off-session charge | Charge made by LOCAZ later, without the customer present, under the consent given at booking |
+| FPS | Forfait post-stationnement (municipal parking charge) |
 | Deductible (franchise) | Maximum the customer pays per claim, depending on the protection chosen |
-| One-way fee | Fee when the vehicle is returned to a different place |
-| Check-in / check-out | Pickup / return inspection with photos, km and fuel |
-| Contrazy | LOCAZ's platform for identity, contract, signature, payment, deposit and disputes |
+| CCom / C-App | Convadis's server and phone app for the C-Access key box |
+| Contrazy | LOCAZ's platform for identity, contract, payment, deposit, inspections and disputes |

@@ -44,3 +44,15 @@ For fines, LOCAZ designates the driver to ANTAI within 45 days and charges the �
   - Spec Phase 2 (dispute workflow, roles/approval, monitoring) comes later.
 - **Didit** (didit.me), suggested by Aziz for identity checks: 500 free full KYC checks per month, then $0.33. Stripe Identity is about $1.50. Launch uses Stripe Identity (already built in Contrazy); switching to Didit is an add-on.
 - Meeting brief: [LOCAZ-Meeting-Brief-2026-10-13.pdf](LOCAZ-Meeting-Brief-2026-10-13.pdf).
+
+## Meeting of 13 October 2026 → PRD v2.0 (14 October 2026)
+
+- **MVP clarity:** Aziz needs one unambiguous list of what the 3,000 USD includes. PRD v2.0 uses only "MVP (in the 3,000 USD)" and "after the MVP"; the P1/P2 labels are dropped.
+- **Payment:** 1,500 USD upfront (October 2026) + 1,500 USD at MVP delivery (December 2026). This matches Aziz's own payment sheet. After the MVP, Aziz proposed a monthly amount (100 USD/month); not yet agreed.
+- **90-day card:** Aziz's Stripe Deposit Spec v2.1 (V1 part) is **in the MVP**. Spec Phase 2 comes after.
+- **Photos:** check-in/check-out photos are mandatory in the MVP.
+- **Device:** Convadis C-Access (BLE key box, offline; CCom REST API; C-App or SDK). 215 €/device + 4.40 €/month; dev kit 350 € refundable. Aziz ordered one sample. Integration comes after the web MVP.
+- **App:** a native app is needed for offline use in parking garages (photos + Bluetooth unlock). Planned about one month after launch.
+- **Dashboard:** Aziz wants the platform to replace his Excel tracking (revenue by channel, month and vehicle; vehicle costs; margin). Included in the MVP, with a one-time import of the Excel history.
+- **Fleetee:** trial reviewed read-only on 14 October 2026; comparison in PRD Appendix A.
+- **Archive:** PRD v1.1 (EN PDF, FR markdown and PDF) moved to `archive/`.
