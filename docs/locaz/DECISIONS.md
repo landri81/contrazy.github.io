@@ -69,3 +69,19 @@ For fines, LOCAZ designates the driver to ANTAI within 45 days and charges the �
 - **Kept in the MVP as a small change:** the Stripe Identity matching-selfie option (not enabled in Contrazy today).
 - **Third-party costs:** Stripe Identity fees (about $1.50 per check) added to the list.
 - The v2.0 PDF is replaced by `LOCAZ-Booking-Platform-PRD-v2.1.pdf`.
+
+## Meeting of 20 October 2026 → PRD v2.2 (final agreement)
+
+- **Price:** final. Aziz will not renegotiate it; 3,000 USD (1,800 upfront incl. 300 AI tools + 1,200 at final delivery). He will pay the first part as agreed once the final document is received. Start expected the week of 26 October.
+- **C-Access moved into the MVP** at Aziz's request, so he can test now, not after January. The MVP gets the web-level integration via Convadis CCom (vehicles, digital key per booking, C-App link/QR, usage events). The LOCAZ app with the Convadis SDK stays after the MVP.
+- **Italian** added to the booking site and emails (FR/EN/IT). Contrazy screens stay FR/EN at launch.
+- **Step switches:** admin can turn process steps on/off (identity, documents, signature, check-in/out photos, hold, digital key) while testing, as in Contrazy.
+- **Invoices:** rental invoices for each booking and each post-rental charge, plus credit notes for refunds.
+- **Database:** same provider as Contrazy (Neon PostgreSQL), separate database.
+- **Mobile app:** after the MVP (target February 2027); needs a developer with BLE/hardware experience; Shakil helps find one.
+- **Stripe structure** (checked live, read-only, 20 Oct 2026):
+  - the Contrazy platform account is owned by LYNAEL (France, company), verified and active, with 0 connected accounts in live mode;
+  - decision: keep the platform on LYNAEL; LOCAZ connects as LOCAZ SAS (MCC 7512);
+  - a future tech company would open its own platform account and LOCAZ would reconnect.
+- **Agreement:** Aziz sends a written agreement based on the PRD to sign; Shakil sends the Payoneer payment link. Progress is shared on Google Chat and GitHub, with weekly Tuesday demos.
+- **Partnership:** Shakil confirmed he can be counted on for LOCAZ and Contrazy after the MVP (updates January–April). Equity/role not formalised.

@@ -5,9 +5,9 @@
 | **Product** | LOCAZ — self-service car & van rental platform (web app, admin back office, API) |
 | **Prepared for** | Aziz LANDRI, LOCAZ |
 | **Prepared by** | Shakil Khan |
-| **Version** | 2.1 — final MVP scope |
-| **Date** | 15 October 2026 |
-| **Status** | For approval — replaces v1.1 and v2.0 |
+| **Version** | 2.2 — final agreement |
+| **Date** | 20 October 2026 |
+| **Status** | Final — agreed in the meeting of 20 October 2026; replaces all earlier versions |
 
 ---
 
@@ -25,11 +25,13 @@ This document defines **exactly** what the first version (the **MVP**) includes 
 2. **Admin back office** — fleet, prices, planning, bookings, customers, and a dashboard that replaces LOCAZ's Excel tracking.
 3. **Contrazy** as the engine for identity checks, documents, contract and e-signature, payment, deposit, **check-in/check-out photos** and disputes.
 4. **90-day card protection**: the customer's card is secured at booking, so LOCAZ can charge damage, fuel, tolls, towing, parking fines (FPS) and ticket admin fees for **90 days after return**. This follows LOCAZ's *Stripe Deposit Spec v2.1* (its V1 part).
+5. **C-Access key box (Convadis)**: each booking becomes a digital key; the customer unlocks the vehicle with the phone, so LOCAZ can test keyless rentals before launch.
 
-**After the MVP:** the C-Access key box (Convadis) and the LOCAZ mobile app, which is needed for offline use in parking garages.
+**After the MVP:** the LOCAZ mobile app, which is needed for offline use in parking garages.
 
 This version is based on:
-- the meeting of 13 October 2026 (full transcript reviewed);
+- the meetings of 13 and 20 October 2026 (full transcripts reviewed);
+- a live read-only check of the Contrazy Stripe account (20 October 2026);
 - LOCAZ's *Stripe Deposit Spec v2.1*;
 - the Convadis C-Access documents, offer and API documentation;
 - LOCAZ's revenue and fleet spreadsheet;
@@ -72,7 +74,7 @@ This version is based on:
     | - Planning & dashboard       |                 | - Check-in / check-out       |
     | - Public API                 |                 | - Disputes & evidence        |
     +------------------------------+                 +------------------------------+
-                   |  API (after MVP)
+                   |  API (C-Access in MVP, app after)
                    v
     +------------------------------+                 +------------------------------+
     | C-Access key box (Convadis)  |                 | LOCAZ mobile app             |
@@ -107,7 +109,8 @@ This version is based on:
 
 ### 4.2 Booking website (`locaz.co/booking`)
 
-- French and English. Mobile first. Dates-first search box, also embeddable on the landing page.
+- **French, English and Italian** (more languages can be added later). Mobile first. Dates-first search box, also embeddable on the landing page.
+- The Contrazy screens (identity check, contract signature, check-in/out) are in French and English at launch; Italian for those screens comes after the MVP.
 - **Search → results → options → summary → account → verification & contract → payment → confirmation.**
 - **Results:** one card per category ("Model or equivalent"), with photo, seats, gearbox, fuel, km included and the **total price**. The best price (daily or package) is chosen automatically.
 - **Summary:** shows the rental, options, one-way fee, km included, extra-km price, deductible, deposit, cancellation rules and the **90-day card consent**, all before payment.
@@ -154,10 +157,44 @@ How it works for the customer: at booking, the card is **secured by Stripe** (3-
 - The consent text and price schedule need a **legal check** by LOCAZ before launch.
 - The ID-retention period must be aligned with the privacy policy (spec: 13 months; current policy: 12 months).
 
-### 4.5 Delivered with the MVP
+### 4.5 C-Access key box (Convadis) — web integration
+
+Moved into the MVP at LOCAZ's request (meeting of 20 October 2026), so keyless rentals can be tested before launch.
+
+| Item | Included |
+|---|---|
+| **Vehicles** | Each LOCAZ vehicle linked to its C-Access device in Convadis's CCom server (REST API, OAuth2) |
+| **Digital keys** | Each confirmed booking creates a reservation in CCom (vehicle, start/end time, authorised driver); changes and cancellations are synced |
+| **Customer access** | The customer receives a link / QR code to load the key into **Convadis's C-App** and unlocks the vehicle by Bluetooth, even with no network |
+| **Rules** | The key is only active during the rental, and only after the pickup check and the card security step are done |
+| **Usage events** | Unlock/lock times read back from CCom and shown on the booking |
+| **Admin** | Device status per vehicle; cancel or end a key from the booking |
+| **Testing** | With LOCAZ's sample device and/or Convadis's development kit (car simulator) |
+
+The LOCAZ mobile app (with Convadis's SDK built in, instead of C-App) comes after the MVP.
+
+### 4.6 Step switches (testing mode)
+
+The admin can switch steps of the rental process on or off, globally or per booking, while LOCAZ is testing (as already done in Contrazy). This covers:
+- identity check;
+- documents;
+- contract signature;
+- check-in photos and check-out photos;
+- the hold at pickup;
+- the C-Access digital key.
+
+For example, check-in photos can be switched off until the mobile app exists. The card security step stays on for online bookings.
+
+### 4.7 Invoices
+
+- A rental invoice PDF for every booking, and one for every post-rental charge: sequential numbering, LOCAZ company details (SIREN, VAT number), customer details, VAT breakdown.
+- A credit note for every refund.
+- Sent to the customer by email and available in the customer area and the admin.
+- CSV export for the accountant.
+
+### 4.8 Delivered with the MVP
 
 - Setup of `locaz.co/booking` on LOCAZ's domain (Vercel), with LOCAZ's Stripe account connected through Contrazy.
-- A simple invoice/receipt PDF per rental.
 - A short admin guide, plus a handover session.
 - Bug fixes for the delivered scope after launch.
 
@@ -169,8 +206,7 @@ These are planned and the MVP is built to accept them, but they are **not includ
 
 | Item | Why it comes after |
 |---|---|
-| **C-Access key box integration** (Convadis CCom API: vehicles, digital keys per booking, C-App profile QR code, usage events) | Needs the sample device or the development kit, and the web platform live first |
-| **LOCAZ mobile app** (iOS / Android): offline check-in photos, Bluetooth unlock via the Convadis SDK, push notifications | A website cannot work without network in a parking garage; only an installed app can |
+| **LOCAZ mobile app** (iOS / Android): offline check-in photos, Bluetooth unlock via the Convadis SDK (replacing C-App), push notifications | A website cannot work without network in a parking garage; only an installed app can. Needs a developer experienced with Bluetooth / hardware; Shakil helps LOCAZ find and brief one |
 | Spec v2.1 Phase 2: full chargeback workflow, two-person approval above €200, roles per agency, monitoring and alerts | Spec marks them Phase 2; the MVP has the V1 minimum (admin email on dispute, single admin role for charges) |
 | Quotes with expiry date and 50% advance payment | The MVP covers direct customers with a manual discount + payment link |
 | Coupons / promo codes, seasonal and dynamic pricing | Can be added once real booking data exists |
@@ -179,11 +215,12 @@ These are planned and the MVP is built to accept them, but they are **not includ
 | Getaround / Turo automatic sync | The MVP records their bookings manually with the source |
 | Customer reviews, SMS/WhatsApp, marketing emails | Not needed to run the business at launch |
 | Switching identity checks to Didit (free up to 500 checks/month) | The MVP uses Stripe Identity, already built |
-| Full accounting (purchase orders, suppliers, cash book) and French e-invoicing | Handled by the accountant; the MVP exports CSV |
+| Full accounting (purchase orders, suppliers, cash book) and French e-invoicing platform connection | Handled by the accountant; the MVP issues rental invoices and exports CSV |
 | Multiple agencies with agency managers | One company, several places, in the MVP |
 | Apple Pay / Google Pay, Google sign-in, SMS phone verification | The MVP uses card payment and email verification |
 | Two-factor authentication for admins | The MVP uses roles and strong passwords |
 | Damage marks on a car diagram | The MVP records damage with photos and notes |
+| Italian on the Contrazy screens (identity, contract, check-in/out) | The LOCAZ site and emails are in Italian in the MVP |
 
 ---
 
@@ -196,7 +233,7 @@ These are planned and the MVP is built to accept them, but they are **not includ
 5. **Account:** created at checkout.
 6. **Verify and sign:** licence, ID, selfie, contract signed on the phone.
 7. **Pay:** rental paid; card secured for 90 days.
-8. **Pickup:** guided photos, km and fuel; vehicle access (key handover at launch, key box after the MVP).
+8. **Pickup:** guided photos, km and fuel; the C-Access digital key becomes active and the customer unlocks with the phone (or key handover for vehicles without a device).
 9. **Return:** photos, km and fuel; extra km, fuel and late fees calculated; hold settled.
 10. **Up to 90 days after return:** FPS, tolls, towing or ticket admin fees charged with proof if needed.
 
@@ -210,30 +247,53 @@ These are planned and the MVP is built to accept them, but they are **not includ
 | Performance | Search results in under 2 seconds |
 | Security | HTTPS; card data only at Stripe; signed webhooks; role-based access; strong passwords; secrets outside the code |
 | GDPR | Consent, privacy policy, retention periods (identity documents, photos, payment data), export/deletion on request |
-| Languages | French (default) and English |
-| Hosting | Vercel + managed PostgreSQL (EU), daily backups |
+| Languages | French (default), English and Italian |
+| Hosting | Vercel; managed PostgreSQL on the same provider as Contrazy (Neon, EU), separate database; daily backups |
 | Technology | Same stack as Contrazy: Next.js, PostgreSQL/Prisma, Stripe, Cloudinary, Resend |
-| Device-ready | Each vehicle stores its C-Access ID; the booking model already holds start/end times and authorised drivers needed for digital keys |
+| Devices | C-Access integrated through Convadis's CCom API (Section 4.5); the platform is ready for the mobile app to replace C-App |
 
 ---
 
-## 8. Timeline
+## 8. Stripe account structure
 
-Work starts when the upfront payment is received. A demo is given at the weekly Tuesday meeting.
+Checked live on 20 October 2026:
+- **Platform account "Contrazy":** owned by **LYNAEL** (France, company), fully verified, payments and payouts active, nothing outstanding.
+- **Connected accounts:** none yet in live mode.
+
+**Decision: no new company is needed now.**
+
+| Account | Owner | Role |
+|---|---|---|
+| Contrazy platform | LYNAEL (holding) | Runs Contrazy: Connect, identity checks, platform settings |
+| LOCAZ connected account | **LOCAZ SAS** | Receives all LOCAZ payments and payouts; holds LOCAZ's customers and the 90-day saved cards; business type car rental (MCC 7512) |
+
+- LOCAZ connects from its Contrazy dashboard (about 10 minutes) in the name of LOCAZ SAS, with its own bank account. Customers see LOCAZ on their bank statement.
+- **If a new tech company is created later:**
+  - Stripe generally doesn't move an account to a different legal entity (and never to another country), so that company opens its own platform account and LOCAZ reconnects to it (about 10 minutes).
+  - LOCAZ's history and payouts stay in its existing account.
+  - Saved cards are only used for 90 days, so the switch has little impact.
+  - The platform keys are configuration only; no code change.
+
+## 9. Timeline
+
+Work starts when the upfront payment is received (expected the week of 26 October). Progress is shared on Google Chat and on GitHub, with a demo at the weekly Tuesday meeting.
 
 | Period | Delivered |
 |---|---|
-| Weeks 1–2 (from ~20 Oct) | Setup, data model, company settings, users, places, fleet, data import |
-| Weeks 3–4 | Pricing engine, options and protection, planning calendar, manual bookings, customers |
-| Weeks 5–6 | Booking website, Contrazy connection (identity, contract, payment), card secured + consent |
-| Weeks 7–8 | Check-in/check-out photos, 90-day charges (caps, retries, links, refunds, window), dashboard, emails |
-| Week 9 (14–18 December) | Full QA in Stripe test mode, fixes, go-live on `locaz.co/booking`, **final MVP delivery** (mid-December, at the latest in the 3rd week of December) |
-| January 2027 | After MVP: C-Access integration (once the device or dev kit is available) |
-| February 2027 | After MVP: LOCAZ mobile app (offline + Bluetooth unlock) |
+| Week 1 (from ~26 Oct) | Setup, data model, company settings, users, places, fleet, data import |
+| Weeks 2–3 | Pricing engine, options and protection, planning calendar, manual bookings, customers, step switches |
+| Weeks 4–5 | Booking website (FR/EN/IT), Contrazy connection (identity, contract, payment), card secured + consent |
+| Week 6 | Check-in/check-out photos, 90-day charges (caps, retries, links, refunds, window), invoices |
+| Week 7 | C-Access integration and tests with the device / dev kit, dashboard, emails |
+| Week 8 (14–18 December) | Full QA in Stripe test mode, fixes, go-live on `locaz.co/booking`, **final MVP delivery** (mid-December, at the latest in the 3rd week of December) |
+| From January 2027 | Tests with real customers, fixes and updates |
+| February 2027 (target) | After MVP: LOCAZ mobile app (offline + Bluetooth unlock), depending on the mobile developer |
+
+The C-Access tests depend on Convadis providing API access and the sample device or dev kit by mid-November.
 
 ---
 
-## 9. Commercial terms
+## 10. Commercial terms
 
 | Item | Terms |
 |---|---|
@@ -242,19 +302,21 @@ Work starts when the upfront payment is received. A demo is given at the weekly 
 | **Total** | **3,000 USD** — the 300 USD is part of this total, not an extra |
 | **Ownership** | Code and data belong to LOCAZ; no licence fee or subscription |
 | **Not included** | Section 5 items; third-party costs paid directly by LOCAZ: Stripe fees (payments and Stripe Identity checks, about $1.50 each), hosting (Vercel, database, Cloudinary, Resend), Convadis devices and subscription (€215/device + €4.40/month), Convadis dev kit (€350, refundable) |
-| **After the MVP** | Next phases (key box, app, extras) are scoped and agreed in writing before work starts |
+| **After the MVP** | Next phases (mobile app, extras) are scoped and agreed in writing before work starts |
+| **Agreement** | A written agreement based on this PRD is signed by both parties before work starts |
 
 ---
 
-## 10. What LOCAZ provides
+## 11. What LOCAZ provides
 
-1. Upfront payment (1,800 USD).
-2. Connects Stripe in Contrazy (about 10 minutes, business type "car rental").
+1. The signed agreement and the upfront payment (1,800 USD).
+2. Connects LOCAZ SAS's Stripe account in Contrazy (about 10 minutes, business type "car rental").
 3. Access to the domain (GoDaddy) to set up `locaz.co/booking`.
 4. Final prices per category: daily, packages, options, protection, deductibles, deposits. They can also be set directly in the admin.
 5. Legal check of the 90-day consent text and the charge price schedule; updated CGV and privacy policy (fuel €36 + €3.50/L, protection names, licence 1 year, Stripe instead of Swikly, 90-day card clause).
 6. Photos of the vehicles and places, and the logo.
-7. For after the MVP: the C-Access sample or dev kit, and CCom API access from Convadis.
+7. By mid-November: the C-Access sample and/or Convadis development kit, and CCom API access (client credentials) from Convadis.
+8. Italian texts reviewed by LOCAZ (translations are prepared in the platform).
 
 ---
 
@@ -293,13 +355,13 @@ Built from the RentHub review (27 Sept 2026) and the Fleetee trial review (14 Oc
 | Users and roles | Yes | Yes (admin, agency manager, agent, per-module access) | **MVP** (4 roles) |
 | Vehicle costs / maintenance | Yes | Yes (interventions, reports) | **MVP** costs · maintenance module after |
 | Dashboard (revenue, occupancy, channels, avg price) | Basic | Yes | **MVP** (+ margin per vehicle, payback) |
-| Invoices | Yes (full accounting) | Yes (deposit / rental / balance invoices) | **MVP** simple receipt · full accounting after |
+| Invoices | Yes (full accounting) | Yes (deposit / rental / balance invoices) | **MVP** rental invoices + credit notes · full accounting after |
 | Customer reviews, emails log | Yes | Yes | After |
-| GPS / keyless device | GPS menu (not used) | Not shown | After (C-Access) |
+| Keyless device | GPS menu (not used) | Not shown | **MVP** (C-Access via CCom + C-App) |
 | Mobile app | No | Fleetee Check (staff inspections) | After (customer app, offline) |
 | Monthly cost | Subscription | From 97 € HT/month (complete plan, < 20 vehicles) | None (owned) |
 
-## Appendix B — C-Access (Convadis) integration plan (after MVP)
+## Appendix B — C-Access (Convadis) reference
 
 **What C-Access is**
 - A Bluetooth (BLE) key actuator: the original vehicle key goes inside, and the box presses lock/unlock.
