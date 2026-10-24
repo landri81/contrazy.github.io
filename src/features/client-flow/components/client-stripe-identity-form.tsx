@@ -14,14 +14,11 @@ export function ClientStripeIdentityForm({
   failed,
   currentStatus,
   nextStep,
-  requireSelfie = false,
 }: {
   token: string
   failed?: boolean
   currentStatus?: string | null
   nextStep: string
-  /** The session asks for a live selfie matched against the ID (C4). */
-  requireSelfie?: boolean
 }) {
   const t = useTranslations("clientFlow.stripeIdentity")
   const router = useRouter()
@@ -99,14 +96,12 @@ export function ClientStripeIdentityForm({
         <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 space-y-2">
           <p className="text-xs font-medium text-foreground">{t("whatToExpect")}</p>
           <ul className="space-y-1">
-            {[t("step1"), requireSelfie ? t("step2Live") : t("step2"), requireSelfie ? t("step3") : null, t("step4")]
-              .filter((step): step is string => Boolean(step))
-              .map((step) => (
-                <li key={step} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="size-1 rounded-full bg-muted-foreground/60 shrink-0" />
-                  {step}
-                </li>
-              ))}
+            {[t("step1"), t("step2"), t("step3"), t("step4")].map((step) => (
+              <li key={step} className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="size-1 rounded-full bg-muted-foreground/60 shrink-0" />
+                {step}
+              </li>
+            ))}
           </ul>
         </div>
 

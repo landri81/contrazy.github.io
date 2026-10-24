@@ -5,13 +5,6 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  {
-    // Pre-existing setState-in-effect patterns (12 sites) predate this rule's
-    // promotion to an error; keep them visible as warnings until refactored.
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-    },
-  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -1,7 +1,6 @@
 import { Prisma, SignatureStatus, TransactionFlowType, TransactionLinkActor, TransactionLinkStatus, TransactionReportType, TransactionStatus } from "@prisma/client"
 import { redirect } from "next/navigation"
 
-import { buildContractRentalContext } from "@/features/contracts/rental-placeholders"
 import {
   localizeCustomerDetailsSectionHeading,
   renderContractContent,
@@ -12,7 +11,6 @@ import {
   hasCompletedTransactionCustomFields,
 } from "@/features/transactions/custom-fields"
 import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
-import { getNotRequiredClientSteps, isStepSwitchedOff, parseStepSwitches } from "@/features/transactions/step-switches"
 import {
   cancelTransactionLink,
   isCancellableLinkStatus,
@@ -114,21 +112,6 @@ export function hasContractStep(transaction: Pick<ClientFlowTransaction, "contra
 
 export function isCheckInOutFlow(transaction: Pick<ClientFlowTransaction, "flowType">) {
   return transaction.flowType === TransactionFlowType.CHECK_IN_OUT
-}
-
-/** Documents step: always shown for dashboard transactions, hidden when a partner booking switched it off. */
-export function hasDocumentsStep(transaction: Pick<ClientFlowTransaction, "stepSwitches">) {
-  return !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "documents")
-}
-
-/** Check-out step: check-in/out flows only, unless a partner booking switched check-out off. */
-export function hasCheckOutStep(transaction: Pick<ClientFlowTransaction, "flowType" | "stepSwitches">) {
-  return isCheckInOutFlow(transaction) && !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "checkOut")
-}
-
-/** Steps a partner booking switched off, listed as "not required" next to the stepper (none for dashboard transactions). */
-export function getNotRequiredSteps(transaction: Pick<ClientFlowTransaction, "stepSwitches">, enabledSteps: readonly ClientFlowStep[]) {
-  return getNotRequiredClientSteps(parseStepSwitches(transaction.stepSwitches)).filter((step) => !enabledSteps.includes(step))
 }
 
 function getClientRoute(transaction: ClientFlowTransaction, step: ClientFlowStep) {
@@ -357,7 +340,7 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
 
   // CHECK_IN_OUT: if checkout was requested and not yet submitted, route to check-out regardless of transaction status
   if (
-    hasCheckOutStep(transaction) &&
+    isCheckInOutFlow(transaction) &&
     transaction.checkOutRequestedAt &&
     !state.hasCheckOut
   ) {
@@ -438,7 +421,6 @@ export function buildPopulatedContractContent(transaction: ClientFlowTransaction
           serviceDate: transaction.serviceDate,
           locale: transaction.locale,
           customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
-          rental: buildContractRentalContext(transaction),
         })
   )
 }
@@ -458,7 +440,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
   // CHECK_IN_OUT: allow check-out step even when transaction is COMPLETED
   const isCheckOutOverride =
     currentStep === "check-out" &&
-    hasCheckOutStep(transaction) &&
+    isCheckInOutFlow(transaction) &&
     Boolean(transaction.checkOutRequestedAt) &&
     !state.hasCheckOut
 
@@ -478,9 +460,6 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
     case "documents":
       if (!state.hasProfile) {
         redirect(getClientRoute(transaction, "profile"))
-      }
-      if (!hasDocumentsStep(transaction)) {
-        redirect(getClientRoute(transaction, nextStep))
       }
       return state
     case "kyc":
@@ -591,9 +570,6 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
     case "check-out":
       if (!isCheckInOutFlow(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
-      }
-      if (!hasCheckOutStep(transaction)) {
-        redirect(getClientRoute(transaction, "complete"))
       }
       if (!transaction.checkOutRequestedAt) {
         redirect(getClientRoute(transaction, "complete"))

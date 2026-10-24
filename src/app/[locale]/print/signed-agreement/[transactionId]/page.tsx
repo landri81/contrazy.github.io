@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 
 import { SignedAgreementPreview } from "@/features/contracts/components/signed-agreement-preview"
-import { buildContractRentalContext } from "@/features/contracts/rental-placeholders"
 import {
   localizeCustomerDetailsSectionHeading,
   renderContractContent,
@@ -91,7 +90,6 @@ export default async function SignedAgreementPrintPage(props: {
           serviceDate: transaction.serviceDate,
           locale: transaction.locale,
           customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
-          rental: buildContractRentalContext(transaction),
           signerName:
             transaction.signatureRecord.signerName ?? transaction.clientProfile.fullName ?? "Client",
           signedAt,

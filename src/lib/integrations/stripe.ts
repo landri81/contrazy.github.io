@@ -2,7 +2,6 @@ import Stripe from "stripe"
 
 import { APP_METADATA } from "@/lib/config/app-metadata"
 import { env } from "@/lib/env"
-import { createStripeGateway, type StripeGateway } from "@/lib/integrations/stripe-gateway"
 import { getSiteUrl } from "@/lib/site-url"
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
@@ -11,9 +10,6 @@ export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
     version: APP_METADATA.version,
   },
 })
-
-/** Live adapter for the `StripeGateway` seam; tests use `createInMemoryStripeGateway()` instead. */
-export const stripeGateway: StripeGateway = createStripeGateway(stripe)
 
 export function getStripePublishableKey() {
   return env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? env.STRIPE_PUBLISHABLE_KEY

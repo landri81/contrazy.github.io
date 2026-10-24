@@ -2,12 +2,11 @@ import { redirect } from "next/navigation"
 import { TransactionLinkStatus } from "@prisma/client"
 
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
-import { resolveSelfieOutcome } from "@/features/kyc/selfie-check"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
-import { stripeGateway } from "@/lib/integrations/stripe"
+import { stripe } from "@/lib/integrations/stripe"
 
 export const dynamic = "force-dynamic"
 
@@ -63,11 +62,9 @@ export default async function ClientKycReturnPage(props: {
   try {
     // Retrieve from the PLATFORM account (no Stripe-Account header).
     // The session was created on the platform account in the start route.
-    const session = await stripeGateway.identity.retrieveVerificationSession(
+    const session = await stripe.identity.verificationSessions.retrieve(
       kycVerification.providerReference
     )
-    // Selfie outcome (C4) when the session asked for one; null = no outcome yet.
-    const selfie = await resolveSelfieOutcome(session, stripeGateway)
 
     if (session.status === "verified") {
       await prisma.$transaction(async (tx) => {
@@ -91,7 +88,6 @@ export default async function ClientKycReturnPage(props: {
             status: "VERIFIED",
             providerReference: session.id,
             verifiedAt: new Date(),
-            ...(selfie ?? {}),
           },
         })
 
@@ -127,7 +123,6 @@ export default async function ClientKycReturnPage(props: {
           data: {
             status: "FAILED",
             summary: session.last_error?.reason ?? session.status,
-            ...(selfie ?? {}),
           },
         })
 

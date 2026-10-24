@@ -10,7 +10,6 @@ import {
   FileText,
   Loader2,
   RefreshCw,
-  ScanFace,
   ShieldCheck,
   ShieldX,
   XCircle,
@@ -27,7 +26,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/toast"
-import { isSelfieErrorCode } from "@/features/kyc/selfie-check"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { cn } from "@/lib/utils"
 
@@ -38,44 +36,12 @@ type KycVerificationRecord = {
   providerReference: string | null
   summary: string | null
   verifiedAt: Date | null
-  selfieCheck: string
-  selfieErrorCode: string | null
   createdAt: Date
 }
 
 type KycReviewCardProps = {
   transactionId: string
   kyc: KycVerificationRecord
-  /** The transaction asked Stripe Identity for a selfie match (C4). */
-  requireSelfie?: boolean
-}
-
-type SelfieDisplay = "matched" | "failed" | "pending"
-
-/** Codes Stripe sets when the customer left the flow before the selfie was taken. */
-const INCOMPLETE_FLOW_CODES = new Set(["abandoned", "consent_declined", "device_not_supported", "country_not_supported"])
-
-function selfieDisplay(kyc: KycVerificationRecord): SelfieDisplay {
-  if (kyc.selfieCheck === "VERIFIED") return "matched"
-  if (kyc.selfieCheck === "UNVERIFIED") return "failed"
-  return "pending"
-}
-
-/** Message key under `selfie.reasons` for a failed selfie check. */
-function selfieReasonKey(code: string | null) {
-  if (isSelfieErrorCode(code)) return code
-  if (code && INCOMPLETE_FLOW_CODES.has(code)) return "incomplete"
-  if (code && /^(document|id_number)_/.test(code)) return "document"
-  return "unknown"
-}
-
-/**
- * Heading for a failed selfie check: when the flow stopped before the selfie
- * or at the document step, no face comparison ever ran, so it was not checked
- * rather than not matched.
- */
-function selfieFailureHeadingKey(reasonKey: ReturnType<typeof selfieReasonKey>) {
-  return reasonKey === "incomplete" || reasonKey === "document" ? "notChecked" : "failed"
 }
 
 function statusStyle(status: string) {
@@ -95,7 +61,7 @@ function isImageUrl(url: string) {
   return /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)
 }
 
-export function KycReviewCard({ transactionId, kyc, requireSelfie = false }: KycReviewCardProps) {
+export function KycReviewCard({ transactionId, kyc }: KycReviewCardProps) {
   const router = useRouter()
   const t = useTranslations("dashboard.vendor.kycReview")
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "request_again" | null>(null)
@@ -106,8 +72,6 @@ export function KycReviewCard({ transactionId, kyc, requireSelfie = false }: Kyc
   const documentUrl = kyc.provider === "Manual" ? kyc.summary : null
   const isPdf = documentUrl ? documentUrl.includes(".pdf") || documentUrl.includes("/raw/") : false
   const documentHref = resolveDocumentAssetUrl(documentUrl)
-  const selfie = requireSelfie && kyc.provider !== "Manual" ? selfieDisplay(kyc) : null
-  const selfieReason = selfie === "failed" ? selfieReasonKey(kyc.selfieErrorCode) : null
 
   function statusLabel(status: string) {
     switch (status) {
@@ -303,37 +267,6 @@ export function KycReviewCard({ transactionId, kyc, requireSelfie = false }: Kyc
               <div>
                 <p className="text-sm font-semibold text-red-800">{t("banners.autoFailedTitle")}</p>
                 <p className="text-xs text-red-700/80">{t("banners.autoFailedDesc")}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Selfie match — only when the transaction asked for one */}
-          {selfie === "matched" && (
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <ScanFace className="size-5 shrink-0 text-emerald-600" />
-              <div>
-                <p className="text-sm font-semibold text-emerald-800">{t("selfie.matched")}</p>
-                <p className="text-xs text-emerald-700/80">{t("selfie.matchedDesc")}</p>
-              </div>
-            </div>
-          )}
-
-          {selfieReason && (
-            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-              <ScanFace className="size-5 shrink-0 text-red-600" />
-              <div>
-                <p className="text-sm font-semibold text-red-800">{t(`selfie.${selfieFailureHeadingKey(selfieReason)}`)}</p>
-                <p className="text-xs text-red-700/80">{t(`selfie.reasons.${selfieReason}`)}</p>
-              </div>
-            </div>
-          )}
-
-          {selfie === "pending" && (
-            <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <ScanFace className="size-5 shrink-0 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-amber-800">{t("selfie.pending")}</p>
-                <p className="text-xs text-amber-700/80">{t("selfie.pendingDesc")}</p>
               </div>
             </div>
           )}

@@ -25,7 +25,6 @@ import {
   MessageCircle,
   Plus,
   QrCode,
-  ScanFace,
   Share2,
   ShieldCheck,
   Trash2,
@@ -70,7 +69,6 @@ import type {
   TransactionCreationInitialValues,
   TransactionFlowTypeValue,
 } from "@/features/dashboard/transaction-creation"
-import { SELFIE_REQUIRES_IDENTITY_ERROR_CODE } from "@/features/dashboard/transaction-creation"
 import { cn } from "@/lib/utils"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import type {
@@ -478,7 +476,6 @@ type TransactionCreationFormState = {
   contractId: string
   checklistIds: string[]
   requiresKyc: boolean
-  requireSelfie: boolean
   generateQr: boolean
   paymentCollectionTiming: PaymentCollectionTimingValue
   requireClientCompany: boolean
@@ -550,7 +547,6 @@ function createInitialFormState(
     contractId: initialValues?.contractTemplateId ?? "none",
     checklistIds: [],
     requiresKyc: initialValues?.requiresKyc ?? false,
-    requireSelfie: Boolean(initialValues?.requiresKyc && initialValues?.requireSelfie),
     generateQr: initialValues?.generateQr ?? false,
     paymentCollectionTiming: initialValues?.paymentCollectionTiming ?? "AFTER_SIGNING",
     requireClientCompany: initialValues?.requireClientCompany ?? false,
@@ -579,7 +575,6 @@ function buildFormSnapshot(state: TransactionCreationFormState): TransactionCrea
     contractId: state.contractId,
     checklistIds: state.checklistIds,
     requiresKyc: state.requiresKyc,
-    requireSelfie: state.requireSelfie,
     generateQr: state.generateQr,
     paymentCollectionTiming: state.paymentCollectionTiming,
     requireClientCompany: state.requireClientCompany,
@@ -967,7 +962,6 @@ export function TransactionCreationForm({
   const [contractId, setContractId] = useState<string>(initialFormState.contractId)
   const [checklistIds, setChecklistIds] = useState<string[]>(initialFormState.checklistIds)
   const [requiresKyc, setRequiresKyc] = useState(initialFormState.requiresKyc)
-  const [requireSelfie, setRequireSelfie] = useState(initialFormState.requireSelfie)
   const [generateQr, setGenerateQr] = useState(initialFormState.generateQr)
   const [paymentCollectionTiming, setPaymentCollectionTiming] =
     useState<PaymentCollectionTimingValue>(initialFormState.paymentCollectionTiming)
@@ -1145,7 +1139,6 @@ export function TransactionCreationForm({
             contractId,
             checklistIds,
             requiresKyc,
-            requireSelfie,
             generateQr: isBulkMode ? false : generateQr,
             paymentCollectionTiming,
             requireClientCompany,
@@ -1181,7 +1174,6 @@ export function TransactionCreationForm({
       customFields,
       reportFields,
       requiresKyc,
-      requireSelfie,
       title,
     ]
   )
@@ -1264,11 +1256,6 @@ export function TransactionCreationForm({
 
     if (module === "kyc") {
       setRequiresKyc(checked)
-
-      // A selfie is matched against the ID photo: it never outlives the identity check.
-      if (!checked) {
-        setRequireSelfie(false)
-      }
     }
 
     if (module === "contract" && !checked) {
@@ -1933,7 +1920,6 @@ export function TransactionCreationForm({
         depositLongTermFeeAccepted:
           enabledModules.deposit && isLongDeposit && longDepositFeeAccepted,
         requiresKyc: enabledModules.kyc && requiresKyc,
-        requireSelfie: enabledModules.kyc && requiresKyc && requireSelfie,
         generateQr: isBulkMode ? false : generateQr,
         paymentCollectionTiming,
         requireClientCompany,
@@ -1991,11 +1977,7 @@ export function TransactionCreationForm({
       const data = await response.json()
 
       if (!response.ok) {
-        setError(
-          data.code === SELFIE_REQUIRES_IDENTITY_ERROR_CODE
-            ? t("errorSelfieRequiresIdentity")
-            : data.message || t("errorCreate")
-        )
+        setError(data.message || t("errorCreate"))
         return
       }
 
@@ -2061,7 +2043,6 @@ export function TransactionCreationForm({
     setServiceDate(nextInitialState.serviceDate)
     setLongDepositFeeAccepted(false)
     setRequiresKyc(nextInitialState.requiresKyc)
-    setRequireSelfie(nextInitialState.requireSelfie)
     setGenerateQr(nextInitialState.generateQr)
     setPaymentCollectionTiming(nextInitialState.paymentCollectionTiming)
     setRequireClientCompany(nextInitialState.requireClientCompany)
@@ -3804,22 +3785,6 @@ export function TransactionCreationForm({
                       </InlineNotice>
                     ) : null}
 
-                    <SwitchRow
-                      id="require-selfie"
-                      icon={ScanFace}
-                      title={t("requireSelfieTitle")}
-                      description={t("requireSelfieDesc")}
-                      checked={requireSelfie}
-                      onCheckedChange={setRequireSelfie}
-                      disabled={!canUseKycInPlan || (remainingKyc !== null && remainingKyc <= 0)}
-                    >
-                      {requireSelfie ? (
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          {t("requireSelfieNote")}
-                        </p>
-                      ) : null}
-                    </SwitchRow>
-
                     {stripeSelectionNotice ? (
                       <InlineNotice>
                         {t("stripeRequired")}{" "}
@@ -3948,15 +3913,6 @@ export function TransactionCreationForm({
                             {requiresKyc ? t("required") : t("notRequired")}
                           </dd>
                         </div>
-
-                        {requiresKyc ? (
-                          <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
-                            <dt className="text-muted-foreground">{t("summarySelfie")}</dt>
-                            <dd className={cn("font-medium", requireSelfie ? "text-foreground" : "text-muted-foreground")}>
-                              {requireSelfie ? t("required") : t("notRequired")}
-                            </dd>
-                          </div>
-                        ) : null}
 
                         <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-2">
                           <dt className="text-muted-foreground">{t("summaryCompanyName")}</dt>

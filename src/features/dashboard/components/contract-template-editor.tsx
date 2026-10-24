@@ -930,7 +930,6 @@ export function ContractTemplateEditor({
     Client: t("sidebarGroups.client"),
     Vendor: t("sidebarGroups.vendor"),
     Transaction: t("sidebarGroups.transaction"),
-    Rental: t("sidebarGroups.rental"),
     Signature: t("sidebarGroups.signature"),
   }
 
@@ -954,18 +953,6 @@ export function ContractTemplateEditor({
     "{{signedDate}}": t("sidebarFields.signedDate"),
     "{{signedTime}}": t("sidebarFields.signedTime"),
     "{{signedTimestamp}}": t("sidebarFields.signedTimestamp"),
-    "{{rental.vehicle}}": t("sidebarFields.rentalVehicle"),
-    "{{rental.plate}}": t("sidebarFields.rentalPlate"),
-    "{{rental.start}}": t("sidebarFields.rentalStart"),
-    "{{rental.end}}": t("sidebarFields.rentalEnd"),
-    "{{rental.pickupPlace}}": t("sidebarFields.rentalPickupPlace"),
-    "{{rental.returnPlace}}": t("sidebarFields.rentalReturnPlace"),
-    "{{rental.kmIncluded}}": t("sidebarFields.rentalKmIncluded"),
-    "{{rental.options}}": t("sidebarFields.rentalOptions"),
-    "{{rental.protection}}": t("sidebarFields.rentalProtection"),
-    "{{rental.deductible}}": t("sidebarFields.rentalDeductible"),
-    "{{rental.deposit}}": t("sidebarFields.rentalDeposit"),
-    "{{rental.priceTable}}": t("sidebarFields.rentalPriceTable"),
   }
 
   function rememberEditorSelection() {

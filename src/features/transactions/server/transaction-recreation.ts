@@ -1,5 +1,4 @@
 import {
-  KycSelfieCheck,
   KycStatus,
   Prisma,
   TransactionStatus,
@@ -83,7 +82,6 @@ type RecreateInitialValueSource = {
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean
-  requireSelfie: boolean
   requireClientCompany: boolean
   paymentCollectionTiming: TransactionCreationInitialValues["paymentCollectionTiming"]
   flowType: TransactionCreationInitialValues["flowType"]
@@ -188,7 +186,6 @@ export function buildTransactionCreationInitialValues(
     contractTemplateId: hasContractTemplate ? source.contractTemplateId : null,
     checklistTemplateId: hasChecklistTemplate ? source.checklistTemplateId : null,
     requiresKyc: source.requiresKyc,
-    requireSelfie: source.requiresKyc && source.requireSelfie,
     generateQr: Boolean(source.link?.qrCodeSvg),
     paymentCollectionTiming: source.paymentCollectionTiming,
     requireClientCompany: source.requireClientCompany,
@@ -203,35 +200,18 @@ export function buildTransactionCreationInitialValues(
   }
 }
 
-type ReusableKycSource = {
-  kycVerification: Pick<KycVerification, "status" | "selfieCheck"> | null
-} | null
-
-/**
- * A verified KYC of the source transaction can stand in for a new check. When
- * the new transaction requires a selfie (C4), only a check whose selfie matched
- * qualifies: a document-only check never upgrades to a selfie check.
- */
 export function canReuseVerifiedKyc(
-  source: ReusableKycSource,
-  requiresKyc: boolean,
-  requireSelfie = false
+  source: Pick<RecreateSourceTransaction, "kycVerification"> | null,
+  requiresKyc: boolean
 ) {
-  const kyc = source?.kycVerification
-
-  if (!requiresKyc || kyc?.status !== KycStatus.VERIFIED) {
-    return false
-  }
-
-  return !requireSelfie || kyc.selfieCheck === KycSelfieCheck.VERIFIED
+  return Boolean(requiresKyc && source?.kycVerification?.status === KycStatus.VERIFIED)
 }
 
 export function buildReusableKycSeed(
   source: Pick<RecreateSourceTransaction, "kycVerification"> | null,
-  requiresKyc: boolean,
-  requireSelfie = false
+  requiresKyc: boolean
 ) {
-  if (!canReuseVerifiedKyc(source, requiresKyc, requireSelfie) || !source?.kycVerification) {
+  if (!canReuseVerifiedKyc(source, requiresKyc) || !source?.kycVerification) {
     return null
   }
 
@@ -241,11 +221,9 @@ export function buildReusableKycSeed(
     providerReference: source.kycVerification.providerReference,
     summary: source.kycVerification.summary,
     verifiedAt: source.kycVerification.verifiedAt ?? new Date(),
-    selfieCheck: source.kycVerification.selfieCheck,
-    selfieErrorCode: source.kycVerification.selfieErrorCode,
   } satisfies Pick<
     KycVerification,
-    "provider" | "status" | "providerReference" | "summary" | "verifiedAt" | "selfieCheck" | "selfieErrorCode"
+    "provider" | "status" | "providerReference" | "summary" | "verifiedAt"
   >
 }
 

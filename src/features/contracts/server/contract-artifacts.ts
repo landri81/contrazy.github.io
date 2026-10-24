@@ -7,7 +7,6 @@ import sparticuzChromium from "@sparticuz/chromium"
 import { PDFDocument, StandardFonts, rgb, type PDFImage, type PDFPage, type PDFFont } from "pdf-lib"
 import { chromium as playwrightCoreChromium } from "playwright-core"
 
-import { buildContractRentalContext } from "@/features/contracts/rental-placeholders"
 import { renderContractContent } from "@/features/contracts/server/contract-rendering"
 import { htmlToDocumentBlocks } from "@/features/contracts/contract-document-model"
 import { createSignedDocumentRenderToken } from "@/features/contracts/server/signed-document-render-auth"
@@ -669,7 +668,6 @@ async function prepareSignedArtifactRender(
     serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
-    rental: buildContractRentalContext(transaction),
   })
 
   const renderedContentAfterSignature = renderContractContent({
@@ -683,7 +681,6 @@ async function prepareSignedArtifactRender(
     serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
-    rental: buildContractRentalContext(transaction),
     signerName,
     signedAt,
     signedTimezone,
@@ -810,7 +807,6 @@ export async function persistReviewedContractSnapshot(
     serviceDate: transaction.serviceDate,
     locale: transaction.locale,
     customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
-    rental: buildContractRentalContext(transaction),
   })
 
   return db.transactionContractArtifact.update({

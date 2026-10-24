@@ -17,11 +17,7 @@ import {
   type VendorSubscription,
 } from "@prisma/client"
 
-import {
-  SELFIE_REQUIRES_IDENTITY_MESSAGE,
-  type VendorTransactionCreateInput,
-} from "@/features/dashboard/schemas/vendor-operations.schema"
-import { SELFIE_REQUIRES_IDENTITY_ERROR_CODE } from "@/features/dashboard/transaction-creation"
+import type { VendorTransactionCreateInput } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { normalizeRequirementExampleImage } from "@/features/dashboard/server/requirement-example-assets"
 import { createTransactionContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import {
@@ -96,8 +92,6 @@ export type PreparedVendorTransactionLaunch = {
   depositLongTermPlatformFeeAmount: number | null
   depositLongTermFeeAcceptedAt: Date | null
   requiresKyc: boolean
-  /** Stripe Identity also matches a live selfie against the ID photo (C4). Only with `requiresKyc`. */
-  requireSelfie: boolean
   generateQr: boolean
   paymentCollectionTiming: VendorTransactionCreateInput["paymentCollectionTiming"]
   requireClientCompany: boolean
@@ -121,12 +115,6 @@ type PrepareLaunchInput = {
   recipientCount?: number
   forceGenerateQr?: boolean
   allowRecreate?: boolean
-  /**
-   * Re-validates the configuration of a transaction that already exists (partner
-   * booking PATCH): it already counted against the plan, so the transaction
-   * quota is not checked again. Dashboard launches never set it.
-   */
-  reconfigureExisting?: boolean
 }
 
 export type CreatedVendorTransaction = {
@@ -163,30 +151,6 @@ export type CreatedVendorTransaction = {
   }
 }
 
-/**
- * Machine-readable reason for a refused launch. The dashboard shows the message
- * (except `selfie_requires_identity`, which it translates); the partner API
- * maps it to a stable error code.
- */
-export type VendorTransactionLaunchFailureCode =
-  | "transaction_limit_reached"
-  | "qr_limit_reached"
-  | "kyc_not_in_plan"
-  | "kyc_quota_reached"
-  | "selfie_requires_identity"
-  | "long_deposit_not_in_plan"
-  | "stripe_not_connected"
-  | "contract_template_not_found"
-  | "checklist_not_found"
-  | "no_workflow_module"
-
-export function deriveTransactionKind(amount: number | null, depositAmount: number | null): TransactionKind {
-  if (amount && depositAmount) return "HYBRID"
-  if (depositAmount) return "DEPOSIT"
-  if (amount) return "PAYMENT"
-  return "WORKFLOW"
-}
-
 export function formatVendorTransactionParseError(error: { issues: Array<{ path: PropertyKey[]; message?: string }> }) {
   const firstIssue = error.issues[0]
   const issuePath =
@@ -210,10 +174,9 @@ export async function prepareVendorTransactionLaunch({
   recipientCount = 1,
   forceGenerateQr,
   allowRecreate = true,
-  reconfigureExisting = false,
 }: PrepareLaunchInput): Promise<
   | { ok: true; prepared: PreparedVendorTransactionLaunch }
-  | { ok: false; response: NextResponse; code?: VendorTransactionLaunchFailureCode }
+  | { ok: false; response: NextResponse }
 > {
   if (recipientCount < 1) {
     return {
@@ -241,7 +204,6 @@ export async function prepareVendorTransactionLaunch({
     depositHoldDays,
     depositLongTermFeeAccepted,
     requiresKyc,
-    requireSelfie,
     generateQr,
     paymentCollectionTiming,
     requireClientCompany,
@@ -255,19 +217,6 @@ export async function prepareVendorTransactionLaunch({
     return {
       ok: false,
       response: NextResponse.json({ success: false, message: "Bulk sharing cannot recreate a completed transaction." }, { status: 422 }),
-    }
-  }
-
-  // Server-side guard as well as the schema refinement: callers that build the
-  // input themselves (partner API) must never store a selfie without identity.
-  if (requireSelfie && !requiresKyc) {
-    return {
-      ok: false,
-      code: SELFIE_REQUIRES_IDENTITY_ERROR_CODE,
-      response: NextResponse.json(
-        { success: false, code: SELFIE_REQUIRES_IDENTITY_ERROR_CODE, message: SELFIE_REQUIRES_IDENTITY_MESSAGE },
-        { status: 422 }
-      ),
     }
   }
 
@@ -335,7 +284,6 @@ export async function prepareVendorTransactionLaunch({
   if (isLongDeposit && !canChooseLongDeposit(subscription)) {
     return {
       ok: false,
-      code: "long_deposit_not_in_plan",
       response: NextResponse.json(
         { success: false, message: "Your current plan only includes the 7-day deposit hold." },
         { status: 422 }
@@ -362,10 +310,9 @@ export async function prepareVendorTransactionLaunch({
   const needsStripe = Boolean(normalizedAmount || normalizedDepositAmount || requiresKyc)
   const remainingTransactionCount = remainingTransactions(subscription)
 
-  if (!reconfigureExisting && remainingTransactionCount !== null && remainingTransactionCount < recipientCount) {
+  if (remainingTransactionCount !== null && remainingTransactionCount < recipientCount) {
     return {
       ok: false,
-      code: "transaction_limit_reached",
       response: NextResponse.json(
         { success: false, message: "Your current plan does not have enough remaining transactions for this launch." },
         { status: 422 }
@@ -376,7 +323,6 @@ export async function prepareVendorTransactionLaunch({
   if (effectiveGenerateQr === true && (remainingQrCodes(subscription) ?? 1) <= 0) {
     return {
       ok: false,
-      code: "qr_limit_reached",
       response: NextResponse.json(
         { success: false, message: "Your current plan has reached its monthly QR code limit. Upgrade to create more." },
         { status: 422 }
@@ -388,7 +334,6 @@ export async function prepareVendorTransactionLaunch({
     if (!canUseKyc(subscription)) {
       return {
         ok: false,
-        code: "kyc_not_in_plan",
         response: NextResponse.json(
           { success: false, message: "Identity verification is not available on your current plan." },
           { status: 422 }
@@ -397,12 +342,11 @@ export async function prepareVendorTransactionLaunch({
     }
 
     const remainingKyc = remainingKycVerifications(subscription)
-    const canReuseSourceKyc = canReuseVerifiedKyc(recreateSource, Boolean(requiresKyc), Boolean(requireSelfie))
+    const canReuseSourceKyc = canReuseVerifiedKyc(recreateSource, Boolean(requiresKyc))
 
     if (remainingKyc !== null && remainingKyc < recipientCount && !canReuseSourceKyc) {
       return {
         ok: false,
-        code: "kyc_quota_reached",
         response: NextResponse.json(
           { success: false, message: "Your included KYC verification quota is too low for this launch." },
           { status: 422 }
@@ -417,7 +361,6 @@ export async function prepareVendorTransactionLaunch({
   ) {
     return {
       ok: false,
-      code: "stripe_not_connected",
       response: NextResponse.json(
         { success: false, message: "Connect Stripe before enabling payments, deposit holds, or identity verification." },
         { status: 422 }
@@ -442,7 +385,6 @@ export async function prepareVendorTransactionLaunch({
   if (contractTemplateId && !contractTemplate) {
     return {
       ok: false,
-      code: "contract_template_not_found",
       response: NextResponse.json({ success: false, message: "Selected contract template was not found for this account" }, { status: 422 }),
     }
   }
@@ -450,7 +392,6 @@ export async function prepareVendorTransactionLaunch({
   if (checklistTemplateId && !checklistTemplate) {
     return {
       ok: false,
-      code: "checklist_not_found",
       response: NextResponse.json({ success: false, message: "Selected checklist was not found for this account" }, { status: 422 }),
     }
   }
@@ -549,7 +490,6 @@ export async function prepareVendorTransactionLaunch({
   if (!hasWorkflowModule) {
     return {
       ok: false,
-      code: "no_workflow_module",
       response: NextResponse.json(
         {
           success: false,
@@ -561,7 +501,11 @@ export async function prepareVendorTransactionLaunch({
     }
   }
 
-  const kind = deriveTransactionKind(normalizedAmount, normalizedDepositAmount)
+  let kind: TransactionKind
+  if (normalizedAmount && normalizedDepositAmount) kind = "HYBRID"
+  else if (normalizedDepositAmount) kind = "DEPOSIT"
+  else if (normalizedAmount) kind = "PAYMENT"
+  else kind = "WORKFLOW"
 
   return {
     ok: true,
@@ -576,7 +520,6 @@ export async function prepareVendorTransactionLaunch({
       depositLongTermPlatformFeeAmount: longDepositFeeEstimate?.platformFeeAmount ?? null,
       depositLongTermFeeAcceptedAt: isLongDeposit ? new Date() : null,
       requiresKyc: Boolean(requiresKyc),
-      requireSelfie: Boolean(requiresKyc && requireSelfie),
       generateQr: effectiveGenerateQr,
       paymentCollectionTiming,
       requireClientCompany,
@@ -594,98 +537,6 @@ export async function prepareVendorTransactionLaunch({
   }
 }
 
-/**
- * Writes the configuration rows of a prepared launch: requirements, custom fields,
- * report fields and the contract snapshot. Shared by new transactions and by the
- * partner booking PATCH, which rewrites the rows of a booking that has not started.
- */
-export async function writePreparedTransactionConfiguration(
-  tx: Prisma.TransactionClient,
-  transactionId: string,
-  prepared: Pick<
-    PreparedVendorTransactionLaunch,
-    "requirementDefinitions" | "customFieldDefinitions" | "reportFieldDefinitions" | "contractTemplate"
-  >
-) {
-  const createdRequirements =
-    prepared.requirementDefinitions.length > 0
-      ? await Promise.all(
-          prepared.requirementDefinitions.map((item) =>
-            tx.transactionRequirement.create({
-              data: {
-                transactionId,
-                label: item.label,
-                instructions: item.instructions,
-                type: item.type,
-                category: item.category,
-                customCategoryLabel: item.customCategoryLabel,
-                required: item.required,
-                requiredFileCount: item.requiredFileCount,
-                fileSlotLabels: item.fileSlotLabels as Prisma.InputJsonValue,
-                exampleImageUrl: item.exampleImageUrl,
-                exampleImagePublicId: item.exampleImagePublicId,
-                exampleImageFileName: item.exampleImageFileName,
-                sortOrder: item.sortOrder,
-              },
-            })
-          )
-        )
-      : []
-
-  if (prepared.customFieldDefinitions.length > 0) {
-    await Promise.all(
-      prepared.customFieldDefinitions.map((item) =>
-        tx.transactionCustomField.create({
-          data: {
-            transactionId,
-            label: item.label,
-            instructions: item.instructions,
-            type: item.type,
-            ...(item.type === "SELECT"
-              ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
-              : {}),
-            sortOrder: item.sortOrder,
-          },
-        })
-      )
-    )
-  }
-
-  if (prepared.reportFieldDefinitions.length > 0) {
-    await Promise.all(
-      prepared.reportFieldDefinitions.map((item) =>
-        tx.transactionReportField.create({
-          data: {
-            transactionId,
-            label: item.label,
-            instructions: item.instructions,
-            fieldType: item.fieldType,
-            reportType: item.reportType,
-            ...(item.fieldType === "SELECT"
-              ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
-              : {}),
-            sortOrder: item.sortOrder,
-          },
-        })
-      )
-    )
-  }
-
-  if (prepared.contractTemplate) {
-    await createTransactionContractArtifact(tx, {
-      transactionId,
-      contractTemplate: {
-        id: prepared.contractTemplate.id,
-        name: prepared.contractTemplate.name,
-        description: prepared.contractTemplate.description,
-        content: prepared.contractTemplate.content,
-      },
-    })
-  }
-
-  return createdRequirements
-}
-
 export async function createPreparedVendorTransaction(
   tx: Prisma.TransactionClient,
   prepared: PreparedVendorTransactionLaunch,
@@ -693,10 +544,6 @@ export async function createPreparedVendorTransaction(
     vendorId: string
     bulkBatchId?: string | null
     cloneRecreateSource?: boolean
-    /** Extra columns written with the transaction row (partner bookings: source, externalRef, dates, rental…). */
-    extraTransactionData?: Partial<
-      Omit<Prisma.TransactionUncheckedCreateInput, "vendorId" | "reference" | "status" | "kind" | "flowType">
-    >
   }
 ): Promise<CreatedVendorTransaction> {
   const reference = `TX-${randomBytes(4).toString("hex").toUpperCase()}`
@@ -749,18 +596,90 @@ export async function createPreparedVendorTransaction(
       depositLongTermPlatformFeeAmount: prepared.depositLongTermPlatformFeeAmount,
       depositLongTermFeeAcceptedAt: prepared.depositLongTermFeeAcceptedAt,
       requiresKyc: prepared.requiresKyc,
-      requireSelfie: prepared.requireSelfie,
       paymentCollectionTiming: prepared.paymentCollectionTiming,
       requireClientCompany: prepared.requireClientCompany,
       contractTemplateId: prepared.contractTemplate?.id ?? null,
       checklistTemplateId: prepared.checklistTemplate?.id ?? null,
       locale: prepared.locale,
       status: TransactionStatus.LINK_SENT,
-      ...options.extraTransactionData,
     },
   })
 
-  const createdRequirements = await writePreparedTransactionConfiguration(tx, newTransaction.id, prepared)
+  const createdRequirements =
+    prepared.requirementDefinitions.length > 0
+      ? await Promise.all(
+          prepared.requirementDefinitions.map((item) =>
+            tx.transactionRequirement.create({
+              data: {
+                transactionId: newTransaction.id,
+                label: item.label,
+                instructions: item.instructions,
+                type: item.type,
+                category: item.category,
+                customCategoryLabel: item.customCategoryLabel,
+                required: item.required,
+                requiredFileCount: item.requiredFileCount,
+                fileSlotLabels: item.fileSlotLabels as Prisma.InputJsonValue,
+                exampleImageUrl: item.exampleImageUrl,
+                exampleImagePublicId: item.exampleImagePublicId,
+                exampleImageFileName: item.exampleImageFileName,
+                sortOrder: item.sortOrder,
+              },
+            })
+          )
+        )
+      : []
+
+  if (prepared.customFieldDefinitions.length > 0) {
+    await Promise.all(
+      prepared.customFieldDefinitions.map((item) =>
+        tx.transactionCustomField.create({
+          data: {
+            transactionId: newTransaction.id,
+            label: item.label,
+            instructions: item.instructions,
+            type: item.type,
+            ...(item.type === "SELECT"
+              ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
+              : {}),
+            sortOrder: item.sortOrder,
+          },
+        })
+      )
+    )
+  }
+
+  if (prepared.reportFieldDefinitions.length > 0) {
+    await Promise.all(
+      prepared.reportFieldDefinitions.map((item) =>
+        tx.transactionReportField.create({
+          data: {
+            transactionId: newTransaction.id,
+            label: item.label,
+            instructions: item.instructions,
+            fieldType: item.fieldType,
+            reportType: item.reportType,
+            ...(item.fieldType === "SELECT"
+              ? { selectOptions: item.selectOptions as Prisma.InputJsonValue }
+              : {}),
+            sortOrder: item.sortOrder,
+          },
+        })
+      )
+    )
+  }
+
+  if (prepared.contractTemplate) {
+    await createTransactionContractArtifact(tx, {
+      transactionId: newTransaction.id,
+      contractTemplate: {
+        id: prepared.contractTemplate.id,
+        name: prepared.contractTemplate.name,
+        description: prepared.contractTemplate.description,
+        content: prepared.contractTemplate.content,
+      },
+    })
+  }
 
   const recreatedDocuments =
     shouldCloneRecreateSource && prepared.recreateSource
@@ -795,7 +714,7 @@ export async function createPreparedVendorTransaction(
 
   const reusableKyc =
     shouldCloneRecreateSource
-      ? buildReusableKycSeed(prepared.recreateSource, prepared.requiresKyc, prepared.requireSelfie)
+      ? buildReusableKycSeed(prepared.recreateSource, prepared.requiresKyc)
       : null
 
   if (reusableKyc) {
@@ -807,8 +726,6 @@ export async function createPreparedVendorTransaction(
         providerReference: reusableKyc.providerReference,
         summary: reusableKyc.summary,
         verifiedAt: reusableKyc.verifiedAt,
-        selfieCheck: reusableKyc.selfieCheck,
-        selfieErrorCode: reusableKyc.selfieErrorCode,
       },
     })
   }

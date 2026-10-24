@@ -12,8 +12,6 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.mts",
-    "test:watch": "vitest --config vitest.config.mts",
     "prisma:generate": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs generate",
     "prisma:migrate:deploy": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs migrate deploy",
     "all": "rm -rf .next && npm run prisma:generate && npm run prisma:migrate:deploy && npm run dev",
@@ -21,7 +19,6 @@
     "prisma:push": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs db push",
     "prisma:studio": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs studio",
     "ensure-super-admin": "dotenv -e .env.local -- node scripts/ensure-super-admin.mjs",
-    "locaz:seed-contract-template": "dotenv -e .env.local -- node scripts/seed-locaz-rental-template.mjs",
     "db:setup": "dotenv -e .env.local -- node scripts/db-setup.mjs",
     "db:clear": "dotenv -e .env.local -- node scripts/clear-db.mjs",
     "db:studio": "dotenv -e .env.local -- node scripts/db-studio.mjs",
@@ -104,11 +101,9 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19.2.3",
-    "@vitest/coverage-v8": "^4.1.11",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
-    "typescript": "5.9.3",
-    "vitest": "^4.1.11"
+    "typescript": "5.9.3"
   }
 }

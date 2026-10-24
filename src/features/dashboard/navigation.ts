@@ -9,7 +9,6 @@ export type DashboardIconName =
   | "fileText"
   | "folderKanban"
   | "inbox"
-  | "keyRound"
   | "layoutDashboard"
   | "link2"
   | "logs"
@@ -75,7 +74,6 @@ export function buildVendorNavigation(t: T): DashboardNavSection[] {
       label: t("nav.vendor.sections.platform"),
       items: [
         { href: "/vendor/stripe", label: t("nav.vendor.items.stripe"), icon: "briefcaseBusiness" },
-        { href: "/vendor/api-keys", label: t("nav.vendor.items.apiKeys"), icon: "keyRound" },
         { href: "/vendor/billing", label: t("nav.vendor.items.billing"), icon: "creditCard" },
         { href: "/vendor/webhooks", label: t("nav.vendor.items.events"), icon: "logs" },
       ],

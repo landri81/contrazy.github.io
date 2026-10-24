@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server"
 import { BulkShareBatchStatus, BulkShareRecipientStatus, type Prisma } from "@prisma/client"
 
-import {
-  getVendorTransactionParseErrorCode,
-  vendorBulkTransactionCreateSchema,
-} from "@/features/dashboard/schemas/vendor-operations.schema"
+import { vendorBulkTransactionCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { buildVendorActionsUsage } from "@/features/dashboard/server/dashboard-data"
 import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -66,7 +63,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          code: getVendorTransactionParseErrorCode(parsedBody.error),
           message: formatVendorTransactionParseError(parsedBody.error),
         },
         { status: 400 }
