@@ -18,6 +18,7 @@ import {
   type ClientFlowStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
+import { resolvePartnerReturnTarget } from "@/lib/partner-api/return-link"
 
 export default async function TokenLayout({
   children,
@@ -39,6 +40,7 @@ export default async function TokenLayout({
       <ClientLinkCancelledState
         vendorName={transaction.vendor?.businessName ?? "Vendor"}
         reason={transaction.link.cancelReason}
+        partnerReturn={resolvePartnerReturnTarget(transaction, "cancelled")}
       />
     )
   }

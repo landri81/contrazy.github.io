@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/deposit-auto-refunds",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/partner-webhooks",
+      "schedule": "* * * * *"
     }
   ]
 }

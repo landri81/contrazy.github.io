@@ -1,5 +1,11 @@
 import { Prisma, PrismaClient, TransactionEventType } from "@prisma/client"
 
+import { getPartnerWebhookEventType } from "@/features/partner-webhooks/event-mapping"
+import {
+  enqueuePartnerWebhookDeliveries,
+  findPartnerWebhookTarget,
+} from "@/features/partner-webhooks/server/outbox"
+
 type DatabaseClient = PrismaClient | Prisma.TransactionClient
 
 type RecordTransactionEventInput = {
@@ -12,7 +18,7 @@ type RecordTransactionEventInput = {
   dedupeKey?: string
 }
 
-export async function recordTransactionEvent(db: DatabaseClient, input: RecordTransactionEventInput) {
+async function writeTransactionEvent(db: DatabaseClient, input: RecordTransactionEventInput) {
   const data = {
     transactionId: input.transactionId,
     type: input.type,
@@ -37,4 +43,28 @@ export async function recordTransactionEvent(db: DatabaseClient, input: RecordTr
     },
     create: data,
   })
+}
+
+/**
+ * Writes a timeline event. For partner bookings (`source = PARTNER_API`) and
+ * event types mapped to a partner webhook, the outbox delivery rows are
+ * written in the same database transaction (the caller's, or a new one), so a
+ * recorded step can never miss its webhook. Dashboard transactions take the
+ * plain write path.
+ */
+export async function recordTransactionEvent(db: DatabaseClient, input: RecordTransactionEventInput) {
+  const webhookType = getPartnerWebhookEventType(input.type)
+  const partnerTarget = webhookType ? await findPartnerWebhookTarget(db, input.transactionId) : null
+
+  if (!webhookType || !partnerTarget) {
+    return writeTransactionEvent(db, input)
+  }
+
+  const writeWithOutbox = async (tx: DatabaseClient) => {
+    const event = await writeTransactionEvent(tx, input)
+    await enqueuePartnerWebhookDeliveries(tx, { vendorId: partnerTarget.vendorId, event, webhookType })
+    return event
+  }
+
+  return "$transaction" in db ? db.$transaction((tx) => writeWithOutbox(tx)) : writeWithOutbox(db)
 }

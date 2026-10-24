@@ -5,14 +5,19 @@ import { Link } from "@/i18n/navigation"
 import { Ban, ChevronRight } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
+import { PartnerReturnLink } from "@/features/client-flow/components/partner-return-link"
+import type { PartnerReturnTarget } from "@/lib/partner-api/return-link"
 import { cn } from "@/lib/utils"
 
 export function ClientLinkCancelledState({
   vendorName,
   reason,
+  partnerReturn,
 }: {
   vendorName?: string | null
   reason?: string | null
+  /** Partner booking cancelled by the customer: "Return to <partner>" replaces "Return Home". */
+  partnerReturn?: PartnerReturnTarget | null
 }) {
   const t = useTranslations("clientFlow")
 
@@ -34,10 +39,14 @@ export function ClientLinkCancelledState({
         {reason ? <p className="text-sm text-muted-foreground">{reason}</p> : null}
       </div>
 
-      <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}>
-        {t("finish.returnHome")}
-        <ChevronRight className="ml-2 h-4 w-4" />
-      </Link>
+      {partnerReturn ? (
+        <PartnerReturnLink {...partnerReturn} className="mx-auto max-w-sm" />
+      ) : (
+        <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}>
+          {t("finish.returnHome")}
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
+      )}
     </div>
   )
 }

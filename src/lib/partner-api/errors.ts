@@ -26,6 +26,8 @@ export type PartnerApiErrorCode =
   | "contract_template_required"
   | "step_requires_configuration"
   | "launch_rejected"
+  | "webhook_url_not_allowed"
+  | "webhook_endpoint_limit_reached"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -58,6 +60,8 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   contract_template_required: 422,
   step_requires_configuration: 422,
   launch_rejected: 422,
+  webhook_url_not_allowed: 422,
+  webhook_endpoint_limit_reached: 409,
 }
 
 export class PartnerApiError extends Error {
