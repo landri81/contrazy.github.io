@@ -278,6 +278,7 @@
           "payments": "Payments",
           "disputes": "Disputes",
           "stripe": "Stripe",
+          "apiKeys": "API keys",
           "billing": "Billing",
           "events": "Events"
         }
@@ -1577,6 +1578,92 @@
             "PENDING": "Pending"
           }
         }
+      },
+      "apiKeys": {
+        "title": "API keys",
+        "description": "Connect partner platforms such as LOCAZ to your Contrazy account. Each key authenticates requests to the Partner API on behalf of your business.",
+        "totalKeys": "{count, plural, one {# key} other {# keys}}",
+        "activeKeys": "{count} active",
+        "modeTest": "Test mode",
+        "modeLive": "Live mode",
+        "create": "Create API key",
+        "authHintTitle": "How partners authenticate",
+        "authHint": "Requests send the key in the Authorization header as \"Bearer cz_live_…\". The full key is shown only once, when it is created.",
+        "ownerOnlyTitle": "Owner access required",
+        "ownerOnly": "Only the vendor account owner can create or revoke API keys.",
+        "thName": "Name",
+        "thPrefix": "Key",
+        "thScopes": "Scopes",
+        "thMode": "Mode",
+        "thLastUsed": "Last used",
+        "thCreated": "Created",
+        "thStatus": "Status",
+        "thActions": "Actions",
+        "never": "Never",
+        "statusActive": "Active",
+        "statusRevoked": "Revoked",
+        "revoke": "Revoke",
+        "emptyTitle": "No API keys yet",
+        "emptyDescription": "Create a key to let a partner platform create bookings and follow their progress for your business.",
+        "errorTitle": "API keys could not be loaded",
+        "errorDescription": "Check your connection and try again.",
+        "retry": "Try again",
+        "refreshing": "Updating keys…",
+        "previous": "Previous",
+        "next": "Next",
+        "pageOf": "Page {page} of {totalPages}",
+        "createTitle": "Create an API key",
+        "createDescription": "Name the key after the integration that will use it, then choose what it is allowed to do.",
+        "nameLabel": "Name",
+        "namePlaceholder": "LOCAZ production",
+        "nameRequired": "Enter a name for this key.",
+        "scopesLabel": "Scopes",
+        "scopesRequired": "Select at least one scope.",
+        "modeNotice": "The key will be created in {mode}.",
+        "creating": "Creating…",
+        "createSubmit": "Create key",
+        "cancel": "Cancel",
+        "scopes": {
+          "bookingsRead": {
+            "label": "Read bookings",
+            "description": "Read booking status, steps and documents."
+          },
+          "bookingsWrite": {
+            "label": "Write bookings",
+            "description": "Create, update and cancel bookings."
+          },
+          "chargesWrite": {
+            "label": "Charges",
+            "description": "Create holds, post-rental charges and refunds."
+          },
+          "webhooksWrite": {
+            "label": "Webhooks",
+            "description": "Manage webhook endpoints for booking events."
+          }
+        },
+        "secretTitle": "Copy your new API key",
+        "secretDescription": "This is the only time the full key is shown. Store it in your partner's secret manager now.",
+        "secretWarning": "Contrazy only keeps a hash of this key. If it is lost, revoke it and create a new one.",
+        "secretLabel": "Secret key",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyFailed": "Copy failed. Select the key and copy it manually.",
+        "done": "I have stored the key",
+        "discardTitle": "You have not copied this key",
+        "discardDescription": "Once this dialog closes, the full key can never be shown again. Close anyway?",
+        "discardCancel": "Go back",
+        "discardConfirm": "Close anyway",
+        "createdToast": "API key created",
+        "createdToastDesc": "{name} is ready to use.",
+        "createError": "The API key could not be created",
+        "revokedToast": "API key revoked",
+        "revokedToastDesc": "{name} can no longer access the Partner API.",
+        "revokeError": "The API key could not be revoked",
+        "revokeTitle": "Revoke this API key?",
+        "revokeDescription": "{name} ({prefix}) stops working immediately and every request using it will be refused. This cannot be undone.",
+        "revokeConfirm": "Revoke key",
+        "revoking": "Revoking…",
+        "genericError": "Something went wrong. Please try again."
       },
       "stripePage": {
         "statusBanners": {

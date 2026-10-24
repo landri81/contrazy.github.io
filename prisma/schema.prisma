@@ -192,6 +192,11 @@ enum AuditActorType {
   SUPER_ADMIN
 }
 
+enum PartnerApiKeyMode {
+  TEST
+  LIVE
+}
+
 enum LocaleCode {
   en
   fr
@@ -288,6 +293,7 @@ model User {
   auditLogs        AuditLog[]           @relation("AuditActor")
   passwordResets   PasswordResetToken[]
   blogPosts        BlogPost[]
+  partnerApiKeys   PartnerApiKey[]      @relation("PartnerApiKeyCreator")
 }
 
 model VendorProfile {
@@ -322,6 +328,7 @@ model VendorProfile {
   invitations            Invitation[]
   webhookEvents          WebhookEvent[]
   subscription           VendorSubscription?
+  partnerApiKeys         PartnerApiKey[]
 }
 
 model VendorSubscription {
@@ -801,6 +808,25 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+}
+
+model PartnerApiKey {
+  id          String            @id @default(cuid())
+  vendorId    String
+  name        String
+  prefix      String
+  hashedKey   String            @unique
+  scopes      String[]
+  mode        PartnerApiKeyMode @default(TEST)
+  lastUsedAt  DateTime?
+  createdById String?
+  revokedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  vendor      VendorProfile     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy   User?             @relation("PartnerApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([vendorId, createdAt])
+  @@index([createdById])
 }
 
 model WebhookEvent {

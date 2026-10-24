@@ -278,6 +278,7 @@
           "payments": "Paiements",
           "disputes": "Litiges",
           "stripe": "Stripe",
+          "apiKeys": "Clés API",
           "billing": "Facturation",
           "events": "Événements"
         }
@@ -1577,6 +1578,92 @@
             "PENDING": "En attente"
           }
         }
+      },
+      "apiKeys": {
+        "title": "Clés API",
+        "description": "Connectez des plateformes partenaires comme LOCAZ à votre compte Contrazy. Chaque clé authentifie les requêtes vers l'API partenaire au nom de votre entreprise.",
+        "totalKeys": "{count, plural, one {# clé} other {# clés}}",
+        "activeKeys": "{count} active(s)",
+        "modeTest": "Mode test",
+        "modeLive": "Mode production",
+        "create": "Créer une clé API",
+        "authHintTitle": "Authentification des partenaires",
+        "authHint": "Les requêtes envoient la clé dans l'en-tête Authorization sous la forme « Bearer cz_live_… ». La clé complète n'est affichée qu'une seule fois, à sa création.",
+        "ownerOnlyTitle": "Accès propriétaire requis",
+        "ownerOnly": "Seul le propriétaire du compte vendeur peut créer ou révoquer des clés API.",
+        "thName": "Nom",
+        "thPrefix": "Clé",
+        "thScopes": "Autorisations",
+        "thMode": "Mode",
+        "thLastUsed": "Dernière utilisation",
+        "thCreated": "Créée le",
+        "thStatus": "Statut",
+        "thActions": "Actions",
+        "never": "Jamais",
+        "statusActive": "Active",
+        "statusRevoked": "Révoquée",
+        "revoke": "Révoquer",
+        "emptyTitle": "Aucune clé API pour le moment",
+        "emptyDescription": "Créez une clé pour permettre à une plateforme partenaire de créer des réservations et d'en suivre l'avancement pour votre entreprise.",
+        "errorTitle": "Impossible de charger les clés API",
+        "errorDescription": "Vérifiez votre connexion et réessayez.",
+        "retry": "Réessayer",
+        "refreshing": "Mise à jour des clés…",
+        "previous": "Précédent",
+        "next": "Suivant",
+        "pageOf": "Page {page} sur {totalPages}",
+        "createTitle": "Créer une clé API",
+        "createDescription": "Nommez la clé d'après l'intégration qui l'utilisera, puis choisissez ce qu'elle peut faire.",
+        "nameLabel": "Nom",
+        "namePlaceholder": "LOCAZ production",
+        "nameRequired": "Saisissez un nom pour cette clé.",
+        "scopesLabel": "Autorisations",
+        "scopesRequired": "Sélectionnez au moins une autorisation.",
+        "modeNotice": "La clé sera créée en {mode}.",
+        "creating": "Création…",
+        "createSubmit": "Créer la clé",
+        "cancel": "Annuler",
+        "scopes": {
+          "bookingsRead": {
+            "label": "Lire les réservations",
+            "description": "Consulter le statut, les étapes et les documents des réservations."
+          },
+          "bookingsWrite": {
+            "label": "Gérer les réservations",
+            "description": "Créer, modifier et annuler des réservations."
+          },
+          "chargesWrite": {
+            "label": "Prélèvements",
+            "description": "Créer des empreintes, des frais après location et des remboursements."
+          },
+          "webhooksWrite": {
+            "label": "Webhooks",
+            "description": "Gérer les points de terminaison des événements de réservation."
+          }
+        },
+        "secretTitle": "Copiez votre nouvelle clé API",
+        "secretDescription": "C'est la seule fois où la clé complète est affichée. Enregistrez-la dès maintenant dans le coffre de secrets du partenaire.",
+        "secretWarning": "Contrazy ne conserve qu'une empreinte de cette clé. En cas de perte, révoquez-la et créez-en une nouvelle.",
+        "secretLabel": "Clé secrète",
+        "copy": "Copier",
+        "copied": "Copiée",
+        "copyFailed": "La copie a échoué. Sélectionnez la clé et copiez-la manuellement.",
+        "done": "J'ai enregistré la clé",
+        "discardTitle": "Vous n'avez pas copié cette clé",
+        "discardDescription": "Une fois cette fenêtre fermée, la clé complète ne pourra plus jamais être affichée. Fermer quand même ?",
+        "discardCancel": "Revenir",
+        "discardConfirm": "Fermer quand même",
+        "createdToast": "Clé API créée",
+        "createdToastDesc": "{name} est prête à être utilisée.",
+        "createError": "Impossible de créer la clé API",
+        "revokedToast": "Clé API révoquée",
+        "revokedToastDesc": "{name} ne peut plus accéder à l'API partenaire.",
+        "revokeError": "Impossible de révoquer la clé API",
+        "revokeTitle": "Révoquer cette clé API ?",
+        "revokeDescription": "{name} ({prefix}) cesse de fonctionner immédiatement et toute requête qui l'utilise sera refusée. Cette action est irréversible.",
+        "revokeConfirm": "Révoquer la clé",
+        "revoking": "Révocation…",
+        "genericError": "Une erreur est survenue. Veuillez réessayer."
       },
       "stripePage": {
         "statusBanners": {
