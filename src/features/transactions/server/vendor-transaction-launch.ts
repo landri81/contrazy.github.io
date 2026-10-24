@@ -17,7 +17,11 @@ import {
   type VendorSubscription,
 } from "@prisma/client"
 
-import type { VendorTransactionCreateInput } from "@/features/dashboard/schemas/vendor-operations.schema"
+import {
+  SELFIE_REQUIRES_IDENTITY_MESSAGE,
+  type VendorTransactionCreateInput,
+} from "@/features/dashboard/schemas/vendor-operations.schema"
+import { SELFIE_REQUIRES_IDENTITY_ERROR_CODE } from "@/features/dashboard/transaction-creation"
 import { normalizeRequirementExampleImage } from "@/features/dashboard/server/requirement-example-assets"
 import { createTransactionContractArtifact } from "@/features/contracts/server/contract-artifacts"
 import {
@@ -92,6 +96,8 @@ export type PreparedVendorTransactionLaunch = {
   depositLongTermPlatformFeeAmount: number | null
   depositLongTermFeeAcceptedAt: Date | null
   requiresKyc: boolean
+  /** Stripe Identity also matches a live selfie against the ID photo (C4). Only with `requiresKyc`. */
+  requireSelfie: boolean
   generateQr: boolean
   paymentCollectionTiming: VendorTransactionCreateInput["paymentCollectionTiming"]
   requireClientCompany: boolean
@@ -158,14 +164,16 @@ export type CreatedVendorTransaction = {
 }
 
 /**
- * Machine-readable reason for a refused launch. The dashboard ignores it and
- * shows the message; the partner API maps it to a stable error code.
+ * Machine-readable reason for a refused launch. The dashboard shows the message
+ * (except `selfie_requires_identity`, which it translates); the partner API
+ * maps it to a stable error code.
  */
 export type VendorTransactionLaunchFailureCode =
   | "transaction_limit_reached"
   | "qr_limit_reached"
   | "kyc_not_in_plan"
   | "kyc_quota_reached"
+  | "selfie_requires_identity"
   | "long_deposit_not_in_plan"
   | "stripe_not_connected"
   | "contract_template_not_found"
@@ -233,6 +241,7 @@ export async function prepareVendorTransactionLaunch({
     depositHoldDays,
     depositLongTermFeeAccepted,
     requiresKyc,
+    requireSelfie,
     generateQr,
     paymentCollectionTiming,
     requireClientCompany,
@@ -246,6 +255,19 @@ export async function prepareVendorTransactionLaunch({
     return {
       ok: false,
       response: NextResponse.json({ success: false, message: "Bulk sharing cannot recreate a completed transaction." }, { status: 422 }),
+    }
+  }
+
+  // Server-side guard as well as the schema refinement: callers that build the
+  // input themselves (partner API) must never store a selfie without identity.
+  if (requireSelfie && !requiresKyc) {
+    return {
+      ok: false,
+      code: SELFIE_REQUIRES_IDENTITY_ERROR_CODE,
+      response: NextResponse.json(
+        { success: false, code: SELFIE_REQUIRES_IDENTITY_ERROR_CODE, message: SELFIE_REQUIRES_IDENTITY_MESSAGE },
+        { status: 422 }
+      ),
     }
   }
 
@@ -375,7 +397,7 @@ export async function prepareVendorTransactionLaunch({
     }
 
     const remainingKyc = remainingKycVerifications(subscription)
-    const canReuseSourceKyc = canReuseVerifiedKyc(recreateSource, Boolean(requiresKyc))
+    const canReuseSourceKyc = canReuseVerifiedKyc(recreateSource, Boolean(requiresKyc), Boolean(requireSelfie))
 
     if (remainingKyc !== null && remainingKyc < recipientCount && !canReuseSourceKyc) {
       return {
@@ -554,6 +576,7 @@ export async function prepareVendorTransactionLaunch({
       depositLongTermPlatformFeeAmount: longDepositFeeEstimate?.platformFeeAmount ?? null,
       depositLongTermFeeAcceptedAt: isLongDeposit ? new Date() : null,
       requiresKyc: Boolean(requiresKyc),
+      requireSelfie: Boolean(requiresKyc && requireSelfie),
       generateQr: effectiveGenerateQr,
       paymentCollectionTiming,
       requireClientCompany,
@@ -726,6 +749,7 @@ export async function createPreparedVendorTransaction(
       depositLongTermPlatformFeeAmount: prepared.depositLongTermPlatformFeeAmount,
       depositLongTermFeeAcceptedAt: prepared.depositLongTermFeeAcceptedAt,
       requiresKyc: prepared.requiresKyc,
+      requireSelfie: prepared.requireSelfie,
       paymentCollectionTiming: prepared.paymentCollectionTiming,
       requireClientCompany: prepared.requireClientCompany,
       contractTemplateId: prepared.contractTemplate?.id ?? null,
@@ -771,7 +795,7 @@ export async function createPreparedVendorTransaction(
 
   const reusableKyc =
     shouldCloneRecreateSource
-      ? buildReusableKycSeed(prepared.recreateSource, prepared.requiresKyc)
+      ? buildReusableKycSeed(prepared.recreateSource, prepared.requiresKyc, prepared.requireSelfie)
       : null
 
   if (reusableKyc) {
@@ -783,6 +807,8 @@ export async function createPreparedVendorTransaction(
         providerReference: reusableKyc.providerReference,
         summary: reusableKyc.summary,
         verifiedAt: reusableKyc.verifiedAt,
+        selfieCheck: reusableKyc.selfieCheck,
+        selfieErrorCode: reusableKyc.selfieErrorCode,
       },
     })
   }

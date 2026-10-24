@@ -14,6 +14,8 @@ import {
  * booking forward goes out: booking identifiers, status and step progress,
  * the customer's name and email, and per-event facts. Never ID documents,
  * selfies, KYC details, phone/address/birth data, card data or Stripe ids.
+ * Identity events only say whether a selfie match was required and its
+ * outcome (`selfie: { required, status }`), never the image or a score.
  */
 
 export type PartnerWebhookPayload = {
@@ -113,6 +115,26 @@ function buildHold(booking: PartnerBookingRecord) {
   }
 }
 
+export type PartnerSelfieStatus = "not_requested" | "pending" | "verified" | "unverified"
+
+/** Selfie outcome for identity events: a status word only, no biometric or ID data. */
+export function buildPartnerSelfieSummary(
+  booking: Pick<PartnerBookingRecord, "requireSelfie" | "kycVerification">
+): { required: boolean; status: PartnerSelfieStatus } {
+  if (!booking.requireSelfie) {
+    return { required: false, status: "not_requested" }
+  }
+
+  switch (booking.kycVerification?.selfieCheck) {
+    case "VERIFIED":
+      return { required: true, status: "verified" }
+    case "UNVERIFIED":
+      return { required: true, status: "unverified" }
+    default:
+      return { required: true, status: "pending" }
+  }
+}
+
 function buildEventData(
   type: PartnerWebhookSubscribableEventType,
   booking: PartnerBookingRecord,
@@ -129,9 +151,15 @@ function buildEventData(
     case "booking.link_opened":
       return { link: { openedAt: iso(booking.link?.openedAt ?? event.occurredAt) } }
     case "booking.identity_verified":
-      return { identity: { status: "verified", verifiedAt: iso(booking.kycVerification?.verifiedAt ?? event.occurredAt) } }
+      return {
+        identity: { status: "verified", verifiedAt: iso(booking.kycVerification?.verifiedAt ?? event.occurredAt) },
+        selfie: buildPartnerSelfieSummary(booking),
+      }
     case "booking.identity_failed":
-      return { identity: { status: "failed", failedAt: iso(event.occurredAt) } }
+      return {
+        identity: { status: "failed", failedAt: iso(event.occurredAt) },
+        selfie: buildPartnerSelfieSummary(booking),
+      }
     case "booking.contract_signed": {
       const signedPdfUrl = booking.contractArtifact?.signedPdfUrl
       return {

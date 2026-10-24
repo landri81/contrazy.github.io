@@ -10,6 +10,7 @@ import {
 import { z } from "zod"
 
 import { parseDateOnlyInput } from "@/lib/date-only"
+import { SELFIE_REQUIRES_IDENTITY_ERROR_CODE } from "@/features/dashboard/transaction-creation"
 import {
   normalizeRequirementFileCount,
   normalizeRequirementFileSlotLabels,
@@ -213,6 +214,7 @@ const vendorTransactionCreateBaseSchema = z.object({
   depositHoldDays: z.number().int().min(7).max(30).optional(),
   depositLongTermFeeAccepted: z.boolean().optional(),
   requiresKyc: z.boolean().optional(),
+  requireSelfie: z.boolean().optional(),
   generateQr: z.boolean().optional(),
   paymentCollectionTiming: z.nativeEnum(PaymentCollectionTiming).optional(),
   requireClientCompany: z.boolean().optional(),
@@ -221,6 +223,29 @@ const vendorTransactionCreateBaseSchema = z.object({
   flowType: z.nativeEnum(TransactionFlowType).optional(),
   reportFields: z.array(transactionReportFieldItemSchema).optional(),
 })
+
+export const SELFIE_REQUIRES_IDENTITY_MESSAGE = "Selfie matching requires identity verification to be on."
+
+/** A selfie is matched against the ID photo, so it cannot be asked for without the identity check. */
+function refineSelfieRequiresIdentity(
+  data: { requiresKyc?: boolean; requireSelfie?: boolean },
+  ctx: z.RefinementCtx
+) {
+  if (data.requireSelfie && !data.requiresKyc) {
+    ctx.addIssue({ code: "custom", path: ["requireSelfie"], message: SELFIE_REQUIRES_IDENTITY_MESSAGE })
+  }
+}
+
+/** Error code for a parse failure the dashboard translates itself, if any. */
+export function getVendorTransactionParseErrorCode(error: {
+  issues: Array<{ path: PropertyKey[]; message?: string }>
+}) {
+  return error.issues.some(
+    (issue) => issue.path[0] === "requireSelfie" && issue.message === SELFIE_REQUIRES_IDENTITY_MESSAGE
+  )
+    ? SELFIE_REQUIRES_IDENTITY_ERROR_CODE
+    : undefined
+}
 
 function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransactionCreateBaseSchema>) {
   return {
@@ -236,6 +261,7 @@ function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransac
     depositHoldDays: data.depositHoldDays ?? 7,
     depositLongTermFeeAccepted: Boolean(data.depositLongTermFeeAccepted),
     requiresKyc: Boolean(data.requiresKyc),
+    requireSelfie: Boolean(data.requireSelfie),
     generateQr: Boolean(data.generateQr),
     paymentCollectionTiming: data.paymentCollectionTiming ?? PaymentCollectionTiming.AFTER_SIGNING,
     requireClientCompany: Boolean(data.requireClientCompany),
@@ -246,9 +272,9 @@ function normalizeVendorTransactionCreateData(data: z.infer<typeof vendorTransac
   }
 }
 
-export const vendorTransactionCreateSchema = vendorTransactionCreateBaseSchema.transform(
-  normalizeVendorTransactionCreateData
-)
+export const vendorTransactionCreateSchema = vendorTransactionCreateBaseSchema
+  .superRefine(refineSelfieRequiresIdentity)
+  .transform(normalizeVendorTransactionCreateData)
 
 export type VendorTransactionCreateInput = z.infer<typeof vendorTransactionCreateSchema>
 
@@ -265,6 +291,7 @@ export const vendorBulkTransactionCreateSchema = vendorTransactionCreateBaseSche
       .min(1, "Add at least one recipient email"),
     sourceFileName: optionalNullableText("CSV filename", 180).optional(),
   })
+  .superRefine(refineSelfieRequiresIdentity)
   .transform((data) => ({
     ...normalizeVendorTransactionCreateData(data),
     generateQr: false,

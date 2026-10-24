@@ -60,18 +60,28 @@ describe("buildBookingLaunchInput", () => {
     expect(input.requirements[0]?.label).toBe("Driving licence")
   })
 
-  it("refuses selfie and card security until their launch settings exist", () => {
-    for (const steps of [{ identity: true, selfie: true }, { cardSecurity: true }]) {
-      const booking = parse({ steps })
+  it("maps steps.selfie onto requireSelfie (C4), off by default", () => {
+    expect(buildBookingLaunchInput(parse({ steps: { identity: true, selfie: true } }), { contractTemplateId: null })).toMatchObject({
+      requiresKyc: true,
+      requireSelfie: true,
+    })
+    expect(buildBookingLaunchInput(parse({ steps: { identity: true } }), { contractTemplateId: null })).toMatchObject({
+      requiresKyc: true,
+      requireSelfie: false,
+    })
+  })
 
-      expect(() => buildBookingLaunchInput(booking, { contractTemplateId: null })).toThrow(PartnerApiError)
+  it("refuses card security until its launch settings exist", () => {
+    const booking = parse({ steps: { cardSecurity: true } })
 
-      try {
-        buildBookingLaunchInput(booking, { contractTemplateId: null })
-      } catch (error) {
-        expect((error as PartnerApiError).code).toBe("step_requires_configuration")
-        expect((error as PartnerApiError).status).toBe(422)
-      }
+    expect(() => buildBookingLaunchInput(booking, { contractTemplateId: null })).toThrow(PartnerApiError)
+
+    try {
+      buildBookingLaunchInput(booking, { contractTemplateId: null })
+    } catch (error) {
+      expect((error as PartnerApiError).code).toBe("step_requires_configuration")
+      expect((error as PartnerApiError).status).toBe(422)
+      expect((error as PartnerApiError).details).toEqual({ steps: ["steps.cardSecurity"] })
     }
   })
 })

@@ -48,6 +48,7 @@ export default async function ClientKycPage(props: {
           failed={isFailed}
           currentStatus={kycStatus ?? null}
           nextStep={nextStep}
+          requireSelfie={transaction.requireSelfie}
         />
       ) : (
         <ClientKycForm

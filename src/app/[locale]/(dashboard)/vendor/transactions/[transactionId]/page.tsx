@@ -968,7 +968,11 @@ export default async function VendorTransactionDetailPage(props: {
 
       {/* ── KYC ─────────────────────────────────────────────────────────────── */}
       {transaction.requiresKyc && transaction.kycVerification && (
-        <KycReviewCard transactionId={transaction.id} kyc={transaction.kycVerification} />
+        <KycReviewCard
+          transactionId={transaction.id}
+          kyc={transaction.kycVerification}
+          requireSelfie={transaction.requireSelfie}
+        />
       )}
 
       {/* ── Contract / agreement ─────────────────────────────────────────────── */}

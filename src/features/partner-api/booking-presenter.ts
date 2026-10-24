@@ -98,8 +98,18 @@ function resolveStep(key: StepSwitchKey, snapshot: StepSnapshot): { done: Date |
         done: deposit && AUTHORIZED_DEPOSIT_STATUSES.has(deposit.status) ? (deposit.authorizedAt ?? eventTime(snapshot, "DEPOSIT_AUTHORIZED")) : null,
       }
     }
-    // Selfie matching (C4) and card security (C5) are tracked once those steps exist.
-    case "selfie":
+    case "selfie": {
+      // Captured in the same Stripe Identity session as the ID document.
+      const kyc = snapshot.kycVerification
+      return {
+        started: kyc?.createdAt ?? eventTime(snapshot, "KYC_STARTED"),
+        done:
+          kyc?.status === "VERIFIED" && kyc.selfieCheck === "VERIFIED"
+            ? (kyc.verifiedAt ?? eventTime(snapshot, "KYC_VERIFIED") ?? kyc.createdAt)
+            : null,
+      }
+    }
+    // Card security (C5) is tracked once that step exists.
     case "cardSecurity":
     default:
       return { started: null, done: null }

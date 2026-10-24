@@ -97,6 +97,7 @@ const LAUNCH_FAILURE_CODES: Record<VendorTransactionLaunchFailureCode, PartnerAp
   transaction_limit_reached: "plan_limit_reached",
   qr_limit_reached: "plan_limit_reached",
   kyc_quota_reached: "plan_limit_reached",
+  selfie_requires_identity: "invalid_request",
   kyc_not_in_plan: "plan_feature_unavailable",
   long_deposit_not_in_plan: "plan_feature_unavailable",
   stripe_not_connected: "stripe_not_connected",
@@ -376,6 +377,10 @@ export async function updatePartnerBooking(caller: PartnerCaller, bookingId: str
 
   assertSupportedStepSwitches(nextSwitches)
 
+  if (nextSwitches.selfie && !nextSwitches.identity) {
+    throw invalid("steps.selfie", "steps.selfie requires steps.identity")
+  }
+
   const amount = input.amount !== undefined ? input.amount : booking.amount
   const depositAmount = input.depositAmount !== undefined ? input.depositAmount : booking.depositAmount
 
@@ -470,6 +475,7 @@ export async function updatePartnerBooking(caller: PartnerCaller, bookingId: str
                 depositAmount: prepared.depositAmount,
                 depositHoldDays: prepared.depositHoldDays,
                 requiresKyc: prepared.requiresKyc,
+                requireSelfie: prepared.requireSelfie,
                 kind: prepared.kind,
                 flowType: prepared.flowType,
                 paymentCollectionTiming: prepared.paymentCollectionTiming,

@@ -93,11 +93,11 @@ export function resolveBookingStepSwitches(steps: PartnerBookingCreateInput["ste
 }
 
 /**
- * Switches the launch configuration cannot honour yet: selfie matching needs the
- * `requireSelfie` launch setting (C4) and card security needs the saved-card
- * setup (C5). Turning them on is refused instead of being silently ignored.
+ * Switches the launch configuration cannot honour yet: card security needs the
+ * saved-card setup (C5). Turning it on is refused instead of being silently
+ * ignored. (`selfie` maps to `requireSelfie` since C4.)
  */
-export const UNSUPPORTED_STEP_SWITCHES = ["selfie", "cardSecurity"] as const satisfies readonly StepSwitchKey[]
+export const UNSUPPORTED_STEP_SWITCHES = ["cardSecurity"] as const satisfies readonly StepSwitchKey[]
 
 export function findUnsupportedStepSwitches(switches: StepSwitches): StepSwitchKey[] {
   return UNSUPPORTED_STEP_SWITCHES.filter((key) => switches[key])
@@ -147,6 +147,8 @@ export function buildBookingLaunchInput(
     depositHoldDays: BOOKING_DEPOSIT_HOLD_DAYS,
     depositLongTermFeeAccepted: false,
     requiresKyc: switches.identity,
+    // Validated upstream (steps.selfie requires steps.identity); the launch refuses it otherwise.
+    requireSelfie: switches.selfie,
     generateQr: booking.qrCode === true,
     paymentCollectionTiming: PaymentCollectionTiming.AFTER_SIGNING,
     requireClientCompany: false,

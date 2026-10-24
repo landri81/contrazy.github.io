@@ -27,6 +27,8 @@ export function buildPartnerBookingRecord(overrides: Partial<PartnerBookingRecor
     timezone: "Europe/Paris",
     returnUrl: "https://locaz.co/bookings/return",
     customerCompletedAt: null,
+    requiresKyc: true,
+    requireSelfie: false,
     stepSwitches: {
       identity: true,
       selfie: false,
@@ -82,6 +84,8 @@ export function buildPartnerBookingRecord(overrides: Partial<PartnerBookingRecor
       providerReference: `vs_${PII_SENTINEL}`,
       summary: `${PII_SENTINEL} passport FR 12AB34567, selfie match 0.98`,
       verifiedAt: at("2026-11-01T08:10:00.000Z"),
+      selfieCheck: "NOT_REQUESTED",
+      selfieErrorCode: `${PII_SENTINEL}_selfie_code`,
       createdAt: at("2026-11-01T08:05:00.000Z"),
     },
     signatureRecord: {

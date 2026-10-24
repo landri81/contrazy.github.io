@@ -86,10 +86,18 @@ describe("partner webhook payload", () => {
       email: "camille.martin@example.com",
     })
     // No field carries card data, Stripe ids, ID documents, selfies or signatures either
-    // ("selfie" and "documents" may only appear as step names, never as keys).
+    // ("selfie" and "documents" may only appear as step names, never as keys; the one
+    // exception is the identity events' `selfie: { required, status }` summary).
     expect(json).not.toMatch(
-      /"(phone|address|birthDate|birthCity|signatureDataUrl|ipAddress|stripeIntentId|paymentMethodId|cardLast4|selfie\w*|documents?\w*|kyc\w*)":/i
+      /"(phone|address|birthDate|birthCity|signatureDataUrl|ipAddress|stripeIntentId|paymentMethodId|cardLast4|selfie\w+|documents?\w*|kyc\w*)":/i
     )
+    expect(json).not.toMatch(/selfie_|selfieErrorCode|selfieCheck/)
+
+    if (type === "booking.identity_verified" || type === "booking.identity_failed") {
+      expect(Object.keys(payload.data.selfie as object).sort()).toEqual(["required", "status"])
+    } else {
+      expect(payload.data).not.toHaveProperty("selfie")
+    }
     expect(json).not.toMatch(/\b(pi|pm|vs|seti|cus)_[A-Za-z0-9]/)
   })
 
@@ -217,5 +225,62 @@ describe("partner webhook payload", () => {
     expect(byKey.identity).toMatchObject({ required: true, status: "done" })
     expect(byKey.selfie).toMatchObject({ required: false, status: "skipped" })
     expect(byKey.contract).toMatchObject({ required: true, status: "done" })
+  })
+})
+
+describe("partner webhook selfie summary (C4)", () => {
+  const selfieBooking = (selfieCheck: string, status = "VERIFIED", selfieErrorCode: string | null = null) =>
+    buildPartnerBookingRecord({
+      requireSelfie: true,
+      stepSwitches: { ...(buildPartnerBookingRecord().stepSwitches as object), selfie: true },
+      kycVerification: {
+        ...buildPartnerBookingRecord().kycVerification!,
+        status: status as "VERIFIED",
+        selfieCheck: selfieCheck as "VERIFIED",
+        selfieErrorCode,
+      },
+    })
+
+  function identityPayload(type: "booking.identity_verified" | "booking.identity_failed", booking = selfieBooking("VERIFIED")) {
+    return buildPartnerWebhookPayload({
+      eventId: "evt_selfie",
+      type,
+      booking,
+      event: eventFor(type === "booking.identity_verified" ? "KYC_VERIFIED" : "KYC_FAILED", {}),
+      baseUrl: BASE_URL,
+    })
+  }
+
+  it("identity_verified reports a matched selfie when one was required", () => {
+    const payload = identityPayload("booking.identity_verified")
+    const steps = (payload.data.booking as { steps: Array<{ key: string; status: string; required: boolean }> }).steps
+
+    expect(payload.data.selfie).toEqual({ required: true, status: "verified" })
+    expect(steps.find((step) => step.key === "selfie")).toMatchObject({ required: true, status: "done" })
+  })
+
+  it("identity_failed reports an unmatched selfie without the Stripe error code or any biometric data", () => {
+    const payload = identityPayload(
+      "booking.identity_failed",
+      selfieBooking("UNVERIFIED", "FAILED", "selfie_face_mismatch")
+    )
+    const json = JSON.stringify(payload)
+    const steps = (payload.data.booking as { steps: Array<{ key: string; status: string }> }).steps
+
+    expect(payload.data.selfie).toEqual({ required: true, status: "unverified" })
+    expect(steps.find((step) => step.key === "selfie")).toMatchObject({ status: "pending" })
+    expect(json).not.toContain("selfie_face_mismatch")
+    expect(json).not.toContain(PII_SENTINEL)
+  })
+
+  it("says pending while a required selfie has no outcome yet, and not_requested when it was not asked for", () => {
+    expect(identityPayload("booking.identity_failed", selfieBooking("NOT_REQUESTED", "FAILED")).data.selfie).toEqual({
+      required: true,
+      status: "pending",
+    })
+    expect(identityPayload("booking.identity_verified", buildPartnerBookingRecord()).data.selfie).toEqual({
+      required: false,
+      status: "not_requested",
+    })
   })
 })
