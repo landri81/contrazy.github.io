@@ -21,6 +21,7 @@
     "prisma:push": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs db push",
     "prisma:studio": "dotenv -e .env.local -- node scripts/run-prisma-command.mjs studio",
     "ensure-super-admin": "dotenv -e .env.local -- node scripts/ensure-super-admin.mjs",
+    "locaz:seed-contract-template": "dotenv -e .env.local -- node scripts/seed-locaz-rental-template.mjs",
     "db:setup": "dotenv -e .env.local -- node scripts/db-setup.mjs",
     "db:clear": "dotenv -e .env.local -- node scripts/clear-db.mjs",
     "db:studio": "dotenv -e .env.local -- node scripts/db-studio.mjs",

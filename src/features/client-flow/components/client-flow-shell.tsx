@@ -14,6 +14,7 @@ import {
   ListChecks,
   Loader2,
   LockKeyhole,
+  MinusCircle,
   PenLine,
   ShieldCheck,
   UserCircle,
@@ -71,6 +72,8 @@ type ClientFlowShellProps = {
   token: string
   canCancel: boolean
   enabledSteps: StepKey[]
+  /** Steps a partner booking switched off: skipped, and listed as "not required". */
+  notRequiredSteps?: StepKey[]
   completedSteps: StepKey[]
   revisitableSteps: StepKey[]
   children: React.ReactNode
@@ -85,6 +88,7 @@ export function ClientFlowShell({
   token,
   canCancel,
   enabledSteps,
+  notRequiredSteps = [],
   completedSteps,
   revisitableSteps,
   children,
@@ -108,6 +112,7 @@ export function ClientFlowShell({
   }
 
   const visibleSteps = stepOrder.filter((step) => enabledSteps.includes(step))
+  const skippedSteps = stepOrder.filter((step) => notRequiredSteps.includes(step) && !enabledSteps.includes(step))
   const currentStep =
     visibleSteps.find((step) => pathname.endsWith(`/${step}`)) ?? visibleSteps[0]
   const currentIndex = Math.max(0, visibleSteps.indexOf(currentStep))
@@ -208,6 +213,15 @@ export function ClientFlowShell({
           />
         </div>
 
+        {skippedSteps.length > 0 ? (
+          <NotRequiredSteps
+            steps={skippedSteps}
+            labelMap={stepLabelMap}
+            title={tShell("notRequiredTitle")}
+            badge={tShell("notRequired")}
+          />
+        ) : null}
+
         <section className="min-w-0 py-5">
           <AnimatePresence mode="wait">
             <motion.div
@@ -229,6 +243,48 @@ export function ClientFlowShell({
 
       </footer>
     </div>
+  )
+}
+
+function NotRequiredSteps({
+  steps,
+  labelMap,
+  title,
+  badge,
+}: {
+  steps: StepKey[]
+  labelMap: Record<StepKey, string>
+  title: string
+  badge: string
+}) {
+  return (
+    <section
+      aria-label={title}
+      className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-border bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+    >
+      <p className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <MinusCircle aria-hidden="true" className="size-3.5" />
+        {title}
+      </p>
+      <ul className="flex flex-wrap gap-1.5">
+        {steps.map((step) => {
+          const Icon = stepIcons[step]
+
+          return (
+            <li
+              key={step}
+              className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-background px-2 text-xs font-medium text-muted-foreground"
+            >
+              <Icon aria-hidden="true" className="size-3.5" />
+              <span>{labelMap[step]}</span>
+              <span className="rounded-full border border-border bg-muted px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
+                {badge}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

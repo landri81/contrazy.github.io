@@ -24,7 +24,7 @@ import { optionalNullableText, optionalText, requiredText } from "@/lib/validati
 const optionalIdSchema = z.union([z.string().trim().min(1), z.null()]).optional()
 const optionalNullableStringSchema = z.union([z.string().trim(), z.null()]).optional()
 
-const requirementItemSchema = z
+export const requirementItemSchema = z
   .object({
     label: requiredText("Requirement label", INPUT_LIMITS.checklistItemLabel, {
       requiredMessage: "Requirement label is required",

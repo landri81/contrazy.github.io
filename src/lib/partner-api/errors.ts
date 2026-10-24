@@ -10,6 +10,22 @@ export type PartnerApiErrorCode =
   | "invalid_request"
   | "not_found"
   | "internal_error"
+  | "idempotency_key_required"
+  | "idempotency_key_conflict"
+  | "idempotency_key_in_use"
+  | "external_ref_conflict"
+  | "return_url_not_allowed"
+  | "booking_locked"
+  | "booking_not_cancellable"
+  | "subscription_required"
+  | "plan_limit_reached"
+  | "plan_feature_unavailable"
+  | "vendor_not_approved"
+  | "stripe_not_connected"
+  | "contract_template_not_found"
+  | "contract_template_required"
+  | "step_requires_configuration"
+  | "launch_rejected"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -26,6 +42,22 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   invalid_request: 400,
   not_found: 404,
   internal_error: 500,
+  idempotency_key_required: 400,
+  idempotency_key_conflict: 409,
+  idempotency_key_in_use: 409,
+  external_ref_conflict: 409,
+  return_url_not_allowed: 422,
+  booking_locked: 409,
+  booking_not_cancellable: 409,
+  subscription_required: 402,
+  plan_limit_reached: 402,
+  plan_feature_unavailable: 403,
+  vendor_not_approved: 403,
+  stripe_not_connected: 422,
+  contract_template_not_found: 422,
+  contract_template_required: 422,
+  step_requires_configuration: 422,
+  launch_rejected: 422,
 }
 
 export class PartnerApiError extends Error {

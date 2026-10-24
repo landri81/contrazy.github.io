@@ -220,6 +220,11 @@ enum TransactionFlowType {
   CHECK_IN_OUT
 }
 
+enum TransactionSource {
+  DASHBOARD
+  PARTNER_API
+}
+
 enum TransactionReportType {
   CHECK_IN
   CHECK_OUT
@@ -329,6 +334,8 @@ model VendorProfile {
   webhookEvents          WebhookEvent[]
   subscription           VendorSubscription?
   partnerApiKeys         PartnerApiKey[]
+  partnerIdempotencyKeys PartnerIdempotencyKey[]
+  partnerAllowedOrigins  String[]               @default([])
 }
 
 model VendorSubscription {
@@ -458,6 +465,15 @@ model Transaction {
   serviceDate        DateTime?          @db.Date
   notes              String?            @db.Text
   locale             LocaleCode         @default(en)
+  source             TransactionSource  @default(DASHBOARD)
+  externalRef        String?
+  startAt            DateTime?          @db.Timestamptz(3)
+  endAt              DateTime?          @db.Timestamptz(3)
+  timezone           String             @default("Europe/Paris")
+  rentalDetails      Json?
+  returnUrl          String?
+  stepSwitches       Json?
+  partnerMetadata    Json?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   vendor             VendorProfile      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -482,6 +498,7 @@ model Transaction {
   reportFields       TransactionReportField[]
   reports            TransactionReport[]
 
+  @@unique([vendorId, externalRef])
   @@index([vendorId, createdAt])
   @@index([bulkBatchId])
   @@index([status])
@@ -827,6 +844,22 @@ model PartnerApiKey {
 
   @@index([vendorId, createdAt])
   @@index([createdById])
+}
+
+model PartnerIdempotencyKey {
+  id             String        @id @default(cuid())
+  vendorId       String
+  key            String
+  requestHash    String
+  responseStatus Int?
+  responseBody   Json?
+  transactionId  String?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, key])
+  @@index([createdAt])
 }
 
 model WebhookEvent {
