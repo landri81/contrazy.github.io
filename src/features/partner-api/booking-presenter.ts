@@ -21,7 +21,7 @@ export const partnerBookingInclude = {
   payments: true,
   depositAuthorization: true,
   cardSecurity: true,
-  postCharges: { orderBy: { createdAt: "asc" } },
+  postCharges: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
   events: { orderBy: { occurredAt: "asc" } },
 } satisfies Prisma.TransactionInclude
 

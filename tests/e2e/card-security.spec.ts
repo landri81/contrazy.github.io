@@ -170,3 +170,63 @@ test("post-rental charge endpoints check the hard rules before any Stripe call (
   const booking = await (await request.get("/api/partner/v1/bookings/e2e-card-secured-transaction", { headers: auth })).json()
   expect(booking.charges).toEqual([])
 })
+
+test("customer links of declined charges (C6b)", async ({ page }, testInfo) => {
+  // Needs 3D Secure: pay on session, details first (fr).
+  await page.goto("/fr/pay/e2e-pay-link-authentication-1")
+  await expect(page.getByRole("heading", { name: "Régler un montant" })).toBeVisible()
+  await expect(page.getByText("Approved Rentals n’a pas pu débiter votre carte enregistrée")).toBeVisible()
+  await expect(page.getByText("Forfait post-stationnement (FPS)")).toBeVisible()
+  await expect(page.getByText("35,00 €")).toBeVisible()
+  await expect(page.getByText("LZ-E2E-CHARGES")).toBeVisible()
+  await expect(page.getByRole("link", { name: "Justificatif 1" })).toHaveAttribute("href", "https://files.locaz.test/fps-1.pdf")
+  // E2E has no real Stripe: the form stops at a clear message.
+  await expect(page.getByText(/Préparation du formulaire de paiement sécurisé|Le formulaire de paiement n’a pas pu être chargé|Ce lien/)).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath("charge-link-pay-fr.png"), fullPage: true })
+
+  // Expired card: the customer agrees again before giving a new card (phone).
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto("/fr/pay/e2e-pay-link-expired-card-01")
+  await expect(page.getByRole("heading", { name: "Mettez à jour votre carte" })).toBeVisible()
+  await expect(page.locator('blockquote[lang="fr"]')).toContainText("J'autorise Approved Rentals")
+  await expect(page.getByRole("checkbox")).not.toBeChecked()
+  await expect(page.getByRole("button", { name: "Accepter et continuer" })).toBeDisabled()
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
+  await page.screenshot({ path: testInfo.outputPath("charge-link-card-update-fr-mobile.png"), fullPage: true })
+
+  await page.goto("/en/pay/e2e-pay-link-already-paid-01")
+  await expect(page.getByRole("heading", { name: "Thank you, it is settled" })).toBeVisible()
+  await page.goto("/en/pay/does-not-exist-000000000000")
+  await expect(page.getByRole("heading", { name: "Link not found" })).toBeVisible()
+})
+
+test("the charge API shows the link and the retry schedule (C6b)", async ({ request }) => {
+  const booking = await (await request.get("/api/partner/v1/bookings/e2e-charge-link-transaction", { headers: auth })).json()
+  expect(booking.charges.map((c: { externalRef: string; status: string }) => [c.externalRef, c.status]).sort()).toEqual([
+    ["LZ-DMG-1", "failed"],
+    ["LZ-FPS-1", "requires_action"],
+    ["LZ-TOLL-1", "succeeded"],
+  ])
+  expect((await request.get("/api/cron/post-charge-retries")).status()).toBe(401)
+})
+
+test("refund endpoint checks before any Stripe call (C6c)", async ({ request }) => {
+  const withKey = (key: string) => ({ ...auth, "Idempotency-Key": `${key}-${Date.now()}` })
+  const booking = await (await request.get("/api/partner/v1/bookings/e2e-charge-link-transaction", { headers: auth })).json()
+  const byRef = Object.fromEntries(booking.charges.map((c: { externalRef: string; id: string }) => [c.externalRef, c.id]))
+  const refunds = (id: string) => `/api/partner/v1/charges/${id}/refunds`
+
+  const noReason = await request.post(refunds(byRef["LZ-TOLL-1"]), { headers: withKey("noreason"), data: { amount: 100 } })
+  expect(noReason.status()).toBe(400)
+
+  const unpaid = await request.post(refunds(byRef["LZ-FPS-1"]), { headers: withKey("unpaid"), data: { reason: "Cancelled on appeal" } })
+  expect(unpaid.status(), await unpaid.text()).toBe(409)
+  expect((await unpaid.json()).error.code).toBe("charge_not_refundable")
+
+  const tooMuch = await request.post(refunds(byRef["LZ-TOLL-1"]), { headers: withKey("toomuch"), data: { amount: 871, reason: "Toll error" } })
+  expect(tooMuch.status(), await tooMuch.text()).toBe(422)
+  expect((await tooMuch.json()).error).toMatchObject({ code: "refund_too_large", details: { refundable: 870 } })
+
+  expect((await request.post(refunds("unknown-charge"), { headers: withKey("unknown"), data: { reason: "x y z" } })).status()).toBe(404)
+})

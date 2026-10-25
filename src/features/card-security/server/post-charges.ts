@@ -1,8 +1,11 @@
+import { randomBytes } from "node:crypto"
 import type { CardSecurity, PostCharge, PostChargeStatus, PostChargeType, PrismaClient, Transaction, VendorProfile } from "@prisma/client"
 import type Stripe from "stripe"
 
-import { recordChargeOutcomeEvent, type PartnerChargeOutcome } from "@/features/partner-webhooks/server/charge-events"
+import { nextAction, type ChargeNextAction } from "@/features/card-security/retry-policy"
+import { recordChargeOutcomeEvent, recordRefundSucceededEvent, type PartnerChargeOutcome } from "@/features/partner-webhooks/server/charge-events"
 import type { StripeGateway } from "@/lib/integrations/stripe-gateway"
+import { getSiteUrl } from "@/lib/site-url"
 
 /** Charges whose amount comes from a third-party notice: the notice must be attached (Spec v2.1 §8). */
 export const PROOF_REQUIRED_TYPES = new Set<PostChargeType>(["FPS", "TOLL", "TOWING"])
@@ -49,8 +52,26 @@ const OUTCOME_STATUS: Record<PartnerChargeOutcome, PostChargeStatus> = {
   requires_action: "REQUIRES_ACTION",
 }
 
+const HOUR_MS = 3_600_000
+
+/** Where the customer pays (or updates the card) on session: `/{locale}/pay/{token}` on Contrazy. */
+export function chargeLinkUrl(token: string, locale: string, baseUrl: string = getSiteUrl()) {
+  return `${baseUrl.replace(/\/$/, "")}/${locale}/pay/${token}`
+}
+
+/** True when the customer must act through the link: pay on session, or give a new card first. */
+export function linkKindFor(charge: Pick<PostCharge, "status" | "declineCode" | "attempt" | "paymentLinkToken">): "payment" | "card_update" | null {
+  if (!charge.paymentLinkToken || (charge.status !== "FAILED" && charge.status !== "REQUIRES_ACTION")) {
+    return null
+  }
+
+  return nextAction(charge.declineCode, charge.attempt).kind === "card_update_link" ? "card_update" : "payment"
+}
+
 /** The facts partner webhooks carry for a charge outcome (no card data). */
-function chargeFacts(charge: PostCharge, attempt: number, declineCode: string | null) {
+function chargeFacts(charge: PostCharge, attempt: number, declineCode: string | null, links: { locale: string; action: ChargeNextAction | null }) {
+  const url = charge.paymentLinkToken ? chargeLinkUrl(charge.paymentLinkToken, links.locale) : null
+
   return {
     id: charge.id,
     externalRef: charge.externalRef,
@@ -59,6 +80,39 @@ function chargeFacts(charge: PostCharge, attempt: number, declineCode: string | 
     currency: charge.currency,
     attempt,
     declineCode,
+    nextRetryAt: charge.nextRetryAt,
+    paymentLinkUrl: links.action?.kind === "payment_link" ? url : null,
+    cardUpdateUrl: links.action?.kind === "card_update_link" ? url : null,
+  }
+}
+
+/**
+ * After a failed attempt, the Spec §9 policy decides: a later off-session
+ * retry, or a link for the customer (payment on session, or a new card first),
+ * flagged for review for lost / stolen / fraudulent cards.
+ */
+function followUpFor(charge: PostCharge, outcome: PartnerChargeOutcome, attemptNo: number, declineCode: string | null, now: Date) {
+  if (outcome === "succeeded") {
+    return { action: null, data: { nextRetryAt: null } }
+  }
+
+  const action = nextAction(declineCode, attemptNo)
+
+  if (action.kind === "retry") {
+    return { action, data: { nextRetryAt: new Date(now.getTime() + action.afterHours * HOUR_MS) } }
+  }
+
+  if (action.kind === "wait") {
+    return { action, data: { nextRetryAt: null } }
+  }
+
+  return {
+    action,
+    data: {
+      nextRetryAt: null,
+      paymentLinkToken: charge.paymentLinkToken ?? randomBytes(24).toString("base64url"),
+      ...(action.kind === "payment_link" && action.reviewFlag ? { reviewFlag: true } : {}),
+    },
   }
 }
 
@@ -68,6 +122,8 @@ async function recordAttemptOutcome(
   input: { charge: PostCharge; attemptNo: number; outcome: PartnerChargeOutcome; paymentIntentId: string | null; declineCode: string | null; key: string; now: Date }
 ) {
   const { charge, attemptNo, outcome } = input
+
+  const followUp = followUpFor(charge, outcome, attemptNo, input.declineCode, input.now)
 
   return db.$transaction(async (tx) => {
     await tx.postChargeAttempt.upsert({
@@ -83,12 +139,14 @@ async function recordAttemptOutcome(
         paymentIntentId: input.paymentIntentId ?? charge.paymentIntentId,
         declineCode: outcome === "succeeded" ? null : input.declineCode,
         succeededAt: outcome === "succeeded" ? input.now : null,
+        ...followUp.data,
       },
     })
+    const booking = await tx.transaction.findUnique({ where: { id: charge.transactionId }, select: { locale: true } })
     await recordChargeOutcomeEvent(tx, {
       transactionId: charge.transactionId,
       outcome,
-      charge: chargeFacts(updated, attemptNo, outcome === "succeeded" ? null : input.declineCode),
+      charge: chargeFacts(updated, attemptNo, outcome === "succeeded" ? null : input.declineCode, { locale: booking?.locale ?? "en", action: followUp.action }),
       occurredAt: input.now,
     })
     return updated
@@ -260,4 +318,150 @@ export async function applyPostChargeIntent(db: DatabaseClient, intent: Stripe.P
   const declineCode = outcome === "succeeded" ? null : (intent.last_payment_error?.decline_code ?? intent.last_payment_error?.code ?? null)
 
   return recordAttemptOutcome(db, { charge, attemptNo, outcome, paymentIntentId: intent.id, declineCode, key: postChargeIdempotencyKey(charge.id, attemptNo), now })
+}
+
+/**
+ * Hourly job: retries the charges whose off-session retry is due (Spec v2.1 §9:
+ * soft declines up to 3 times, a generic decline once). Each retry is a new
+ * attempt with its own idempotency key; the outcome schedules the next step.
+ */
+export async function retryDuePostCharges(db: DatabaseClient, gateway: StripeGateway, now: Date = new Date(), limit = 50) {
+  const due = await db.postCharge.findMany({
+    where: { status: "FAILED", nextRetryAt: { lte: now } },
+    include: { transaction: { include: { cardSecurity: true, vendor: { select: { stripeAccountId: true } } } } },
+    orderBy: { nextRetryAt: "asc" },
+    take: limit,
+  })
+  const summary = { due: due.length, succeeded: 0, failed: 0, skipped: 0 }
+
+  for (const charge of due) {
+    const { transaction, ...row } = charge
+    const card = transaction.cardSecurity
+    const account = transaction.vendor.stripeAccountId
+
+    if (!card || card.status !== "SECURED" || !account) {
+      // No usable card any more: stop retrying; the charge stays failed for LOCAZ to handle.
+      await db.postCharge.update({ where: { id: charge.id }, data: { nextRetryAt: null } })
+      summary.skipped++
+      continue
+    }
+
+    try {
+      const result = await attemptPostCharge(db, gateway, { charge: row, card, account, reference: transaction.reference, now })
+      if (result.status === "SUCCEEDED") summary.succeeded++
+      else summary.failed++
+    } catch (error) {
+      summary.skipped++
+      console.error("Post-charge retry skipped", { chargeId: charge.id, error: error instanceof Error ? error.message : "Unknown error" })
+    }
+  }
+
+  return summary
+}
+
+export class PostChargeRefundError extends Error {
+  constructor(
+    readonly code: "charge_not_refundable" | "refund_too_large",
+    message: string,
+    readonly details: Record<string, unknown> = {}
+  ) {
+    super(message)
+  }
+}
+
+function refundedStatus(charge: Pick<PostCharge, "amount">, refundedAmount: number): PostChargeStatus {
+  return refundedAmount >= charge.amount ? "REFUNDED" : "PARTIALLY_REFUNDED"
+}
+
+/**
+ * Refunds a charge, fully or partly (e.g. an FPS cancelled on appeal), always
+ * at Stripe, never in the database only (Spec v2.1 §11). The reason is
+ * mandatory. A refunded amount no longer counts against LOCAZ's caps. The
+ * Stripe key is per charge and already-refunded amount, so a re-sent request
+ * refunds once.
+ */
+export async function refundPostCharge(
+  db: DatabaseClient,
+  gateway: StripeGateway,
+  input: { charge: PostCharge; account: string; amount?: number | null; reason: string; createdById?: string | null; now?: Date }
+) {
+  const { charge } = input
+
+  if ((charge.status !== "SUCCEEDED" && charge.status !== "PARTIALLY_REFUNDED") || !charge.paymentIntentId) {
+    throw new PostChargeRefundError("charge_not_refundable", "Only a charge that went through can be refunded.", { status: charge.status.toLowerCase() })
+  }
+
+  const remaining = charge.amount - charge.refundedAmount
+  const amount = input.amount ?? remaining
+
+  if (amount <= 0 || amount > remaining) {
+    throw new PostChargeRefundError("refund_too_large", "The refund cannot exceed what is left on the charge.", { refundable: remaining })
+  }
+
+  const refund = await gateway.payments.createRefund(
+    { payment_intent: charge.paymentIntentId, amount, reason: "requested_by_customer", metadata: { postChargeId: charge.id, reason: input.reason.slice(0, 500) } },
+    { account: input.account, idempotencyKey: `postcharge_refund_${charge.id}_${charge.refundedAmount}_${amount}` }
+  )
+  const now = input.now ?? new Date()
+
+  return db.$transaction(async (tx) => {
+    const existing = await tx.postChargeRefund.findUnique({ where: { stripeRefundId: refund.id } })
+
+    if (existing) {
+      return { charge: await tx.postCharge.findUniqueOrThrow({ where: { id: charge.id } }), refund: existing }
+    }
+
+    const row = await tx.postChargeRefund.create({
+      data: { postChargeId: charge.id, amount: refund.amount, reason: input.reason, stripeRefundId: refund.id, createdById: input.createdById ?? null },
+    })
+    const refundedAmount = charge.refundedAmount + refund.amount
+    const updated = await tx.postCharge.update({ where: { id: charge.id }, data: { refundedAmount, status: refundedStatus(charge, refundedAmount) } })
+
+    await recordRefundSucceededEvent(tx, {
+      transactionId: charge.transactionId,
+      refund: { id: row.id, chargeId: charge.id, amount: refund.amount, currency: charge.currency, reason: input.reason },
+      occurredAt: now,
+    })
+    return { charge: updated, refund: row }
+  })
+}
+
+/**
+ * `charge.refunded` for a charge intent: brings the refunded amount in line
+ * with Stripe, including refunds made by hand in the Stripe dashboard (each
+ * new Stripe refund gets its row and its refund.succeeded event).
+ */
+export async function reconcilePostChargeRefunds(db: DatabaseClient, stripeCharge: Stripe.Charge) {
+  const paymentIntentId = typeof stripeCharge.payment_intent === "string" ? stripeCharge.payment_intent : stripeCharge.payment_intent?.id
+
+  if (!paymentIntentId) {
+    return null
+  }
+
+  const charge = await db.postCharge.findUnique({ where: { paymentIntentId } })
+
+  if (!charge) {
+    return null
+  }
+
+  for (const refund of stripeCharge.refunds?.data ?? []) {
+    if (refund.status !== "succeeded" && refund.status !== "pending") continue
+
+    await db.$transaction(async (tx) => {
+      if (await tx.postChargeRefund.findUnique({ where: { stripeRefundId: refund.id } })) return
+
+      const current = await tx.postCharge.findUniqueOrThrow({ where: { id: charge.id } })
+      const reason = refund.metadata?.reason || "Refunded in the Stripe dashboard"
+      const row = await tx.postChargeRefund.create({ data: { postChargeId: charge.id, amount: refund.amount, reason, stripeRefundId: refund.id } })
+      const refundedAmount = Math.min(current.amount, current.refundedAmount + refund.amount)
+
+      await tx.postCharge.update({ where: { id: charge.id }, data: { refundedAmount, status: refundedStatus(current, refundedAmount) } })
+      await recordRefundSucceededEvent(tx, {
+        transactionId: charge.transactionId,
+        refund: { id: row.id, chargeId: charge.id, amount: refund.amount, currency: charge.currency, reason },
+      })
+    })
+  }
+
+  return db.postCharge.findUnique({ where: { id: charge.id } })
 }

@@ -1,4 +1,4 @@
-import type { CardSecurity, PartnerCustomer, Prisma, PrismaClient } from "@prisma/client"
+import type { CardSecurity, PartnerCustomer, PostChargeStatus, Prisma, PrismaClient } from "@prisma/client"
 
 import type { StripeGateway } from "@/lib/integrations/stripe-gateway"
 
@@ -17,6 +17,9 @@ export class CardWindowError extends Error {
     super(message)
   }
 }
+
+/** A charge in flight, waiting for a retry or for the customer's payment link still needs the card. */
+const OPEN_CHARGE_STATUSES: PostChargeStatus[] = ["PENDING", "PROCESSING", "FAILED", "REQUIRES_ACTION"]
 
 export function chargeWindowEnd(returnedAt: Date) {
   return new Date(returnedAt.getTime() + CARD_CHARGE_WINDOW_DAYS * DAY_MS)
@@ -43,9 +46,10 @@ export async function markVehicleReturned(db: DatabaseClient, input: { transacti
 
 /**
  * Bookings that still need the customer's saved card: the window is open (no
- * return recorded yet, or less than 90 days since it) or a dispute is open on
- * the booking. Open post-rental charges and payment links join this list with
- * C6. Detaching is refused while anything blocks (Spec v2.1 §13, T9).
+ * return recorded yet, or less than 90 days since it), a post-rental charge is
+ * not settled yet (in flight, waiting for a retry or for the customer's link),
+ * or a dispute is open on the booking. Detaching is refused while anything
+ * blocks (Spec v2.1 §13, T9).
  */
 export async function findCardBlockers(db: DatabaseClient, partnerCustomerId: string, now: Date) {
   const cards = await db.cardSecurity.findMany({
@@ -56,9 +60,20 @@ export async function findCardBlockers(db: DatabaseClient, partnerCustomerId: st
         { windowEndsAt: null },
         { windowEndsAt: { gt: now } },
         { transaction: { dispute: { status: { in: ["OPEN", "UNDER_REVIEW"] } } } },
+        { transaction: { postCharges: { some: { status: { in: OPEN_CHARGE_STATUSES } } } } },
       ],
     },
-    select: { transactionId: true, windowEndsAt: true, transaction: { select: { externalRef: true, dispute: { select: { status: true } } } } },
+    select: {
+      transactionId: true,
+      windowEndsAt: true,
+      transaction: {
+        select: {
+          externalRef: true,
+          dispute: { select: { status: true } },
+          postCharges: { where: { status: { in: OPEN_CHARGE_STATUSES } }, select: { id: true }, take: 1 },
+        },
+      },
+    },
     orderBy: { createdAt: "asc" },
   })
 
@@ -67,9 +82,11 @@ export async function findCardBlockers(db: DatabaseClient, partnerCustomerId: st
     externalRef: card.transaction.externalRef,
     reason: card.transaction.dispute && card.transaction.dispute.status !== "RESOLVED" && card.transaction.dispute.status !== "LOST"
       ? ("open_dispute" as const)
-      : card.windowEndsAt
-        ? ("charge_window_open" as const)
-        : ("not_returned" as const),
+      : card.transaction.postCharges.length > 0
+        ? ("open_charge" as const)
+        : card.windowEndsAt
+          ? ("charge_window_open" as const)
+          : ("not_returned" as const),
     windowEndsAt: card.windowEndsAt,
   }))
 }
@@ -131,7 +148,12 @@ export async function detachExpiredCards(db: DatabaseClient, gateway: StripeGate
     where: {
       status: "SECURED",
       windowEndsAt: { lte: now },
-      NOT: { transaction: { dispute: { status: { in: ["OPEN", "UNDER_REVIEW"] } } } },
+      NOT: {
+        OR: [
+          { transaction: { dispute: { status: { in: ["OPEN", "UNDER_REVIEW"] } } } },
+          { transaction: { postCharges: { some: { status: { in: OPEN_CHARGE_STATUSES } } } } },
+        ],
+      },
     },
     select: { id: true, paymentMethodId: true, partnerCustomerId: true, transaction: { select: { vendor: { select: { stripeAccountId: true } } } } },
     orderBy: { windowEndsAt: "asc" },

@@ -4559,5 +4559,47 @@
         "retry": "Vérifier à nouveau"
       }
     }
+  },
+  "chargeLink": {
+    "metaTitle": "Paiement",
+    "payTitle": "Régler un montant",
+    "cardUpdateTitle": "Mettez à jour votre carte",
+    "intro": "{vendor} n’a pas pu débiter votre carte enregistrée pour le montant ci-dessous. Vous pouvez le régler ici.",
+    "chargeFor": "Objet",
+    "details": "Détail",
+    "booking": "Réservation",
+    "amount": "Montant",
+    "proof": "Justificatif {n}",
+    "types": {
+      "damage": "Dommages",
+      "fuel": "Carburant manquant",
+      "toll": "Péages",
+      "towing": "Fourrière",
+      "fps": "Forfait post-stationnement (FPS)",
+      "ticket_admin_fee": "Frais de gestion de contravention",
+      "other": "Autre montant"
+    },
+    "paySaved": "Payer {amount} avec la carte se terminant par {last4}",
+    "useAnotherCard": "Utiliser une autre carte",
+    "cardDetails": "Informations de carte",
+    "pay": "Payer {amount}",
+    "payFailed": "Le paiement n’a pas abouti. Veuillez réessayer ou utiliser une autre carte.",
+    "cardUpdateIntro": "Votre carte enregistrée a expiré ou n’est plus valide. Indiquez une nouvelle carte : elle est débitée tout de suite du montant ci-dessus et conservée pour cette location, aux mêmes conditions.",
+    "consentCheckbox": "J’ai lu et j’accepte ces conditions pour ma nouvelle carte.",
+    "consentContinue": "Accepter et continuer",
+    "newCard": "Nouvelle carte",
+    "saveAndPay": "Enregistrer la carte et payer",
+    "saveFailed": "Votre carte n’a pas pu être enregistrée. Veuillez essayer une autre carte.",
+    "newCardDeclined": "Votre nouvelle carte est enregistrée, mais le débit a été refusé. Veuillez contacter le loueur.",
+    "preparing": "Préparation du formulaire de paiement sécurisé…",
+    "loadFailed": "Le formulaire de paiement n’a pas pu être chargé. Veuillez réessayer.",
+    "paidTitle": "Merci, c’est réglé",
+    "paidText": "Le paiement a abouti. Vous recevrez une confirmation par e-mail.",
+    "closedTitle": "Rien à régler ici",
+    "closedText": "Ce montant ne peut plus être réglé avec ce lien. Contactez le loueur pour toute question.",
+    "notFoundTitle": "Lien introuvable",
+    "notFoundText": "Ce lien de paiement n’existe pas. Vérifiez le lien reçu par e-mail.",
+    "dispute": "Une question ou un désaccord sur ce montant : contactez {vendor} ({contact}).",
+    "securedByStripe": "Les paiements sont traités de façon sécurisée par Stripe. Le loueur ne conserve jamais les données de votre carte."
   }
 }

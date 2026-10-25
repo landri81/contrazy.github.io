@@ -13,7 +13,7 @@ const ACCOUNT = "acct_locaz_test"
 const DAY = 86_400_000
 const NOW = new Date("2027-03-01T10:00:00Z")
 
-type Card = CardSecurity & { dispute: string | null; externalRef: string }
+type Card = CardSecurity & { dispute: string | null; externalRef: string; charges?: string[] }
 
 function card(id: string, overrides: Partial<Card> = {}): Card {
   return {
@@ -41,6 +41,7 @@ function card(id: string, overrides: Partial<Card> = {}): Card {
 }
 
 const openDispute = (c: Card) => c.dispute === "OPEN" || c.dispute === "UNDER_REVIEW"
+const openCharge = (c: Card) => (c.charges ?? []).some((s) => ["PENDING", "PROCESSING", "FAILED", "REQUIRES_ACTION"].includes(s))
 const windowOpen = (c: Card, now: Date) => c.windowEndsAt === null || c.windowEndsAt > now
 
 /** The card-window queries, applied in plain code on a list of cards. */
@@ -59,13 +60,18 @@ function createDb(cards: Card[]) {
         const rows = cards.filter((c) => {
           if (where.partnerCustomerId && c.partnerCustomerId !== where.partnerCustomerId) return false
           if (c.status !== where.status) return false
-          if (where.OR) return windowOpen(c, now!) || openDispute(c)
-          if (where.windowEndsAt) return c.windowEndsAt !== null && c.windowEndsAt <= now! && !openDispute(c)
+          if (where.OR) return windowOpen(c, now!) || openDispute(c) || openCharge(c)
+          if (where.windowEndsAt) return c.windowEndsAt !== null && c.windowEndsAt <= now! && !openDispute(c) && !openCharge(c)
           return true
         })
         return rows.slice(0, take ?? rows.length).map((c) => ({
           ...c,
-          transaction: { externalRef: c.externalRef, dispute: c.dispute ? { status: c.dispute } : null, vendor: { stripeAccountId: ACCOUNT } },
+          transaction: {
+            externalRef: c.externalRef,
+            dispute: c.dispute ? { status: c.dispute } : null,
+            postCharges: openCharge(c) ? [{ id: "charge" }] : [],
+            vendor: { stripeAccountId: ACCOUNT },
+          },
         }))
       },
       async count({ where }: { where: { id: { not: string }; paymentMethodId: string; OR: { windowEndsAt?: { gt: Date } }[] } }) {
@@ -115,6 +121,8 @@ describe("detaching a customer's card (T9)", () => {
       card("not-returned"),
       card("in-window", { windowEndsAt: new Date(NOW.getTime() + 10 * DAY) }),
       card("disputed", { windowEndsAt: new Date(NOW.getTime() - DAY), dispute: "OPEN" }),
+      card("unpaid", { windowEndsAt: new Date(NOW.getTime() - DAY), charges: ["SUCCEEDED", "FAILED"] }),
+      card("settled", { windowEndsAt: new Date(NOW.getTime() - DAY), charges: ["SUCCEEDED", "REFUNDED"] }),
     ])
 
     const blockers = await findCardBlockers(db as never, "pc1", NOW)
@@ -122,12 +130,13 @@ describe("detaching a customer's card (T9)", () => {
       ["tx-not-returned", "not_returned"],
       ["tx-in-window", "charge_window_open"],
       ["tx-disputed", "open_dispute"],
+      ["tx-unpaid", "open_charge"],
     ])
 
     const gateway = await gatewayWithSavedCards("pm_card_visa")
     const error = await detachCustomerCards(db as never, gateway, { partnerCustomer: customer, account: ACCOUNT, now: NOW }).catch((e) => e)
     expect(error).toMatchObject({ code: "card_in_use" })
-    expect(error.details.blockingBookings).toHaveLength(3)
+    expect(error.details.blockingBookings).toHaveLength(4)
     expect(gateway.paymentsFake.calls.some((c) => c.method === "detachPaymentMethod")).toBe(false)
   })
 
@@ -153,13 +162,14 @@ describe("daily detach job after the window (Spec §18 #14)", () => {
       card("ended", { paymentMethodId: "pm_card_visa", windowEndsAt: new Date(NOW.getTime() - DAY) }),
       card("disputed", { paymentMethodId: "pm_card_chargeCustomerFail", windowEndsAt: new Date(NOW.getTime() - DAY), dispute: "UNDER_REVIEW" }),
       card("open", { paymentMethodId: "pm_card_threeDSecure2Required", windowEndsAt: new Date(NOW.getTime() + DAY) }),
+      card("unpaid", { paymentMethodId: "pm_card_authenticationRequired", windowEndsAt: new Date(NOW.getTime() - DAY), charges: ["REQUIRES_ACTION"] }),
     ])
-    const gateway = await gatewayWithSavedCards("pm_card_visa", "pm_card_chargeCustomerFail", "pm_card_threeDSecure2Required")
+    const gateway = await gatewayWithSavedCards("pm_card_visa", "pm_card_chargeCustomerFail", "pm_card_threeDSecure2Required", "pm_card_authenticationRequired")
 
     const summary = await detachExpiredCards(db as never, gateway, NOW)
 
     expect(summary).toEqual({ due: 1, detached: 1, kept: 0, failed: 0 })
-    expect(db.cards.map((c) => [c.id, c.status])).toEqual([["ended", "DETACHED"], ["disputed", "SECURED"], ["open", "SECURED"]])
+    expect(db.cards.map((c) => [c.id, c.status])).toEqual([["ended", "DETACHED"], ["disputed", "SECURED"], ["open", "SECURED"], ["unpaid", "SECURED"]])
     expect(gateway.paymentsFake.paymentMethod(ACCOUNT, "pm_card_visa")?.customer).toBeNull()
     expect(gateway.paymentsFake.paymentMethod(ACCOUNT, "pm_card_chargeCustomerFail")?.customer).toBe("cus_1")
   })

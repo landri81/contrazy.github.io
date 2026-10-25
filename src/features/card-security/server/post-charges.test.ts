@@ -5,6 +5,9 @@
  *   #7 double click on "Charge": one charge (same idempotency key + one attempt in flight)
  *   #8 two damage charges on the same booking: two charges, no key collision
  *   #9 charge attempt after the 90-day window (D+95, and the exact boundary): refused
+ * C6b (Spec §9 retry policy applied):
+ *   #4 off-session charge needing 3DS (3184): authentication_required, no retry, payment link
+ *   #5 card saved, then charge declined (0341): one retry at 72 h, then payment link
  */
 import type { CardSecurity, PostCharge, PostChargeAttempt, Transaction, VendorProfile } from "@prisma/client"
 import type Stripe from "stripe"
@@ -14,8 +17,9 @@ const recordChargeOutcomeEvent = vi.fn()
 vi.mock("@/features/partner-webhooks/server/charge-events", () => ({
   recordChargeOutcomeEvent: (...args: unknown[]) => recordChargeOutcomeEvent(...args),
 }))
+vi.mock("@/lib/env", () => ({ env: { NODE_ENV: "test", NEXT_PUBLIC_APP_URL: "https://app.contrazy.test" } }))
 
-const { createPostCharge, attemptPostCharge, applyPostChargeIntent, isChargeWindowOpen, postChargeIdempotencyKey, PostChargeError } = await import("./post-charges")
+const { createPostCharge, attemptPostCharge, applyPostChargeIntent, isChargeWindowOpen, postChargeIdempotencyKey, PostChargeError, retryDuePostCharges, linkKindFor } = await import("./post-charges")
 const { createInMemoryStripeGateway } = await import("@/lib/integrations/stripe-gateway")
 
 const ACCOUNT = "acct_locaz_test"
@@ -23,7 +27,7 @@ const DAY = 86_400_000
 const RETURNED = new Date("2026-11-05T17:00:00Z")
 const WINDOW_END = new Date(RETURNED.getTime() + 90 * DAY)
 
-function createDb() {
+function createDb(card: CardSecurity | null = null) {
   const charges: PostCharge[] = []
   const attempts: PostChargeAttempt[] = []
   let seq = 0
@@ -49,6 +53,16 @@ function createDb() {
       },
       async update({ where, data }: { where: { id: string }; data: Partial<PostCharge> }) {
         return { ...Object.assign(charges.find((c) => c.id === where.id)!, data) }
+      },
+      async findMany({ where }: { where: { status: string; nextRetryAt: { lte: Date } } }) {
+        return charges
+          .filter((c) => c.status === where.status && c.nextRetryAt && c.nextRetryAt <= where.nextRetryAt.lte)
+          .map((c) => ({ ...c, transaction: { reference: "TX-1", cardSecurity: card, vendor: { stripeAccountId: ACCOUNT } } }))
+      },
+    },
+    transaction: {
+      async findUnique() {
+        return { locale: "fr" }
       },
     },
     postChargeAttempt: {
@@ -179,6 +193,69 @@ describe("declined and unreachable", () => {
     expect(charge.paymentIntentId).toMatch(/^pi_fake_/)
     expect(db.attempts[0]).toMatchObject({ outcome, declineCode })
     expect(recordChargeOutcomeEvent.mock.calls[0][1]).toMatchObject({ outcome, charge: { declineCode } })
+  })
+
+  it("#4 authentication_required: no off-session retry, a payment link for 3DS on session", async () => {
+    const db = createDb()
+    const charge = await createPostCharge(db as never, createInMemoryStripeGateway(), { transaction: booking({ paymentMethodId: "pm_card_authenticationRequired" }), charge: damage, now: RETURNED })
+
+    expect(charge).toMatchObject({ status: "REQUIRES_ACTION", nextRetryAt: null })
+    expect(charge.paymentLinkToken).toMatch(/^[A-Za-z0-9_-]{32}$/)
+    expect(linkKindFor(charge)).toBe("payment")
+    expect(recordChargeOutcomeEvent.mock.calls[0][1].charge).toMatchObject({
+      paymentLinkUrl: `https://app.contrazy.test/fr/pay/${charge.paymentLinkToken}`,
+      cardUpdateUrl: null,
+      nextRetryAt: null,
+    })
+  })
+
+  it("#5 generic decline (0341): one off-session retry after 72 h, then a payment link", async () => {
+    const card = booking({ paymentMethodId: "pm_card_chargeCustomerFail" }).cardSecurity!
+    const db = createDb(card)
+    const gateway = createInMemoryStripeGateway()
+    const first = await createPostCharge(db as never, gateway, { transaction: booking({ paymentMethodId: "pm_card_chargeCustomerFail" }), charge: damage, now: RETURNED })
+
+    expect(first).toMatchObject({ status: "FAILED", paymentLinkToken: null })
+    expect(first.nextRetryAt).toEqual(new Date(RETURNED.getTime() + 72 * 3_600_000))
+    expect(recordChargeOutcomeEvent.mock.calls[0][1].charge.nextRetryAt).toEqual(first.nextRetryAt)
+
+    // Not due yet: nothing happens.
+    expect(await retryDuePostCharges(db as never, gateway, new Date(RETURNED.getTime() + 71 * 3_600_000))).toMatchObject({ due: 0 })
+
+    const run = await retryDuePostCharges(db as never, gateway, new Date(RETURNED.getTime() + 72 * 3_600_000))
+    expect(run).toEqual({ due: 1, succeeded: 0, failed: 1, skipped: 0 })
+    expect(db.charges[0]).toMatchObject({ status: "FAILED", attempt: 2, nextRetryAt: null })
+    expect(db.charges[0].paymentLinkToken).toBeTruthy()
+    expect(gateway.paymentsFake.calls.filter((c) => c.method === "createPaymentIntent").map((c) => c.idempotencyKey)).toEqual([
+      `postcharge_${first.id}_attempt_1`,
+      `postcharge_${first.id}_attempt_2`,
+    ])
+  })
+
+  it("insufficient funds: retries after 24 h, 48 h and 72 h, then a payment link", async () => {
+    const card = booking({ paymentMethodId: "pm_card_chargeDeclinedInsufficientFunds" }).cardSecurity!
+    const db = createDb(card)
+    const gateway = createInMemoryStripeGateway()
+    await createPostCharge(db as never, gateway, { transaction: booking({ paymentMethodId: "pm_card_chargeDeclinedInsufficientFunds" }), charge: damage, now: RETURNED })
+    let at = RETURNED.getTime()
+
+    for (const hours of [24, 48, 72]) {
+      expect(db.charges[0].nextRetryAt).toEqual(new Date(at + hours * 3_600_000))
+      at += hours * 3_600_000
+      await retryDuePostCharges(db as never, gateway, new Date(at))
+    }
+
+    expect(db.charges[0]).toMatchObject({ status: "FAILED", attempt: 4, nextRetryAt: null, declineCode: "insufficient_funds" })
+    expect(linkKindFor(db.charges[0])).toBe("payment")
+  })
+
+  it("an expired card gets a card-update link instead of retries", async () => {
+    const db = createDb()
+    const charge = await createPostCharge(db as never, createInMemoryStripeGateway(), { transaction: booking({ paymentMethodId: "pm_card_chargeDeclinedExpiredCard" }), charge: damage, now: RETURNED })
+
+    expect(charge).toMatchObject({ status: "FAILED", declineCode: "expired_card", nextRetryAt: null })
+    expect(linkKindFor(charge)).toBe("card_update")
+    expect(recordChargeOutcomeEvent.mock.calls[0][1].charge).toMatchObject({ paymentLinkUrl: null, cardUpdateUrl: `https://app.contrazy.test/fr/pay/${charge.paymentLinkToken}` })
   })
 
   it("keeps the attempt number when Stripe cannot be reached, so the retry sends the same key", async () => {

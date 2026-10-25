@@ -1,7 +1,7 @@
 import type { PartnerApiKey, PostChargeType, VendorProfile } from "@prisma/client"
 import { z } from "zod"
 
-import { createPostCharge, PostChargeError } from "@/features/card-security/server/post-charges"
+import { createPostCharge, PostChargeError, PostChargeRefundError, refundPostCharge } from "@/features/card-security/server/post-charges"
 import { presentPartnerCharge } from "@/features/partner-api/booking-presenter"
 import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { prisma } from "@/lib/db/prisma"
@@ -55,4 +55,33 @@ export async function getPartnerCharge(caller: Caller, chargeId: string) {
   }
 
   return presentPartnerCharge(charge)
+}
+
+export const partnerChargeRefundSchema = z.object({
+  amount: z.number().int("amount must be whole cents").positive("amount must be greater than zero").max(1_000_000).optional(),
+  reason: z.string().trim().min(3, "reason is required").max(500),
+})
+
+/** Refunds a charge fully (no amount) or partly, at Stripe, with a reason (Spec v2.1 §11). */
+export async function refundPartnerCharge(caller: Caller, chargeId: string, input: z.infer<typeof partnerChargeRefundSchema>) {
+  const charge = await prisma.postCharge.findFirst({ where: { id: chargeId, vendorId: caller.vendorProfile.id } })
+
+  if (!charge) {
+    throw new PartnerApiError("not_found", "No charge matches this id for this vendor.")
+  }
+
+  if (!caller.vendorProfile.stripeAccountId) {
+    throw new PartnerApiError("stripe_not_connected", "Connect a Stripe account first.")
+  }
+
+  try {
+    const result = await refundPostCharge(prisma, stripeGateway, { charge, account: caller.vendorProfile.stripeAccountId, amount: input.amount, reason: input.reason })
+    return { ...presentPartnerCharge(result.charge), refund: { id: result.refund.id, amount: result.refund.amount, reason: result.refund.reason, createdAt: result.refund.createdAt.toISOString() } }
+  } catch (error) {
+    if (error instanceof PostChargeRefundError) {
+      throw new PartnerApiError(error.code, error.message, { details: error.details })
+    }
+
+    throw error
+  }
 }

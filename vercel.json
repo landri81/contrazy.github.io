@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/card-security",
       "schedule": "23 3 * * *"
+    },
+    {
+      "path": "/api/cron/post-charge-retries",
+      "schedule": "41 * * * *"
     }
   ]
 }

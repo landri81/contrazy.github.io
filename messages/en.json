@@ -4559,5 +4559,47 @@
         "retry": "Check again"
       }
     }
+  },
+  "chargeLink": {
+    "metaTitle": "Payment",
+    "payTitle": "Settle a charge",
+    "cardUpdateTitle": "Update your card",
+    "intro": "{vendor} could not charge your saved card for the amount below. You can settle it here.",
+    "chargeFor": "For",
+    "details": "Details",
+    "booking": "Booking",
+    "amount": "Amount",
+    "proof": "Supporting document {n}",
+    "types": {
+      "damage": "Damage",
+      "fuel": "Missing fuel",
+      "toll": "Tolls",
+      "towing": "Towing",
+      "fps": "Post-parking charge (FPS)",
+      "ticket_admin_fee": "Traffic ticket admin fee",
+      "other": "Other charge"
+    },
+    "paySaved": "Pay {amount} with the card ending {last4}",
+    "useAnotherCard": "Use another card",
+    "cardDetails": "Card details",
+    "pay": "Pay {amount}",
+    "payFailed": "The payment did not go through. Please try again or use another card.",
+    "cardUpdateIntro": "Your saved card has expired or is not valid any more. Give a new card: it is charged right away for the amount above and kept for this rental, under the same terms.",
+    "consentCheckbox": "I have read and accept these terms for my new card.",
+    "consentContinue": "Accept and continue",
+    "newCard": "New card",
+    "saveAndPay": "Save the card and pay",
+    "saveFailed": "Your card could not be saved. Please try another card.",
+    "newCardDeclined": "Your new card was saved, but the charge was declined. Please contact the rental company.",
+    "preparing": "Preparing the secure payment form…",
+    "loadFailed": "The payment form could not be loaded. Please try again.",
+    "paidTitle": "Thank you, it is settled",
+    "paidText": "The payment went through. You will receive a confirmation by e-mail.",
+    "closedTitle": "Nothing to pay here",
+    "closedText": "This charge cannot be paid with this link any more. Contact the rental company if you have a question.",
+    "notFoundTitle": "Link not found",
+    "notFoundText": "This payment link does not exist. Check the link in your e-mail.",
+    "dispute": "Questions or disagreement about this charge: contact {vendor} ({contact}).",
+    "securedByStripe": "Payments are processed securely by Stripe. Your card details are never stored by the rental company."
   }
 }

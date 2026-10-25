@@ -337,6 +337,45 @@ async function main() {
     },
   })
 
+  // Customer links of declined post-rental charges (C6b): pay on session, update the card, already paid.
+  const linkCustomer = await prisma.partnerCustomer.create({
+    data: { vendorId: approvedVendorUser.vendorProfile.id, email: "alice.links@locaz.test", name: "Alice Links", stripeCustomerId: "cus_e2e_links" },
+  })
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-charge-link-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-CHARGES",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-CHARGES",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+      cardSecurity: {
+        create: {
+          partnerCustomerId: linkCustomer.id,
+          stripeCustomerId: linkCustomer.stripeCustomerId,
+          status: "SECURED",
+          paymentMethodId: "pm_e2e_links",
+          cardBrand: "visa",
+          cardLast4: "3184",
+          securedAt: new Date("2026-11-01T10:00:00.000Z"),
+          windowEndsAt: new Date("2027-02-03T17:00:00.000Z"),
+        },
+      },
+      postCharges: {
+        create: [
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-FPS-1", type: "FPS", amount: 3500, description: "FPS Nice, 12 novembre", proofUrls: ["https://files.locaz.test/fps-1.pdf"], status: "REQUIRES_ACTION", attempt: 1, declineCode: "authentication_required", paymentIntentId: "pi_e2e_auth", paymentLinkToken: "e2e-pay-link-authentication-1" },
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-DMG-1", type: "DAMAGE", amount: 25000, description: "Rayure pare-chocs arrière", status: "FAILED", attempt: 1, declineCode: "expired_card", paymentIntentId: "pi_e2e_expired", paymentLinkToken: "e2e-pay-link-expired-card-01" },
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-TOLL-1", type: "TOLL", amount: 870, proofUrls: ["https://files.locaz.test/toll-1.pdf"], status: "SUCCEEDED", attempt: 2, paymentIntentId: "pi_e2e_paid", paymentLinkToken: "e2e-pay-link-already-paid-01", succeededAt: new Date("2026-11-20T10:00:00.000Z") },
+        ],
+      },
+    },
+  })
+
   // A partner booking the customer has finished: the completion screen links back to LOCAZ.
   await prisma.transaction.create({
     data: {

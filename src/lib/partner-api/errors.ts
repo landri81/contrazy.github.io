@@ -39,6 +39,8 @@ export type PartnerApiErrorCode =
   | "proof_required"
   | "charge_in_flight"
   | "charge_not_retryable"
+  | "charge_not_refundable"
+  | "refund_too_large"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -84,6 +86,8 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   proof_required: 422,
   charge_in_flight: 409,
   charge_not_retryable: 409,
+  charge_not_refundable: 409,
+  refund_too_large: 422,
 }
 
 export class PartnerApiError extends Error {

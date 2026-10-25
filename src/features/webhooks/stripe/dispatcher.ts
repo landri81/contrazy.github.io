@@ -8,7 +8,7 @@ import {
 } from "@/features/webhooks/stripe/handlers/checkout-session"
 import { handleSetupIntentSucceeded } from "@/features/webhooks/stripe/handlers/card-security"
 import { handlePaymentIntentCanceled } from "@/features/webhooks/stripe/handlers/deposit-hold"
-import { handlePostChargeIntent, isPostChargeIntent } from "@/features/webhooks/stripe/handlers/post-charge"
+import { handlePostChargeIntent, handlePostChargeRefunded, isPostChargeIntent } from "@/features/webhooks/stripe/handlers/post-charge"
 import {
   handleDisputeCreated,
   handleDisputeUpdated,
@@ -95,6 +95,9 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
         eventId,
         eventType
       )
+
+    case "charge.refunded":
+      return handlePostChargeRefunded(event.data.object as Stripe.Charge)
 
     case "payment_intent.payment_failed":
     case "payment_intent.requires_action": {

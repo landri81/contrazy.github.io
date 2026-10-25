@@ -29,7 +29,15 @@ async function findTransactionByPaymentIntent(paymentIntentId: string): Promise<
     },
   })
 
-  if (!payment) return null
+  if (!payment) {
+    // Post-rental charges (C6) are not Payment rows: match them by their PaymentIntent too.
+    const charge = await prisma.postCharge.findUnique({
+      where: { paymentIntentId },
+      select: { transactionId: true, vendorId: true },
+    })
+
+    return charge ? { transactionId: charge.transactionId, vendorId: charge.vendorId } : null
+  }
 
   return {
     transactionId: payment.transactionId,
