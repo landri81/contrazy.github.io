@@ -88,3 +88,60 @@ test("an English-speaking customer sees the French clause with the English trans
   expect(overflow).toBeLessThanOrEqual(0)
   await page.screenshot({ path: testInfo.outputPath("card-consent-en-mobile.png"), fullPage: true })
 })
+
+test("pickup hold endpoints refuse cleanly before any card is saved (C5b)", async ({ request }) => {
+  const hold = "/api/partner/v1/bookings/e2e-card-security-transaction-en/hold"
+  const withKey = (key: string) => ({ ...auth, "Idempotency-Key": `${key}-${Date.now()}` })
+
+  const noKey = await request.post(hold, { headers: auth, data: { amount: 80000 } })
+  expect(noKey.status()).toBe(400)
+  expect((await noKey.json()).error.code).toBe("idempotency_key_required")
+
+  const badAmount = await request.post(hold, { headers: withKey("bad"), data: { amount: -5 } })
+  expect(badAmount.status()).toBe(400)
+  expect((await badAmount.json()).error.code).toBe("invalid_request")
+
+  const noCard = await request.post(hold, { headers: withKey("nocard"), data: { amount: 80000 } })
+  expect(noCard.status(), await noCard.text()).toBe(409)
+  expect((await noCard.json()).error.code).toBe("card_not_secured")
+
+  for (const action of ["capture", "cancel"]) {
+    const settle = await request.post(`${hold}/${action}`, { headers: withKey(action), data: {} })
+    expect(settle.status(), await settle.text()).toBe(409)
+    expect((await settle.json()).error.code).toBe("hold_not_active")
+  }
+
+  const foreign = await request.post("/api/partner/v1/bookings/does-not-exist/hold", { headers: withKey("foreign"), data: { amount: 80000 } })
+  expect(foreign.status()).toBe(404)
+})
+
+test("return date, 90-day window and detach rules on a booking with a saved card (C5c)", async ({ request }) => {
+  const bookingUrl = "/api/partner/v1/bookings/e2e-card-secured-transaction"
+
+  const before = await (await request.get(bookingUrl, { headers: auth })).json()
+  expect(before.cardSecurity).toMatchObject({ status: "secured", windowEndsAt: null, detachedAt: null })
+  // No card data in partner responses.
+  expect(JSON.stringify(before)).not.toMatch(/pm_e2e_secured|4242|visa/)
+  const detachUrl = `/api/partner/v1/customers/${before.cardSecurity.customerId}/detach-card`
+
+  const notReturned = await request.post(detachUrl, { headers: auth, data: {} })
+  expect(notReturned.status()).toBe(409)
+  expect((await notReturned.json()).error).toMatchObject({ code: "card_in_use", details: { blockingBookings: [expect.objectContaining({ id: "e2e-card-secured-transaction", reason: "not_returned" })] } })
+
+  const future = await request.post(`${bookingUrl}/returned`, { headers: auth, data: { returnedAt: new Date(Date.now() + 86_400_000).toISOString() } })
+  expect(future.status()).toBe(400)
+
+  const returnedAt = "2026-10-20T18:00:00+02:00"
+  const returned = await request.post(`${bookingUrl}/returned`, { headers: auth, data: { returnedAt } })
+  expect(returned.status(), await returned.text()).toBe(200)
+  expect((await returned.json()).cardSecurity.windowEndsAt).toBe(new Date(new Date(returnedAt).getTime() + 90 * 86_400_000).toISOString())
+
+  const inWindow = await request.post(detachUrl, { headers: auth, data: {} })
+  expect(inWindow.status()).toBe(409)
+  expect((await inWindow.json()).error.details.blockingBookings[0].reason).toBe("charge_window_open")
+
+  expect((await request.post("/api/partner/v1/customers/unknown-customer/detach-card", { headers: auth, data: {} })).status()).toBe(404)
+  expect((await request.post("/api/partner/v1/bookings/e2e-card-security-transaction/returned", { headers: auth, data: { returnedAt } })).status()).toBe(409)
+  // The daily detach job only answers Vercel Cron.
+  expect((await request.get("/api/cron/card-security")).status()).toBe(401)
+})

@@ -95,7 +95,8 @@ function buildReportFacts(booking: PartnerBookingRecord, type: ReportType, baseU
   }
 }
 
-function buildHold(booking: PartnerBookingRecord) {
+/** The booking's deposit hold as partners see it (webhooks and the hold endpoints, C5b). */
+export function buildHold(booking: Pick<PartnerBookingRecord, "depositAuthorization">) {
   const deposit = booking.depositAuthorization
 
   if (!deposit) {

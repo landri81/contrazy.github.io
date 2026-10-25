@@ -205,6 +205,27 @@ function readPartnerMetadata(value: Prisma.JsonValue | null) {
   }
 }
 
+/**
+ * The saved card of the booking (C5): status, the customer id used by
+ * `POST /customers/:id/detach-card`, and the 90-day charge window. Never card
+ * data (brand, last4, PaymentMethod ids stay out of partner responses).
+ */
+export function buildCardSecuritySummary(booking: Pick<PartnerBookingRecord, "stepSwitches" | "cardSecurity">) {
+  if (!parseStepSwitches(booking.stepSwitches)?.cardSecurity) {
+    return null
+  }
+
+  const card = booking.cardSecurity
+
+  return {
+    status: card?.status.toLowerCase() ?? "pending",
+    customerId: card?.partnerCustomerId ?? null,
+    securedAt: iso(card?.securedAt),
+    windowEndsAt: iso(card?.windowEndsAt),
+    detachedAt: iso(card?.detachedAt),
+  }
+}
+
 export function buildCustomerUrl(booking: Pick<PartnerBookingRecord, "locale" | "link">, baseUrl: string) {
   return booking.link?.token ? `${baseUrl.replace(/\/$/, "")}/${booking.locale}/t/${booking.link.token}` : null
 }
@@ -266,6 +287,7 @@ export function presentPartnerBooking(booking: PartnerBookingRecord, baseUrl: st
     checkIn: buildReportSummary(booking, "CHECK_IN"),
     checkOut: buildReportSummary(booking, "CHECK_OUT"),
     payment: buildPaymentSummary(booking),
+    cardSecurity: buildCardSecuritySummary(booking),
     link: booking.link
       ? {
           status: booking.link.status.toLowerCase(),

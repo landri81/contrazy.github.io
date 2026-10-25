@@ -305,6 +305,38 @@ async function main() {
     })
   }
 
+  // A partner booking whose card is already saved (C5c: return date, window, detach rules). Synthetic Stripe ids.
+  const securedCustomer = await prisma.partnerCustomer.create({
+    data: { vendorId: approvedVendorUser.vendorProfile.id, email: "alice.secured@locaz.test", name: "Alice Secured", stripeCustomerId: "cus_e2e_secured" },
+  })
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-card-secured-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-CARD-OK",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-CARD-OK",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+      cardSecurity: {
+        create: {
+          partnerCustomerId: securedCustomer.id,
+          stripeCustomerId: securedCustomer.stripeCustomerId,
+          status: "SECURED",
+          setupIntentId: "seti_e2e_secured",
+          paymentMethodId: "pm_e2e_secured",
+          cardBrand: "visa",
+          cardLast4: "4242",
+          securedAt: new Date("2026-11-01T10:00:00.000Z"),
+        },
+      },
+    },
+  })
+
   // A partner booking the customer has finished: the completion screen links back to LOCAZ.
   await prisma.transaction.create({
     data: {

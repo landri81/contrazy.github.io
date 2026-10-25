@@ -57,6 +57,8 @@ export type DepositOutcomeReason =
   | "transaction_cancelled"
   | "admin_dispute_release"
   | "vendor_dispute_release"
+  /** Stripe cancelled an uncaptured card hold itself (about 7 days after it was placed). */
+  | "hold_expired"
 
 type FinanceAuditLogInput = {
   actorId?: string | null
@@ -754,6 +756,10 @@ function getDepositReleaseDetail(
 
   if (reason === "admin_dispute_release") {
     return `${amountLabel} released back to the client after dispute resolution.`
+  }
+
+  if (reason === "hold_expired") {
+    return `${amountLabel} hold expired at the bank and was released automatically.`
   }
 
   return `${amountLabel} released back to the client.`

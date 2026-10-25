@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server"
 import { AuditActorType } from "@prisma/client"
 
-import {
-  calculateCapturedDepositFeeBreakdown,
-  recordDepositOutcome,
-  recordFinanceAuditLog,
-} from "@/features/transactions/server/transaction-finance"
+import { DepositSettlementError, settleDepositHold } from "@/features/transactions/server/deposit-settlement"
 import { ensureVendorApproved, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { prisma } from "@/lib/db/prisma"
-import { sendVendorFeeReceiptEmail } from "@/lib/integrations/resend"
-import { getConnectedAccountRequestOptions, stripe } from "@/lib/integrations/stripe"
+import { stripeGateway } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
+
+const SETTLEMENT_ERROR_STATUS: Record<DepositSettlementError["code"], number> = {
+  not_found: 404,
+  not_active: 400,
+  missing_intent: 400,
+  invalid_amount: 400,
+  not_connected: 400,
+}
 
 export async function POST(
   request: Request,
@@ -41,168 +44,26 @@ export async function POST(
       include: { depositAuthorization: true, vendor: true, clientProfile: true },
     })
 
-    if (!transaction?.depositAuthorization) {
+    if (!transaction) {
       return NextResponse.json({ success: false, message: "Transaction or deposit not found" }, { status: 404 })
     }
 
-    const depositAuth = transaction.depositAuthorization
-    const actorType =
-      session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER
-    const isChargeRefund = depositAuth.depositStrategy === "CHARGE_REFUND"
-    const activeStatuses = ["AUTHORIZED", "SUCCEEDED"]
-
-    if (!activeStatuses.includes(depositAuth.status)) {
-      return NextResponse.json({ success: false, message: "Deposit is not in an active state" }, { status: 400 })
-    }
-
-    if (!depositAuth.stripeIntentId) {
-      return NextResponse.json({ success: false, message: "Missing Stripe Payment Intent" }, { status: 400 })
-    }
-
-    const stripeOpts = getConnectedAccountRequestOptions(transaction.vendor?.stripeAccountId)
-    let feeBreakdown = null as ReturnType<typeof calculateCapturedDepositFeeBreakdown> | null
-
-    if (action === "release") {
-      if (isChargeRefund) {
-        // Issue a Stripe refund. The application fee remains as the vendor's
-        // accepted long-deposit platform cost.
-        const refund = await stripe.refunds.create(
-          {
-            payment_intent: depositAuth.stripeIntentId,
-            reason: "requested_by_customer",
-          },
-          stripeOpts
-        )
-
-        await prisma.depositAuthorization.update({
-          where: { id: depositAuth.id },
-          data: {
-            status: "RELEASED",
-            releasedAt: new Date(),
-            depositRefundedAt: new Date(),
-            depositRefundId: refund.id,
-            depositRefundedAmount: refund.amount,
-          },
-        })
-      } else {
-        // Cancel the authorization hold
-        await stripe.paymentIntents.cancel(depositAuth.stripeIntentId, {}, stripeOpts)
-
-        await prisma.depositAuthorization.update({
-          where: { id: depositAuth.id },
-          data: { status: "RELEASED", releasedAt: new Date() },
-        })
-      }
-    } else {
-      // action === "capture"
-      if (isChargeRefund) {
-        // Money already captured in Stripe (and platform fee already collected via
-        // application_fee_amount). Just mark as kept — no further Stripe call needed.
-        feeBreakdown = calculateCapturedDepositFeeBreakdown(depositAuth.amount)
-
-        await prisma.depositAuthorization.update({
-          where: { id: depositAuth.id },
-          data: {
-            status: "CAPTURED",
-            capturedAt: new Date(),
-            depositCapturedAmount: depositAuth.amount,
-          },
-        })
-      } else {
-        // AUTHORIZATION_HOLD: capture the Stripe hold
-        const partialCents = captureAmount ? Math.round(captureAmount) : undefined
-
-        if (partialCents !== undefined) {
-          if (partialCents <= 0 || partialCents > depositAuth.amount) {
-            return NextResponse.json(
-              { success: false, message: "Invalid capture amount" },
-              { status: 400 }
-            )
-          }
-        }
-
-        const capturedAmount = partialCents ?? depositAuth.amount
-        feeBreakdown = calculateCapturedDepositFeeBreakdown(capturedAmount)
-
-        await stripe.paymentIntents.capture(
-          depositAuth.stripeIntentId,
-          {
-            ...(partialCents ? { amount_to_capture: partialCents } : {}),
-            application_fee_amount: feeBreakdown.platformFeeAmount,
-          },
-          stripeOpts
-        )
-
-        await prisma.depositAuthorization.update({
-          where: { id: depositAuth.id },
-          data: { status: "CAPTURED", capturedAt: new Date() },
-        })
-      }
-    }
-
-    const actualAmount = action === "capture" && captureAmount && !isChargeRefund
-      ? Math.round(captureAmount)
-      : depositAuth.amount
-
-    await recordDepositOutcome(prisma, {
-      transactionId: transaction.id,
-      amount: depositAuth.amount,
-      actualAmount,
-      currency: depositAuth.currency,
-      stripeIntentId: depositAuth.stripeIntentId,
+    await settleDepositHold(prisma, stripeGateway, {
+      transaction,
       action,
-      reason: action === "capture" ? "manual_capture" : "manual_release",
-      vendorBusinessEmail: transaction.vendor?.businessEmail,
-      vendorBusinessName: transaction.vendor?.businessName,
-      clientFullName: transaction.clientProfile?.fullName,
-      clientEmail: transaction.clientProfile?.email,
-      locale: transaction.locale,
-      vendorLocale: transaction.vendor?.preferredLocale,
-      vendorLogoUrl: transaction.vendor?.businessLogoUrl,
-    })
-
-    await recordFinanceAuditLog(prisma, {
-      actorId: dbUser.id,
-      actorType,
-      action: action === "capture"
-        ? (isChargeRefund ? "Kept charge-and-refund deposit (no refund)" : "Captured deposit hold")
-        : (isChargeRefund ? "Refunded charge-and-refund deposit" : "Released deposit hold"),
-      entityType: "Transaction",
-      entityId: transaction.id,
-      metadata: {
-        transactionId: transaction.id,
-        depositAuthorizationId: depositAuth.id,
-        depositStrategy: depositAuth.depositStrategy,
-        action,
-        captureType: action === "capture" ? (actualAmount === depositAuth.amount ? "full" : "partial") : null,
-        releaseReason: action === "release" ? "manual_release" : null,
-        authorizedAmount: depositAuth.amount,
-        processedAmount: actualAmount,
-        currency: depositAuth.currency,
-        stripeIntentId: depositAuth.stripeIntentId,
-        stripeFeeAmount: feeBreakdown?.stripeFeeAmount ?? null,
-        platformFeeAmount: feeBreakdown?.platformFeeAmount ?? null,
-        vendorNetAmount: feeBreakdown?.vendorNetAmount ?? null,
+      captureAmount,
+      actor: {
+        id: dbUser.id,
+        type: session.user.role === "SUPER_ADMIN" ? AuditActorType.SUPER_ADMIN : AuditActorType.USER,
       },
     })
 
-    // Send fee receipt to vendor on deposit capture (fee is charged on capture)
-    if (action === "capture" && feeBreakdown && transaction.vendor?.businessEmail) {
-      sendVendorFeeReceiptEmail(
-        transaction.vendor.businessEmail,
-        transaction.vendor.businessName ?? "",
-        transaction.reference,
-        "deposit_capture",
-        actualAmount,
-        feeBreakdown.stripeFeeAmount,
-        feeBreakdown.platformFeeAmount,
-        depositAuth.currency,
-        transaction.vendor?.preferredLocale ?? transaction.locale ?? undefined
-      ).catch(() => {})
-    }
-
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof DepositSettlementError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: SETTLEMENT_ERROR_STATUS[error.code] })
+    }
+
     console.error("Deposit Action Error:", error)
     return NextResponse.json({ success: false, message: "Failed to process deposit action" }, { status: 500 })
   }
