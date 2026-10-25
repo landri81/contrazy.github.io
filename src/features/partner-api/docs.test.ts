@@ -142,6 +142,7 @@ function sampleBooking(overrides: Record<string, unknown> = {}) {
     clientProfile: { ...buildPartnerBookingRecord().clientProfile!, firstName: "Alice", lastName: "Martin", fullName: "Alice Martin", email: "alice.martin@locaz.test", phone: "+33612345678" },
     reports: [],
     reportFields: [],
+    locale: "fr",
     stepSwitches: { identity: true, selfie: false, documents: false, contract: true, checkIn: false, checkOut: false, payment: true, cardSecurity: true, hold: false },
     ...overrides,
   } as never)
@@ -240,6 +241,7 @@ describe("generated webhook and response fixtures", () => {
     expectFixture("responses/bookings.create.201.json", presentCreatedPartnerBooking(sampleBooking({ link: { ...buildPartnerBookingRecord().link!, token: "customer-link-token", qrCodeSvg: null } }), BASE_URL))
     const booking = presentPartnerBooking(sampleBooking({ link: { ...buildPartnerBookingRecord().link!, token: "customer-link-token" } }), BASE_URL)
     expect(JSON.stringify(booking)).not.toMatch(/PII_SENTINEL|pi_hidden|pm_hidden|cus_hidden|4242/)
+    expect(booking.customerUrl).toBe("https://contrazy.com/fr/t/customer-link-token")
     expectFixture("responses/bookings.get.200.json", booking)
     expectFixture("responses/bookings.charges.201.json", presentPartnerCharge(sampleCharge()))
     expectFixture(

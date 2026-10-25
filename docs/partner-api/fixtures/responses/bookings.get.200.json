@@ -3,12 +3,14 @@
   "reference": "CZ-2026-0001",
   "externalRef": "LOCAZ-BK-42",
   "status": "in_progress",
-  "customerUrl": "https://contrazy.com/undefined/t/customer-link-token",
+  "customerUrl": "https://contrazy.com/fr/t/customer-link-token",
   "customer": {
     "firstName": "Alice",
     "lastName": "Martin",
     "email": "alice.martin@locaz.test",
-    "phone": "+33612345678"
+    "phone": "+33612345678",
+    "locale": "fr",
+    "flowLocale": "fr"
   },
   "startAt": "2026-11-05T09:00:00.000Z",
   "endAt": "2026-11-08T18:00:00.000Z",
