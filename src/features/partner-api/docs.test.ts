@@ -219,17 +219,45 @@ const EVENT_METADATA: Record<string, Record<string, unknown>> = {
   "refund.succeeded": { refundId: "pcr_1", chargeId: "pc_1", amount: 1500, currency: "EUR", reason: "FPS reduced on appeal" },
 }
 
+/** C8: a chargeback through its life, for the dispute.* examples (never the Stripe id or the evidence). */
+function sampleDispute(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "dsp_1",
+    transactionId: "txn_partner_1",
+    kind: "CHARGEBACK",
+    status: "OPEN",
+    summary: "PII_SENTINEL summary",
+    evidenceImages: [],
+    resolution: null,
+    resolvedByAdminId: null,
+    reason: "product_unacceptable",
+    amount: 15000,
+    currency: "eur",
+    evidenceDueBy: new Date("2026-12-04T23:59:59.000Z"),
+    stripeDisputeId: "dp_hidden",
+    openedAt: new Date("2026-11-20T08:15:00.000Z"),
+    resolvedAt: null,
+    ...overrides,
+  }
+}
+
+const DISPUTE_STATES: Record<string, Record<string, unknown>> = {
+  "dispute.opened": {},
+  "dispute.updated": { status: "UNDER_REVIEW" },
+  "dispute.closed": { status: "RESOLVED", resolvedAt: new Date("2026-12-12T10:00:00.000Z") },
+}
+
 describe("generated webhook and response fixtures", () => {
   it.each([...PARTNER_WEBHOOK_EVENT_TYPES])("webhooks/%s.json", (type) => {
     const payload = buildPartnerWebhookPayload({
       eventId: `evt_${type.replace(/\W/g, "_")}_example`,
       type,
-      booking: sampleBooking(),
+      booking: sampleBooking(DISPUTE_STATES[type] ? { dispute: sampleDispute(DISPUTE_STATES[type]) } : {}),
       event: { type: type.toUpperCase(), occurredAt: new Date("2026-11-05T09:30:00.000Z"), metadata: (EVENT_METADATA[type] ?? null) as never },
       baseUrl: BASE_URL,
     })
     expect(payload.apiVersion).toBe("2026-11-01")
-    expect(JSON.stringify(payload)).not.toMatch(/PII_SENTINEL|pi_hidden|pm_hidden|cus_hidden|4242/)
+    expect(JSON.stringify(payload)).not.toMatch(/PII_SENTINEL|pi_hidden|pm_hidden|cus_hidden|dp_hidden|4242/)
     expectFixture(`webhooks/${type}.json`, payload)
   })
 

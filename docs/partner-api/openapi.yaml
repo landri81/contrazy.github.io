@@ -498,7 +498,7 @@ paths:
 webhooks:
   partnerEvent:
     post:
-      summary: Every booking, card, charge and refund event
+      summary: Every booking, card, charge, refund and dispute event
       description: |
         Signed with `Contrazy-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, t + "." + rawBody)>`. Answer 2xx within
         10 s; anything else is retried after 1 m, 5 m, 30 m, 2 h, 6 h and 24 h. Deliveries for one endpoint are sent in
@@ -745,6 +745,25 @@ components:
         securedAt: { type: [string, "null"], format: date-time }
         windowEndsAt: { type: [string, "null"], format: date-time }
         detachedAt: { type: [string, "null"], format: date-time }
+    Dispute:
+      type: [object, "null"]
+      description: |
+        The booking's dispute (null when none): a damage claim the vendor opened on the deposit, or a chargeback the
+        customer's bank opened. `status` is seen from the vendor: `won` keeps the money, `lost` gives it back. The
+        evidence (contract, identity check, photos, consent, notices) stays in Contrazy: `evidenceUrl` opens the booking
+        in the vendor dashboard (vendor sign-in required), where it can be reviewed and downloaded. Never Stripe ids.
+      required: [id, kind, status, reason, amount, currency, openedAt, evidenceDueBy, closedAt, evidenceUrl]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [damage_claim, chargeback] }
+        status: { type: string, enum: [open, under_review, won, lost] }
+        reason: { type: [string, "null"], description: "Chargebacks: the bank's reason code (fraudulent, product_not_received, …)." }
+        amount: { type: [integer, "null"], description: Chargebacks only, in cents. }
+        currency: { type: [string, "null"] }
+        openedAt: { type: string, format: date-time }
+        evidenceDueBy: { type: [string, "null"], format: date-time, description: "Chargebacks: last day to answer with evidence." }
+        closedAt: { type: [string, "null"], format: date-time }
+        evidenceUrl: { type: string, format: uri }
     Hold:
       type: [object, "null"]
       required: [status, strategy, amount, currency]
@@ -837,6 +856,7 @@ components:
         payment: { type: [object, "null"] }
         cardSecurity: { $ref: "#/components/schemas/CardSecurity" }
         charges: { type: array, items: { $ref: "#/components/schemas/Charge" } }
+        dispute: { $ref: "#/components/schemas/Dispute" }
         link: { type: [object, "null"] }
         metadata: { type: [object, "null"] }
         createdAt: { type: string, format: date-time }
@@ -864,6 +884,9 @@ components:
         - charge.failed
         - charge.requires_action
         - refund.succeeded
+        - dispute.opened
+        - dispute.updated
+        - dispute.closed
     WebhookEventTypeOrPing:
       oneOf:
         - $ref: "#/components/schemas/WebhookEventType"
@@ -889,4 +912,4 @@ components:
         createdAt: { type: string, format: date-time }
         data:
           type: object
-          description: "`booking` (id, externalRef, reference, status, steps) and `customer` (name, e-mail) on every booking event, plus one per-event object: schedule, link, identity + selfie, contract, payment, card, hold, checkIn / checkOut, completion, cancellation, charge or refund. Never ID documents, selfies, card data or Stripe ids."
+          description: "`booking` (id, externalRef, reference, status, steps) and `customer` (name, e-mail) on every booking event, plus one per-event object: schedule, link, identity + selfie, contract, payment, card, hold, checkIn / checkOut, completion, cancellation, charge, refund or dispute. Never ID documents, selfies, card data or Stripe ids."

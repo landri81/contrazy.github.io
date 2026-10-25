@@ -1,4 +1,4 @@
-import type { PostCharge, Prisma } from "@prisma/client"
+import type { DisputeStatus, PostCharge, Prisma } from "@prisma/client"
 
 import { parseRentalDetails } from "@/features/partner-api/schemas/booking.schema"
 import { parseStepSwitches, STEP_SWITCH_KEYS, type StepSwitchKey, type StepSwitches } from "@/features/transactions/step-switches"
@@ -22,6 +22,7 @@ export const partnerBookingInclude = {
   depositAuthorization: true,
   cardSecurity: true,
   postCharges: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+  dispute: true,
   events: { orderBy: { occurredAt: "asc" } },
 } satisfies Prisma.TransactionInclude
 
@@ -227,6 +228,40 @@ export function buildCardSecuritySummary(booking: Pick<PartnerBookingRecord, "st
   }
 }
 
+/** Seen from the vendor: a won claim or chargeback keeps the money, a lost one gives it back. */
+const PARTNER_DISPUTE_STATUS: Record<DisputeStatus, "open" | "under_review" | "won" | "lost"> = {
+  OPEN: "open",
+  UNDER_REVIEW: "under_review",
+  RESOLVED: "won",
+  LOST: "lost",
+}
+
+/**
+ * The booking's dispute (C8): a damage claim on the deposit or a chargeback, as a summary. The evidence
+ * (contract, ID check, photos, consent, notices) stays in Contrazy: `evidenceUrl` opens the booking in
+ * the vendor dashboard, where it can be reviewed and downloaded. Never Stripe ids or the evidence files.
+ */
+export function buildDisputeSummary(booking: Pick<PartnerBookingRecord, "id" | "locale" | "dispute">, baseUrl: string) {
+  const dispute = booking.dispute
+
+  if (!dispute) {
+    return null
+  }
+
+  return {
+    id: dispute.id,
+    kind: dispute.kind === "CHARGEBACK" ? "chargeback" : "damage_claim",
+    status: PARTNER_DISPUTE_STATUS[dispute.status],
+    reason: dispute.reason,
+    amount: dispute.amount,
+    currency: dispute.currency,
+    openedAt: dispute.openedAt.toISOString(),
+    evidenceDueBy: iso(dispute.evidenceDueBy),
+    closedAt: iso(dispute.resolvedAt),
+    evidenceUrl: `${baseUrl.replace(/\/$/, "")}/${booking.locale === "fr" ? "fr" : "en"}/vendor/transactions/${encodeURIComponent(booking.id)}`,
+  }
+}
+
 /** A post-rental charge as partners see it (C6): never card data or PaymentIntent ids. */
 export function presentPartnerCharge(charge: PostCharge) {
   return {
@@ -312,6 +347,7 @@ export function presentPartnerBooking(booking: PartnerBookingRecord, baseUrl: st
     payment: buildPaymentSummary(booking),
     cardSecurity: buildCardSecuritySummary(booking),
     charges: booking.postCharges.map(presentPartnerCharge),
+    dispute: buildDisputeSummary(booking, baseUrl),
     link: booking.link
       ? {
           status: booking.link.status.toLowerCase(),

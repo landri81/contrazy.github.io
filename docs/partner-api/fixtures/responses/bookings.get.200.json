@@ -156,6 +156,7 @@
       "updatedAt": "2026-11-20T10:00:00.000Z"
     }
   ],
+  "dispute": null,
   "link": {
     "status": "opened",
     "openedAt": "2026-11-01T08:00:00.000Z",

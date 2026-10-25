@@ -38,7 +38,9 @@ const EXPECTED: Record<TransactionEventType, string | null> = {
   DEPOSIT_AUTHORIZED: "booking.hold_authorized",
   DEPOSIT_CAPTURED: "booking.hold_captured",
   DEPOSIT_RELEASED: "booking.hold_released",
-  DISPUTE_OPENED: null,
+  DISPUTE_OPENED: "dispute.opened",
+  DISPUTE_UPDATED: "dispute.updated",
+  DISPUTE_CLOSED: "dispute.closed",
   TRANSACTION_CANCELLED: "booking.cancelled",
   COMPLETED: "booking.completed",
   EMAIL_SENT: null,
@@ -87,7 +89,7 @@ describe("TransactionEventType -> partner webhook mapping", () => {
     }
   })
 
-  it("covers every event listed in BACKLOG C3 (ping is test-only, never subscribable)", () => {
+  it("covers every event listed in BACKLOG C3 and the C8 dispute events (ping is test-only, never subscribable)", () => {
     expect([...PARTNER_WEBHOOK_EVENT_TYPES].sort()).toEqual(
       [
         "booking.created",
@@ -110,13 +112,16 @@ describe("TransactionEventType -> partner webhook mapping", () => {
         "charge.failed",
         "charge.requires_action",
         "refund.succeeded",
+        "dispute.opened",
+        "dispute.updated",
+        "dispute.closed",
       ].sort()
     )
     expect(isPartnerWebhookEventType("ping")).toBe(false)
   })
 
   it("keeps internal events (emails, Stripe bookkeeping, snapshots) away from partners", () => {
-    for (const type of ["EMAIL_SENT", "WEBHOOK_PROCESSED", "KYC_STARTED", "SIGNED_PDF_GENERATED", "DISPUTE_OPENED"] as const) {
+    for (const type of ["EMAIL_SENT", "WEBHOOK_PROCESSED", "KYC_STARTED", "SIGNED_PDF_GENERATED"] as const) {
       expect(getPartnerWebhookEventType(type)).toBeNull()
     }
   })

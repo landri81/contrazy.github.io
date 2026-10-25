@@ -687,6 +687,9 @@ function getActivityPresentation(type: VendorOverviewActivityRecord["type"]) {
     case "TRANSACTION_CANCELLED":
     case "LINK_CANCELLED":
       return { icon: AlertCircle, tone: "danger" as const, dotClass: "bg-red-500" }
+    case "DISPUTE_UPDATED":
+    case "DISPUTE_CLOSED":
+      return { icon: AlertCircle, tone: "warning" as const, dotClass: "bg-amber-500" }
     case "COMPLETED":
       return { icon: CheckCircle2, tone: "success" as const, dotClass: "bg-emerald-500" }
     case "TRANSACTION_CREATED":
@@ -998,6 +1001,10 @@ export function VendorOverview({ workspace, createLinkDialog }: VendorOverviewPr
         return t("activity.labels.DEPOSIT_RELEASED")
       case "DISPUTE_OPENED":
         return t("activity.labels.DISPUTE_OPENED")
+      case "DISPUTE_UPDATED":
+        return t("activity.labels.DISPUTE_UPDATED")
+      case "DISPUTE_CLOSED":
+        return t("activity.labels.DISPUTE_CLOSED")
       case "TRANSACTION_CANCELLED":
         return t("activity.labels.TRANSACTION_CANCELLED")
       case "LINK_CANCELLED":

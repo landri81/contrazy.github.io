@@ -31,7 +31,10 @@ export const TRANSACTION_EVENT_TO_PARTNER_WEBHOOK: Record<TransactionEventType, 
   DEPOSIT_AUTHORIZED: "booking.hold_authorized",
   DEPOSIT_CAPTURED: "booking.hold_captured",
   DEPOSIT_RELEASED: "booking.hold_released",
-  DISPUTE_OPENED: null,
+  // Damage claims and chargebacks (C8): a summary only, never the evidence itself.
+  DISPUTE_OPENED: "dispute.opened",
+  DISPUTE_UPDATED: "dispute.updated",
+  DISPUTE_CLOSED: "dispute.closed",
   // Vendor-side cancellation; customer/partner/expiry cancellations arrive as LINK_CANCELLED.
   TRANSACTION_CANCELLED: "booking.cancelled",
   COMPLETED: "booking.completed",

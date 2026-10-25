@@ -148,6 +148,11 @@ sequenceDiagram
   picked up too (`refund.succeeded`).
 - **Detach.** `POST /customers/{cardSecurity.customerId}/detach-card` works only when no booking of that customer is
   unreturned, inside its window, has an unpaid charge or an open dispute; otherwise `409 card_in_use` lists them.
+- **Disputes.** A damage claim the vendor opens on the deposit, or a chargeback the customer's bank opens, is the
+  booking's `dispute` (`GET /bookings/{id}`) and arrives as `dispute.opened`, `dispute.updated` and `dispute.closed`.
+  `status` is seen from the vendor (`open`, `under_review`, `won`, `lost`); chargebacks add the bank's `reason`, the
+  `amount` and `evidenceDueBy`. The evidence (contract, identity check, photos, consent, notices) stays in Contrazy:
+  `evidenceUrl` opens the booking in the vendor dashboard, where it is reviewed and downloaded.
 
 ## Webhooks
 
@@ -191,7 +196,8 @@ Events (catalogue `2026-11-01`): `booking.created`, `booking.link_opened`, `book
 status }`), `booking.contract_signed` (signed PDF URL), `booking.payment_succeeded`, `booking.card_secured`,
 `booking.hold_authorized`, `booking.hold_captured`, `booking.hold_released`, `booking.check_in_submitted`,
 `booking.check_out_submitted` (km, fuel, photos count, report URL), `booking.completed`, `booking.cancelled`,
-`charge.succeeded`, `charge.failed`, `charge.requires_action`, `refund.succeeded`, plus `ping`. One example per
+`charge.succeeded`, `charge.failed`, `charge.requires_action`, `refund.succeeded`, `dispute.opened`,
+`dispute.updated`, `dispute.closed`, plus `ping`. One example per
 type is in [`fixtures/webhooks/`](./fixtures/webhooks). Payloads carry the booking summary, the customer's name and
 e-mail, and per-event facts; never ID documents, selfies, card data or Stripe ids.
 
@@ -208,3 +214,5 @@ e-mail, and per-event facts; never ID documents, selfies, card data or Stripe id
 - Pickup hold (place, capture, release), return date and 90-day window, card detach with blockers.
 - Post-rental charges with per-attempt idempotency, retries by decline type, payment and card-update links,
   refunds, disputes.
+- Dispute summary on the booking and `dispute.*` webhooks (damage claims and chargebacks), with a link to the
+  evidence in the vendor dashboard.

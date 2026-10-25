@@ -1128,6 +1128,8 @@ export async function getVendorWorkspace(email: string | undefined | null): Prom
     TransactionEventType.DEPOSIT_CAPTURED,
     TransactionEventType.DEPOSIT_RELEASED,
     TransactionEventType.DISPUTE_OPENED,
+    TransactionEventType.DISPUTE_UPDATED,
+    TransactionEventType.DISPUTE_CLOSED,
     TransactionEventType.TRANSACTION_CANCELLED,
     TransactionEventType.LINK_CANCELLED,
     TransactionEventType.COMPLETED,

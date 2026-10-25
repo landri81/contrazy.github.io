@@ -187,6 +187,48 @@ describe("partner webhook payload", () => {
     })
   })
 
+  it.each(["dispute.opened", "dispute.updated", "dispute.closed"] as const)("%s carries the dispute summary and the evidence link, never Stripe ids or notes (C8)", (type) => {
+    const dispute = {
+      id: "dsp_1",
+      transactionId: "txn_1",
+      status: type === "dispute.closed" ? "LOST" : "UNDER_REVIEW",
+      kind: "CHARGEBACK",
+      summary: `${PII_SENTINEL} summary`,
+      evidenceImages: [{ assetUrl: `https://res.cloudinary.com/${PII_SENTINEL}.jpg` }],
+      resolution: `${PII_SENTINEL} admin note`,
+      resolvedByAdminId: `${PII_SENTINEL}-admin`,
+      reason: "fraudulent",
+      amount: 15_000,
+      currency: "eur",
+      evidenceDueBy: new Date("2026-12-01T23:59:59.000Z"),
+      stripeDisputeId: `dp_${PII_SENTINEL}`,
+      openedAt: new Date("2026-11-20T10:00:00.000Z"),
+      resolvedAt: type === "dispute.closed" ? new Date("2026-12-10T09:00:00.000Z") : null,
+    }
+    const booking = buildPartnerBookingRecord({ dispute } as never)
+    const payload = buildPartnerWebhookPayload({ eventId: "evt_dispute", type, booking, event: eventFor("DISPUTE_UPDATED", { resolutionNote: `${PII_SENTINEL} note` }), baseUrl: BASE_URL })
+
+    expect(payload.data.dispute).toEqual({
+      id: "dsp_1",
+      kind: "chargeback",
+      status: type === "dispute.closed" ? "lost" : "under_review",
+      reason: "fraudulent",
+      amount: 15_000,
+      currency: "eur",
+      openedAt: "2026-11-20T10:00:00.000Z",
+      evidenceDueBy: "2026-12-01T23:59:59.000Z",
+      closedAt: type === "dispute.closed" ? "2026-12-10T09:00:00.000Z" : null,
+      evidenceUrl: `${BASE_URL}/${booking.locale === "fr" ? "fr" : "en"}/vendor/transactions/${booking.id}`,
+    })
+    expect(JSON.stringify(payload)).not.toContain(PII_SENTINEL)
+  })
+
+  it("a damage claim the vendor won reads as won, and a booking without a dispute sends null", () => {
+    const claim = { id: "dsp_2", transactionId: "txn_1", status: "RESOLVED", kind: "DAMAGE_CLAIM", summary: "", evidenceImages: [], resolution: null, resolvedByAdminId: null, reason: null, amount: null, currency: null, evidenceDueBy: null, stripeDisputeId: null, openedAt: new Date("2026-11-20T10:00:00.000Z"), resolvedAt: new Date("2026-11-22T10:00:00.000Z") }
+    expect(buildPartnerWebhookPayload({ eventId: "evt_claim", type: "dispute.closed", booking: buildPartnerBookingRecord({ dispute: claim } as never), event: eventFor("DISPUTE_CLOSED", {}), baseUrl: BASE_URL }).data.dispute).toMatchObject({ kind: "damage_claim", status: "won", reason: null, amount: null })
+    expect(build("dispute.opened", "DISPUTE_OPENED", {}).data.dispute).toBeNull()
+  })
+
   it("booking.card_secured says when, never which card", () => {
     const payload = build("booking.card_secured", "CARD_SECURED")
 

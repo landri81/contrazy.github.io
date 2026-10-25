@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client"
 
-import { buildBookingStepProgress, type PartnerBookingRecord } from "@/features/partner-api/booking-presenter"
+import { buildBookingStepProgress, buildDisputeSummary, type PartnerBookingRecord } from "@/features/partner-api/booking-presenter"
 import { parseStepSwitches } from "@/features/transactions/step-switches"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import {
@@ -224,6 +224,10 @@ function buildEventData(
       }
     case "refund.succeeded":
       return { refund: pickScalars(metadata, ["refundId", "chargeId", "amount", "currency", "reason"]) }
+    case "dispute.opened":
+    case "dispute.updated":
+    case "dispute.closed":
+      return { dispute: buildDisputeSummary(booking, baseUrl) }
     case "booking.profile_submitted":
     case "booking.documents_submitted":
     default:

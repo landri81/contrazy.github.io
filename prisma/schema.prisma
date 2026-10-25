@@ -181,6 +181,12 @@ enum DisputeStatus {
   LOST
 }
 
+/// A damage claim the vendor opens on the deposit, or a chargeback the customer's bank opens (Stripe).
+enum DisputeKind {
+  DAMAGE_CLAIM
+  CHARGEBACK
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -275,6 +281,10 @@ enum TransactionEventType {
   DEPOSIT_CAPTURED
   DEPOSIT_RELEASED
   DISPUTE_OPENED
+  /// Dispute status changed (C8): sent to partners as `dispute.updated`.
+  DISPUTE_UPDATED
+  /// Dispute won, lost or settled (C8): sent to partners as `dispute.closed`.
+  DISPUTE_CLOSED
   TRANSACTION_CANCELLED
   COMPLETED
   EMAIL_SENT
@@ -844,6 +854,14 @@ model Dispute {
   evidenceImages    Json?
   resolution        String?       @db.Text
   resolvedByAdminId String?
+  kind              DisputeKind   @default(DAMAGE_CLAIM)
+  /// Chargebacks: Stripe's reason code ("fraudulent", "product_not_received"…), amount and evidence deadline.
+  reason            String?
+  amount            Int?
+  currency          String?
+  evidenceDueBy     DateTime?
+  /// Internal only: never sent to partners.
+  stripeDisputeId   String?
   openedAt          DateTime      @default(now())
   resolvedAt        DateTime?
   transaction       Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)

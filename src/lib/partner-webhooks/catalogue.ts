@@ -29,6 +29,9 @@ export const PARTNER_WEBHOOK_EVENT_TYPES = [
   "charge.failed",
   "charge.requires_action",
   "refund.succeeded",
+  "dispute.opened",
+  "dispute.updated",
+  "dispute.closed",
 ] as const
 
 export type PartnerWebhookSubscribableEventType = (typeof PARTNER_WEBHOOK_EVENT_TYPES)[number]
