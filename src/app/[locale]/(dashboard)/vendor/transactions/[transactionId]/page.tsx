@@ -182,8 +182,8 @@ export default async function VendorTransactionDetailPage(props: {
 
   // ── Derived financial data ────────────────────────────────────────────────────
 
-  const txLocale = transaction.locale ?? locale ?? "en"
-  const intlLocale = txLocale === "fr" ? "fr-FR" : "en-GB"
+  // Dates and amounts follow the language the vendor reads the page in, not the customer's.
+  const intlLocale = locale === "fr" ? "fr-FR" : "en-GB"
   const transactionCurrency = transaction.currency ?? "EUR"
   // Partner bookings that switched check-out off have no check-out report to request.
   const checkOutStepEnabled = !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "checkOut")

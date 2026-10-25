@@ -226,6 +226,54 @@ async function main() {
     },
   })
 
+  // Vendor pages sit behind an active platform plan (requireSubscribedVendorProfileAccess).
+  await prisma.vendorSubscription.create({
+    data: {
+      vendorId: approvedVendorUser.vendorProfile.id,
+      planKey: "PRO",
+      billingInterval: "MONTHLY",
+      status: "ACTIVE",
+      currentPeriodStart: new Date("2026-01-01T00:00:00.000Z"),
+      currentPeriodEnd: new Date("2099-01-01T00:00:00.000Z"),
+    },
+  })
+
+  const partnerTransaction = await prisma.transaction.create({
+    data: {
+      id: "e2e-partner-booking-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-PARTNER",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "LINK_SENT",
+      amount: 15000,
+      depositAmount: 80000,
+      requiresKyc: false,
+      contractTemplateId: approvedContract.id,
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-0001",
+      startAt: new Date("2026-11-02T08:00:00.000Z"),
+      endAt: new Date("2026-11-05T17:00:00.000Z"),
+      timezone: "Europe/Paris",
+      stepSwitches: { identity: false, selfie: false, documents: true, contract: true, checkIn: false, checkOut: false, payment: true, cardSecurity: false, hold: true },
+      rentalDetails: {
+        vehicle: { model: "Peugeot 208", plate: "AB-123-CD", category: "Compact" },
+        pickup: { place: "Nice Airport T2", address: "Rue Costes et Bellonte, 06200 Nice" },
+        return: { place: "Nice Airport T2" },
+        mileage: { unlimited: false, includedKm: 900, extraKmPrice: 25 },
+        options: ["Child seat", "Additional driver"],
+        protection: "Standard protection",
+        deductible: 120000,
+        deposit: 80000,
+        fuelPolicy: "Full to full",
+        priceLines: [
+          { label: "Rental", quantity: 3, unit: "days", unitAmount: 4500, total: 13500 },
+          { label: "Child seat", quantity: 1, unitAmount: 1500, total: 1500 },
+        ],
+      },
+    },
+  })
+
   console.log(
     JSON.stringify(
       {
@@ -238,6 +286,7 @@ async function main() {
         clientFlowToken: flowTransaction.link?.token ?? "e2e-client-flow",
         kycFlowToken: kycTransaction.link?.token ?? "e2e-kyc-flow",
         webhookTransactionId: webhookTransaction.id,
+        partnerTransactionId: partnerTransaction.id,
       },
       null,
       2

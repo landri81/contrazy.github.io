@@ -31,9 +31,11 @@ function parseEnvFile(content) {
 }
 
 function withE2eSchema(databaseUrl) {
-  const parsedUrl = new URL(databaseUrl)
+  // .env files may quote the value: parse it without the quotes and put them back.
+  const quote = /^(["'])(.*)\1$/.exec(databaseUrl.trim())
+  const parsedUrl = new URL(quote ? quote[2] : databaseUrl.trim())
   parsedUrl.searchParams.set("schema", "contrazy_e2e")
-  return parsedUrl.toString()
+  return quote ? `${quote[1]}${parsedUrl.toString()}${quote[1]}` : parsedUrl.toString()
 }
 
 if (!fs.existsSync(sourcePath)) {
