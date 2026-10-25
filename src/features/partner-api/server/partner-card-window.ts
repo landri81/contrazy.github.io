@@ -1,16 +1,13 @@
 import type { PartnerApiKey, VendorProfile } from "@prisma/client"
-import { z } from "zod"
+import type { z } from "zod"
 
 import { CardWindowError, detachCustomerCards, markVehicleReturned } from "@/features/card-security/server/card-window"
 import { buildCardSecuritySummary } from "@/features/partner-api/booking-presenter"
-import { isoDateTime } from "@/features/partner-api/schemas/booking.schema"
+import type { partnerBookingReturnedSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { prisma } from "@/lib/db/prisma"
 import { stripeGateway } from "@/lib/integrations/stripe"
 import { PartnerApiError } from "@/lib/partner-api/errors"
-
-export const partnerBookingReturnedSchema = z.object({ returnedAt: isoDateTime("returnedAt") })
-export const partnerDetachCardSchema = z.object({}).strict()
 
 type Caller = { vendorProfile: VendorProfile; apiKey: Pick<PartnerApiKey, "id" | "prefix"> }
 

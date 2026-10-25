@@ -1,22 +1,13 @@
 import type { PartnerApiKey, PostChargeType, VendorProfile } from "@prisma/client"
-import { z } from "zod"
+import type { z } from "zod"
 
 import { createPostCharge, PostChargeError, PostChargeRefundError, refundPostCharge } from "@/features/card-security/server/post-charges"
 import { presentPartnerCharge } from "@/features/partner-api/booking-presenter"
+import type { partnerChargeCreateSchema, partnerChargeRefundSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { prisma } from "@/lib/db/prisma"
 import { stripeGateway } from "@/lib/integrations/stripe"
 import { PartnerApiError } from "@/lib/partner-api/errors"
-
-export const PARTNER_CHARGE_TYPES = ["damage", "fuel", "toll", "towing", "fps", "ticket_admin_fee", "other"] as const
-
-export const partnerChargeCreateSchema = z.object({
-  type: z.enum(PARTNER_CHARGE_TYPES),
-  amount: z.number().int("amount must be whole cents").positive("amount must be greater than zero").max(1_000_000),
-  description: z.string().trim().max(500).optional().nullable(),
-  proofUrls: z.array(z.string().trim().url("proofUrls must be absolute URLs").refine((url) => /^https:\/\//i.test(url), "proofUrls must use https")).max(10).optional(),
-  externalRef: z.string().trim().min(1).max(100).optional().nullable(),
-})
 
 type Caller = { vendorProfile: VendorProfile; apiKey: Pick<PartnerApiKey, "id" | "prefix"> }
 
@@ -56,11 +47,6 @@ export async function getPartnerCharge(caller: Caller, chargeId: string) {
 
   return presentPartnerCharge(charge)
 }
-
-export const partnerChargeRefundSchema = z.object({
-  amount: z.number().int("amount must be whole cents").positive("amount must be greater than zero").max(1_000_000).optional(),
-  reason: z.string().trim().min(3, "reason is required").max(500),
-})
 
 /** Refunds a charge fully (no amount) or partly, at Stripe, with a reason (Spec v2.1 §11). */
 export async function refundPartnerCharge(caller: Caller, chargeId: string, input: z.infer<typeof partnerChargeRefundSchema>) {

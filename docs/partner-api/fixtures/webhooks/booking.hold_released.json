@@ -1,0 +1,95 @@
+{
+  "id": "evt_booking_hold_released_example",
+  "type": "booking.hold_released",
+  "apiVersion": "2026-11-01",
+  "createdAt": "2026-11-05T09:30:00.000Z",
+  "data": {
+    "booking": {
+      "id": "txn_partner_1",
+      "externalRef": "LOCAZ-BK-42",
+      "reference": "CZ-2026-0001",
+      "status": "in_progress",
+      "steps": [
+        {
+          "key": "identity",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:05:00.000Z",
+          "completedAt": "2026-11-01T08:10:00.000Z"
+        },
+        {
+          "key": "selfie",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "documents",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "contract",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:14:00.000Z",
+          "completedAt": "2026-11-01T08:21:00.000Z"
+        },
+        {
+          "key": "checkIn",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "checkOut",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "payment",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:25:00.000Z",
+          "completedAt": "2026-11-01T08:30:00.000Z"
+        },
+        {
+          "key": "cardSecurity",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-04T17:59:00.000Z",
+          "completedAt": "2026-11-04T18:00:00.000Z"
+        },
+        {
+          "key": "hold",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        }
+      ]
+    },
+    "customer": {
+      "firstName": "Alice",
+      "lastName": "Martin",
+      "email": "alice.martin@locaz.test"
+    },
+    "hold": {
+      "status": "authorized",
+      "strategy": "authorization_hold",
+      "amount": 80000,
+      "currency": "EUR",
+      "authorizedAt": "2026-11-01T08:31:00.000Z",
+      "capturedAt": null,
+      "capturedAmount": null,
+      "releasedAt": null,
+      "releasedAmount": null
+    }
+  }
+}

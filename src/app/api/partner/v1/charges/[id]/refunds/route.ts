@@ -1,4 +1,5 @@
-import { partnerChargeRefundSchema, refundPartnerCharge } from "@/features/partner-api/server/partner-charges"
+import { refundPartnerCharge } from "@/features/partner-api/server/partner-charges"
+import { partnerChargeRefundSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerApiKey } from "@/lib/auth/partner-api"
 import { withPartnerApi } from "@/lib/partner-api/errors"
 import { runIdempotentPartnerPost } from "@/lib/partner-api/idempotent-post"

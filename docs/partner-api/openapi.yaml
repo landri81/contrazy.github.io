@@ -1,0 +1,892 @@
+openapi: 3.1.0
+info:
+  title: Contrazy Partner API
+  version: "2026-11-01"
+  summary: Bookings, customer steps, saved cards, holds, post-rental charges and signed webhooks for partner platforms such as LOCAZ.
+  description: |
+    Read `README.md` first: authentication, idempotency, errors, rate limits, webhook signatures and the card/charge lifecycle.
+
+    All amounts are integer cents (EUR). All date-times are ISO 8601 with an offset. Unknown JSON fields are rejected on
+    PATCH; new response fields may be added at any time (clients must ignore unknown fields).
+servers:
+  - url: https://contrazy.com/api/partner/v1
+    description: Production
+  - url: http://127.0.0.1:3100/api/partner/v1
+    description: Local development
+security:
+  - ApiKey: []
+tags:
+  - name: Connectivity
+  - name: Bookings
+  - name: Holds
+  - name: Cards
+  - name: Charges
+  - name: Webhook endpoints
+
+paths:
+  /ping:
+    get:
+      tags: [Connectivity]
+      operationId: ping
+      summary: Check the key and its scopes
+      description: Scope `bookings:read`.
+      responses:
+        "200":
+          description: The key works.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [vendorId, keyPrefix, mode, scopes]
+                properties:
+                  vendorId: { type: string }
+                  keyPrefix: { type: string, examples: ["cz_test_E2eKey00"] }
+                  mode: { type: string, enum: [TEST, LIVE] }
+                  scopes: { type: array, items: { $ref: "#/components/schemas/Scope" } }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /bookings:
+    post:
+      tags: [Bookings]
+      operationId: createBooking
+      summary: Create a booking and its customer link
+      description: Scope `bookings:write`. `Idempotency-Key` required; the same key and body replay the first 201.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BookingCreate" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookingCreated" }
+        "400": { $ref: "#/components/responses/Error" }
+        "402": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    get:
+      tags: [Bookings]
+      operationId: findBookingByExternalRef
+      summary: Find a booking by the partner's own reference
+      description: Scope `bookings:read`.
+      parameters:
+        - name: externalRef
+          in: query
+          required: true
+          schema: { type: string, maxLength: 100 }
+      responses:
+        "200":
+          description: The booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Booking" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Bookings]
+      operationId: getBooking
+      summary: A booking with its step progress, contract, reports, payment, saved card and charges
+      description: Scope `bookings:read`.
+      responses:
+        "200":
+          description: The booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Booking" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Bookings]
+      operationId: updateBooking
+      summary: Change dates, rental details, amounts or steps before the customer started
+      description: Scope `bookings:write`. 409 `booking_locked` once the customer opened the link (the attempt is audited).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BookingUpdate" }
+      responses:
+        "200":
+          description: The updated booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Booking" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Bookings]
+      operationId: cancelBooking
+      summary: Cancel the booking and its customer link
+      description: Scope `bookings:write`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        "200":
+          description: The cancelled booking.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Booking" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/reports/{type}:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+      - name: type
+        in: path
+        required: true
+        schema: { type: string, enum: [check-in, check-out] }
+    get:
+      tags: [Bookings]
+      operationId: getBookingReport
+      summary: The submitted check-in or check-out report (HTML)
+      description: Scope `bookings:read`. The `reportUrl` of `booking.check_in_submitted` / `booking.check_out_submitted` points here.
+      responses:
+        "200":
+          description: Standalone HTML document.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/hold:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Holds]
+      operationId: placePickupHold
+      summary: Place the pickup hold on the saved card
+      description: |
+        Scope `bookings:write`, `Idempotency-Key` required. A manual-capture authorization, off session, on the card saved at
+        booking (Spec v2.1 §5). 409 `card_not_secured`, `hold_exists`, `hold_not_recommended` (rental over 6 days, send
+        `force: true` to place it anyway); 402 `hold_failed` with `details.declineCode` (never retried off session).
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { $ref: "#/components/schemas/Cents" }
+                force: { type: boolean }
+      responses:
+        "201":
+          description: Hold authorized.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HoldResponse" }
+        "402": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/hold/capture:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Holds]
+      operationId: capturePickupHold
+      summary: Capture the hold at return, fully or partly
+      description: Scope `bookings:write`, `Idempotency-Key` required. `amount` ≤ the authorized amount; all of it without `amount`.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { $ref: "#/components/schemas/Cents" }
+      responses:
+        "200":
+          description: Captured.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HoldResponse" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/hold/cancel:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Holds]
+      operationId: releasePickupHold
+      summary: Release the hold (nothing is charged)
+      description: Scope `bookings:write`, `Idempotency-Key` required.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200":
+          description: Released.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HoldResponse" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/returned:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Cards]
+      operationId: markBookingReturned
+      summary: Record the vehicle return (starts the 90-day charge window)
+      description: Scope `bookings:write`. `windowEndsAt = returnedAt + 90 days`. Sending it again corrects the date. 409 `card_not_secured` / `card_detached`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [returnedAt]
+              properties:
+                returnedAt: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Window set.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bookingId, cardSecurity]
+                properties:
+                  bookingId: { type: string }
+                  externalRef: { type: [string, "null"] }
+                  cardSecurity: { $ref: "#/components/schemas/CardSecurity" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/charges:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Charges]
+      operationId: createCharge
+      summary: Charge the saved card after the rental
+      description: |
+        Scope `charges:write`, `Idempotency-Key` required. Hard rules only (LOCAZ applies its own caps first): saved card
+        (409 `card_not_secured`), window open (409 `charge_window_closed`), proof for fps / toll / towing (422
+        `proof_required`), `externalRef` unique per booking (409 `external_ref_conflict`). Always 201: a declined card
+        returns the charge with `status: failed` and its `declineCode`; follow-up through `charge.*` webhooks.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChargeCreate" }
+      responses:
+        "201":
+          description: The charge and its first attempt.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /charges/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ChargeId"
+    get:
+      tags: [Charges]
+      operationId: getCharge
+      summary: A charge and its current status
+      description: Scope `charges:write`.
+      responses:
+        "200":
+          description: The charge.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Charge" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /charges/{id}/refunds:
+    parameters:
+      - $ref: "#/components/parameters/ChargeId"
+    post:
+      tags: [Charges]
+      operationId: refundCharge
+      summary: Refund a charge, fully or partly
+      description: Scope `charges:write`, `Idempotency-Key` required. Executed at Stripe. 409 `charge_not_refundable`, 422 `refund_too_large`.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                amount: { $ref: "#/components/schemas/Cents" }
+                reason: { type: string, minLength: 3, maxLength: 500 }
+      responses:
+        "201":
+          description: The charge after the refund, with the refund.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Charge"
+                  - type: object
+                    required: [refund]
+                    properties:
+                      refund:
+                        type: object
+                        required: [id, amount, reason, createdAt]
+                        properties:
+                          id: { type: string }
+                          amount: { $ref: "#/components/schemas/Cents" }
+                          reason: { type: string }
+                          createdAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /customers/{id}/detach-card:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "`cardSecurity.customerId` of a booking."
+        schema: { type: string }
+    post:
+      tags: [Cards]
+      operationId: detachCustomerCard
+      summary: Detach the customer's saved cards when nothing needs them any more
+      description: |
+        Scope `bookings:write`. 409 `card_in_use` with `details.blockingBookings[]` (`reason`: not_returned,
+        charge_window_open, open_charge, open_dispute). The Stripe customer is kept for the next booking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200":
+          description: Detached.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [customerId, detached]
+                properties:
+                  customerId: { type: string }
+                  detached: { type: integer, minimum: 0 }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /webhook-endpoints:
+    post:
+      tags: [Webhook endpoints]
+      operationId: createWebhookEndpoint
+      summary: Register an HTTPS endpoint; the signing secret is returned once
+      description: Scope `webhooks:write`. Private, loopback and plain-http URLs are refused (422 `webhook_url_not_allowed`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri, maxLength: 2048 }
+                description: "{ type: [string, \"null\"], maxLength: 200 }"
+                eventTypes:
+                  type: array
+                  description: Defaults to the whole catalogue.
+                  items: { $ref: "#/components/schemas/WebhookEventType" }
+      responses:
+        "201":
+          description: Created. Store `secret` now; it is never shown again.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/WebhookEndpoint"
+                  - type: object
+                    required: [secret]
+                    properties:
+                      secret: { type: string, pattern: "^whsec_" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    get:
+      tags: [Webhook endpoints]
+      operationId: listWebhookEndpoints
+      summary: The vendor's endpoints, newest first (no secrets)
+      description: Scope `webhooks:write`.
+      responses:
+        "200":
+          description: Endpoints.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WebhookEndpoint" }
+
+  /webhook-endpoints/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [Webhook endpoints]
+      operationId: deleteWebhookEndpoint
+      summary: Remove an endpoint (pending deliveries stop)
+      description: Scope `webhooks:write`.
+      responses:
+        "200":
+          description: Deleted.
+          content:
+            application/json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /webhook-endpoints/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Webhook endpoints]
+      operationId: testWebhookEndpoint
+      summary: Send a signed `ping` now and return the delivery outcome
+      description: Scope `webhooks:write`.
+      responses:
+        "200":
+          description: Delivery outcome.
+          content:
+            application/json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/Error" }
+
+webhooks:
+  partnerEvent:
+    post:
+      summary: Every booking, card, charge and refund event
+      description: |
+        Signed with `Contrazy-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, t + "." + rawBody)>`. Answer 2xx within
+        10 s; anything else is retried after 1 m, 5 m, 30 m, 2 h, 6 h and 24 h. Deliveries for one endpoint are sent in
+        order. Use the event `id` to ignore duplicates. See `fixtures/webhooks/` for one payload per type.
+      parameters:
+        - { name: Contrazy-Signature, in: header, required: true, schema: { type: string } }
+        - { name: Contrazy-Event-Id, in: header, required: true, schema: { type: string } }
+        - { name: Contrazy-Event-Type, in: header, required: true, schema: { $ref: "#/components/schemas/WebhookEventTypeOrPing" } }
+        - { name: Contrazy-Api-Version, in: header, required: true, schema: { type: string, const: "2026-11-01" } }
+        - { name: Contrazy-Delivery-Attempt, in: header, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WebhookEvent" }
+      responses:
+        "200":
+          description: Any 2xx acknowledges the event.
+
+components:
+  securitySchemes:
+    ApiKey:
+      type: http
+      scheme: bearer
+      description: "`Authorization: Bearer cz_test_…` or `cz_live_…`. Created by the vendor in the dashboard (API keys), shown once."
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: "1-255 printable ASCII characters, unique per operation. Same key + same body → the first response is replayed (`Idempotent-Replayed: true`); same key + other body → 409 `idempotency_key_conflict`."
+      schema: { type: string, minLength: 1, maxLength: 255 }
+    BookingId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    ChargeId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Error:
+      description: Uniform error. `request_id` is also sent as a header.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Cents:
+      type: integer
+      minimum: 1
+      maximum: 1000000
+      description: Amount in cents (EUR).
+    Scope:
+      type: string
+      enum: ["bookings:read", "bookings:write", "charges:write", "webhooks:write"]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_api_key
+                - insufficient_scope
+                - rate_limited
+                - invalid_request
+                - not_found
+                - internal_error
+                - idempotency_key_required
+                - idempotency_key_conflict
+                - idempotency_key_in_use
+                - external_ref_conflict
+                - return_url_not_allowed
+                - booking_locked
+                - booking_not_cancellable
+                - subscription_required
+                - plan_limit_reached
+                - plan_feature_unavailable
+                - vendor_not_approved
+                - stripe_not_connected
+                - contract_template_not_found
+                - contract_template_required
+                - step_requires_configuration
+                - launch_rejected
+                - webhook_url_not_allowed
+                - webhook_endpoint_limit_reached
+                - card_not_secured
+                - hold_exists
+                - hold_not_recommended
+                - hold_failed
+                - hold_not_active
+                - card_detached
+                - card_in_use
+                - charge_window_closed
+                - proof_required
+                - charge_in_flight
+                - charge_not_retryable
+                - charge_not_refundable
+                - refund_too_large
+            message: { type: string }
+            details: { type: object }
+        request_id: { type: string }
+    StepSwitches:
+      type: object
+      additionalProperties: false
+      description: Which customer steps run. Unknown names are refused. `selfie` needs `identity`; `cardSecurity` needs the vendor's business name and support e-mail (they appear in the consent text).
+      properties:
+        identity: { type: boolean }
+        selfie: { type: boolean }
+        documents: { type: boolean }
+        contract: { type: boolean }
+        checkIn: { type: boolean }
+        checkOut: { type: boolean }
+        payment: { type: boolean }
+        cardSecurity: { type: boolean }
+        hold: { type: boolean }
+    StepProgress:
+      type: object
+      required: [key, required, status, startedAt, completedAt]
+      properties:
+        key: { type: string, enum: [identity, selfie, documents, contract, checkIn, checkOut, payment, cardSecurity, hold] }
+        required: { type: boolean }
+        status: { type: string, enum: [pending, done, skipped] }
+        startedAt: { type: [string, "null"], format: date-time }
+        completedAt: { type: [string, "null"], format: date-time }
+    Rental:
+      type: object
+      required: [vehicle, pickup, return, mileage]
+      properties:
+        vehicle:
+          type: object
+          required: [model]
+          properties:
+            model: { type: string }
+            plate: { type: string }
+            category: { type: string }
+        pickup:
+          type: object
+          required: [place]
+          properties:
+            place: { type: string }
+            address: { type: string }
+        return:
+          type: object
+          required: [place]
+          properties:
+            place: { type: string }
+            address: { type: string }
+        mileage:
+          type: object
+          required: [unlimited]
+          properties:
+            unlimited: { type: boolean }
+            includedKm: { type: integer, minimum: 0 }
+            extraKmPrice: { $ref: "#/components/schemas/Cents" }
+        options: { type: array, items: { type: string } }
+        protection: { type: string }
+        deductible: { $ref: "#/components/schemas/Cents" }
+        deposit: { $ref: "#/components/schemas/Cents" }
+        fuelPolicy: { type: string }
+        priceLines:
+          type: array
+          items:
+            type: object
+            required: [label, quantity, unitAmount, total]
+            properties:
+              label: { type: string }
+              quantity: { type: number }
+              unit: { type: string }
+              unitAmount: { $ref: "#/components/schemas/Cents" }
+              total: { $ref: "#/components/schemas/Cents" }
+    BookingCreate:
+      type: object
+      required: [externalRef, customer, startAt, endAt, rental, steps]
+      properties:
+        externalRef: { type: string, maxLength: 100 }
+        customer:
+          type: object
+          required: [firstName, lastName, email]
+          properties:
+            firstName: { type: string }
+            lastName: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string, description: "International format, e.g. +33612345678." }
+            locale: { type: string, enum: [fr, en, it], default: en, description: "`it` customers get the English flow." }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        timezone: { type: string, default: Europe/Paris, description: "IANA time zone." }
+        rental: { $ref: "#/components/schemas/Rental" }
+        amount: { $ref: "#/components/schemas/Cents" }
+        depositAmount: { $ref: "#/components/schemas/Cents" }
+        currency: { type: string, const: EUR, default: EUR }
+        steps: { $ref: "#/components/schemas/StepSwitches" }
+        returnUrl: { type: string, format: uri, description: "Must be on one of the vendor's allowed origins (422 otherwise)." }
+        contractTemplateId: { type: string }
+        requirements: { type: array, maxItems: 20, items: { type: object } }
+        qrCode: { type: boolean }
+        metadata:
+          type: object
+          maxProperties: 50
+          additionalProperties: { type: [string, number, boolean, "null"] }
+    BookingUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        timezone: { type: string }
+        rental: { $ref: "#/components/schemas/Rental" }
+        steps: { $ref: "#/components/schemas/StepSwitches" }
+        amount: { type: [integer, "null"], minimum: 1 }
+        depositAmount: { type: [integer, "null"], minimum: 1 }
+    BookingCreated:
+      type: object
+      required: [id, reference, externalRef, status, customerUrl, steps, createdAt]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        externalRef: { type: string }
+        status: { type: string }
+        customerUrl: { type: [string, "null"], format: uri, description: "Send this link to the customer." }
+        qrCodeSvg: { type: string }
+        steps: { type: array, items: { $ref: "#/components/schemas/StepProgress" } }
+        startAt: { type: [string, "null"], format: date-time }
+        endAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    CardSecurity:
+      type: [object, "null"]
+      description: Null when `steps.cardSecurity` is off. Never card data.
+      required: [status, customerId, securedAt, windowEndsAt, detachedAt]
+      properties:
+        status: { type: string, enum: [pending, secured, expired, detached] }
+        customerId: { type: [string, "null"] }
+        securedAt: { type: [string, "null"], format: date-time }
+        windowEndsAt: { type: [string, "null"], format: date-time }
+        detachedAt: { type: [string, "null"], format: date-time }
+    Hold:
+      type: [object, "null"]
+      required: [status, strategy, amount, currency]
+      properties:
+        status: { type: string, enum: [pending, authorized, succeeded, captured, released, failed, cancelled] }
+        strategy: { type: string, enum: [authorization_hold, charge_refund] }
+        amount: { $ref: "#/components/schemas/Cents" }
+        currency: { type: string }
+        authorizedAt: { type: [string, "null"], format: date-time }
+        capturedAt: { type: [string, "null"], format: date-time }
+        capturedAmount: { type: [integer, "null"] }
+        releasedAt: { type: [string, "null"], format: date-time }
+        releasedAmount: { type: [integer, "null"] }
+    HoldResponse:
+      type: object
+      required: [bookingId, hold]
+      properties:
+        bookingId: { type: string }
+        externalRef: { type: [string, "null"] }
+        hold: { $ref: "#/components/schemas/Hold" }
+    ChargeType:
+      type: string
+      enum: [damage, fuel, toll, towing, fps, ticket_admin_fee, other]
+    ChargeCreate:
+      type: object
+      required: [type, amount]
+      properties:
+        type: { $ref: "#/components/schemas/ChargeType" }
+        amount: { $ref: "#/components/schemas/Cents" }
+        description: "{ type: [string, \"null\"], maxLength: 500 }"
+        proofUrls:
+          type: array
+          maxItems: 10
+          description: Required for fps, toll and towing (the notice or receipt). https only.
+          items: { type: string, format: uri }
+        externalRef: { type: [string, "null"], maxLength: 100 }
+    Charge:
+      type: object
+      required: [id, bookingId, type, amount, currency, status, attempt, refundedAmount, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        bookingId: { type: string }
+        externalRef: { type: [string, "null"] }
+        type: { $ref: "#/components/schemas/ChargeType" }
+        amount: { $ref: "#/components/schemas/Cents" }
+        currency: { type: string }
+        description: "{ type: [string, \"null\"] }"
+        proofUrls: { type: array, items: { type: string } }
+        status: { type: string, enum: [pending, processing, succeeded, failed, requires_action, refunded, partially_refunded] }
+        attempt: { type: integer, minimum: 0 }
+        declineCode: { type: [string, "null"] }
+        nextRetryAt: { type: [string, "null"], format: date-time }
+        refundedAmount: { type: integer, minimum: 0 }
+        succeededAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Booking:
+      type: object
+      required: [id, reference, externalRef, status, steps, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        externalRef: { type: [string, "null"] }
+        status: { type: string }
+        customerUrl: { type: [string, "null"], format: uri }
+        customer:
+          type: [object, "null"]
+          properties:
+            firstName: { type: [string, "null"] }
+            lastName: { type: [string, "null"] }
+            email: { type: string }
+            phone: { type: [string, "null"] }
+            locale: { type: string }
+            flowLocale: { type: string }
+        startAt: { type: [string, "null"], format: date-time }
+        endAt: { type: [string, "null"], format: date-time }
+        timezone: { type: string }
+        rental: { oneOf: [{ $ref: "#/components/schemas/Rental" }, { type: "null" }] }
+        returnUrl: { type: [string, "null"] }
+        steps: { type: array, items: { $ref: "#/components/schemas/StepProgress" } }
+        contract:
+          type: object
+          properties:
+            required: { type: boolean }
+            signed: { type: boolean }
+            signedAt: { type: [string, "null"], format: date-time }
+            signedPdfUrl: { type: [string, "null"], format: uri }
+        checkIn: { type: [object, "null"] }
+        checkOut: { type: [object, "null"] }
+        payment: { type: [object, "null"] }
+        cardSecurity: { $ref: "#/components/schemas/CardSecurity" }
+        charges: { type: array, items: { $ref: "#/components/schemas/Charge" } }
+        link: { type: [object, "null"] }
+        metadata: { type: [object, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WebhookEventType:
+      type: string
+      enum:
+        - booking.created
+        - booking.link_opened
+        - booking.profile_submitted
+        - booking.documents_submitted
+        - booking.identity_verified
+        - booking.identity_failed
+        - booking.contract_signed
+        - booking.payment_succeeded
+        - booking.card_secured
+        - booking.hold_authorized
+        - booking.hold_captured
+        - booking.hold_released
+        - booking.check_in_submitted
+        - booking.check_out_submitted
+        - booking.completed
+        - booking.cancelled
+        - charge.succeeded
+        - charge.failed
+        - charge.requires_action
+        - refund.succeeded
+    WebhookEventTypeOrPing:
+      oneOf:
+        - $ref: "#/components/schemas/WebhookEventType"
+        - { type: string, const: ping }
+    WebhookEndpoint:
+      type: object
+      required: [id, url, eventTypes, active, secretPrefix, createdAt]
+      properties:
+        id: { type: string }
+        url: { type: string, format: uri }
+        description: "{ type: [string, \"null\"] }"
+        eventTypes: { type: array, items: { $ref: "#/components/schemas/WebhookEventType" } }
+        active: { type: boolean }
+        secretPrefix: { type: string, examples: ["whsec_vu8R"] }
+        createdAt: { type: string, format: date-time }
+    WebhookEvent:
+      type: object
+      required: [id, type, apiVersion, createdAt, data]
+      properties:
+        id: { type: string, pattern: "^evt_", description: "Stable per endpoint and event: use it to ignore duplicates." }
+        type: { $ref: "#/components/schemas/WebhookEventTypeOrPing" }
+        apiVersion: { type: string, const: "2026-11-01" }
+        createdAt: { type: string, format: date-time }
+        data:
+          type: object
+          description: "`booking` (id, externalRef, reference, status, steps) and `customer` (name, e-mail) on every booking event, plus one per-event object: schedule, link, identity + selfie, contract, payment, card, hold, checkIn / checkOut, completion, cancellation, charge or refund. Never ID documents, selfies, card data or Stripe ids."

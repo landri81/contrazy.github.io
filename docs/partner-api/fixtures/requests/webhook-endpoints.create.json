@@ -1,0 +1,5 @@
+{
+  "url": "https://locaz.co/api/integrations/contrazy/events",
+  "description": "LOCAZ booking site",
+  "eventTypes": ["booking.created", "booking.card_secured", "booking.completed", "booking.cancelled", "charge.succeeded", "charge.failed", "charge.requires_action", "refund.succeeded"]
+}

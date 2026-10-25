@@ -1,21 +1,14 @@
 import { AuditActorType, type PartnerApiKey, type VendorProfile } from "@prisma/client"
-import { z } from "zod"
+import type { z } from "zod"
 
 import { PickupHoldError, placePickupHold } from "@/features/card-security/server/pickup-hold"
+import type { partnerHoldCreateSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { buildHold } from "@/features/partner-webhooks/payload"
 import { DepositSettlementError, settleDepositHold } from "@/features/transactions/server/deposit-settlement"
 import { prisma } from "@/lib/db/prisma"
 import { stripeGateway } from "@/lib/integrations/stripe"
 import { PartnerApiError } from "@/lib/partner-api/errors"
-
-const MAX_HOLD_CENTS = 1_000_000
-
-const amount = z.number().int("amount must be whole cents").positive("amount must be greater than zero").max(MAX_HOLD_CENTS)
-
-export const partnerHoldCreateSchema = z.object({ amount, force: z.boolean().optional() })
-export const partnerHoldCaptureSchema = z.object({ amount: amount.optional() })
-export const partnerHoldCancelSchema = z.object({}).strict()
 
 type HoldCaller = { vendorProfile: VendorProfile; apiKey: Pick<PartnerApiKey, "id" | "prefix"> }
 

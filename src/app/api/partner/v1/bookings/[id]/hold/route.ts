@@ -1,4 +1,5 @@
-import { createPartnerHold, partnerHoldCreateSchema } from "@/features/partner-api/server/partner-holds"
+import { createPartnerHold } from "@/features/partner-api/server/partner-holds"
+import { partnerHoldCreateSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerApiKey } from "@/lib/auth/partner-api"
 import { withPartnerApi } from "@/lib/partner-api/errors"
 import { runIdempotentPartnerPost } from "@/lib/partner-api/idempotent-post"

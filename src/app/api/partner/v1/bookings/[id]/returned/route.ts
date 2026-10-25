@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
-import { markPartnerBookingReturned, partnerBookingReturnedSchema } from "@/features/partner-api/server/partner-card-window"
+import { markPartnerBookingReturned } from "@/features/partner-api/server/partner-card-window"
+import { partnerBookingReturnedSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerApiKey } from "@/lib/auth/partner-api"
 import { withPartnerApi } from "@/lib/partner-api/errors"
 import { parsePartnerBody, readPartnerJsonBody } from "@/lib/partner-api/request"

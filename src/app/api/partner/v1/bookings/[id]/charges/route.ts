@@ -1,4 +1,5 @@
-import { createPartnerCharge, partnerChargeCreateSchema } from "@/features/partner-api/server/partner-charges"
+import { createPartnerCharge } from "@/features/partner-api/server/partner-charges"
+import { partnerChargeCreateSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerApiKey } from "@/lib/auth/partner-api"
 import { withPartnerApi } from "@/lib/partner-api/errors"
 import { runIdempotentPartnerPost } from "@/lib/partner-api/idempotent-post"

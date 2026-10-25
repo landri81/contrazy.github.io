@@ -1,0 +1,18 @@
+{
+  "id": "pc_2",
+  "bookingId": "txn_partner_1",
+  "externalRef": "LZ-DMG-0001",
+  "type": "damage",
+  "amount": 25000,
+  "currency": "EUR",
+  "description": "Rear bumper scratch",
+  "proofUrls": [],
+  "status": "failed",
+  "attempt": 1,
+  "declineCode": "insufficient_funds",
+  "nextRetryAt": "2026-11-21T10:00:00.000Z",
+  "refundedAmount": 0,
+  "succeededAt": null,
+  "createdAt": "2026-11-20T10:00:00.000Z",
+  "updatedAt": "2026-11-20T10:00:00.000Z"
+}
