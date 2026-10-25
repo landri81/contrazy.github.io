@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { TransactionLinkStatus } from "@prisma/client"
 
+import { isCardSecurityRequired } from "@/features/card-security/card-security-state"
 import { ClientFlowShell } from "@/features/client-flow/components/client-flow-shell"
 import { ClientLinkCancelledState } from "@/features/client-flow/components/client-link-cancelled-state"
 import {
@@ -65,7 +66,8 @@ export default async function TokenLayout({
         (transaction.paymentCollectionTiming === "AFTER_SIGNING" || transaction.servicePaymentRequestedAt)
     )
 
-  if (shouldShowPaymentStep) {
+  // Card security (C5) runs in the payment step even when nothing is charged now.
+  if (shouldShowPaymentStep || isCardSecurityRequired(transaction)) {
     enabledSteps.push("payment")
   }
   enabledSteps.push("complete")

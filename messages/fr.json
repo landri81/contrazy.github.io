@@ -3283,6 +3283,28 @@
       "title": "Paiement",
       "description": "Finalisez le paiement pour terminer cette transaction."
     },
+    "cardSecurity": {
+      "title": "Enregistrez votre carte",
+      "description": "Votre carte est enregistrée pour les frais éventuels après la location. Rien n’est débité maintenant.",
+      "paymentDescription": "Réglez votre location. Votre carte est aussi enregistrée pour les frais éventuels après la location.",
+      "consentTitle": "Débits après la location",
+      "consentIntro": "Avant d’ajouter votre carte, lisez et acceptez les conditions dans lesquelles elle peut être débitée après la location.",
+      "translationLabel": "Traduction anglaise (pour information)",
+      "consentCheckbox": "J’ai lu et j’accepte ces conditions pour ma carte enregistrée.",
+      "consentContinue": "Accepter et continuer",
+      "consentError": "Votre consentement n’a pas pu être enregistré. Veuillez réessayer.",
+      "noChargeNow": "Rien n’est débité maintenant. Votre banque peut vous demander de confirmer la carte une fois (3D Secure).",
+      "cardDetails": "Informations de carte",
+      "saveCard": "Enregistrer ma carte",
+      "saving": "Enregistrement de votre carte…",
+      "saved": "Votre carte est enregistrée.",
+      "saveFailed": "Votre carte n’a pas pu être enregistrée. Veuillez essayer une autre carte.",
+      "loadFailed": "Le formulaire de carte n’a pas pu être chargé. Veuillez réessayer.",
+      "tryAgain": "Réessayer",
+      "confirming": "Confirmation de votre carte…",
+      "preparing": "Préparation du formulaire de carte sécurisé…",
+      "vendorIncomplete": "Cette étape n’est pas encore disponible : le loueur doit compléter son profil. Veuillez le contacter."
+    },
     "finish": {
       "allSet": "Tout est prêt !",
       "agreementCompleted": "Accord finalisé",

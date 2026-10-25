@@ -82,6 +82,7 @@ export const clientFlowTransactionInclude = {
   signatureRecord: true,
   payments: true,
   depositAuthorization: true,
+  cardSecurity: true,
   contractTemplate: true,
   contractArtifact: true,
   events: {

@@ -258,6 +258,53 @@ async function main() {
     },
   })
 
+  // Card security (C5a): two partner bookings waiting at the card step (profile done, nothing to pay now).
+  // The vendor needs a connected account id for the card routes; it is never called (no real Stripe in E2E).
+  await prisma.vendorProfile.update({
+    where: { id: approvedVendorUser.vendorProfile.id },
+    data: { stripeAccountId: "acct_e2e_approved" },
+  })
+  for (const [suffix, locale] of [["", "fr"], ["-en", "en"]]) {
+    const profile = await prisma.clientProfile.create({
+      data: {
+        vendorId: approvedVendorUser.vendorProfile.id,
+        fullName: "Alice Martin",
+        firstName: "Alice",
+        lastName: "Martin",
+        email: `alice.card${suffix}@locaz.test`,
+        phone: "+33612345678",
+        address: "1 rue de la Paix, 06000 Nice",
+        country: "France",
+        birthCity: "Nice",
+        birthDate: new Date("1990-04-12"),
+      },
+    })
+    await prisma.transaction.create({
+      data: {
+        id: `e2e-card-security-transaction${suffix}`,
+        vendorId: approvedVendorUser.vendorProfile.id,
+        clientProfileId: profile.id,
+        reference: `TX-E2E-CARD${suffix.toUpperCase()}`,
+        title: "Peugeot 208 rental",
+        kind: "HYBRID",
+        status: "LINK_SENT",
+        requiresKyc: false,
+        locale,
+        source: "PARTNER_API",
+        externalRef: `LZ-E2E-CARD${suffix.toUpperCase()}`,
+        stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+        link: {
+          create: {
+            id: `e2e-card-security-link${suffix}`,
+            token: `e2e-card-security${suffix}`,
+            shortCode: `E2ECARD${suffix ? "EN" : "FR"}`,
+            qrCodeSvg: "<svg></svg>",
+          },
+        },
+      },
+    })
+  }
+
   // A partner booking the customer has finished: the completion screen links back to LOCAZ.
   await prisma.transaction.create({
     data: {

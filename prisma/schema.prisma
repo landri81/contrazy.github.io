@@ -293,6 +293,13 @@ enum TransactionEventType {
   REFUND_SUCCEEDED
 }
 
+enum CardSecurityStatus {
+  PENDING
+  SECURED
+  EXPIRED
+  DETACHED
+}
+
 enum PartnerWebhookDeliveryStatus {
   PENDING
   SUCCEEDED
@@ -357,6 +364,7 @@ model VendorProfile {
   partnerIdempotencyKeys PartnerIdempotencyKey[]
   partnerAllowedOrigins  String[]               @default([])
   partnerWebhookEndpoints PartnerWebhookEndpoint[]
+  partnerCustomers       PartnerCustomer[]
 }
 
 model VendorSubscription {
@@ -520,6 +528,8 @@ model Transaction {
   reportFields       TransactionReportField[]
   reports            TransactionReport[]
   partnerWebhookDeliveries PartnerWebhookDelivery[]
+  cardSecurity       CardSecurity?
+  consentRecords     ConsentRecord[]
 
   @@unique([vendorId, externalRef])
   @@index([vendorId, createdAt])
@@ -1083,4 +1093,70 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// One Stripe customer per client per vendor, on the vendor's connected
+/// account, reused across that client's bookings (Spec v2.1 §4, PRD §4.4).
+model PartnerCustomer {
+  id               String         @id @default(cuid())
+  vendorId         String
+  /// Lowercased.
+  email            String
+  name             String?
+  phone            String?
+  stripeCustomerId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  vendor           VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  cardSecurities   CardSecurity[]
+
+  @@unique([vendorId, email])
+  @@unique([vendorId, stripeCustomerId])
+}
+
+/// The card saved on a booking for charges after the rental (Spec v2.1 §4, §13).
+/// Brand, last4 and expiry are for display only; card data stays at Stripe.
+model CardSecurity {
+  id                String             @id @default(cuid())
+  transactionId     String             @unique
+  partnerCustomerId String
+  stripeCustomerId  String
+  status            CardSecurityStatus @default(PENDING)
+  setupIntentId     String?            @unique
+  paymentIntentId   String?            @unique
+  paymentMethodId   String?
+  cardBrand         String?
+  cardLast4         String?
+  cardExpMonth      Int?
+  cardExpYear       Int?
+  securedAt         DateTime?
+  /// Return date + 90 days, set when the vehicle is returned (C5c).
+  windowEndsAt      DateTime?
+  detachedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  transaction       Transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  partnerCustomer   PartnerCustomer    @relation(fields: [partnerCustomerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerCustomerId, status])
+  @@index([status, windowEndsAt])
+}
+
+/// Consent to later off-session charges (Spec v2.1 §6): the exact text shown,
+/// its version and hash, when, from which IP and browser. Never edited.
+model ConsentRecord {
+  id            String      @id @default(cuid())
+  transactionId String
+  termsVersion  String
+  textFr        String      @db.Text
+  textEn        String      @db.Text
+  textHash      String
+  locale        String
+  consentAt     DateTime    @default(now())
+  ip            String?
+  userAgent     String?     @db.VarChar(512)
+  externalRef   String?
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId, consentAt])
 }

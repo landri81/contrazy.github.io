@@ -20,6 +20,7 @@ export const partnerBookingInclude = {
   contractArtifact: true,
   payments: true,
   depositAuthorization: true,
+  cardSecurity: true,
   events: { orderBy: { occurredAt: "asc" } },
 } satisfies Prisma.TransactionInclude
 
@@ -37,7 +38,7 @@ export type BookingStepProgress = {
 
 type StepSnapshot = Pick<
   PartnerBookingRecord,
-  "kycVerification" | "signatureRecord" | "contractArtifact" | "payments" | "depositAuthorization" | "reports" | "events"
+  "kycVerification" | "signatureRecord" | "contractArtifact" | "payments" | "depositAuthorization" | "cardSecurity" | "reports" | "events"
 >
 
 function iso(value: Date | null | undefined) {
@@ -109,8 +110,14 @@ function resolveStep(key: StepSwitchKey, snapshot: StepSnapshot): { done: Date |
             : null,
       }
     }
-    // Card security (C5) is tracked once that step exists.
-    case "cardSecurity":
+    case "cardSecurity": {
+      // Started when the card form opened (intent created), done once the card is saved with consent.
+      const card = snapshot.cardSecurity
+      return {
+        started: card?.createdAt ?? null,
+        done: card?.status === "SECURED" ? (card.securedAt ?? eventTime(snapshot, "CARD_SECURED")) : null,
+      }
+    }
     default:
       return { started: null, done: null }
   }

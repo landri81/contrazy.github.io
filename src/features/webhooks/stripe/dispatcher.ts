@@ -6,6 +6,7 @@ import {
   handleCheckoutPaymentFailed,
   handleCheckoutSuccess,
 } from "@/features/webhooks/stripe/handlers/checkout-session"
+import { handleSetupIntentSucceeded } from "@/features/webhooks/stripe/handlers/card-security"
 import {
   handleDisputeCreated,
   handleDisputeUpdated,
@@ -86,6 +87,13 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
         event.data.object as Stripe.PaymentIntent,
         eventId,
         eventType
+      )
+
+    case "setup_intent.succeeded":
+      return handleSetupIntentSucceeded(
+        event.data.object as Stripe.SetupIntent,
+        eventId,
+        event.account ?? null
       )
 
     case "account.updated":

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
 
+import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security/card-security-state"
+import { ensurePartnerCustomer, findCardConsent, trackPendingCardSecurity } from "@/features/card-security/server/card-security"
+
 import {
   getDepositAutoRefundDays,
   getDepositStrategy,
@@ -9,7 +12,7 @@ import { recordTransactionEvent } from "@/features/transactions/server/transacti
 import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
-import { getConnectedAccountRequestOptions, getStripePublishableKey, stripe } from "@/lib/integrations/stripe"
+import { getConnectedAccountRequestOptions, getStripePublishableKey, stripe, stripeGateway } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -48,6 +51,7 @@ export async function POST(
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
+            cardSecurity: true,
             contractArtifact: true,
           },
         },
@@ -66,6 +70,7 @@ export async function POST(
       clientProfile: transaction.clientProfile,
       payments: transaction.payments,
       depositAuthorization: transaction.depositAuthorization,
+      cardSecurity: transaction.cardSecurity,
       contractArtifact: transaction.contractArtifact,
     }
 
@@ -77,6 +82,32 @@ export async function POST(
         redirect: withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/complete`),
       })
     }
+
+    if (nextStage === "card_security") {
+      // Nothing to charge now: the page shows the "card as security only" form instead.
+      return NextResponse.json({
+        success: true,
+        redirect: withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/payment?stage=card`),
+      })
+    }
+
+    // Card security (C5): the rental payment also saves the card for later charges, after consent.
+    const savesCard = nextStage === "service_payment" && isCardSecurityRequired(transaction) && !hasSecuredCard(transaction)
+
+    if (savesCard && !(await findCardConsent(prisma, transaction.id))) {
+      return NextResponse.json({ success: false, code: "consent_required", message: "Please accept the card terms first." }, { status: 409 })
+    }
+
+    const partnerCustomer = savesCard
+      ? await ensurePartnerCustomer(prisma, stripeGateway, {
+          vendorId: transaction.vendorId,
+          // Checked at the top of the route (422 without a connected account).
+          stripeAccountId: transaction.vendor.stripeAccountId!,
+          email: transaction.clientProfile?.email ?? "",
+          name: transaction.clientProfile?.fullName ?? null,
+          phone: transaction.clientProfile?.phone ?? null,
+        })
+      : null
 
     const isDeposit = nextStage === "deposit_authorization"
     const amountCents = isDeposit ? transaction.depositAmount! : transaction.amount!
@@ -108,6 +139,7 @@ export async function POST(
         currency: transaction.currency.toLowerCase(),
         capture_method: isDeposit && !isChargeRefund ? "manual" : "automatic",
         payment_method_types: ["card"],
+        ...(partnerCustomer ? { customer: partnerCustomer.stripeCustomerId, setup_future_usage: "off_session" as const } : {}),
         ...(statementDescriptorSuffix ? { statement_descriptor_suffix: statementDescriptorSuffix } : {}),
         ...(depositPlatformFee ? { application_fee_amount: depositPlatformFee } : {}),
         metadata: {
@@ -120,12 +152,17 @@ export async function POST(
           ...(depositAutoRefundAt ? { depositAutoRefundAt } : {}),
           ...(depositPlatformFee ? { depositPlatformFeeAmount: String(depositPlatformFee) } : {}),
           ...(isDeposit ? { depositHoldDays: String(depositHoldDays) } : {}),
+          ...(partnerCustomer ? { cardSecurity: "true" } : {}),
         },
         description: `${transaction.title} — ${isDeposit ? "Security Deposit" : "Service Payment"} (${transaction.reference})`,
         receipt_email: transaction.clientProfile?.email ?? undefined,
       },
       getConnectedAccountRequestOptions(stripeAccountId)
     )
+
+    if (partnerCustomer) {
+      await trackPendingCardSecurity(prisma, { transactionId: transaction.id, partnerCustomer, paymentIntentId: intent.id })
+    }
 
     await recordTransactionEvent(prisma, {
       transactionId: transaction.id,
@@ -160,6 +197,7 @@ export async function POST(
       paymentIntentId: intent.id,
       depositStrategy: depositStrategy ?? null,
       depositHoldDays: isDeposit ? depositHoldDays : null,
+      savesCard: Boolean(partnerCustomer),
     })
   } catch (error) {
     console.error("Create Payment Intent Error:", error)

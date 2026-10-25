@@ -6,6 +6,7 @@ import {
   Prisma,
   PrismaClient,
   TransactionStatus,
+  type CardSecurity,
   type DepositAuthorization,
   type Payment,
   type Transaction,
@@ -16,6 +17,7 @@ import {
 } from "@prisma/client"
 import type Stripe from "stripe"
 
+import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security/card-security-state"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { markTransactionLinkCompleted } from "@/features/transactions/server/transaction-links"
 import {
@@ -30,7 +32,7 @@ import { getSiteUrl } from "@/lib/site-url"
 
 type DatabaseClient = PrismaClient | Prisma.TransactionClient
 
-export type FinanceStage = "none" | "service_payment" | "deposit_authorization" | "complete"
+export type FinanceStage = "none" | "service_payment" | "deposit_authorization" | "card_security" | "complete"
 
 export type FinanceTransaction = Transaction & {
   link: TransactionLink | null
@@ -39,6 +41,8 @@ export type FinanceTransaction = Transaction & {
   contractArtifact: TransactionContractArtifact | null
   vendor: VendorProfile | null
   clientProfile: ClientProfile | null
+  /** Required (not optional): a caller that forgets to load it would see a secured card as missing. */
+  cardSecurity: CardSecurity | null
 }
 
 export type DepositFeeBreakdown = {
@@ -141,12 +145,20 @@ export async function recordFinanceAuditLog(
   })
 }
 
+/**
+ * Next money step of the customer flow. Card security (C5, partner bookings
+ * with `steps.cardSecurity`): when the rental is paid online now, the service
+ * payment also saves the card (one 3DS); otherwise a "card as security only"
+ * stage runs a SetupIntent. Either way the flow cannot complete without it.
+ */
 export function getNextFinanceStage(transaction: FinanceTransaction): FinanceStage {
   const requiresServicePayment = needsServicePayment(transaction)
   const requiresDepositAuthorization = needsDepositAuthorization(transaction)
+  const afterMoneySteps: FinanceStage =
+    isCardSecurityRequired(transaction) && !hasSecuredCard(transaction) ? "card_security" : "complete"
 
   if (!requiresServicePayment && !requiresDepositAuthorization) {
-    return "complete"
+    return afterMoneySteps
   }
 
   if (requiresDepositAuthorization && !hasAuthorizedDeposit(transaction)) {
@@ -155,13 +167,13 @@ export function getNextFinanceStage(transaction: FinanceTransaction): FinanceSta
 
   if (requiresServicePayment && !hasSuccessfulServicePayment(transaction)) {
     if (hasDeferredServicePaymentPending(transaction)) {
-      return "complete"
+      return afterMoneySteps
     }
 
     return "service_payment"
   }
 
-  return "complete"
+  return afterMoneySteps
 }
 
 async function recordEmailSentEvent(db: DatabaseClient, transactionId: string, dedupeKey: string, detail: string) {
@@ -363,6 +375,7 @@ export async function completeTransactionWithoutPayment(db: DatabaseClient, tran
       payments: true,
       depositAuthorization: true,
       contractArtifact: true,
+      cardSecurity: true,
     },
   })
 
@@ -394,6 +407,7 @@ export async function syncTransactionFinanceState(db: DatabaseClient, transactio
       payments: true,
       depositAuthorization: true,
       contractArtifact: true,
+      cardSecurity: true,
     },
   })
 

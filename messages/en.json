@@ -3283,6 +3283,28 @@
       "title": "Payment",
       "description": "Complete the payment to finalise this transaction."
     },
+    "cardSecurity": {
+      "title": "Secure your card",
+      "description": "Your card is saved for charges after the rental. Nothing is charged now.",
+      "paymentDescription": "Pay for your rental. Your card is also saved for charges after the rental.",
+      "consentTitle": "Charges after the rental",
+      "consentIntro": "Before you add your card, read and accept how it may be charged after the rental. The French text is the binding version.",
+      "translationLabel": "English translation (for information)",
+      "consentCheckbox": "I have read and accept these terms for my saved card.",
+      "consentContinue": "Accept and continue",
+      "consentError": "Your consent could not be saved. Please try again.",
+      "noChargeNow": "Nothing is charged now. Your bank may ask you to confirm the card once (3D Secure).",
+      "cardDetails": "Card details",
+      "saveCard": "Save my card",
+      "saving": "Saving your card…",
+      "saved": "Your card is saved.",
+      "saveFailed": "Your card could not be saved. Please try another card.",
+      "loadFailed": "The card form could not be loaded. Please try again.",
+      "tryAgain": "Try again",
+      "confirming": "Confirming your card…",
+      "preparing": "Preparing the secure card form…",
+      "vendorIncomplete": "This step is not available yet: the rental company must complete its profile. Please contact them."
+    },
     "finish": {
       "allSet": "You're All Set!",
       "agreementCompleted": "Agreement Completed",
