@@ -1,5 +1,6 @@
 import { isSuccessfulWebhookStatus, PARTNER_WEBHOOK_TIMEOUT_MS } from "@/lib/partner-webhooks/backoff"
 import { PARTNER_WEBHOOK_API_VERSION } from "@/lib/partner-webhooks/catalogue"
+import { createSafeWebhookFetch } from "@/lib/partner-webhooks/safe-fetch"
 import { CONTRAZY_SIGNATURE_HEADER, signContrazyPayload } from "@/lib/partner-webhooks/signature"
 
 export const RESPONSE_SNIPPET_MAX_BYTES = 1024
@@ -71,6 +72,7 @@ function describeError(error: unknown) {
 /**
  * POSTs one signed event. The body is signed at send time, so every attempt
  * carries a fresh `t=`. Redirects are not followed and count as failures.
+ * A host that resolves to a private address fails like an unreachable one.
  */
 export async function postSignedWebhook(input: {
   url: string
@@ -79,11 +81,14 @@ export async function postSignedWebhook(input: {
   eventId: string
   eventType: string
   attempt: number
+  /** Local receivers allowed (outside production). Only used by the default transport. */
+  allowLocalhost?: boolean
   timeoutMs?: number
   fetchImpl?: typeof fetch
 }): Promise<WebhookSendResult> {
   const startedAt = Date.now()
-  const fetchImpl = input.fetchImpl ?? fetch
+  // The default transport refuses hosts that resolve to private addresses (SSRF), checked at connect time.
+  const fetchImpl = input.fetchImpl ?? createSafeWebhookFetch({ allowLocalhost: input.allowLocalhost ?? false })
 
   try {
     const response = await fetchImpl(input.url, {

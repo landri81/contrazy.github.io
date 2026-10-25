@@ -46,6 +46,10 @@ export const prisma =
         }
       : {}),
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    // Interactive transactions also write the partner webhook outbox (C3), a few extra
+    // round trips: 5 s (Prisma's default) is too tight on a slow link to Neon.
+    // Calls that pass their own timeout keep it.
+    transactionOptions: { maxWait: 5_000, timeout: 15_000 },
   })
 
 if (process.env.NODE_ENV !== "production") {

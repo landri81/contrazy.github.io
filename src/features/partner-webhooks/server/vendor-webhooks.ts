@@ -12,7 +12,7 @@ export type VendorPartnerWebhookEndpointItem = {
   secretPrefix: string
   active: boolean
   createdAt: string
-  lastDelivery: { status: PartnerWebhookDeliveryStatus; at: string } | null
+  lastDelivery: { status: PartnerWebhookDeliveryStatus; at: string; nextAttemptAt: string | null } | null
 }
 
 export type VendorPartnerWebhookDeliveryItem = {
@@ -60,7 +60,7 @@ export async function getVendorPartnerWebhooks(
           where: { lastAttemptAt: { not: null } },
           orderBy: { lastAttemptAt: "desc" },
           take: 1,
-          select: { status: true, lastAttemptAt: true },
+          select: { status: true, lastAttemptAt: true, nextAttemptAt: true },
         },
       },
     }),
@@ -89,7 +89,9 @@ export async function getVendorPartnerWebhooks(
         secretPrefix: endpoint.secretPrefix,
         active: endpoint.active,
         createdAt: endpoint.createdAt.toISOString(),
-        lastDelivery: last?.lastAttemptAt ? { status: last.status, at: last.lastAttemptAt.toISOString() } : null,
+        lastDelivery: last?.lastAttemptAt
+          ? { status: last.status, at: last.lastAttemptAt.toISOString(), nextAttemptAt: last.nextAttemptAt?.toISOString() ?? null }
+          : null,
       }
     }),
     deliveries: {

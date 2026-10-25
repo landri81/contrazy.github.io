@@ -38,6 +38,14 @@ const STATUS_BADGE_CLASSES: Record<PartnerWebhookDeliveryStatus, string> = {
   DEAD: "border-red-200 bg-red-50 text-red-700",
 }
 
+/**
+ * FAILED means "retry scheduled" only while a next attempt exists. A failed test
+ * ping or manual resend has none, so it reads as Failed, not Retrying.
+ */
+function shownDeliveryStatus(status: PartnerWebhookDeliveryStatus, nextAttemptAt: string | null | undefined): PartnerWebhookDeliveryStatus {
+  return status === "FAILED" && !nextAttemptAt ? "DEAD" : status
+}
+
 function formatDateTime(value: string | null, locale: string) {
   if (!value) {
     return null
@@ -215,7 +223,9 @@ export function PartnerWebhookEndpointsSection({
     }
   }
 
-  function renderStatusBadge(status: PartnerWebhookDeliveryStatus) {
+  function renderStatusBadge(rawStatus: PartnerWebhookDeliveryStatus, nextAttemptAt: string | null | undefined) {
+    const status = shownDeliveryStatus(rawStatus, nextAttemptAt)
+
     return (
       <Badge variant="outline" className={cn("rounded-full", STATUS_BADGE_CLASSES[status])}>
         {t(`status.${status}`)}
@@ -338,7 +348,7 @@ export function PartnerWebhookEndpointsSection({
                   <dd className="mt-0.5 flex flex-wrap items-center gap-1.5 text-foreground">
                     {endpoint.lastDelivery ? (
                       <>
-                        {renderStatusBadge(endpoint.lastDelivery.status)}
+                        {renderStatusBadge(endpoint.lastDelivery.status, endpoint.lastDelivery.nextAttemptAt)}
                         <span>{formatDateTime(endpoint.lastDelivery.at, locale)}</span>
                       </>
                     ) : (
@@ -365,49 +375,48 @@ export function PartnerWebhookEndpointsSection({
 
     return (
       <>
-        <div className="hidden md:block">
+        <div className="hidden xl:block">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-11 px-5">{t("thEvent")}</TableHead>
-                <TableHead className="h-11 px-5">{t("thBooking")}</TableHead>
-                <TableHead className="h-11 px-5">{t("thStatus")}</TableHead>
-                <TableHead className="h-11 px-5">{t("thResponse")}</TableHead>
-                <TableHead className="h-11 px-5">{t("thDate")}</TableHead>
-                <TableHead className="h-11 px-5 text-right">{t("thActions")}</TableHead>
+                <TableHead className="h-11 px-4">{t("thEvent")}</TableHead>
+                <TableHead className="h-11 px-4">{t("thBooking")}</TableHead>
+                <TableHead className="h-11 px-4">{t("thStatus")}</TableHead>
+                <TableHead className="h-11 px-4">{t("thResponse")}</TableHead>
+                <TableHead className="h-11 px-4 text-right">{t("thActions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {deliveries.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="max-w-[18rem] px-5 py-4 align-top whitespace-normal">
+                  <TableCell className="max-w-[16rem] px-4 py-4 align-top whitespace-normal">
                     <p className="font-mono text-xs font-medium text-foreground">{item.eventType}</p>
                     <p className="mt-1 truncate text-xs text-muted-foreground" title={item.endpointUrl}>
                       {item.endpointUrl}
                     </p>
                   </TableCell>
-                  <TableCell className="max-w-[12rem] px-5 py-4 align-top whitespace-normal">{renderBooking(item)}</TableCell>
-                  <TableCell className="px-5 py-4 align-top">{renderStatusBadge(item.status)}</TableCell>
-                  <TableCell className="px-5 py-4 align-top text-sm whitespace-normal">
+                  <TableCell className="max-w-[12rem] px-4 py-4 align-top whitespace-normal">{renderBooking(item)}</TableCell>
+                  <TableCell className="px-4 py-4 align-top whitespace-normal">
+                    {renderStatusBadge(item.status, item.nextAttemptAt)}
+                    <p className="mt-1.5 text-xs text-muted-foreground">{renderDeliveryTiming(item)}</p>
+                  </TableCell>
+                  <TableCell className="max-w-[16rem] px-4 py-4 align-top text-sm whitespace-normal">
                     <p className="text-foreground">{describeResponse(item) ?? "-"}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{t("attempts", { count: item.attempt })}</p>
                     {item.error && item.status !== "SUCCEEDED" ? (
-                      <p className="mt-1 max-w-[14rem] truncate text-xs text-destructive" title={item.error}>
+                      <p className="mt-1 truncate text-xs text-destructive" title={item.error}>
                         {item.error}
                       </p>
                     ) : null}
                   </TableCell>
-                  <TableCell className="px-5 py-4 align-top text-sm whitespace-normal text-muted-foreground">
-                    {renderDeliveryTiming(item)}
-                  </TableCell>
-                  <TableCell className="px-5 py-4 text-right align-top">{renderResendButton(item)}</TableCell>
+                  <TableCell className="px-4 py-4 text-right align-top">{renderResendButton(item)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
 
-        <ul className="divide-y divide-border/70 md:hidden">
+        <ul className="divide-y divide-border/70 xl:hidden">
           {deliveries.map((item) => (
             <li key={item.id} className="space-y-3 px-4 py-4">
               <div className="flex items-start justify-between gap-3">
@@ -415,7 +424,7 @@ export function PartnerWebhookEndpointsSection({
                   <p className="break-all font-mono text-xs font-medium text-foreground">{item.eventType}</p>
                   <p className="mt-1 break-all text-xs text-muted-foreground">{item.endpointUrl}</p>
                 </div>
-                <div className="shrink-0">{renderStatusBadge(item.status)}</div>
+                <div className="shrink-0">{renderStatusBadge(item.status, item.nextAttemptAt)}</div>
               </div>
               <dl className="grid grid-cols-2 gap-2 text-xs">
                 <div className="min-w-0">
@@ -430,6 +439,7 @@ export function PartnerWebhookEndpointsSection({
                   </dd>
                 </div>
               </dl>
+              {item.error && item.status !== "SUCCEEDED" ? <p className="break-words text-xs text-destructive">{item.error}</p> : null}
               <p className="text-xs text-muted-foreground">{renderDeliveryTiming(item)}</p>
               {renderResendButton(item, "w-full")}
             </li>

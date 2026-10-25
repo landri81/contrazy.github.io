@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+
 import nextEnv from "@next/env"
 import bcrypt from "bcryptjs"
 import { PrismaClient, RequirementType, StripeConnectionStatus, UserRole, VendorStatus } from "@prisma/client"
@@ -8,6 +10,8 @@ loadEnvConfig(process.cwd())
 
 const prisma = new PrismaClient()
 const password = "Passw0rd!Passw0rd!"
+// Test-mode partner API key of the approved vendor (synthetic, E2E database only).
+const partnerApiKey = `cz_test_${"E2eKey".padEnd(32, "0")}`
 
 async function createUserWithVendor({
   userId,
@@ -238,6 +242,48 @@ async function main() {
     },
   })
 
+  // Partner API (C2/C3): return links may point back to LOCAZ; one test key with every scope.
+  await prisma.vendorProfile.update({
+    where: { id: approvedVendorUser.vendorProfile.id },
+    data: { partnerAllowedOrigins: ["https://locaz.co"] },
+  })
+  await prisma.partnerApiKey.create({
+    data: {
+      vendorId: approvedVendorUser.vendorProfile.id,
+      name: "E2E key",
+      prefix: partnerApiKey.slice(0, 16),
+      hashedKey: createHash("sha256").update(partnerApiKey, "utf8").digest("hex"),
+      scopes: ["bookings:read", "bookings:write", "charges:write", "webhooks:write"],
+      mode: "TEST",
+    },
+  })
+
+  // A partner booking the customer has finished: the completion screen links back to LOCAZ.
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-partner-complete-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-PARTNER-DONE",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-0002",
+      returnUrl: "https://locaz.co/account/bookings/LZ-E2E-0002",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: false, hold: false },
+      link: {
+        create: {
+          id: "e2e-partner-complete-link",
+          token: "e2e-partner-complete",
+          shortCode: "E2EPDONE",
+          qrCodeSvg: "<svg></svg>",
+        },
+      },
+    },
+  })
+
   const partnerTransaction = await prisma.transaction.create({
     data: {
       id: "e2e-partner-booking-transaction",
@@ -287,6 +333,7 @@ async function main() {
         kycFlowToken: kycTransaction.link?.token ?? "e2e-kyc-flow",
         webhookTransactionId: webhookTransaction.id,
         partnerTransactionId: partnerTransaction.id,
+        partnerCompleteToken: "e2e-partner-complete",
       },
       null,
       2

@@ -6,7 +6,7 @@ export type WebhookUrlCheck =
   | { ok: true; url: string }
   | { ok: false; reason: "invalid_url" | "https_required" | "credentials_not_allowed" | "private_address" }
 
-function isLocalHostname(hostname: string) {
+export function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.endsWith(".localhost") || hostname === "127.0.0.1" || hostname === "[::1]"
 }
 
