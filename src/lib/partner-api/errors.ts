@@ -35,6 +35,10 @@ export type PartnerApiErrorCode =
   | "hold_not_active"
   | "card_detached"
   | "card_in_use"
+  | "charge_window_closed"
+  | "proof_required"
+  | "charge_in_flight"
+  | "charge_not_retryable"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -76,6 +80,10 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   hold_not_active: 409,
   card_detached: 409,
   card_in_use: 409,
+  charge_window_closed: 409,
+  proof_required: 422,
+  charge_in_flight: 409,
+  charge_not_retryable: 409,
 }
 
 export class PartnerApiError extends Error {

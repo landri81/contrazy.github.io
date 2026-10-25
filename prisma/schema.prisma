@@ -293,6 +293,26 @@ enum TransactionEventType {
   REFUND_SUCCEEDED
 }
 
+enum PostChargeType {
+  DAMAGE
+  FUEL
+  TOLL
+  TOWING
+  FPS
+  TICKET_ADMIN_FEE
+  OTHER
+}
+
+enum PostChargeStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REQUIRES_ACTION
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
 enum CardSecurityStatus {
   PENDING
   SECURED
@@ -530,6 +550,7 @@ model Transaction {
   partnerWebhookDeliveries PartnerWebhookDelivery[]
   cardSecurity       CardSecurity?
   consentRecords     ConsentRecord[]
+  postCharges        PostCharge[]
 
   @@unique([vendorId, externalRef])
   @@index([vendorId, createdAt])
@@ -1159,4 +1180,70 @@ model ConsentRecord {
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@index([transactionId, consentAt])
+}
+
+/// A charge on the saved card after the rental (Spec v2.1 §7): damage, fuel,
+/// tolls, towing, FPS, ticket admin fee. One row per charge; every Stripe
+/// attempt is a PostChargeAttempt with its own idempotency key.
+model PostCharge {
+  id              String             @id @default(cuid())
+  transactionId   String
+  vendorId        String
+  /// LOCAZ's own reference for the charge (unique per booking when sent).
+  externalRef     String?
+  type            PostChargeType
+  amount          Int
+  currency        String             @default("EUR")
+  description     String?
+  proofUrls       String[]           @default([])
+  status          PostChargeStatus   @default(PENDING)
+  attempt         Int                @default(0)
+  paymentIntentId String?            @unique
+  declineCode     String?
+  nextRetryAt     DateTime?
+  /// Customer link to pay on session (C6b): random token, the URL is built from it.
+  paymentLinkToken String?           @unique
+  reviewFlag      Boolean            @default(false)
+  refundedAmount  Int                @default(0)
+  succeededAt     DateTime?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  transaction     Transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  attempts        PostChargeAttempt[]
+  refunds         PostChargeRefund[]
+
+  @@unique([transactionId, externalRef])
+  @@index([vendorId, createdAt])
+  @@index([status, nextRetryAt])
+}
+
+/// One Stripe attempt of a post-rental charge (Spec v2.1 §14 pc_attempts).
+model PostChargeAttempt {
+  id              String     @id @default(cuid())
+  postChargeId    String
+  attemptNo       Int
+  /// `postcharge_{postChargeId}_attempt_{n}`: a retried request never charges twice.
+  idempotencyKey  String     @unique
+  paymentIntentId String?
+  outcome         String?
+  declineCode     String?
+  createdAt       DateTime   @default(now())
+  postCharge      PostCharge @relation(fields: [postChargeId], references: [id], onDelete: Cascade)
+
+  @@unique([postChargeId, attemptNo])
+}
+
+/// A refund of a post-rental charge, always executed at Stripe (Spec v2.1 §11).
+model PostChargeRefund {
+  id             String     @id @default(cuid())
+  postChargeId   String
+  amount         Int
+  reason         String
+  stripeRefundId String     @unique
+  createdById    String?
+  createdAt      DateTime   @default(now())
+  postCharge     PostCharge @relation(fields: [postChargeId], references: [id], onDelete: Cascade)
+
+  @@index([postChargeId])
 }

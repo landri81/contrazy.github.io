@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import type { PostCharge, Prisma } from "@prisma/client"
 
 import { parseRentalDetails } from "@/features/partner-api/schemas/booking.schema"
 import { parseStepSwitches, STEP_SWITCH_KEYS, type StepSwitchKey, type StepSwitches } from "@/features/transactions/step-switches"
@@ -21,6 +21,7 @@ export const partnerBookingInclude = {
   payments: true,
   depositAuthorization: true,
   cardSecurity: true,
+  postCharges: { orderBy: { createdAt: "asc" } },
   events: { orderBy: { occurredAt: "asc" } },
 } satisfies Prisma.TransactionInclude
 
@@ -226,6 +227,28 @@ export function buildCardSecuritySummary(booking: Pick<PartnerBookingRecord, "st
   }
 }
 
+/** A post-rental charge as partners see it (C6): never card data or PaymentIntent ids. */
+export function presentPartnerCharge(charge: PostCharge) {
+  return {
+    id: charge.id,
+    bookingId: charge.transactionId,
+    externalRef: charge.externalRef,
+    type: charge.type.toLowerCase(),
+    amount: charge.amount,
+    currency: charge.currency,
+    description: charge.description,
+    proofUrls: charge.proofUrls,
+    status: charge.status.toLowerCase(),
+    attempt: charge.attempt,
+    declineCode: charge.declineCode,
+    nextRetryAt: iso(charge.nextRetryAt),
+    refundedAmount: charge.refundedAmount,
+    succeededAt: iso(charge.succeededAt),
+    createdAt: charge.createdAt.toISOString(),
+    updatedAt: charge.updatedAt.toISOString(),
+  }
+}
+
 export function buildCustomerUrl(booking: Pick<PartnerBookingRecord, "locale" | "link">, baseUrl: string) {
   return booking.link?.token ? `${baseUrl.replace(/\/$/, "")}/${booking.locale}/t/${booking.link.token}` : null
 }
@@ -288,6 +311,7 @@ export function presentPartnerBooking(booking: PartnerBookingRecord, baseUrl: st
     checkOut: buildReportSummary(booking, "CHECK_OUT"),
     payment: buildPaymentSummary(booking),
     cardSecurity: buildCardSecuritySummary(booking),
+    charges: booking.postCharges.map(presentPartnerCharge),
     link: booking.link
       ? {
           status: booking.link.status.toLowerCase(),

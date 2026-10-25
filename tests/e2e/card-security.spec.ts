@@ -145,3 +145,28 @@ test("return date, 90-day window and detach rules on a booking with a saved card
   // The daily detach job only answers Vercel Cron.
   expect((await request.get("/api/cron/card-security")).status()).toBe(401)
 })
+
+test("post-rental charge endpoints check the hard rules before any Stripe call (C6a)", async ({ request }) => {
+  const withKey = (key: string) => ({ ...auth, "Idempotency-Key": `${key}-${Date.now()}` })
+  const charges = (booking: string) => `/api/partner/v1/bookings/${booking}/charges`
+
+  const noKey = await request.post(charges("e2e-card-secured-transaction"), { headers: auth, data: { type: "damage", amount: 25000 } })
+  expect((await noKey.json()).error.code).toBe("idempotency_key_required")
+
+  const badType = await request.post(charges("e2e-card-secured-transaction"), { headers: withKey("type"), data: { type: "speeding_fine", amount: 9000 } })
+  expect(badType.status()).toBe(400)
+
+  const noCard = await request.post(charges("e2e-card-security-transaction-en"), { headers: withKey("nocard"), data: { type: "damage", amount: 25000 } })
+  expect(noCard.status()).toBe(409)
+  expect((await noCard.json()).error.code).toBe("card_not_secured")
+
+  for (const type of ["fps", "toll", "towing"]) {
+    const noProof = await request.post(charges("e2e-card-secured-transaction"), { headers: withKey(type), data: { type, amount: 3500 } })
+    expect(noProof.status(), await noProof.text()).toBe(422)
+    expect((await noProof.json()).error.code).toBe("proof_required")
+  }
+
+  expect((await request.get("/api/partner/v1/charges/unknown-charge", { headers: auth })).status()).toBe(404)
+  const booking = await (await request.get("/api/partner/v1/bookings/e2e-card-secured-transaction", { headers: auth })).json()
+  expect(booking.charges).toEqual([])
+})
