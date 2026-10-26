@@ -255,6 +255,59 @@ paths:
               schema: { $ref: "#/components/schemas/HoldResponse" }
         "409": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/refunds:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Bookings]
+      operationId: refundBookingPayment
+      summary: Refund the rental payment, fully or partly
+      description: >-
+        Scope `bookings:write`, `Idempotency-Key` required. Refunds part or all of the booking's rental payment at
+        Stripe, with a reason (e.g. a cancellation inside the partner's refund window). Without `amount`, refunds what
+        is left. 409 `payment_not_refundable` (nothing paid online), 422 `refund_too_large`. The
+        `booking.payment_refunded` webhook follows, also for refunds made in the Stripe dashboard.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                amount: { $ref: "#/components/schemas/Cents" }
+                reason: { type: string, minLength: 3, maxLength: 500 }
+      responses:
+        "201":
+          description: The refund and the rental payment after it.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [refund, payment]
+                properties:
+                  refund:
+                    type: object
+                    required: [id, amount, reason, createdAt]
+                    properties:
+                      id: { type: string }
+                      amount: { $ref: "#/components/schemas/Cents" }
+                      reason: { type: string }
+                      createdAt: { type: string, format: date-time }
+                  payment:
+                    type: object
+                    required: [amount, refundedAmount, currency]
+                    properties:
+                      amount: { $ref: "#/components/schemas/Cents" }
+                      refundedAmount: { $ref: "#/components/schemas/Cents" }
+                      currency: { type: string, example: EUR }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/returned:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -607,6 +660,7 @@ components:
                 - charge_not_retryable
                 - charge_not_refundable
                 - refund_too_large
+                - payment_not_refundable
             message: { type: string }
             details: { type: object }
         request_id: { type: string }
@@ -872,6 +926,7 @@ components:
         - booking.identity_failed
         - booking.contract_signed
         - booking.payment_succeeded
+        - booking.payment_refunded
         - booking.card_secured
         - booking.hold_authorized
         - booking.hold_captured

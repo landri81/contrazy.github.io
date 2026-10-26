@@ -301,6 +301,8 @@ enum TransactionEventType {
   CHARGE_FAILED
   CHARGE_REQUIRES_ACTION
   REFUND_SUCCEEDED
+  // Part or all of the rental payment refunded at Stripe (partner API C9, LOCAZ cancellation refunds).
+  SERVICE_PAYMENT_REFUNDED
 }
 
 enum PostChargeType {
@@ -338,129 +340,129 @@ enum PartnerWebhookDeliveryStatus {
 }
 
 model User {
-  id               String               @id @default(cuid())
-  name             String?
-  email            String               @unique
-  emailVerified    DateTime?
-  image            String?
-  passwordHash     String?
-  role             UserRole             @default(VENDOR)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  accounts         Account[]
-  sessions         Session[]
-  vendorProfile    VendorProfile?
-  clientProfiles   ClientProfile[]      @relation("ClientAccountProfiles")
-  sentInvitations  Invitation[]         @relation("InvitationInviter")
-  auditLogs        AuditLog[]           @relation("AuditActor")
-  passwordResets   PasswordResetToken[]
-  blogPosts        BlogPost[]
-  partnerApiKeys   PartnerApiKey[]      @relation("PartnerApiKeyCreator")
+  id              String               @id @default(cuid())
+  name            String?
+  email           String               @unique
+  emailVerified   DateTime?
+  image           String?
+  passwordHash    String?
+  role            UserRole             @default(VENDOR)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  vendorProfile   VendorProfile?
+  clientProfiles  ClientProfile[]      @relation("ClientAccountProfiles")
+  sentInvitations Invitation[]         @relation("InvitationInviter")
+  auditLogs       AuditLog[]           @relation("AuditActor")
+  passwordResets  PasswordResetToken[]
+  blogPosts       BlogPost[]
+  partnerApiKeys  PartnerApiKey[]      @relation("PartnerApiKeyCreator")
 }
 
 model VendorProfile {
-  id                     String                 @id @default(cuid())
-  userId                 String                 @unique
-  ownerFirstName         String?
-  ownerLastName          String?
-  businessName           String?
-  businessSlug           String?                @unique
-  businessEmail          String?
-  supportEmail           String?
-  businessPhone          String?
-  businessAddress        String?
-  businessCountry        String?
-  registrationNumber     String?
-  vatNumber              String?
-  businessLogoUrl        String?
-  businessLogoPublicId   String?
-  businessLogoFileName   String?
-  stripeAccountId        String?
-  stripeConnectionStatus StripeConnectionStatus @default(NOT_CONNECTED)
-  reviewStatus           VendorStatus           @default(PENDING)
-  preferredLocale        LocaleCode             @default(en)
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clients                ClientProfile[]
-  contractTemplates      ContractTemplate[]
-  checklistTemplates     ChecklistTemplate[]
-  transactions           Transaction[]
-  bulkShareBatches       BulkShareBatch[]
-  invitations            Invitation[]
-  webhookEvents          WebhookEvent[]
-  subscription           VendorSubscription?
-  partnerApiKeys         PartnerApiKey[]
-  partnerIdempotencyKeys PartnerIdempotencyKey[]
-  partnerAllowedOrigins  String[]               @default([])
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  ownerFirstName          String?
+  ownerLastName           String?
+  businessName            String?
+  businessSlug            String?                  @unique
+  businessEmail           String?
+  supportEmail            String?
+  businessPhone           String?
+  businessAddress         String?
+  businessCountry         String?
+  registrationNumber      String?
+  vatNumber               String?
+  businessLogoUrl         String?
+  businessLogoPublicId    String?
+  businessLogoFileName    String?
+  stripeAccountId         String?
+  stripeConnectionStatus  StripeConnectionStatus   @default(NOT_CONNECTED)
+  reviewStatus            VendorStatus             @default(PENDING)
+  preferredLocale         LocaleCode               @default(en)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clients                 ClientProfile[]
+  contractTemplates       ContractTemplate[]
+  checklistTemplates      ChecklistTemplate[]
+  transactions            Transaction[]
+  bulkShareBatches        BulkShareBatch[]
+  invitations             Invitation[]
+  webhookEvents           WebhookEvent[]
+  subscription            VendorSubscription?
+  partnerApiKeys          PartnerApiKey[]
+  partnerIdempotencyKeys  PartnerIdempotencyKey[]
+  partnerAllowedOrigins   String[]                 @default([])
   partnerWebhookEndpoints PartnerWebhookEndpoint[]
-  partnerCustomers       PartnerCustomer[]
+  partnerCustomers        PartnerCustomer[]
 }
 
 model VendorSubscription {
-  id                  String                       @id @default(cuid())
-  vendorId            String                       @unique
-  planKey             SubscriptionPlanKey
-  billingInterval     SubscriptionBillingInterval
-  status              VendorSubscriptionStatus
-  stripeCustomerId    String?                      @unique
+  id                   String                      @id @default(cuid())
+  vendorId             String                      @unique
+  planKey              SubscriptionPlanKey
+  billingInterval      SubscriptionBillingInterval
+  status               VendorSubscriptionStatus
+  stripeCustomerId     String?                     @unique
   stripeSubscriptionId String?                     @unique
-  stripePriceId       String?
-  stripeProductId     String?
-  currentPeriodStart  DateTime?
-  currentPeriodEnd    DateTime?
-  cancelAtPeriodEnd   Boolean                      @default(false)
-  trialStart          DateTime?
-  trialEnd            DateTime?
-  transactionsUsed    Int                          @default(0)
-  eSignaturesUsed     Int                          @default(0)
+  stripePriceId        String?
+  stripeProductId      String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean                     @default(false)
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  transactionsUsed     Int                         @default(0)
+  eSignaturesUsed      Int                         @default(0)
   kycVerificationsUsed Int                         @default(0)
-  qrCodesUsed         Int                          @default(0)
-  smsWhatsappUsed     Int                          @default(0)
-  teamUsersUsed       Int                          @default(0)
-  usagePeriodStart    DateTime?
-  usagePeriodEnd      DateTime?
-  createdAt           DateTime                     @default(now())
-  updatedAt           DateTime                     @updatedAt
-  vendor              VendorProfile                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  qrCodesUsed          Int                         @default(0)
+  smsWhatsappUsed      Int                         @default(0)
+  teamUsersUsed        Int                         @default(0)
+  usagePeriodStart     DateTime?
+  usagePeriodEnd       DateTime?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  vendor               VendorProfile               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([status, currentPeriodEnd])
   @@index([planKey, billingInterval])
 }
 
 model ClientProfile {
-  id          String          @id @default(cuid())
-  userId      String?
-  vendorId    String?
-  fullName    String
-  firstName   String?
-  lastName    String?
-  birthCity   String?
-  birthDate   DateTime?       @db.Date
-  email       String
-  phone       String?
-  companyName String?
-  address     String?
-  country     String?
-  metadata    Json?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  user        User?           @relation("ClientAccountProfiles", fields: [userId], references: [id], onDelete: SetNull)
-  vendor      VendorProfile?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  id           String          @id @default(cuid())
+  userId       String?
+  vendorId     String?
+  fullName     String
+  firstName    String?
+  lastName     String?
+  birthCity    String?
+  birthDate    DateTime?       @db.Date
+  email        String
+  phone        String?
+  companyName  String?
+  address      String?
+  country      String?
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  user         User?           @relation("ClientAccountProfiles", fields: [userId], references: [id], onDelete: SetNull)
+  vendor       VendorProfile?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   transactions Transaction[]
-  documents   DocumentAsset[]
+  documents    DocumentAsset[]
 }
 
 model ContractTemplate {
-  id          String        @id @default(cuid())
-  vendorId    String
-  name        String
-  description String?
-  content     String        @db.Text
-  isDefault   Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  vendor      VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  vendorId     String
+  name         String
+  description  String?
+  content      String        @db.Text
+  isDefault    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  vendor       VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 }
 
@@ -477,90 +479,90 @@ model ChecklistTemplate {
 }
 
 model ChecklistItem {
-  id          String           @id @default(cuid())
-  templateId  String
-  label       String
-  description String?
-  type        RequirementType  @default(DOCUMENT)
-  category    RequirementCategory @default(CUSTOM)
-  customCategoryLabel String?
-  requiredFileCount    Int     @default(1)
+  id                   String              @id @default(cuid())
+  templateId           String
+  label                String
+  description          String?
+  type                 RequirementType     @default(DOCUMENT)
+  category             RequirementCategory @default(CUSTOM)
+  customCategoryLabel  String?
+  requiredFileCount    Int                 @default(1)
   fileSlotLabels       Json?
   exampleImageUrl      String?
   exampleImagePublicId String?
   exampleImageFileName String?
-  required    Boolean          @default(true)
-  sortOrder   Int              @default(0)
-  template    ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  required             Boolean             @default(true)
+  sortOrder            Int                 @default(0)
+  template             ChecklistTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
-  id                 String             @id @default(cuid())
-  vendorId           String
-  clientProfileId    String?
-  bulkBatchId         String?
-  contractTemplateId String?
-  checklistTemplateId String?
-  reference          String             @unique
-  title              String
-  kind               TransactionKind    @default(HYBRID)
-  status             TransactionStatus  @default(DRAFT)
-  flowType           TransactionFlowType @default(STANDARD)
-  paymentCollectionTiming PaymentCollectionTiming @default(AFTER_SIGNING)
-  currency           String             @default("EUR")
-  amount             Int?
-  depositAmount      Int?
-  depositHoldDays    Int                @default(7)
+  id                                     String                           @id @default(cuid())
+  vendorId                               String
+  clientProfileId                        String?
+  bulkBatchId                            String?
+  contractTemplateId                     String?
+  checklistTemplateId                    String?
+  reference                              String                           @unique
+  title                                  String
+  kind                                   TransactionKind                  @default(HYBRID)
+  status                                 TransactionStatus                @default(DRAFT)
+  flowType                               TransactionFlowType              @default(STANDARD)
+  paymentCollectionTiming                PaymentCollectionTiming          @default(AFTER_SIGNING)
+  currency                               String                           @default("EUR")
+  amount                                 Int?
+  depositAmount                          Int?
+  depositHoldDays                        Int                              @default(7)
   depositLongTermStripeFeeEstimateAmount Int?
-  depositLongTermPlatformFeeAmount Int?
-  depositLongTermFeeAcceptedAt DateTime?
-  requiresKyc        Boolean            @default(false)
-  requireSelfie      Boolean            @default(false)
-  requireClientCompany Boolean          @default(false)
-  stripePaymentIntentId String?
-  servicePaymentRequestedAt DateTime?
-  checkOutRequestedAt DateTime?
-  customerCompletedAt DateTime?
-  signatureCity      String?
-  serviceDate        DateTime?          @db.Date
-  notes              String?            @db.Text
-  locale             LocaleCode         @default(en)
-  source             TransactionSource  @default(DASHBOARD)
-  externalRef        String?
-  startAt            DateTime?          @db.Timestamptz(3)
-  endAt              DateTime?          @db.Timestamptz(3)
-  timezone           String             @default("Europe/Paris")
-  rentalDetails      Json?
-  returnUrl          String?
-  stepSwitches       Json?
-  partnerMetadata    Json?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  vendor             VendorProfile      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  clientProfile      ClientProfile?     @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
-  bulkBatch          BulkShareBatch?    @relation(fields: [bulkBatchId], references: [id], onDelete: SetNull)
-  bulkRecipient      BulkShareRecipient?
-  contractTemplate   ContractTemplate?  @relation(fields: [contractTemplateId], references: [id], onDelete: SetNull)
-  checklistTemplate  ChecklistTemplate? @relation(fields: [checklistTemplateId], references: [id], onDelete: SetNull)
-  link               TransactionLink?
-  requirements       TransactionRequirement[]
-  customFields       TransactionCustomField[]
-  customFieldResponses TransactionCustomFieldResponse[]
-  documents          DocumentAsset[]
-  kycVerification    KycVerification?
-  signatureRecord    SignatureRecord?
-  contractArtifact   TransactionContractArtifact?
-  payments           Payment[]
-  depositAuthorization DepositAuthorization?
-  dispute            Dispute?
-  events             TransactionEvent[]
-  webhookEvents      WebhookEvent[]
-  reportFields       TransactionReportField[]
-  reports            TransactionReport[]
-  partnerWebhookDeliveries PartnerWebhookDelivery[]
-  cardSecurity       CardSecurity?
-  consentRecords     ConsentRecord[]
-  postCharges        PostCharge[]
+  depositLongTermPlatformFeeAmount       Int?
+  depositLongTermFeeAcceptedAt           DateTime?
+  requiresKyc                            Boolean                          @default(false)
+  requireSelfie                          Boolean                          @default(false)
+  requireClientCompany                   Boolean                          @default(false)
+  stripePaymentIntentId                  String?
+  servicePaymentRequestedAt              DateTime?
+  checkOutRequestedAt                    DateTime?
+  customerCompletedAt                    DateTime?
+  signatureCity                          String?
+  serviceDate                            DateTime?                        @db.Date
+  notes                                  String?                          @db.Text
+  locale                                 LocaleCode                       @default(en)
+  source                                 TransactionSource                @default(DASHBOARD)
+  externalRef                            String?
+  startAt                                DateTime?                        @db.Timestamptz(3)
+  endAt                                  DateTime?                        @db.Timestamptz(3)
+  timezone                               String                           @default("Europe/Paris")
+  rentalDetails                          Json?
+  returnUrl                              String?
+  stepSwitches                           Json?
+  partnerMetadata                        Json?
+  createdAt                              DateTime                         @default(now())
+  updatedAt                              DateTime                         @updatedAt
+  vendor                                 VendorProfile                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  clientProfile                          ClientProfile?                   @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  bulkBatch                              BulkShareBatch?                  @relation(fields: [bulkBatchId], references: [id], onDelete: SetNull)
+  bulkRecipient                          BulkShareRecipient?
+  contractTemplate                       ContractTemplate?                @relation(fields: [contractTemplateId], references: [id], onDelete: SetNull)
+  checklistTemplate                      ChecklistTemplate?               @relation(fields: [checklistTemplateId], references: [id], onDelete: SetNull)
+  link                                   TransactionLink?
+  requirements                           TransactionRequirement[]
+  customFields                           TransactionCustomField[]
+  customFieldResponses                   TransactionCustomFieldResponse[]
+  documents                              DocumentAsset[]
+  kycVerification                        KycVerification?
+  signatureRecord                        SignatureRecord?
+  contractArtifact                       TransactionContractArtifact?
+  payments                               Payment[]
+  depositAuthorization                   DepositAuthorization?
+  dispute                                Dispute?
+  events                                 TransactionEvent[]
+  webhookEvents                          WebhookEvent[]
+  reportFields                           TransactionReportField[]
+  reports                                TransactionReport[]
+  partnerWebhookDeliveries               PartnerWebhookDelivery[]
+  cardSecurity                           CardSecurity?
+  consentRecords                         ConsentRecord[]
+  postCharges                            PostCharge[]
 
   @@unique([vendorId, externalRef])
   @@index([vendorId, createdAt])
@@ -569,15 +571,15 @@ model Transaction {
 }
 
 model TransactionReportField {
-  id            String                    @id @default(cuid())
+  id            String                      @id @default(cuid())
   transactionId String
   reportType    TransactionReportType
   label         String
   instructions  String?
-  fieldType     TransactionReportFieldType @default(TEXT)
+  fieldType     TransactionReportFieldType  @default(TEXT)
   selectOptions Json?
-  sortOrder     Int                        @default(0)
-  transaction   Transaction                @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  sortOrder     Int                         @default(0)
+  transaction   Transaction                 @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   responses     TransactionReportResponse[]
   assets        TransactionReportAsset[]
 
@@ -585,15 +587,15 @@ model TransactionReportField {
 }
 
 model TransactionReport {
-  id            String                  @id @default(cuid())
+  id            String                      @id @default(cuid())
   transactionId String
   type          TransactionReportType
-  status        TransactionReportStatus @default(PENDING)
+  status        TransactionReportStatus     @default(PENDING)
   submittedAt   DateTime?
-  artifactHtml  String?                 @db.Text
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  transaction   Transaction             @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  artifactHtml  String?                     @db.Text
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  transaction   Transaction                 @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   responses     TransactionReportResponse[]
   assets        TransactionReportAsset[]
 
@@ -602,26 +604,26 @@ model TransactionReport {
 }
 
 model TransactionReportResponse {
-  id        String                 @id @default(cuid())
-  reportId  String
-  fieldId   String
-  value     String                 @db.Text
-  report    TransactionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  field     TransactionReportField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  id       String                 @id @default(cuid())
+  reportId String
+  fieldId  String
+  value    String                 @db.Text
+  report   TransactionReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  field    TransactionReportField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@unique([reportId, fieldId])
 }
 
 model TransactionReportAsset {
-  id        String            @id @default(cuid())
+  id        String                  @id @default(cuid())
   reportId  String
   fieldId   String?
   assetUrl  String
   publicId  String
   fileName  String
   mimeType  String?
-  sortOrder Int               @default(0)
-  report    TransactionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  sortOrder Int                     @default(0)
+  report    TransactionReport       @relation(fields: [reportId], references: [id], onDelete: Cascade)
   field     TransactionReportField? @relation(fields: [fieldId], references: [id], onDelete: SetNull)
 
   @@index([reportId])
@@ -629,20 +631,20 @@ model TransactionReportAsset {
 }
 
 model BulkShareBatch {
-  id              String               @id @default(cuid())
-  vendorId        String
-  sourceFileName  String?
-  configSnapshot  Json?
-  recipientCount  Int                  @default(0)
-  sentCount       Int                  @default(0)
-  failedCount     Int                  @default(0)
-  status          BulkShareBatchStatus @default(CREATING)
-  completedAt     DateTime?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  vendor          VendorProfile        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  transactions    Transaction[]
-  recipients      BulkShareRecipient[]
+  id             String               @id @default(cuid())
+  vendorId       String
+  sourceFileName String?
+  configSnapshot Json?
+  recipientCount Int                  @default(0)
+  sentCount      Int                  @default(0)
+  failedCount    Int                  @default(0)
+  status         BulkShareBatchStatus @default(CREATING)
+  completedAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  vendor         VendorProfile        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+  recipients     BulkShareRecipient[]
 
   @@index([vendorId, createdAt])
   @@index([status, createdAt])
@@ -668,52 +670,52 @@ model BulkShareRecipient {
 }
 
 model TransactionLink {
-  id            String      @id @default(cuid())
-  transactionId String      @unique
-  token         String      @unique
-  shortCode     String?     @unique
-  qrCodeSvg     String?     @db.Text
+  id            String                @id @default(cuid())
+  transactionId String                @unique
+  token         String                @unique
+  shortCode     String?               @unique
+  qrCodeSvg     String?               @db.Text
   status        TransactionLinkStatus @default(ACTIVE)
   expiresAt     DateTime?
   openedAt      DateTime?
   completedAt   DateTime?
   cancelledAt   DateTime?
-  cancelReason  String?     @db.Text
+  cancelReason  String?               @db.Text
   cancelledBy   TransactionLinkActor?
-  createdAt     DateTime    @default(now())
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime              @default(now())
+  transaction   Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@index([status, createdAt])
 }
 
 model TransactionRequirement {
-  id            String          @id @default(cuid())
-  transactionId String
-  label         String
-  instructions  String?
-  type          RequirementType @default(DOCUMENT)
-  category      RequirementCategory @default(CUSTOM)
-  customCategoryLabel String?
-  requiredFileCount    Int      @default(1)
+  id                   String              @id @default(cuid())
+  transactionId        String
+  label                String
+  instructions         String?
+  type                 RequirementType     @default(DOCUMENT)
+  category             RequirementCategory @default(CUSTOM)
+  customCategoryLabel  String?
+  requiredFileCount    Int                 @default(1)
   fileSlotLabels       Json?
   exampleImageUrl      String?
   exampleImagePublicId String?
   exampleImageFileName String?
-  required      Boolean         @default(true)
-  sortOrder     Int             @default(0)
-  transaction   Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  documents     DocumentAsset[]
+  required             Boolean             @default(true)
+  sortOrder            Int                 @default(0)
+  transaction          Transaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  documents            DocumentAsset[]
 }
 
 model TransactionCustomField {
-  id            String                     @id @default(cuid())
+  id            String                          @id @default(cuid())
   transactionId String
   label         String
   instructions  String?
-  type          TransactionCustomFieldType @default(TEXT)
+  type          TransactionCustomFieldType      @default(TEXT)
   selectOptions Json?
-  sortOrder     Int                        @default(0)
-  transaction   Transaction                @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  sortOrder     Int                             @default(0)
+  transaction   Transaction                     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   response      TransactionCustomFieldResponse?
 }
 
@@ -730,40 +732,40 @@ model TransactionCustomFieldResponse {
 }
 
 model DocumentAsset {
-  id              String         @id @default(cuid())
+  id              String                  @id @default(cuid())
   transactionId   String
   clientProfileId String?
   requirementId   String?
   label           String
-  type            RequirementType @default(DOCUMENT)
-  slotIndex       Int            @default(0)
+  type            RequirementType         @default(DOCUMENT)
+  slotIndex       Int                     @default(0)
   slotLabel       String?
-  source          DocumentAssetSource @default(UPLOAD)
+  source          DocumentAssetSource     @default(UPLOAD)
   capturedAt      DateTime?
   fileName        String?
   assetUrl        String?
-  textValue       String?        @db.Text
+  textValue       String?                 @db.Text
   publicId        String?
-  uploadedAt      DateTime       @default(now())
-  transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  clientProfile   ClientProfile? @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
+  uploadedAt      DateTime                @default(now())
+  transaction     Transaction             @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  clientProfile   ClientProfile?          @relation(fields: [clientProfileId], references: [id], onDelete: SetNull)
   requirement     TransactionRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
 
   @@unique([transactionId, requirementId, slotIndex])
 }
 
 model KycVerification {
-  id                String     @id @default(cuid())
-  transactionId     String     @unique
-  provider          String     @default("Stripe Identity")
-  status            KycStatus  @default(PENDING)
+  id                String         @id @default(cuid())
+  transactionId     String         @unique
+  provider          String         @default("Stripe Identity")
+  status            KycStatus      @default(PENDING)
   providerReference String?
   summary           String?
   verifiedAt        DateTime?
   selfieCheck       KycSelfieCheck @default(NOT_REQUESTED)
   selfieErrorCode   String?
-  createdAt         DateTime   @default(now())
-  transaction       Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  createdAt         DateTime       @default(now())
+  transaction       Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
 
 model SignatureRecord {
@@ -783,45 +785,62 @@ model SignatureRecord {
 }
 
 model TransactionContractArtifact {
-  id                           String      @id @default(cuid())
-  transactionId                String      @unique
-  sourceTemplateId             String?
-  sourceTemplateName           String?
-  sourceTemplateDescription    String?
-  templateContentSnapshot      String?     @db.Text
-  renderedContentBeforeSignature String?   @db.Text
-  renderedContentAfterSignature  String?   @db.Text
-  signatureImageUrl            String?
-  signatureImagePublicId       String?
-  signedPdfUrl                 String?
-  signedPdfPublicId            String?
-  signedPdfHash                String?
-  reviewCompletedAt            DateTime?
-  generatedAt                  DateTime    @default(now())
-  signedAt                     DateTime?
-  signedTimezone               String?
-  updatedAt                    DateTime    @updatedAt
-  transaction                  Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id                             String      @id @default(cuid())
+  transactionId                  String      @unique
+  sourceTemplateId               String?
+  sourceTemplateName             String?
+  sourceTemplateDescription      String?
+  templateContentSnapshot        String?     @db.Text
+  renderedContentBeforeSignature String?     @db.Text
+  renderedContentAfterSignature  String?     @db.Text
+  signatureImageUrl              String?
+  signatureImagePublicId         String?
+  signedPdfUrl                   String?
+  signedPdfPublicId              String?
+  signedPdfHash                  String?
+  reviewCompletedAt              DateTime?
+  generatedAt                    DateTime    @default(now())
+  signedAt                       DateTime?
+  signedTimezone                 String?
+  updatedAt                      DateTime    @updatedAt
+  transaction                    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@index([signedAt])
 }
 
 model Payment {
-  id              String        @id @default(cuid())
-  transactionId   String
-  kind            PaymentKind
-  status          PaymentStatus @default(PENDING)
-  amount          Int
-  currency        String        @default("EUR")
-  stripeFeeAmount Int?
+  id                String          @id @default(cuid())
+  transactionId     String
+  kind              PaymentKind
+  status            PaymentStatus   @default(PENDING)
+  amount            Int
+  currency          String          @default("EUR")
+  stripeFeeAmount   Int?
   platformFeeAmount Int?
-  vendorNetAmount Int?
-  stripeIntentId  String?
-  processedAt     DateTime?
-  createdAt       DateTime      @default(now())
-  transaction     Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  vendorNetAmount   Int?
+  stripeIntentId    String?
+  processedAt       DateTime?
+  /// Refunded at Stripe so far (service payment refunds, C9). Never more than `amount`.
+  refundedAmount    Int             @default(0)
+  createdAt         DateTime        @default(now())
+  transaction       Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  refunds           PaymentRefund[]
 
   @@unique([transactionId, kind])
+}
+
+/// A refund of a service (rental) payment, always made at Stripe (C9): one row per Stripe refund.
+model PaymentRefund {
+  id             String   @id @default(cuid())
+  paymentId      String
+  amount         Int
+  reason         String
+  stripeRefundId String   @unique
+  createdById    String?
+  createdAt      DateTime @default(now())
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
 }
 
 model DepositAuthorization {
@@ -986,55 +1005,55 @@ model PartnerWebhookDelivery {
 }
 
 model WebhookEvent {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   vendorId        String?
   transactionId   String?
   provider        String
   providerEventId String?
   eventType       String
-  status          WebhookStatus @default(RECEIVED)
-  error           String?       @db.Text
+  status          WebhookStatus  @default(RECEIVED)
+  error           String?        @db.Text
   payload         Json?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime       @default(now())
   vendor          VendorProfile? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   transaction     Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
+  @@unique([provider, providerEventId])
   @@index([provider, eventType])
   @@index([vendorId, createdAt])
   @@index([transactionId])
   @@index([status, createdAt])
-  @@unique([provider, providerEventId])
 }
 
 model TransactionEvent {
-  id          String               @id @default(cuid())
+  id            String               @id @default(cuid())
   transactionId String
-  type        TransactionEventType
-  dedupeKey   String?              @unique
-  title       String
-  detail      String?
-  metadata    Json?
-  occurredAt  DateTime             @default(now())
-  createdAt   DateTime             @default(now())
-  transaction Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  type          TransactionEventType
+  dedupeKey     String?              @unique
+  title         String
+  detail        String?
+  metadata      Json?
+  occurredAt    DateTime             @default(now())
+  createdAt     DateTime             @default(now())
+  transaction   Transaction          @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@index([transactionId, occurredAt])
   @@index([type])
 }
 
 model ContactMessage {
-  id         String               @id @default(cuid())
-  firstName  String
-  lastName   String
-  email      String
-  message    String               @db.Text
-  locale     LocaleCode           @default(en)
-  status     ContactMessageStatus @default(NEW)
-  repliedAt  DateTime?
-  replyText  String?              @db.Text
-  ipAddress  String?
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
+  id        String               @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  message   String               @db.Text
+  locale    LocaleCode           @default(en)
+  status    ContactMessageStatus @default(NEW)
+  repliedAt DateTime?
+  replyText String?              @db.Text
+  ipAddress String?
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   @@index([status, createdAt])
   @@index([email])
@@ -1058,23 +1077,23 @@ model BlogPost {
 }
 
 model BlogPostLocale {
-  id          String         @id @default(cuid())
+  id          String     @id @default(cuid())
   postId      String
   locale      LocaleCode
   slug        String
   title       String
-  excerpt     String         @db.Text
+  excerpt     String     @db.Text
   content     Json
-  contentHtml String         @db.Text
-  searchText  String         @db.Text
+  contentHtml String     @db.Text
+  searchText  String     @db.Text
   seoTitle    String?
   seoDesc     String?
   coverAlt    String?
   category    String?
   tags        String[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  post        BlogPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  post        BlogPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, locale])
   @@unique([locale, slug])
@@ -1204,32 +1223,32 @@ model ConsentRecord {
 /// tolls, towing, FPS, ticket admin fee. One row per charge; every Stripe
 /// attempt is a PostChargeAttempt with its own idempotency key.
 model PostCharge {
-  id              String             @id @default(cuid())
-  transactionId   String
-  vendorId        String
+  id               String              @id @default(cuid())
+  transactionId    String
+  vendorId         String
   /// LOCAZ's own reference for the charge (unique per booking when sent).
-  externalRef     String?
-  type            PostChargeType
-  amount          Int
-  currency        String             @default("EUR")
-  description     String?
-  proofUrls       String[]           @default([])
-  status          PostChargeStatus   @default(PENDING)
-  attempt         Int                @default(0)
-  paymentIntentId String?            @unique
-  declineCode     String?
-  nextRetryAt     DateTime?
+  externalRef      String?
+  type             PostChargeType
+  amount           Int
+  currency         String              @default("EUR")
+  description      String?
+  proofUrls        String[]            @default([])
+  status           PostChargeStatus    @default(PENDING)
+  attempt          Int                 @default(0)
+  paymentIntentId  String?             @unique
+  declineCode      String?
+  nextRetryAt      DateTime?
   /// Customer link to pay on session (C6b): random token, the URL is built from it.
-  paymentLinkToken String?           @unique
-  reviewFlag      Boolean            @default(false)
-  refundedAmount  Int                @default(0)
-  succeededAt     DateTime?
-  createdById     String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  transaction     Transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  attempts        PostChargeAttempt[]
-  refunds         PostChargeRefund[]
+  paymentLinkToken String?             @unique
+  reviewFlag       Boolean             @default(false)
+  refundedAmount   Int                 @default(0)
+  succeededAt      DateTime?
+  createdById      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  transaction      Transaction         @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  attempts         PostChargeAttempt[]
+  refunds          PostChargeRefund[]
 
   @@unique([transactionId, externalRef])
   @@index([vendorId, createdAt])

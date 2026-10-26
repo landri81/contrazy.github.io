@@ -16,6 +16,7 @@ vi.mock("@/lib/env", () => ({ env: { NODE_ENV: "test", NEXT_PUBLIC_APP_URL: "htt
 
 const { partnerBookingCancelSchema, partnerBookingCreateSchema, partnerBookingUpdateSchema } = await import("@/features/partner-api/schemas/booking.schema")
 const {
+  partnerBookingRefundSchema,
   partnerBookingReturnedSchema,
   partnerChargeCreateSchema,
   partnerChargeRefundSchema,
@@ -122,6 +123,7 @@ describe("request fixtures parse with the routes' schemas", () => {
     "bookings.returned.json": partnerBookingReturnedSchema,
     "bookings.charges.json": partnerChargeCreateSchema,
     "charges.refunds.json": partnerChargeRefundSchema,
+    "bookings.refunds.json": partnerBookingRefundSchema,
     "customers.detach-card.json": partnerDetachCardSchema,
     "webhook-endpoints.create.json": partnerWebhookEndpointCreateSchema,
   } as const
@@ -217,6 +219,7 @@ const EVENT_METADATA: Record<string, Record<string, unknown>> = {
   "charge.failed": { chargeId: "pc_2", externalRef: "LZ-DMG-0001", type: "damage", amount: 25000, currency: "EUR", status: "failed", attempt: 1, declineCode: "insufficient_funds", nextRetryAt: "2026-11-21T10:00:00.000Z", paymentLinkUrl: null, cardUpdateUrl: null },
   "charge.requires_action": { chargeId: "pc_3", externalRef: "LZ-TOLL-0002", type: "toll", amount: 870, currency: "EUR", status: "requires_action", attempt: 1, declineCode: "authentication_required", nextRetryAt: null, paymentLinkUrl: "https://contrazy.com/fr/pay/Q2hhcmdlTGlua1Rva2VuLUV4YW1wbGU", cardUpdateUrl: null },
   "refund.succeeded": { refundId: "pcr_1", chargeId: "pc_1", amount: 1500, currency: "EUR", reason: "FPS reduced on appeal" },
+  "booking.payment_refunded": { refundId: "prf_1", amount: 12000, currency: "EUR", reason: "Cancelled 30 hours before pickup: 50 % refund" },
 }
 
 /** C8: a chargeback through its life, for the dispute.* examples (never the Stripe id or the evidence). */

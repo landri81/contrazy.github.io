@@ -17,6 +17,7 @@ export const PARTNER_WEBHOOK_EVENT_TYPES = [
   "booking.identity_failed",
   "booking.contract_signed",
   "booking.payment_succeeded",
+  "booking.payment_refunded",
   "booking.card_secured",
   "booking.hold_authorized",
   "booking.hold_captured",

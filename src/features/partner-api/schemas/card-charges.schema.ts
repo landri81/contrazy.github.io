@@ -28,3 +28,6 @@ export const partnerChargeRefundSchema = z.object({
   amount: cents.optional(),
   reason: z.string().trim().min(3, "reason is required").max(500),
 })
+
+/** `POST /bookings/:id/refunds` (C9): part or all of the rental payment, with a reason. */
+export const partnerBookingRefundSchema = partnerChargeRefundSchema

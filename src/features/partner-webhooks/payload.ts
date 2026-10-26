@@ -224,6 +224,8 @@ function buildEventData(
       }
     case "refund.succeeded":
       return { refund: pickScalars(metadata, ["refundId", "chargeId", "amount", "currency", "reason"]) }
+    case "booking.payment_refunded":
+      return { refund: pickScalars(metadata, ["refundId", "amount", "currency", "reason"]) }
     case "dispute.opened":
     case "dispute.updated":
     case "dispute.closed":

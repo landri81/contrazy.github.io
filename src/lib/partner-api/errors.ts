@@ -41,6 +41,7 @@ export type PartnerApiErrorCode =
   | "charge_not_retryable"
   | "charge_not_refundable"
   | "refund_too_large"
+  | "payment_not_refundable"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -88,6 +89,7 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   charge_not_retryable: 409,
   charge_not_refundable: 409,
   refund_too_large: 422,
+  payment_not_refundable: 409,
 }
 
 export class PartnerApiError extends Error {

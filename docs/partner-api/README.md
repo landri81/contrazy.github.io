@@ -146,6 +146,9 @@ sequenceDiagram
   reminders.
 - **Refunds.** Partial or full, always executed at Stripe, with a reason. Refunds made in the Stripe dashboard are
   picked up too (`refund.succeeded`).
+- **Rental refunds.** `POST /bookings/{id}/refunds` refunds part or all of the rental payment (cancellation refund
+  windows are the partner's rules: send the amount they give), with a reason, at Stripe. `booking.payment_refunded`
+  follows, also for refunds made in the Stripe dashboard.
 - **Detach.** `POST /customers/{cardSecurity.customerId}/detach-card` works only when no booking of that customer is
   unreturned, inside its window, has an unpaid charge or an open dispute; otherwise `409 card_in_use` lists them.
 - **Disputes.** A damage claim the vendor opens on the deposit, or a chargeback the customer's bank opens, is the
@@ -193,7 +196,7 @@ event `id` (stable per endpoint and event) to drop duplicates.
 
 Events (catalogue `2026-11-01`): `booking.created`, `booking.link_opened`, `booking.profile_submitted`,
 `booking.documents_submitted`, `booking.identity_verified`, `booking.identity_failed` (with `selfie: { required,
-status }`), `booking.contract_signed` (signed PDF URL), `booking.payment_succeeded`, `booking.card_secured`,
+status }`), `booking.contract_signed` (signed PDF URL), `booking.payment_succeeded`, `booking.payment_refunded`, `booking.card_secured`,
 `booking.hold_authorized`, `booking.hold_captured`, `booking.hold_released`, `booking.check_in_submitted`,
 `booking.check_out_submitted` (km, fuel, photos count, report URL), `booking.completed`, `booking.cancelled`,
 `charge.succeeded`, `charge.failed`, `charge.requires_action`, `refund.succeeded`, `dispute.opened`,

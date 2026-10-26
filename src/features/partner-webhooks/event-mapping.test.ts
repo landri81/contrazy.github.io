@@ -57,6 +57,7 @@ const EXPECTED: Record<TransactionEventType, string | null> = {
   CHARGE_FAILED: "charge.failed",
   CHARGE_REQUIRES_ACTION: "charge.requires_action",
   REFUND_SUCCEEDED: "refund.succeeded",
+  SERVICE_PAYMENT_REFUNDED: "booking.payment_refunded",
 }
 
 const ALL_EVENT_TYPES = Object.values(TransactionEventType)
@@ -89,7 +90,7 @@ describe("TransactionEventType -> partner webhook mapping", () => {
     }
   })
 
-  it("covers every event listed in BACKLOG C3 and the C8 dispute events (ping is test-only, never subscribable)", () => {
+  it("covers every event listed in BACKLOG C3, the C8 dispute events and the C9 rental refund (ping is test-only, never subscribable)", () => {
     expect([...PARTNER_WEBHOOK_EVENT_TYPES].sort()).toEqual(
       [
         "booking.created",
@@ -100,6 +101,7 @@ describe("TransactionEventType -> partner webhook mapping", () => {
         "booking.identity_failed",
         "booking.contract_signed",
         "booking.payment_succeeded",
+        "booking.payment_refunded",
         "booking.card_secured",
         "booking.hold_authorized",
         "booking.hold_captured",
