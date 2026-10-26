@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client"
 
-import { buildBookingStepProgress, type PartnerBookingRecord } from "@/features/partner-api/booking-presenter"
+import { buildBookingStepProgress, buildDisputeSummary, type PartnerBookingRecord } from "@/features/partner-api/booking-presenter"
 import { parseStepSwitches } from "@/features/transactions/step-switches"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import {
@@ -95,7 +95,8 @@ function buildReportFacts(booking: PartnerBookingRecord, type: ReportType, baseU
   }
 }
 
-function buildHold(booking: PartnerBookingRecord) {
+/** The booking's deposit hold as partners see it (webhooks and the hold endpoints, C5b). */
+export function buildHold(booking: Pick<PartnerBookingRecord, "depositAuthorization">) {
   const deposit = booking.depositAuthorization
 
   if (!deposit) {
@@ -223,6 +224,12 @@ function buildEventData(
       }
     case "refund.succeeded":
       return { refund: pickScalars(metadata, ["refundId", "chargeId", "amount", "currency", "reason"]) }
+    case "booking.payment_refunded":
+      return { refund: pickScalars(metadata, ["refundId", "amount", "currency", "reason"]) }
+    case "dispute.opened":
+    case "dispute.updated":
+    case "dispute.closed":
+      return { dispute: buildDisputeSummary(booking, baseUrl) }
     case "booking.profile_submitted":
     case "booking.documents_submitted":
     default:

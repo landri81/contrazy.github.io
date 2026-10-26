@@ -31,7 +31,10 @@ export const TRANSACTION_EVENT_TO_PARTNER_WEBHOOK: Record<TransactionEventType, 
   DEPOSIT_AUTHORIZED: "booking.hold_authorized",
   DEPOSIT_CAPTURED: "booking.hold_captured",
   DEPOSIT_RELEASED: "booking.hold_released",
-  DISPUTE_OPENED: null,
+  // Damage claims and chargebacks (C8): a summary only, never the evidence itself.
+  DISPUTE_OPENED: "dispute.opened",
+  DISPUTE_UPDATED: "dispute.updated",
+  DISPUTE_CLOSED: "dispute.closed",
   // Vendor-side cancellation; customer/partner/expiry cancellations arrive as LINK_CANCELLED.
   TRANSACTION_CANCELLED: "booking.cancelled",
   COMPLETED: "booking.completed",
@@ -51,6 +54,8 @@ export const TRANSACTION_EVENT_TO_PARTNER_WEBHOOK: Record<TransactionEventType, 
   CHARGE_FAILED: "charge.failed",
   CHARGE_REQUIRES_ACTION: "charge.requires_action",
   REFUND_SUCCEEDED: "refund.succeeded",
+  // Rental payment refunds (C9): cancellation refunds by the partner's windows, or made in the Stripe dashboard.
+  SERVICE_PAYMENT_REFUNDED: "booking.payment_refunded",
 }
 
 /**

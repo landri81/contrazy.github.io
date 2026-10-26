@@ -94,7 +94,8 @@ async function attemptDelivery(
   options: Pick<WorkerOptions, "now" | "timeoutMs" | "fetchImpl">
 ) {
   const attemptedAt = options.now?.() ?? new Date()
-  const urlCheck = checkPartnerWebhookUrl(endpoint.url, { allowLocalhost: allowLocalWebhookUrls(env.NODE_ENV) })
+  const allowLocalhost = allowLocalWebhookUrls(env.NODE_ENV)
+  const urlCheck = checkPartnerWebhookUrl(endpoint.url, { allowLocalhost })
   const result: WebhookSendResult = urlCheck.ok
     ? await postSignedWebhook({
         url: urlCheck.url,
@@ -103,6 +104,7 @@ async function attemptDelivery(
         eventId: delivery.eventId,
         eventType: delivery.eventType,
         attempt: delivery.attempt + 1,
+        allowLocalhost,
         timeoutMs: options.timeoutMs,
         fetchImpl: options.fetchImpl,
       })

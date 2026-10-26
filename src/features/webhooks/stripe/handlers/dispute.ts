@@ -5,6 +5,19 @@ import { prisma } from "@/lib/db/prisma"
 import { mapDisputeStatus } from "@/features/webhooks/stripe/utils/dispute-status"
 import type { WebhookHandlerResult } from "@/features/webhooks/stripe/types"
 
+/** What partners and the dashboard learn about a chargeback (C8): kind, Stripe reason, amount, evidence deadline. */
+function chargebackFacts(dispute: Stripe.Dispute) {
+  const dueBy = dispute.evidence_details?.due_by
+  return {
+    kind: "CHARGEBACK" as const,
+    reason: dispute.reason ?? null,
+    amount: dispute.amount ?? null,
+    currency: dispute.currency ?? null,
+    evidenceDueBy: dueBy ? new Date(dueBy * 1000) : null,
+    stripeDisputeId: dispute.id,
+  }
+}
+
 function extractPaymentIntentId(dispute: Stripe.Dispute): string | null {
   return typeof dispute.payment_intent === "string"
     ? dispute.payment_intent
@@ -29,7 +42,15 @@ async function findTransactionByPaymentIntent(paymentIntentId: string): Promise<
     },
   })
 
-  if (!payment) return null
+  if (!payment) {
+    // Post-rental charges (C6) are not Payment rows: match them by their PaymentIntent too.
+    const charge = await prisma.postCharge.findUnique({
+      where: { paymentIntentId },
+      select: { transactionId: true, vendorId: true },
+    })
+
+    return charge ? { transactionId: charge.transactionId, vendorId: charge.vendorId } : null
+  }
 
   return {
     transactionId: payment.transactionId,
@@ -69,6 +90,7 @@ export async function handleDisputeCreated(
       update: {
         status: "OPEN",
         summary,
+        ...chargebackFacts(dispute),
         openedAt: new Date(dispute.created * 1000),
         resolvedAt: null,
       },
@@ -76,13 +98,15 @@ export async function handleDisputeCreated(
         transactionId,
         status: "OPEN",
         summary,
+        ...chargebackFacts(dispute),
         openedAt: new Date(dispute.created * 1000),
       },
     })
 
+    // DISPUTE_OPENED: partners get `dispute.opened` from the outbox in this same transaction.
     await recordTransactionEvent(tx, {
       transactionId,
-      type: "WEBHOOK_PROCESSED",
+      type: "DISPUTE_OPENED",
       title: "Dispute opened",
       detail: summary,
       dedupeKey: `webhook:${eventId}`,
@@ -127,20 +151,23 @@ export async function handleDisputeUpdated(
       update: {
         status: newStatus as never,
         summary,
+        ...chargebackFacts(dispute),
         resolvedAt: isResolved ? new Date() : null,
       },
       create: {
         transactionId,
         status: newStatus as never,
         summary,
+        ...chargebackFacts(dispute),
         openedAt: new Date(dispute.created * 1000),
         resolvedAt: isResolved ? new Date() : null,
       },
     })
 
+    // `dispute.closed` once won or lost, `dispute.updated` for any other change.
     await recordTransactionEvent(tx, {
       transactionId,
-      type: "WEBHOOK_PROCESSED",
+      type: isResolved ? "DISPUTE_CLOSED" : "DISPUTE_UPDATED",
       title: `Dispute ${isResolved ? "resolved" : "updated"}`,
       detail: `Dispute status changed to ${dispute.status}.`,
       dedupeKey: `webhook:${eventId}`,

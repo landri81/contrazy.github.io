@@ -101,7 +101,7 @@ export function getNotRequiredClientSteps(switches: StepSwitches | null): Client
   if (!switches.documents) steps.push("documents")
   if (!switches.contract) steps.push("contract", "sign")
   if (!switches.checkIn) steps.push("check-in")
-  if (!switches.payment && !switches.hold) steps.push("payment")
+  if (!switches.payment && !switches.hold && !switches.cardSecurity) steps.push("payment")
   if (!switches.checkOut) steps.push("check-out")
 
   return steps

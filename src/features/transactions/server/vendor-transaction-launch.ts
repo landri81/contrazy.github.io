@@ -127,6 +127,11 @@ type PrepareLaunchInput = {
    * quota is not checked again. Dashboard launches never set it.
    */
   reconfigureExisting?: boolean
+  /**
+   * Partner booking with `steps.cardSecurity` (C5): saving the card is a step of
+   * its own ("card as security only"), so it counts as a workflow module.
+   */
+  cardSecurity?: boolean
 }
 
 export type CreatedVendorTransaction = {
@@ -211,6 +216,7 @@ export async function prepareVendorTransactionLaunch({
   forceGenerateQr,
   allowRecreate = true,
   reconfigureExisting = false,
+  cardSecurity = false,
 }: PrepareLaunchInput): Promise<
   | { ok: true; prepared: PreparedVendorTransactionLaunch }
   | { ok: false; response: NextResponse; code?: VendorTransactionLaunchFailureCode }
@@ -539,7 +545,8 @@ export async function prepareVendorTransactionLaunch({
       : (flowType ?? TransactionFlowType.STANDARD)
 
   const hasWorkflowModule = Boolean(
-    normalizedAmount ||
+    cardSecurity ||
+      normalizedAmount ||
       normalizedDepositAmount ||
       requiresKyc ||
       contractTemplate ||

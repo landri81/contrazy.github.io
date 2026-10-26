@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { buildBookingPayload } from "@/features/partner-api/__fixtures__/booking-payload"
-import { buildBookingLaunchInput, resolveBookingStepSwitches } from "@/features/partner-api/booking-launch"
+import { assertSupportedStepSwitches, buildBookingLaunchInput, findUnsupportedStepSwitches, resolveBookingStepSwitches } from "@/features/partner-api/booking-launch"
 import { partnerBookingCreateSchema } from "@/features/partner-api/schemas/booking.schema"
 import { getNotRequiredClientSteps, isStepSwitchedOff, mergeStepSwitches, parseStepSwitches } from "@/features/transactions/step-switches"
 import { PartnerApiError } from "@/lib/partner-api/errors"
@@ -71,17 +71,29 @@ describe("buildBookingLaunchInput", () => {
     })
   })
 
-  it("refuses card security until its launch settings exist", () => {
-    const booking = parse({ steps: { cardSecurity: true } })
+  it("accepts card security when the vendor profile names the merchant and a contact (C5)", () => {
+    const switches = resolveBookingStepSwitches(parse({ steps: { cardSecurity: true } }).steps)
+    const vendor = { businessName: "LOCAZ", supportEmail: "contact@locaz.fr", businessEmail: null }
 
-    expect(() => buildBookingLaunchInput(booking, { contractTemplateId: null })).toThrow(PartnerApiError)
+    expect(() => assertSupportedStepSwitches(switches, vendor)).not.toThrow()
+    expect(findUnsupportedStepSwitches(switches, { ...vendor, supportEmail: null, businessEmail: "hello@locaz.fr" })).toEqual([])
+  })
 
-    try {
-      buildBookingLaunchInput(booking, { contractTemplateId: null })
-    } catch (error) {
-      expect((error as PartnerApiError).code).toBe("step_requires_configuration")
-      expect((error as PartnerApiError).status).toBe(422)
-      expect((error as PartnerApiError).details).toEqual({ steps: ["steps.cardSecurity"] })
+  it("refuses card security with 422 when the consent text could not name the vendor or a contact", () => {
+    const switches = resolveBookingStepSwitches(parse({ steps: { cardSecurity: true } }).steps)
+
+    for (const vendor of [
+      { businessName: null, supportEmail: "contact@locaz.fr", businessEmail: null },
+      { businessName: "LOCAZ", supportEmail: null, businessEmail: "  " },
+    ]) {
+      try {
+        assertSupportedStepSwitches(switches, vendor)
+        expect.unreachable()
+      } catch (error) {
+        expect((error as PartnerApiError).code).toBe("step_requires_configuration")
+        expect((error as PartnerApiError).status).toBe(422)
+        expect((error as PartnerApiError).details).toEqual({ steps: ["steps.cardSecurity"] })
+      }
     }
   })
 })

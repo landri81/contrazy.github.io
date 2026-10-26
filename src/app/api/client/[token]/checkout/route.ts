@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+
+import { isCardSecurityRequired } from "@/features/card-security/card-security-state"
 import type Stripe from "stripe"
 
 import {
@@ -49,6 +51,7 @@ export async function POST(
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
+            cardSecurity: true,
             contractArtifact: true,
           },
         },
@@ -68,6 +71,7 @@ export async function POST(
       clientProfile: transaction.clientProfile,
       payments: transaction.payments,
       depositAuthorization: transaction.depositAuthorization,
+      cardSecurity: transaction.cardSecurity,
       contractArtifact: transaction.contractArtifact,
     } as FinanceTransaction
 
@@ -75,6 +79,11 @@ export async function POST(
 
     if (nextStage === "complete") {
       return NextResponse.json({ success: true, url: withLocalePath(locale, `/t/${token}/complete`) })
+    }
+
+    // Saving the card (C5) only runs in the embedded payment form, with its consent step.
+    if (isCardSecurityRequired(transaction)) {
+      return NextResponse.json({ success: true, url: withLocalePath(locale, `/t/${token}/payment`) })
     }
 
     const origin = getAppBaseUrl()

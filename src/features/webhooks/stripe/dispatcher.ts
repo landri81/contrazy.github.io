@@ -6,6 +6,9 @@ import {
   handleCheckoutPaymentFailed,
   handleCheckoutSuccess,
 } from "@/features/webhooks/stripe/handlers/checkout-session"
+import { handleSetupIntentSucceeded } from "@/features/webhooks/stripe/handlers/card-security"
+import { handlePaymentIntentCanceled } from "@/features/webhooks/stripe/handlers/deposit-hold"
+import { handleChargeRefunded, handlePostChargeIntent, isPostChargeIntent } from "@/features/webhooks/stripe/handlers/post-charge"
 import {
   handleDisputeCreated,
   handleDisputeUpdated,
@@ -75,6 +78,11 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
       )
 
     case "payment_intent.succeeded":
+      // Post-rental charges (C6) first: they are neither rental payments nor deposits.
+      if (isPostChargeIntent(event.data.object as Stripe.PaymentIntent)) {
+        return handlePostChargeIntent(event.data.object as Stripe.PaymentIntent, "succeeded")
+      }
+
       return handlePaymentIntentSucceeded(
         event.data.object as Stripe.PaymentIntent,
         eventId,
@@ -86,6 +94,30 @@ export async function dispatchStripeEvent(event: Stripe.Event): Promise<WebhookH
         event.data.object as Stripe.PaymentIntent,
         eventId,
         eventType
+      )
+
+    case "charge.refunded":
+      return handleChargeRefunded(event.data.object as Stripe.Charge)
+
+    case "payment_intent.payment_failed":
+    case "payment_intent.requires_action": {
+      const intent = event.data.object as Stripe.PaymentIntent
+
+      if (!isPostChargeIntent(intent)) {
+        return UNHANDLED
+      }
+
+      return handlePostChargeIntent(intent, eventType === "payment_intent.payment_failed" ? "failed" : "requires_action")
+    }
+
+    case "payment_intent.canceled":
+      return handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent, eventId)
+
+    case "setup_intent.succeeded":
+      return handleSetupIntentSucceeded(
+        event.data.object as Stripe.SetupIntent,
+        eventId,
+        event.account ?? null
       )
 
     case "account.updated":

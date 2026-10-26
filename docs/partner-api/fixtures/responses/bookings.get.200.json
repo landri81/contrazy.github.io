@@ -1,0 +1,170 @@
+{
+  "id": "txn_partner_1",
+  "reference": "CZ-2026-0001",
+  "externalRef": "LOCAZ-BK-42",
+  "status": "in_progress",
+  "customerUrl": "https://contrazy.com/fr/t/customer-link-token",
+  "customer": {
+    "firstName": "Alice",
+    "lastName": "Martin",
+    "email": "alice.martin@locaz.test",
+    "phone": "+33612345678",
+    "locale": "fr",
+    "flowLocale": "fr"
+  },
+  "startAt": "2026-11-05T09:00:00.000Z",
+  "endAt": "2026-11-08T18:00:00.000Z",
+  "timezone": "Europe/Paris",
+  "rental": {
+    "vehicle": {
+      "model": "Peugeot 208",
+      "plate": "AB-123-CD",
+      "category": "Compact"
+    },
+    "pickup": {
+      "place": "Nice Airport T2"
+    },
+    "return": {
+      "place": "Nice Airport T2"
+    },
+    "mileage": {
+      "unlimited": false,
+      "includedKm": 900,
+      "extraKmPrice": 25
+    },
+    "options": [],
+    "priceLines": []
+  },
+  "returnUrl": "https://locaz.co/bookings/return",
+  "steps": [
+    {
+      "key": "identity",
+      "required": true,
+      "status": "done",
+      "startedAt": "2026-11-01T08:05:00.000Z",
+      "completedAt": "2026-11-01T08:10:00.000Z"
+    },
+    {
+      "key": "selfie",
+      "required": false,
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "key": "documents",
+      "required": false,
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "key": "contract",
+      "required": true,
+      "status": "done",
+      "startedAt": "2026-11-01T08:14:00.000Z",
+      "completedAt": "2026-11-01T08:21:00.000Z"
+    },
+    {
+      "key": "checkIn",
+      "required": false,
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "key": "checkOut",
+      "required": false,
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null
+    },
+    {
+      "key": "payment",
+      "required": true,
+      "status": "done",
+      "startedAt": "2026-11-01T08:25:00.000Z",
+      "completedAt": "2026-11-01T08:30:00.000Z"
+    },
+    {
+      "key": "cardSecurity",
+      "required": true,
+      "status": "done",
+      "startedAt": "2026-11-04T17:59:00.000Z",
+      "completedAt": "2026-11-04T18:00:00.000Z"
+    },
+    {
+      "key": "hold",
+      "required": false,
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null
+    }
+  ],
+  "contract": {
+    "required": true,
+    "signed": true,
+    "signedAt": "2026-11-01T08:21:00.000Z",
+    "signedPdfUrl": "https://contrazy.com/api/integrations/cloudinary/download?publicId=contracts%2Fcz-2026-0001-signed.pdf&resourceType=raw&format=pdf&fileName=CZ-2026-0001-signed.pdf"
+  },
+  "checkIn": null,
+  "checkOut": null,
+  "payment": {
+    "currency": "EUR",
+    "amount": 18000,
+    "depositAmount": 80000,
+    "servicePayment": {
+      "status": "succeeded",
+      "amount": 18000,
+      "processedAt": "2026-11-01T08:30:00.000Z"
+    },
+    "deposit": {
+      "status": "authorized",
+      "amount": 80000,
+      "authorizedAt": "2026-11-01T08:31:00.000Z",
+      "capturedAt": null,
+      "releasedAt": null,
+      "capturedAmount": null
+    }
+  },
+  "cardSecurity": {
+    "status": "secured",
+    "customerId": "pcus_1",
+    "securedAt": "2026-11-04T18:00:00.000Z",
+    "windowEndsAt": "2027-02-06T17:00:00.000Z",
+    "detachedAt": null
+  },
+  "charges": [
+    {
+      "id": "pc_1",
+      "bookingId": "txn_partner_1",
+      "externalRef": "LZ-FPS-0617",
+      "type": "fps",
+      "amount": 3500,
+      "currency": "EUR",
+      "description": "FPS Nice, 12 Nov",
+      "proofUrls": [
+        "https://files.locaz.co/fps-0617.pdf"
+      ],
+      "status": "succeeded",
+      "attempt": 1,
+      "declineCode": null,
+      "nextRetryAt": null,
+      "refundedAmount": 0,
+      "succeededAt": "2026-11-20T10:00:00.000Z",
+      "createdAt": "2026-11-20T10:00:00.000Z",
+      "updatedAt": "2026-11-20T10:00:00.000Z"
+    }
+  ],
+  "dispute": null,
+  "link": {
+    "status": "opened",
+    "openedAt": "2026-11-01T08:00:00.000Z",
+    "completedAt": null,
+    "cancelledAt": null,
+    "cancelReason": null
+  },
+  "metadata": null,
+  "createdAt": "2026-11-01T07:00:00.000Z",
+  "updatedAt": "2026-11-20T10:00:00.000Z"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "pc_1",
+  "bookingId": "txn_partner_1",
+  "externalRef": "LZ-FPS-0617",
+  "type": "fps",
+  "amount": 3500,
+  "currency": "EUR",
+  "description": "FPS Nice, 12 Nov",
+  "proofUrls": [
+    "https://files.locaz.co/fps-0617.pdf"
+  ],
+  "status": "succeeded",
+  "attempt": 1,
+  "declineCode": null,
+  "nextRetryAt": null,
+  "refundedAmount": 0,
+  "succeededAt": "2026-11-20T10:00:00.000Z",
+  "createdAt": "2026-11-20T10:00:00.000Z",
+  "updatedAt": "2026-11-20T10:00:00.000Z"
+}

@@ -1,0 +1,43 @@
+{
+  "externalRef": "LZ-2026-000123",
+  "customer": {
+    "firstName": "Alice",
+    "lastName": "Martin",
+    "email": "alice.martin@locaz.test",
+    "phone": "+33612345678",
+    "locale": "fr"
+  },
+  "startAt": "2026-11-05T10:00:00+01:00",
+  "endAt": "2026-11-08T18:00:00+01:00",
+  "timezone": "Europe/Paris",
+  "rental": {
+    "vehicle": { "model": "Peugeot 208", "plate": "AB-123-CD", "category": "Compact" },
+    "pickup": { "place": "Nice Airport T2", "address": "Rue Costes et Bellonte, 06200 Nice" },
+    "return": { "place": "Nice Airport T2" },
+    "mileage": { "unlimited": false, "includedKm": 900, "extraKmPrice": 25 },
+    "options": ["Child seat"],
+    "protection": "Standard protection",
+    "deductible": 120000,
+    "deposit": 80000,
+    "fuelPolicy": "Full to full",
+    "priceLines": [
+      { "label": "Rental", "quantity": 3, "unit": "days", "unitAmount": 4500, "total": 13500 },
+      { "label": "Child seat", "quantity": 1, "unitAmount": 1500, "total": 1500 }
+    ]
+  },
+  "amount": 15000,
+  "currency": "EUR",
+  "steps": {
+    "identity": true,
+    "selfie": true,
+    "documents": false,
+    "contract": true,
+    "checkIn": false,
+    "checkOut": false,
+    "payment": true,
+    "cardSecurity": true,
+    "hold": false
+  },
+  "returnUrl": "https://locaz.co/account/bookings/LZ-2026-000123",
+  "metadata": { "source": "locaz.co" }
+}

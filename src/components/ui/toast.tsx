@@ -126,6 +126,9 @@ export function Toaster() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.96 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              // Announced by screen readers: errors interrupt, the rest wait their turn.
+              role={toastItem.variant === "error" ? "alert" : "status"}
+              aria-live={toastItem.variant === "error" ? "assertive" : "polite"}
               className={`flex items-start gap-3 rounded-[14px] border px-4 py-3.5 shadow-lg ${cfg.bg} ${cfg.border}`}
             >
               {cfg.icon}

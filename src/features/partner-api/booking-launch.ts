@@ -1,5 +1,6 @@
 import { PaymentCollectionTiming, TransactionFlowType } from "@prisma/client"
 
+import { ConsentPartiesMissingError, consentPartiesFor } from "@/features/card-security/consent-texts"
 import { requirementItemSchema, type VendorTransactionCreateInput } from "@/features/dashboard/schemas/vendor-operations.schema"
 import type { PartnerBookingCreateInput, RentalDetails } from "@/features/partner-api/schemas/booking.schema"
 import type { StepSwitchKey, StepSwitches } from "@/features/transactions/step-switches"
@@ -93,24 +94,39 @@ export function resolveBookingStepSwitches(steps: PartnerBookingCreateInput["ste
 }
 
 /**
- * Switches the launch configuration cannot honour yet: card security needs the
- * saved-card setup (C5). Turning it on is refused instead of being silently
- * ignored. (`selfie` maps to `requireSelfie` since C4.)
+ * Switches that need something on the vendor account before they can be on.
+ * Card security (C5): the consent text names the vendor and a dispute contact
+ * (Spec v2.1 §6), so both must exist. Refused rather than silently ignored.
  */
-export const UNSUPPORTED_STEP_SWITCHES = ["cardSecurity"] as const satisfies readonly StepSwitchKey[]
+export function findUnsupportedStepSwitches(
+  switches: StepSwitches,
+  vendor: { businessName: string | null; supportEmail: string | null; businessEmail: string | null }
+): StepSwitchKey[] {
+  const unsupported: StepSwitchKey[] = []
 
-export function findUnsupportedStepSwitches(switches: StepSwitches): StepSwitchKey[] {
-  return UNSUPPORTED_STEP_SWITCHES.filter((key) => switches[key])
+  if (switches.cardSecurity) {
+    try {
+      consentPartiesFor(vendor)
+    } catch (error) {
+      if (!(error instanceof ConsentPartiesMissingError)) throw error
+      unsupported.push("cardSecurity")
+    }
+  }
+
+  return unsupported
 }
 
-/** Throws 422 `step_requires_configuration` when a switch that has no launch setting yet is on. */
-export function assertSupportedStepSwitches(switches: StepSwitches) {
-  const unsupported = findUnsupportedStepSwitches(switches)
+/** Throws 422 `step_requires_configuration` when a switch is on that the vendor account cannot honour yet. */
+export function assertSupportedStepSwitches(
+  switches: StepSwitches,
+  vendor: { businessName: string | null; supportEmail: string | null; businessEmail: string | null }
+) {
+  const unsupported = findUnsupportedStepSwitches(switches, vendor)
 
   if (unsupported.length > 0) {
     throw new PartnerApiError(
       "step_requires_configuration",
-      `${unsupported.map((key) => `steps.${key}`).join(", ")} cannot be turned on yet for this account. Send false or leave it out.`,
+      `${unsupported.map((key) => `steps.${key}`).join(", ")} needs a business name and a support e-mail on the vendor profile (the card consent names them). Complete the profile, or send false.`,
       { details: { steps: unsupported.map((key) => `steps.${key}`) } }
     )
   }
@@ -130,8 +146,8 @@ export function buildBookingLaunchInput(
   booking: PartnerBookingCreateInput,
   options: { contractTemplateId: string | null }
 ): VendorTransactionCreateInput {
+  // Callers check the switches against the vendor first (assertSupportedStepSwitches).
   const switches = resolveBookingStepSwitches(booking.steps)
-  assertSupportedStepSwitches(switches)
   const locale = resolveFlowLocale(booking.customer.locale)
   const reportFields = buildReportFieldsForSwitches(switches, locale)
 

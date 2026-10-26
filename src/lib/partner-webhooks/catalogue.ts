@@ -17,6 +17,7 @@ export const PARTNER_WEBHOOK_EVENT_TYPES = [
   "booking.identity_failed",
   "booking.contract_signed",
   "booking.payment_succeeded",
+  "booking.payment_refunded",
   "booking.card_secured",
   "booking.hold_authorized",
   "booking.hold_captured",
@@ -29,6 +30,9 @@ export const PARTNER_WEBHOOK_EVENT_TYPES = [
   "charge.failed",
   "charge.requires_action",
   "refund.succeeded",
+  "dispute.opened",
+  "dispute.updated",
+  "dispute.closed",
 ] as const
 
 export type PartnerWebhookSubscribableEventType = (typeof PARTNER_WEBHOOK_EVENT_TYPES)[number]

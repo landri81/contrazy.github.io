@@ -188,7 +188,7 @@ export async function PartnerBookingDetails({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         {/* Schedule */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm lg:self-start">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CalendarRange className="size-4 text-muted-foreground" />

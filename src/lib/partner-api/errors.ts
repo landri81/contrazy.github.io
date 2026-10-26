@@ -28,6 +28,20 @@ export type PartnerApiErrorCode =
   | "launch_rejected"
   | "webhook_url_not_allowed"
   | "webhook_endpoint_limit_reached"
+  | "card_not_secured"
+  | "hold_exists"
+  | "hold_not_recommended"
+  | "hold_failed"
+  | "hold_not_active"
+  | "card_detached"
+  | "card_in_use"
+  | "charge_window_closed"
+  | "proof_required"
+  | "charge_in_flight"
+  | "charge_not_retryable"
+  | "charge_not_refundable"
+  | "refund_too_large"
+  | "payment_not_refundable"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -62,6 +76,20 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   launch_rejected: 422,
   webhook_url_not_allowed: 422,
   webhook_endpoint_limit_reached: 409,
+  card_not_secured: 409,
+  hold_exists: 409,
+  hold_not_recommended: 409,
+  hold_failed: 402,
+  hold_not_active: 409,
+  card_detached: 409,
+  card_in_use: 409,
+  charge_window_closed: 409,
+  proof_required: 422,
+  charge_in_flight: 409,
+  charge_not_retryable: 409,
+  charge_not_refundable: 409,
+  refund_too_large: 422,
+  payment_not_refundable: 409,
 }
 
 export class PartnerApiError extends Error {

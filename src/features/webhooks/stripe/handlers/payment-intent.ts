@@ -1,5 +1,6 @@
 import type Stripe from "stripe"
 
+import { securePaidCardIfRequested } from "@/features/card-security/server/secure-paid-card"
 import {
   syncTransactionFinanceState,
   upsertDepositAuthorizationFromIntent,
@@ -49,6 +50,7 @@ export async function handlePaymentIntentSucceeded(
     await syncTransactionFinanceState(prisma, transactionId)
   } else if (transactionId && financeStage !== "deposit_authorization") {
     await upsertServicePaymentFromIntent(prisma, transactionId, intent)
+    await securePaidCardIfRequested(transactionId, null, intent)
 
     await recordTransactionEvent(prisma, {
       transactionId,

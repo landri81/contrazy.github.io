@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+
 import nextEnv from "@next/env"
 import bcrypt from "bcryptjs"
 import { PrismaClient, RequirementType, StripeConnectionStatus, UserRole, VendorStatus } from "@prisma/client"
@@ -8,6 +10,8 @@ loadEnvConfig(process.cwd())
 
 const prisma = new PrismaClient()
 const password = "Passw0rd!Passw0rd!"
+// Test-mode partner API key of the approved vendor (synthetic, E2E database only).
+const partnerApiKey = `cz_test_${"E2eKey".padEnd(32, "0")}`
 
 async function createUserWithVendor({
   userId,
@@ -226,6 +230,214 @@ async function main() {
     },
   })
 
+  // Vendor pages sit behind an active platform plan (requireSubscribedVendorProfileAccess).
+  await prisma.vendorSubscription.create({
+    data: {
+      vendorId: approvedVendorUser.vendorProfile.id,
+      planKey: "PRO",
+      billingInterval: "MONTHLY",
+      status: "ACTIVE",
+      currentPeriodStart: new Date("2026-01-01T00:00:00.000Z"),
+      currentPeriodEnd: new Date("2099-01-01T00:00:00.000Z"),
+    },
+  })
+
+  // Partner API (C2/C3): return links may point back to LOCAZ; one test key with every scope.
+  await prisma.vendorProfile.update({
+    where: { id: approvedVendorUser.vendorProfile.id },
+    data: { partnerAllowedOrigins: ["https://locaz.co"] },
+  })
+  await prisma.partnerApiKey.create({
+    data: {
+      vendorId: approvedVendorUser.vendorProfile.id,
+      name: "E2E key",
+      prefix: partnerApiKey.slice(0, 16),
+      hashedKey: createHash("sha256").update(partnerApiKey, "utf8").digest("hex"),
+      scopes: ["bookings:read", "bookings:write", "charges:write", "webhooks:write"],
+      mode: "TEST",
+    },
+  })
+
+  // Card security (C5a): two partner bookings waiting at the card step (profile done, nothing to pay now).
+  // The vendor needs a connected account id for the card routes; it is never called (no real Stripe in E2E).
+  await prisma.vendorProfile.update({
+    where: { id: approvedVendorUser.vendorProfile.id },
+    data: { stripeAccountId: "acct_e2e_approved" },
+  })
+  for (const [suffix, locale] of [["", "fr"], ["-en", "en"]]) {
+    const profile = await prisma.clientProfile.create({
+      data: {
+        vendorId: approvedVendorUser.vendorProfile.id,
+        fullName: "Alice Martin",
+        firstName: "Alice",
+        lastName: "Martin",
+        email: `alice.card${suffix}@locaz.test`,
+        phone: "+33612345678",
+        address: "1 rue de la Paix, 06000 Nice",
+        country: "France",
+        birthCity: "Nice",
+        birthDate: new Date("1990-04-12"),
+      },
+    })
+    await prisma.transaction.create({
+      data: {
+        id: `e2e-card-security-transaction${suffix}`,
+        vendorId: approvedVendorUser.vendorProfile.id,
+        clientProfileId: profile.id,
+        reference: `TX-E2E-CARD${suffix.toUpperCase()}`,
+        title: "Peugeot 208 rental",
+        kind: "HYBRID",
+        status: "LINK_SENT",
+        requiresKyc: false,
+        locale,
+        source: "PARTNER_API",
+        externalRef: `LZ-E2E-CARD${suffix.toUpperCase()}`,
+        stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+        link: {
+          create: {
+            id: `e2e-card-security-link${suffix}`,
+            token: `e2e-card-security${suffix}`,
+            shortCode: `E2ECARD${suffix ? "EN" : "FR"}`,
+            qrCodeSvg: "<svg></svg>",
+          },
+        },
+      },
+    })
+  }
+
+  // A partner booking whose card is already saved (C5c: return date, window, detach rules). Synthetic Stripe ids.
+  const securedCustomer = await prisma.partnerCustomer.create({
+    data: { vendorId: approvedVendorUser.vendorProfile.id, email: "alice.secured@locaz.test", name: "Alice Secured", stripeCustomerId: "cus_e2e_secured" },
+  })
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-card-secured-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-CARD-OK",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-CARD-OK",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+      cardSecurity: {
+        create: {
+          partnerCustomerId: securedCustomer.id,
+          stripeCustomerId: securedCustomer.stripeCustomerId,
+          status: "SECURED",
+          setupIntentId: "seti_e2e_secured",
+          paymentMethodId: "pm_e2e_secured",
+          cardBrand: "visa",
+          cardLast4: "4242",
+          securedAt: new Date("2026-11-01T10:00:00.000Z"),
+        },
+      },
+    },
+  })
+
+  // Customer links of declined post-rental charges (C6b): pay on session, update the card, already paid.
+  const linkCustomer = await prisma.partnerCustomer.create({
+    data: { vendorId: approvedVendorUser.vendorProfile.id, email: "alice.links@locaz.test", name: "Alice Links", stripeCustomerId: "cus_e2e_links" },
+  })
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-charge-link-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-CHARGES",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-CHARGES",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: true, hold: false },
+      cardSecurity: {
+        create: {
+          partnerCustomerId: linkCustomer.id,
+          stripeCustomerId: linkCustomer.stripeCustomerId,
+          status: "SECURED",
+          paymentMethodId: "pm_e2e_links",
+          cardBrand: "visa",
+          cardLast4: "3184",
+          securedAt: new Date("2026-11-01T10:00:00.000Z"),
+          windowEndsAt: new Date("2027-02-03T17:00:00.000Z"),
+        },
+      },
+      postCharges: {
+        create: [
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-FPS-1", type: "FPS", amount: 3500, description: "FPS Nice, 12 novembre", proofUrls: ["https://files.locaz.test/fps-1.pdf"], status: "REQUIRES_ACTION", attempt: 1, declineCode: "authentication_required", paymentIntentId: "pi_e2e_auth", paymentLinkToken: "e2e-pay-link-authentication-1" },
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-DMG-1", type: "DAMAGE", amount: 25000, description: "Rayure pare-chocs arrière", status: "FAILED", attempt: 1, declineCode: "expired_card", paymentIntentId: "pi_e2e_expired", paymentLinkToken: "e2e-pay-link-expired-card-01" },
+          { vendorId: approvedVendorUser.vendorProfile.id, externalRef: "LZ-TOLL-1", type: "TOLL", amount: 870, proofUrls: ["https://files.locaz.test/toll-1.pdf"], status: "SUCCEEDED", attempt: 2, paymentIntentId: "pi_e2e_paid", paymentLinkToken: "e2e-pay-link-already-paid-01", succeededAt: new Date("2026-11-20T10:00:00.000Z") },
+        ],
+      },
+    },
+  })
+
+  // A partner booking the customer has finished: the completion screen links back to LOCAZ.
+  await prisma.transaction.create({
+    data: {
+      id: "e2e-partner-complete-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-PARTNER-DONE",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "COMPLETED",
+      requiresKyc: false,
+      locale: "fr",
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-0002",
+      returnUrl: "https://locaz.co/account/bookings/LZ-E2E-0002",
+      stepSwitches: { identity: false, selfie: false, documents: false, contract: false, checkIn: false, checkOut: false, payment: false, cardSecurity: false, hold: false },
+      link: {
+        create: {
+          id: "e2e-partner-complete-link",
+          token: "e2e-partner-complete",
+          shortCode: "E2EPDONE",
+          qrCodeSvg: "<svg></svg>",
+        },
+      },
+    },
+  })
+
+  const partnerTransaction = await prisma.transaction.create({
+    data: {
+      id: "e2e-partner-booking-transaction",
+      vendorId: approvedVendorUser.vendorProfile.id,
+      reference: "TX-E2E-PARTNER",
+      title: "Peugeot 208 rental",
+      kind: "HYBRID",
+      status: "LINK_SENT",
+      amount: 15000,
+      depositAmount: 80000,
+      requiresKyc: false,
+      contractTemplateId: approvedContract.id,
+      source: "PARTNER_API",
+      externalRef: "LZ-E2E-0001",
+      startAt: new Date("2026-11-02T08:00:00.000Z"),
+      endAt: new Date("2026-11-05T17:00:00.000Z"),
+      timezone: "Europe/Paris",
+      stepSwitches: { identity: false, selfie: false, documents: true, contract: true, checkIn: false, checkOut: false, payment: true, cardSecurity: false, hold: true },
+      rentalDetails: {
+        vehicle: { model: "Peugeot 208", plate: "AB-123-CD", category: "Compact" },
+        pickup: { place: "Nice Airport T2", address: "Rue Costes et Bellonte, 06200 Nice" },
+        return: { place: "Nice Airport T2" },
+        mileage: { unlimited: false, includedKm: 900, extraKmPrice: 25 },
+        options: ["Child seat", "Additional driver"],
+        protection: "Standard protection",
+        deductible: 120000,
+        deposit: 80000,
+        fuelPolicy: "Full to full",
+        priceLines: [
+          { label: "Rental", quantity: 3, unit: "days", unitAmount: 4500, total: 13500 },
+          { label: "Child seat", quantity: 1, unitAmount: 1500, total: 1500 },
+        ],
+      },
+    },
+  })
+
   console.log(
     JSON.stringify(
       {
@@ -238,6 +450,8 @@ async function main() {
         clientFlowToken: flowTransaction.link?.token ?? "e2e-client-flow",
         kycFlowToken: kycTransaction.link?.token ?? "e2e-kyc-flow",
         webhookTransactionId: webhookTransaction.id,
+        partnerTransactionId: partnerTransaction.id,
+        partnerCompleteToken: "e2e-partner-complete",
       },
       null,
       2

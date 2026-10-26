@@ -123,6 +123,8 @@ export default async function VendorTransactionDetailPage(props: {
     DEPOSIT_CAPTURED: t("eventTitles.DEPOSIT_CAPTURED"),
     DEPOSIT_RELEASED: t("eventTitles.DEPOSIT_RELEASED"),
     DISPUTE_OPENED: t("eventTitles.DISPUTE_OPENED"),
+    DISPUTE_UPDATED: t("eventTitles.DISPUTE_UPDATED"),
+    DISPUTE_CLOSED: t("eventTitles.DISPUTE_CLOSED"),
     TRANSACTION_CANCELLED: t("eventTitles.TRANSACTION_CANCELLED"),
     COMPLETED: t("eventTitles.COMPLETED"),
     EMAIL_SENT: t("eventTitles.EMAIL_SENT"),
@@ -182,8 +184,8 @@ export default async function VendorTransactionDetailPage(props: {
 
   // ── Derived financial data ────────────────────────────────────────────────────
 
-  const txLocale = transaction.locale ?? locale ?? "en"
-  const intlLocale = txLocale === "fr" ? "fr-FR" : "en-GB"
+  // Dates and amounts follow the language the vendor reads the page in, not the customer's.
+  const intlLocale = locale === "fr" ? "fr-FR" : "en-GB"
   const transactionCurrency = transaction.currency ?? "EUR"
   // Partner bookings that switched check-out off have no check-out report to request.
   const checkOutStepEnabled = !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "checkOut")
@@ -317,7 +319,7 @@ export default async function VendorTransactionDetailPage(props: {
     if (type === "DEPOSIT_RELEASED") return <Unlock className={cls} />
     if (type === "COMPLETED") return <CheckCircle2 className={cls} />
     if (type === "EMAIL_SENT") return <Mail className={cls} />
-    if (type === "DISPUTE_OPENED") return <AlertTriangle className={cls} />
+    if (type === "DISPUTE_OPENED" || type === "DISPUTE_UPDATED" || type === "DISPUTE_CLOSED") return <AlertTriangle className={cls} />
     if (type === "TRANSACTION_CANCELLED") return <XCircle className={cls} />
     if (type === "CHECK_IN_SUBMITTED" || type === "CHECK_OUT_SUBMITTED" || type === "CHECK_OUT_REQUESTED") return <FileText className={cls} />
     return <Clock className={cls} />

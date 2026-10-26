@@ -173,6 +173,8 @@ vi.mock("@/features/transactions/server/vendor-transaction-launch", () => ({
         contractArtifact: null,
         payments: [],
         depositAuthorization: null,
+        cardSecurity: null,
+        postCharges: [],
         events: [],
         createdAt: now,
         updatedAt: now,

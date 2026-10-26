@@ -1,0 +1,11 @@
+{
+  "id": "evt_ping_example",
+  "type": "ping",
+  "apiVersion": "2026-11-01",
+  "createdAt": "2026-11-05T09:30:00.000Z",
+  "data": {
+    "endpoint": {
+      "id": "we_1"
+    }
+  }
+}

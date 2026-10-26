@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+import { securePaidCardIfRequested } from "@/features/card-security/server/secure-paid-card"
+
 import {
   getNextFinanceStage,
   syncTransactionFinanceState,
@@ -47,6 +49,7 @@ export async function POST(
             clientProfile: true,
             payments: true,
             depositAuthorization: true,
+            cardSecurity: true,
           },
         },
       },
@@ -76,6 +79,7 @@ export async function POST(
 
     if (intent.status === "succeeded" && !isDeposit) {
       await upsertServicePaymentFromIntent(prisma, transaction.id, intent)
+      await securePaidCardIfRequested(transaction.id, stripeAccountId, intent)
 
       await recordTransactionEvent(prisma, {
         transactionId: transaction.id,

@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import type { DisputeStatus, PostCharge, Prisma } from "@prisma/client"
 
 import { parseRentalDetails } from "@/features/partner-api/schemas/booking.schema"
 import { parseStepSwitches, STEP_SWITCH_KEYS, type StepSwitchKey, type StepSwitches } from "@/features/transactions/step-switches"
@@ -20,6 +20,9 @@ export const partnerBookingInclude = {
   contractArtifact: true,
   payments: true,
   depositAuthorization: true,
+  cardSecurity: true,
+  postCharges: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+  dispute: true,
   events: { orderBy: { occurredAt: "asc" } },
 } satisfies Prisma.TransactionInclude
 
@@ -37,7 +40,7 @@ export type BookingStepProgress = {
 
 type StepSnapshot = Pick<
   PartnerBookingRecord,
-  "kycVerification" | "signatureRecord" | "contractArtifact" | "payments" | "depositAuthorization" | "reports" | "events"
+  "kycVerification" | "signatureRecord" | "contractArtifact" | "payments" | "depositAuthorization" | "cardSecurity" | "reports" | "events"
 >
 
 function iso(value: Date | null | undefined) {
@@ -109,8 +112,14 @@ function resolveStep(key: StepSwitchKey, snapshot: StepSnapshot): { done: Date |
             : null,
       }
     }
-    // Card security (C5) is tracked once that step exists.
-    case "cardSecurity":
+    case "cardSecurity": {
+      // Started when the card form opened (intent created), done once the card is saved with consent.
+      const card = snapshot.cardSecurity
+      return {
+        started: card?.createdAt ?? null,
+        done: card?.status === "SECURED" ? (card.securedAt ?? eventTime(snapshot, "CARD_SECURED")) : null,
+      }
+    }
     default:
       return { started: null, done: null }
   }
@@ -198,6 +207,83 @@ function readPartnerMetadata(value: Prisma.JsonValue | null) {
   }
 }
 
+/**
+ * The saved card of the booking (C5): status, the customer id used by
+ * `POST /customers/:id/detach-card`, and the 90-day charge window. Never card
+ * data (brand, last4, PaymentMethod ids stay out of partner responses).
+ */
+export function buildCardSecuritySummary(booking: Pick<PartnerBookingRecord, "stepSwitches" | "cardSecurity">) {
+  if (!parseStepSwitches(booking.stepSwitches)?.cardSecurity) {
+    return null
+  }
+
+  const card = booking.cardSecurity
+
+  return {
+    status: card?.status.toLowerCase() ?? "pending",
+    customerId: card?.partnerCustomerId ?? null,
+    securedAt: iso(card?.securedAt),
+    windowEndsAt: iso(card?.windowEndsAt),
+    detachedAt: iso(card?.detachedAt),
+  }
+}
+
+/** Seen from the vendor: a won claim or chargeback keeps the money, a lost one gives it back. */
+const PARTNER_DISPUTE_STATUS: Record<DisputeStatus, "open" | "under_review" | "won" | "lost"> = {
+  OPEN: "open",
+  UNDER_REVIEW: "under_review",
+  RESOLVED: "won",
+  LOST: "lost",
+}
+
+/**
+ * The booking's dispute (C8): a damage claim on the deposit or a chargeback, as a summary. The evidence
+ * (contract, ID check, photos, consent, notices) stays in Contrazy: `evidenceUrl` opens the booking in
+ * the vendor dashboard, where it can be reviewed and downloaded. Never Stripe ids or the evidence files.
+ */
+export function buildDisputeSummary(booking: Pick<PartnerBookingRecord, "id" | "locale" | "dispute">, baseUrl: string) {
+  const dispute = booking.dispute
+
+  if (!dispute) {
+    return null
+  }
+
+  return {
+    id: dispute.id,
+    kind: dispute.kind === "CHARGEBACK" ? "chargeback" : "damage_claim",
+    status: PARTNER_DISPUTE_STATUS[dispute.status],
+    reason: dispute.reason,
+    amount: dispute.amount,
+    currency: dispute.currency,
+    openedAt: dispute.openedAt.toISOString(),
+    evidenceDueBy: iso(dispute.evidenceDueBy),
+    closedAt: iso(dispute.resolvedAt),
+    evidenceUrl: `${baseUrl.replace(/\/$/, "")}/${booking.locale === "fr" ? "fr" : "en"}/vendor/transactions/${encodeURIComponent(booking.id)}`,
+  }
+}
+
+/** A post-rental charge as partners see it (C6): never card data or PaymentIntent ids. */
+export function presentPartnerCharge(charge: PostCharge) {
+  return {
+    id: charge.id,
+    bookingId: charge.transactionId,
+    externalRef: charge.externalRef,
+    type: charge.type.toLowerCase(),
+    amount: charge.amount,
+    currency: charge.currency,
+    description: charge.description,
+    proofUrls: charge.proofUrls,
+    status: charge.status.toLowerCase(),
+    attempt: charge.attempt,
+    declineCode: charge.declineCode,
+    nextRetryAt: iso(charge.nextRetryAt),
+    refundedAmount: charge.refundedAmount,
+    succeededAt: iso(charge.succeededAt),
+    createdAt: charge.createdAt.toISOString(),
+    updatedAt: charge.updatedAt.toISOString(),
+  }
+}
+
 export function buildCustomerUrl(booking: Pick<PartnerBookingRecord, "locale" | "link">, baseUrl: string) {
   return booking.link?.token ? `${baseUrl.replace(/\/$/, "")}/${booking.locale}/t/${booking.link.token}` : null
 }
@@ -259,6 +345,9 @@ export function presentPartnerBooking(booking: PartnerBookingRecord, baseUrl: st
     checkIn: buildReportSummary(booking, "CHECK_IN"),
     checkOut: buildReportSummary(booking, "CHECK_OUT"),
     payment: buildPaymentSummary(booking),
+    cardSecurity: buildCardSecuritySummary(booking),
+    charges: booking.postCharges.map(presentPartnerCharge),
+    dispute: buildDisputeSummary(booking, baseUrl),
     link: booking.link
       ? {
           status: booking.link.status.toLowerCase(),

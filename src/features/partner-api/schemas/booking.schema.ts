@@ -31,7 +31,7 @@ function positiveCents(label: string) {
   return cents(label).min(1, `${label} must be greater than zero`)
 }
 
-const isoDateTime = (label: string) =>
+export const isoDateTime = (label: string) =>
   z.iso.datetime({ offset: true, error: `${label} must be an ISO 8601 date-time with offset` })
 
 export const timezoneSchema = z

@@ -178,6 +178,7 @@ export function buildPartnerBookingRecord(overrides: Partial<PartnerBookingRecor
         })),
       },
     ],
+    dispute: null,
     events: [],
     ...overrides,
   }

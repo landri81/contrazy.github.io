@@ -1,0 +1,96 @@
+{
+  "id": "evt_dispute_closed_example",
+  "type": "dispute.closed",
+  "apiVersion": "2026-11-01",
+  "createdAt": "2026-11-05T09:30:00.000Z",
+  "data": {
+    "booking": {
+      "id": "txn_partner_1",
+      "externalRef": "LOCAZ-BK-42",
+      "reference": "CZ-2026-0001",
+      "status": "in_progress",
+      "steps": [
+        {
+          "key": "identity",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:05:00.000Z",
+          "completedAt": "2026-11-01T08:10:00.000Z"
+        },
+        {
+          "key": "selfie",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "documents",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "contract",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:14:00.000Z",
+          "completedAt": "2026-11-01T08:21:00.000Z"
+        },
+        {
+          "key": "checkIn",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "checkOut",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        },
+        {
+          "key": "payment",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-01T08:25:00.000Z",
+          "completedAt": "2026-11-01T08:30:00.000Z"
+        },
+        {
+          "key": "cardSecurity",
+          "required": true,
+          "status": "done",
+          "startedAt": "2026-11-04T17:59:00.000Z",
+          "completedAt": "2026-11-04T18:00:00.000Z"
+        },
+        {
+          "key": "hold",
+          "required": false,
+          "status": "skipped",
+          "startedAt": null,
+          "completedAt": null
+        }
+      ]
+    },
+    "customer": {
+      "firstName": "Alice",
+      "lastName": "Martin",
+      "email": "alice.martin@locaz.test"
+    },
+    "dispute": {
+      "id": "dsp_1",
+      "kind": "chargeback",
+      "status": "won",
+      "reason": "product_unacceptable",
+      "amount": 15000,
+      "currency": "eur",
+      "openedAt": "2026-11-20T08:15:00.000Z",
+      "evidenceDueBy": "2026-12-04T23:59:59.000Z",
+      "closedAt": "2026-12-12T10:00:00.000Z",
+      "evidenceUrl": "https://contrazy.com/fr/vendor/transactions/txn_partner_1"
+    }
+  }
+}

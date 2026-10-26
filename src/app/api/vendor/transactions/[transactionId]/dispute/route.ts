@@ -355,7 +355,7 @@ export async function PATCH(
       try {
         await recordTransactionEvent(prisma, {
           transactionId: transaction.id,
-          type: "DISPUTE_OPENED",
+          type: "DISPUTE_CLOSED",
           title: "Dispute resolved — vendor's claim upheld",
           detail: resolutionText || "Vendor chose to retain the deposit.",
           dedupeKey: `event:dispute-resolved:${disputeId}`,
@@ -473,7 +473,7 @@ export async function PATCH(
     try {
       await recordTransactionEvent(prisma, {
         transactionId: transaction.id,
-        type: "DISPUTE_OPENED",
+        type: "DISPUTE_CLOSED",
         title: "Dispute resolved — deposit released to client",
         detail: resolutionText || "Vendor chose to release the deposit.",
         dedupeKey: `event:dispute-resolved:${disputeId}`,

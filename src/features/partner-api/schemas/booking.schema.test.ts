@@ -22,6 +22,19 @@ describe("partnerBookingCreateSchema", () => {
     expect(parsed.rental.priceLines).toHaveLength(2)
   })
 
+  it("accepts the documents LOCAZ asks: the licence (two sides) and a proof of address (LOCAZ M8.6)", () => {
+    const requirements = [
+      { label: "Permis de conduire", description: "Recto et verso d’un permis de conduire valide.", type: "DOCUMENT", category: "DRIVER_LICENSE", required: true, requiredFileCount: 2, fileSlotLabels: ["Recto", "Verso"] },
+      { label: "Justificatif de domicile", description: "Facture de moins de 3 mois.", type: "DOCUMENT", category: "PROOF_OF_ADDRESS", required: true, requiredFileCount: 1, fileSlotLabels: ["Justificatif"] },
+    ]
+    const parsed = partnerBookingCreateSchema.parse(buildBookingPayload({ requirements, steps: { ...buildBookingPayload().steps, documents: true } }))
+
+    expect(parsed.requirements?.map((item) => [item.category, item.requiredFileCount])).toEqual([
+      ["DRIVER_LICENSE", 2],
+      ["PROOF_OF_ADDRESS", 1],
+    ])
+  })
+
   it("refuses endAt equal to or before startAt", () => {
     expect(issuesOf(buildBookingPayload({ endAt: "2026-11-02T09:00:00+01:00" }))).toContain("endAt: endAt must be after startAt")
     expect(issuesOf(buildBookingPayload({ endAt: "2026-11-01T09:00:00+01:00" }))).toContain("endAt: endAt must be after startAt")

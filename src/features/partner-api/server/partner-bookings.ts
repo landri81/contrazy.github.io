@@ -213,7 +213,7 @@ export async function createPartnerBooking(
   const { vendorProfile } = caller
   const switches = resolveBookingStepSwitches(input.steps)
 
-  assertSupportedStepSwitches(switches)
+  assertSupportedStepSwitches(switches, vendorProfile)
   assertReturnUrlAllowed(input.returnUrl, vendorProfile.partnerAllowedOrigins)
 
   const subscription = await requireLaunchableVendor(vendorProfile)
@@ -238,6 +238,7 @@ export async function createPartnerBooking(
     subscription,
     data: buildBookingLaunchInput(input, { contractTemplateId }),
     allowRecreate: false,
+    cardSecurity: switches.cardSecurity,
   })
 
   if (!launch.ok) {
@@ -375,7 +376,7 @@ export async function updatePartnerBooking(caller: PartnerCaller, bookingId: str
   const nextSwitches = mergeStepSwitches(currentSwitches, input.steps)
   const changedSteps = getChangedStepSwitchKeys(currentSwitches, nextSwitches)
 
-  assertSupportedStepSwitches(nextSwitches)
+  assertSupportedStepSwitches(nextSwitches, caller.vendorProfile)
 
   if (nextSwitches.selfie && !nextSwitches.identity) {
     throw invalid("steps.selfie", "steps.selfie requires steps.identity")
@@ -413,6 +414,7 @@ export async function updatePartnerBooking(caller: PartnerCaller, bookingId: str
       subscription,
       allowRecreate: false,
       reconfigureExisting: true,
+      cardSecurity: nextSwitches.cardSecurity,
       data: buildBookingLaunchInput(
         {
           externalRef: booking.externalRef ?? booking.reference,
