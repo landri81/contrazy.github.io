@@ -1,8 +1,10 @@
 import type Stripe from "stripe"
 
+import { resolveSelfieOutcome, SELFIE_NOT_REQUESTED } from "@/features/kyc/selfie-check"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
+import { stripeGateway } from "@/lib/integrations/stripe"
 import type { WebhookHandlerResult } from "@/features/webhooks/stripe/types"
 
 function extractIdentityContext(session: Stripe.Identity.VerificationSession) {
@@ -21,6 +23,10 @@ function extractIdentityContext(session: Stripe.Identity.VerificationSession) {
  *
  * The `kycVerificationsUsed` increment is guarded: if the return page already
  * marked the record VERIFIED, the increment is skipped to avoid double-counting.
+ *
+ * When the session asked for a selfie (C4), a verified session means the selfie
+ * matched too; the outcome is stored as `selfieCheck` before the KYC event is
+ * recorded, so the partner webhook built from that event carries it.
  */
 export async function handleIdentitySessionVerified(
   session: Stripe.Identity.VerificationSession,
@@ -31,6 +37,8 @@ export async function handleIdentitySessionVerified(
   if (!transactionId || !vendorId) {
     return { vendorId: null, transactionId: null }
   }
+
+  const selfie = (await resolveSelfieOutcome(session, stripeGateway)) ?? SELFIE_NOT_REQUESTED
 
   await prisma.$transaction(async (tx) => {
     const current = await tx.kycVerification.findUnique({
@@ -47,6 +55,7 @@ export async function handleIdentitySessionVerified(
           status: "VERIFIED",
           providerReference: session.id,
           verifiedAt: new Date(),
+          ...selfie,
         },
       })
     } else {
@@ -56,6 +65,7 @@ export async function handleIdentitySessionVerified(
           status: "VERIFIED",
           providerReference: session.id,
           verifiedAt: new Date(),
+          ...selfie,
         },
       })
     }
@@ -95,7 +105,9 @@ export async function handleIdentitySessionVerified(
  * Handles `identity.verification_session.requires_input`.
  *
  * Fires when the customer's verification attempt failed or needs re-submission.
- * Only updates status if the session is not already VERIFIED.
+ * Only updates status if the session is not already VERIFIED. When a selfie was
+ * requested, the selfie outcome and its Stripe error code (for example
+ * `selfie_face_mismatch`) are stored alongside.
  */
 export async function handleIdentitySessionRequiresInput(
   session: Stripe.Identity.VerificationSession,
@@ -106,6 +118,8 @@ export async function handleIdentitySessionRequiresInput(
   if (!transactionId || !vendorId) {
     return { vendorId: null, transactionId: null }
   }
+
+  const selfie = (await resolveSelfieOutcome(session, stripeGateway)) ?? SELFIE_NOT_REQUESTED
 
   await prisma.$transaction(async (tx) => {
     const current = await tx.kycVerification.findUnique({
@@ -126,6 +140,7 @@ export async function handleIdentitySessionRequiresInput(
           status: "FAILED",
           providerReference: session.id,
           summary: session.last_error?.reason ?? "requires_input",
+          ...selfie,
         },
       })
     } else {
@@ -135,6 +150,7 @@ export async function handleIdentitySessionRequiresInput(
           status: "FAILED",
           providerReference: session.id,
           summary: session.last_error?.reason ?? "requires_input",
+          ...selfie,
         },
       })
     }

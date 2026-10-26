@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 
 import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
+import { buildIdentityVerificationSessionParams, SELFIE_NOT_REQUESTED } from "@/features/kyc/selfie-check"
 import { canUseKyc, getKycProvider, remainingKycVerifications } from "@/features/subscriptions/server/feature-gates"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { prisma } from "@/lib/db/prisma"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
-import { getAppBaseUrl, stripe } from "@/lib/integrations/stripe"
+import { getAppBaseUrl, stripeGateway } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -96,15 +97,19 @@ export async function POST(
     // Create the VerificationSession on the PLATFORM Stripe account.
     // Stripe Identity is platform-level; the vendor's Connect account is for payments
     // and may not have Identity permissions granted.
-    const session = await stripe.identity.verificationSessions.create({
-      type: "document",
-      return_url: returnUrl,
-      metadata: {
-        transactionId: transaction.id,
-        vendorId: transaction.vendorId,
-        token,
-      },
-    })
+    // With `requireSelfie` the session also asks for a live selfie matched against
+    // the photo ID; otherwise the parameters are unchanged.
+    const session = await stripeGateway.identity.createVerificationSession(
+      buildIdentityVerificationSessionParams({
+        returnUrl,
+        metadata: {
+          transactionId: transaction.id,
+          vendorId: transaction.vendorId,
+          token,
+        },
+        requireSelfie: transaction.requireSelfie,
+      })
+    )
 
     if (!session.url) {
       return NextResponse.json(
@@ -129,6 +134,7 @@ export async function POST(
           providerReference: session.id,
           verifiedAt: null,
           summary: null,
+          ...SELFIE_NOT_REQUESTED,
         },
       })
 
@@ -136,7 +142,9 @@ export async function POST(
         transactionId: transaction.id,
         type: "KYC_STARTED",
         title: "Identity verification started",
-        detail: "Customer redirected to Stripe Identity for document verification.",
+        detail: transaction.requireSelfie
+          ? "Customer redirected to Stripe Identity for document and selfie verification."
+          : "Customer redirected to Stripe Identity for document verification.",
         dedupeKey: `event:kyc-started:${transaction.id}:${session.id}`,
       })
     })

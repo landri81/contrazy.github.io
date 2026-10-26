@@ -158,6 +158,83 @@ export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
       },
     ],
   },
+  {
+    label: "Rental",
+    fields: [
+      {
+        label: "Vehicle",
+        token: "{{rental.vehicle}}",
+        description: "Vehicle model and category sent with a partner booking.",
+        sampleValue: "Peugeot 208 (Compact)",
+      },
+      {
+        label: "Plate",
+        token: "{{rental.plate}}",
+        description: "Vehicle registration plate.",
+        sampleValue: "AB-123-CD",
+      },
+      {
+        label: "Rental start",
+        token: "{{rental.start}}",
+        description: "Pick-up date and time in the booking timezone.",
+        sampleValue: "12 May 2026, 09:00 (Europe/Paris)",
+      },
+      {
+        label: "Rental end",
+        token: "{{rental.end}}",
+        description: "Return date and time in the booking timezone.",
+        sampleValue: "15 May 2026, 18:00 (Europe/Paris)",
+      },
+      {
+        label: "Pick-up place",
+        token: "{{rental.pickupPlace}}",
+        description: "Pick-up place and address.",
+        sampleValue: "Nice Airport T2, Rue Costes et Bellonte",
+      },
+      {
+        label: "Return place",
+        token: "{{rental.returnPlace}}",
+        description: "Return place and address.",
+        sampleValue: "Nice Airport T2, Rue Costes et Bellonte",
+      },
+      {
+        label: "Included mileage",
+        token: "{{rental.kmIncluded}}",
+        description: "Included kilometres, or unlimited mileage, with the extra km price.",
+        sampleValue: "900 km (€0.25 per extra km)",
+      },
+      {
+        label: "Options",
+        token: "{{rental.options}}",
+        description: "Booked rental options.",
+        sampleValue: "Child seat, Additional driver",
+      },
+      {
+        label: "Protection",
+        token: "{{rental.protection}}",
+        description: "Selected protection package.",
+        sampleValue: "Standard protection",
+      },
+      {
+        label: "Deductible",
+        token: "{{rental.deductible}}",
+        description: "Deductible amount for the selected protection.",
+        sampleValue: "€1,200.00",
+      },
+      {
+        label: "Rental deposit",
+        token: "{{rental.deposit}}",
+        description: "Security deposit stated in the rental terms.",
+        sampleValue: "€800.00",
+      },
+      {
+        label: "Price table",
+        token: "{{rental.priceTable}}",
+        description: "Price lines with quantity, unit price and total. Place it on its own line.",
+        sampleValue: "Rental — 3 days × €45.00 = €135.00; Total: €135.00",
+      },
+    ],
+  },
   signatureContractMergeFieldGroup,
 ]
 

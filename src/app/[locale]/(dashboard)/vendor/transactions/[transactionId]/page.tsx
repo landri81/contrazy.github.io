@@ -39,6 +39,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { DepositControlCard } from "@/features/dashboard/components/deposit-control-card"
 import { KycReviewCard } from "@/features/dashboard/components/kyc-review-card"
+import { PartnerBookingDetails } from "@/features/dashboard/components/partner-booking-details"
 import { PaymentLinkManagementActions } from "@/features/dashboard/components/payment-link-management-actions"
 import { RecreateTransactionAction } from "@/features/dashboard/components/recreate-transaction-action"
 import { RequestCheckoutCard } from "@/features/dashboard/components/request-checkout-card"
@@ -48,6 +49,7 @@ import { getStatusTone } from "@/features/dashboard/lib/status-tone"
 import { ContractDocument } from "@/features/contracts/components/contract-document"
 import { TransactionRequirementsCard } from "@/features/dashboard/components/transaction-requirements-card"
 import { buildTransactionCreationInitialValues } from "@/features/transactions/server/transaction-recreation"
+import { isStepSwitchedOff, parseStepSwitches } from "@/features/transactions/step-switches"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -183,6 +185,8 @@ export default async function VendorTransactionDetailPage(props: {
   const txLocale = transaction.locale ?? locale ?? "en"
   const intlLocale = txLocale === "fr" ? "fr-FR" : "en-GB"
   const transactionCurrency = transaction.currency ?? "EUR"
+  // Partner bookings that switched check-out off have no check-out report to request.
+  const checkOutStepEnabled = !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "checkOut")
 
   function fmt(amount: number | null | undefined, currency?: string): string {
     if (amount == null) return "—"
@@ -465,6 +469,19 @@ export default async function VendorTransactionDetailPage(props: {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Rental booking (partner bookings) ────────────────────────────────── */}
+      <PartnerBookingDetails
+        source={transaction.source}
+        externalRef={transaction.externalRef}
+        startAt={transaction.startAt}
+        endAt={transaction.endAt}
+        timezone={transaction.timezone}
+        rentalDetails={transaction.rentalDetails}
+        stepSwitches={transaction.stepSwitches}
+        currency={transactionCurrency}
+        intlLocale={intlLocale}
+      />
 
       {/* ── Financial Overview ───────────────────────────────────────────────── */}
       {(transaction.amount || transaction.depositAmount || transaction.depositAuthorization) ? (
@@ -845,12 +862,14 @@ export default async function VendorTransactionDetailPage(props: {
 
             return (
               <>
-                <RequestCheckoutCard
-                  transactionId={transaction.id}
-                  checkInSubmittedAt={checkInReport?.submittedAt?.toISOString() ?? null}
-                  checkOutRequestedAt={transaction.checkOutRequestedAt?.toISOString() ?? null}
-                  checkOutSubmittedAt={checkOutReport?.submittedAt?.toISOString() ?? null}
-                />
+                {checkOutStepEnabled ? (
+                  <RequestCheckoutCard
+                    transactionId={transaction.id}
+                    checkInSubmittedAt={checkInReport?.submittedAt?.toISOString() ?? null}
+                    checkOutRequestedAt={transaction.checkOutRequestedAt?.toISOString() ?? null}
+                    checkOutSubmittedAt={checkOutReport?.submittedAt?.toISOString() ?? null}
+                  />
+                ) : null}
                 {hasCheckInData || hasCheckOutData ? (
                   <Card>
                     <CardHeader>
@@ -949,7 +968,11 @@ export default async function VendorTransactionDetailPage(props: {
 
       {/* ── KYC ─────────────────────────────────────────────────────────────── */}
       {transaction.requiresKyc && transaction.kycVerification && (
-        <KycReviewCard transactionId={transaction.id} kyc={transaction.kycVerification} />
+        <KycReviewCard
+          transactionId={transaction.id}
+          kyc={transaction.kycVerification}
+          requireSelfie={transaction.requireSelfie}
+        />
       )}
 
       {/* ── Contract / agreement ─────────────────────────────────────────────── */}

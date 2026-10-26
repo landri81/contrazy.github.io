@@ -2,7 +2,10 @@ import { NextResponse } from "next/server"
 
 import { remainingQrCodes } from "@/features/subscriptions/server/feature-gates"
 import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
-import { vendorTransactionCreateSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
+import {
+  getVendorTransactionParseErrorCode,
+  vendorTransactionCreateSchema,
+} from "@/features/dashboard/schemas/vendor-operations.schema"
 import { buildVendorActionsUsage, buildVendorLinkRecord } from "@/features/dashboard/server/dashboard-data"
 import {
   createPreparedVendorTransaction,
@@ -96,6 +99,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
+          code: getVendorTransactionParseErrorCode(parsedBody.error),
           message: formatVendorTransactionParseError(parsedBody.error),
         },
         { status: 400 }

@@ -111,6 +111,14 @@ enum KycStatus {
   FAILED
 }
 
+/// Outcome of the Stripe Identity selfie match (C4). NOT_REQUESTED when the
+/// transaction did not ask for a selfie or no outcome is known yet.
+enum KycSelfieCheck {
+  NOT_REQUESTED
+  VERIFIED
+  UNVERIFIED
+}
+
 enum SignatureStatus {
   PENDING
   SIGNED
@@ -192,6 +200,11 @@ enum AuditActorType {
   SUPER_ADMIN
 }
 
+enum PartnerApiKeyMode {
+  TEST
+  LIVE
+}
+
 enum LocaleCode {
   en
   fr
@@ -213,6 +226,11 @@ enum BlogPostStatus {
 enum TransactionFlowType {
   STANDARD
   CHECK_IN_OUT
+}
+
+enum TransactionSource {
+  DASHBOARD
+  PARTNER_API
 }
 
 enum TransactionReportType {
@@ -268,6 +286,18 @@ enum TransactionEventType {
   DEPOSIT_AUTO_REFUNDED
   DEPOSIT_AUTO_REFUND_SKIPPED
   DEPOSIT_REFUND_FAILED
+  CARD_SECURED
+  CHARGE_SUCCEEDED
+  CHARGE_FAILED
+  CHARGE_REQUIRES_ACTION
+  REFUND_SUCCEEDED
+}
+
+enum PartnerWebhookDeliveryStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  DEAD
 }
 
 model User {
@@ -288,6 +318,7 @@ model User {
   auditLogs        AuditLog[]           @relation("AuditActor")
   passwordResets   PasswordResetToken[]
   blogPosts        BlogPost[]
+  partnerApiKeys   PartnerApiKey[]      @relation("PartnerApiKeyCreator")
 }
 
 model VendorProfile {
@@ -322,6 +353,10 @@ model VendorProfile {
   invitations            Invitation[]
   webhookEvents          WebhookEvent[]
   subscription           VendorSubscription?
+  partnerApiKeys         PartnerApiKey[]
+  partnerIdempotencyKeys PartnerIdempotencyKey[]
+  partnerAllowedOrigins  String[]               @default([])
+  partnerWebhookEndpoints PartnerWebhookEndpoint[]
 }
 
 model VendorSubscription {
@@ -442,6 +477,7 @@ model Transaction {
   depositLongTermPlatformFeeAmount Int?
   depositLongTermFeeAcceptedAt DateTime?
   requiresKyc        Boolean            @default(false)
+  requireSelfie      Boolean            @default(false)
   requireClientCompany Boolean          @default(false)
   stripePaymentIntentId String?
   servicePaymentRequestedAt DateTime?
@@ -451,6 +487,15 @@ model Transaction {
   serviceDate        DateTime?          @db.Date
   notes              String?            @db.Text
   locale             LocaleCode         @default(en)
+  source             TransactionSource  @default(DASHBOARD)
+  externalRef        String?
+  startAt            DateTime?          @db.Timestamptz(3)
+  endAt              DateTime?          @db.Timestamptz(3)
+  timezone           String             @default("Europe/Paris")
+  rentalDetails      Json?
+  returnUrl          String?
+  stepSwitches       Json?
+  partnerMetadata    Json?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   vendor             VendorProfile      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -474,7 +519,9 @@ model Transaction {
   webhookEvents      WebhookEvent[]
   reportFields       TransactionReportField[]
   reports            TransactionReport[]
+  partnerWebhookDeliveries PartnerWebhookDelivery[]
 
+  @@unique([vendorId, externalRef])
   @@index([vendorId, createdAt])
   @@index([bulkBatchId])
   @@index([status])
@@ -672,6 +719,8 @@ model KycVerification {
   providerReference String?
   summary           String?
   verifiedAt        DateTime?
+  selfieCheck       KycSelfieCheck @default(NOT_REQUESTED)
+  selfieErrorCode   String?
   createdAt         DateTime   @default(now())
   transaction       Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 }
@@ -801,6 +850,90 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+}
+
+model PartnerApiKey {
+  id          String            @id @default(cuid())
+  vendorId    String
+  name        String
+  prefix      String
+  hashedKey   String            @unique
+  scopes      String[]
+  mode        PartnerApiKeyMode @default(TEST)
+  lastUsedAt  DateTime?
+  createdById String?
+  revokedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  vendor      VendorProfile     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy   User?             @relation("PartnerApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([vendorId, createdAt])
+  @@index([createdById])
+}
+
+model PartnerIdempotencyKey {
+  id             String        @id @default(cuid())
+  vendorId       String
+  key            String
+  requestHash    String
+  responseStatus Int?
+  responseBody   Json?
+  transactionId  String?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+  vendor         VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, key])
+  @@index([createdAt])
+}
+
+/// Outbound webhook endpoint registered by a partner (C3). `encryptedSecret`
+/// holds the `whsec_` signing secret, encrypted (AES-256-GCM); never stored in clear.
+model PartnerWebhookEndpoint {
+  id              String                   @id @default(cuid())
+  vendorId        String
+  url             String
+  description     String?
+  encryptedSecret String                   @db.Text
+  secretPrefix    String
+  eventTypes      String[]
+  active          Boolean                  @default(true)
+  createdById     String?
+  deletedAt       DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  vendor          VendorProfile            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  deliveries      PartnerWebhookDelivery[]
+
+  @@index([vendorId, createdAt])
+}
+
+/// One event for one endpoint (outbox row), written in the same database
+/// transaction as the TransactionEvent it comes from.
+model PartnerWebhookDelivery {
+  id                  String                       @id @default(cuid())
+  endpointId          String
+  transactionId       String?
+  transactionEventId  String?
+  eventId             String                       @unique
+  eventType           String
+  payload             Json
+  attempt             Int                          @default(0)
+  status              PartnerWebhookDeliveryStatus @default(PENDING)
+  responseStatus      Int?
+  responseBodySnippet String?                      @db.VarChar(1024)
+  lastError           String?                      @db.VarChar(500)
+  nextAttemptAt       DateTime?
+  lastAttemptAt       DateTime?
+  deliveredAt         DateTime?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  endpoint            PartnerWebhookEndpoint       @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  transaction         Transaction?                 @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
+  @@index([transactionId])
 }
 
 model WebhookEvent {

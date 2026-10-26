@@ -5,6 +5,11 @@ import {
   escapeContractHtml,
   normalizeContractTemplateMarkup,
 } from "@/features/contracts/contract-content"
+import {
+  applyRentalPlaceholders,
+  clearUnknownPlaceholders,
+  type ContractRentalContext,
+} from "@/features/contracts/rental-placeholders"
 import { formatDateOnlyValue } from "@/lib/date-only"
 
 type ContractClientSnapshot = {
@@ -37,6 +42,8 @@ type RenderContractContentInput = {
   signerName?: string | null
   signedAt?: Date | null
   signedTimezone?: string | null
+  /** Partner booking data for the `{{rental.*}}` placeholders (absent for dashboard transactions). */
+  rental?: ContractRentalContext | null
 }
 
 const allowedClasses = ["ql-align-center", "ql-align-right", "ql-align-justify"]
@@ -243,6 +250,9 @@ export function renderContractContent(input: RenderContractContentInput) {
   for (const [token, value] of replacements.entries()) {
     renderedHtml = renderedHtml.replaceAll(token, value)
   }
+
+  renderedHtml = applyRentalPlaceholders(renderedHtml, input.rental, input.locale)
+  renderedHtml = clearUnknownPlaceholders(renderedHtml)
 
   renderedHtml = `${renderedHtml}${buildCustomerDetailsSection(input.customerDetails, input.locale)}`
 

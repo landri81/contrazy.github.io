@@ -7,14 +7,18 @@ import {
   canCancelClientFlow,
   canRevisitClientStep,
   getClientFlowState,
+  getNotRequiredSteps,
   getTransactionByToken,
   hasCheckInStep,
+  hasCheckOutStep,
   hasCustomFieldStep,
   hasContractStep,
+  hasDocumentsStep,
   isCheckInOutFlow,
   type ClientFlowStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
+import { resolvePartnerReturnTarget } from "@/lib/partner-api/return-link"
 
 export default async function TokenLayout({
   children,
@@ -36,6 +40,7 @@ export default async function TokenLayout({
       <ClientLinkCancelledState
         vendorName={transaction.vendor?.businessName ?? "Vendor"}
         reason={transaction.link.cancelReason}
+        partnerReturn={resolvePartnerReturnTarget(transaction, "cancelled")}
       />
     )
   }
@@ -44,7 +49,7 @@ export default async function TokenLayout({
 
   const enabledSteps: ClientFlowStep[] = ["profile"]
   if (transaction.requiresKyc) enabledSteps.push("kyc")
-  enabledSteps.push("documents")
+  if (hasDocumentsStep(transaction)) enabledSteps.push("documents")
   if (hasCustomFieldStep(transaction)) enabledSteps.push("details")
   if (hasContractStep(transaction)) {
     enabledSteps.push("contract", "sign")
@@ -66,14 +71,17 @@ export default async function TokenLayout({
   enabledSteps.push("complete")
 
   // check-out appears dynamically after vendor triggers it
-  if (isCheckInOut && transaction.checkOutRequestedAt) {
+  if (hasCheckOutStep(transaction) && transaction.checkOutRequestedAt) {
     enabledSteps.push("check-out")
   }
+
+  // Partner bookings: switched-off steps are skipped and listed as "not required".
+  const notRequiredSteps = getNotRequiredSteps(transaction, enabledSteps)
 
   const state = getClientFlowState(transaction)
   const completedSteps: ClientFlowStep[] = []
   if (state.hasProfile) completedSteps.push("profile")
-  if (state.hasDocs) completedSteps.push("documents")
+  if (state.hasDocs && hasDocumentsStep(transaction)) completedSteps.push("documents")
   if (state.hasKyc && transaction.requiresKyc) completedSteps.push("kyc")
   if (state.hasCustomFields && hasCustomFieldStep(transaction)) completedSteps.push("details")
   if (state.reviewedContract && hasContractStep(transaction)) completedSteps.push("contract")
@@ -81,7 +89,7 @@ export default async function TokenLayout({
   if (isCheckInOut && state.hasCheckIn && hasCheckInStep(transaction)) completedSteps.push("check-in")
   if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")
   if (transaction.status === "COMPLETED" || state.financeComplete) completedSteps.push("complete")
-  if (isCheckInOut && state.hasCheckOut) completedSteps.push("check-out")
+  if (hasCheckOutStep(transaction) && state.hasCheckOut) completedSteps.push("check-out")
 
   const revisitableSteps = completedSteps.filter((step) => canRevisitClientStep(transaction, step))
 
@@ -92,6 +100,7 @@ export default async function TokenLayout({
       token={token}
       canCancel={canCancelClientFlow(transaction)}
       enabledSteps={enabledSteps}
+      notRequiredSteps={notRequiredSteps}
       completedSteps={completedSteps}
       revisitableSteps={revisitableSteps}
       businessLogoUrl={transaction.vendor?.businessLogoUrl}

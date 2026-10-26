@@ -50,6 +50,7 @@ export type TransactionCreationInitialValues = {
   contractTemplateId: string | null
   checklistTemplateId: string | null
   requiresKyc: boolean
+  requireSelfie: boolean
   generateQr: boolean
   paymentCollectionTiming: PaymentCollectionTimingValue
   requireClientCompany: boolean
@@ -59,3 +60,9 @@ export type TransactionCreationInitialValues = {
   flowType: TransactionFlowTypeValue
   missingContractTemplateName: string | null
 }
+
+/**
+ * Error code the launch API returns when a selfie is asked for without the
+ * identity check. The dashboard maps it to a translated message.
+ */
+export const SELFIE_REQUIRES_IDENTITY_ERROR_CODE = "selfie_requires_identity" as const

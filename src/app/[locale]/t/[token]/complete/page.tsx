@@ -6,9 +6,11 @@ import { getTranslations } from "next-intl/server"
 import { buttonVariants } from "@/components/ui/button"
 import { Link as LocalizedLink } from "@/i18n/navigation"
 import { ClientProcessingCard } from "@/features/client-flow/components/client-processing-card"
+import { PartnerReturnLink } from "@/features/client-flow/components/partner-return-link"
 import { getNextClientStep, getTransactionByToken } from "@/features/client-flow/server/client-flow-data"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
+import { resolvePartnerReturnTarget } from "@/lib/partner-api/return-link"
 import { cn } from "@/lib/utils"
 
 export default async function ClientCompletePage(props: {
@@ -33,6 +35,8 @@ export default async function ClientCompletePage(props: {
   const transactionComplete = transaction.status === "COMPLETED"
   const signedPdfHref = resolveDocumentAssetUrl(transaction.contractArtifact?.signedPdfUrl, `${transaction.reference}-signed.pdf`)
   const businessName = transaction.vendor?.businessName ?? ""
+  // Partner bookings (C3): back to the partner's site, only for an allowed-origin returnUrl.
+  const partnerReturn = resolvePartnerReturnTarget(transaction, "completed")
 
   const t = await getTranslations("clientFlow.finish")
 
@@ -76,6 +80,7 @@ export default async function ClientCompletePage(props: {
             ? t("receiptInfo")
             : t("keepLink")}
         </p>
+        {partnerReturn ? <PartnerReturnLink {...partnerReturn} className="mb-3" /> : null}
         {transaction.contractArtifact?.signedPdfUrl ? (
           <a
             href={signedPdfHref ?? transaction.contractArtifact.signedPdfUrl}
@@ -86,12 +91,14 @@ export default async function ClientCompletePage(props: {
             {t("downloadSigned")}
           </a>
         ) : null}
-        <LocalizedLink
-          href="/"
-          className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}
-        >
-          {t("returnHome")} <ChevronRight className="ml-2 h-4 w-4" />
-        </LocalizedLink>
+        {partnerReturn ? null : (
+          <LocalizedLink
+            href="/"
+            className={cn(buttonVariants({ variant: "outline" }), "inline-flex")}
+          >
+            {t("returnHome")} <ChevronRight className="ml-2 h-4 w-4" />
+          </LocalizedLink>
+        )}
       </div>
     </div>
   )
