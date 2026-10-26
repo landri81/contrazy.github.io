@@ -9,8 +9,8 @@ import { createHash } from "node:crypto"
  * v1 is the Spec §6 wording, with the vendor's name and dispute contact in
  * place of "LOCAZ" and "contact@locaz.fr". v2 (C10) adds the return fees of the
  * vendor's price schedule (late return, km over the booked allowance, cleaning),
- * which LOCAZ charges on the card (LOCAZ M8.1), in the wording LOCAZ sent back (26 Oct 2026).
- * LEGAL REVIEW PENDING.
+ * which LOCAZ charges on the card (LOCAZ M8.1), in the wording LOCAZ sent back and confirmed final (26 Oct 2026).
+ * v1: LEGAL REVIEW PENDING.
  */
 export const CURRENT_CARD_CONSENT_VERSION = "card-90d-v2"
 
@@ -29,7 +29,8 @@ const CONSENT_TEMPLATES: Record<string, ConsentTemplate> = {
       "J'autorise {vendor} à débiter la carte bancaire enregistrée, sans nouvelle autorisation de ma part, jusqu'à 90 jours après la restitution du véhicule, pour les montants suivants : frais constatés à la restitution (retard de restitution, kilomètres parcourus au-delà du forfait réservé, carburant manquant, nettoyage), dommages constatés lors de l'état des lieux de retour, péages, frais de fourrière, forfaits post-stationnement (FPS) et autres sommes réglées par {vendor} du fait de la location, y compris lorsqu'ils sont notifiés après la restitution, ainsi que les frais de gestion des contraventions. Les frais de restitution et de gestion sont ceux de la grille tarifaire en vigueur. Les amendes pour lesquelles je suis désigné comme conducteur me sont adressées directement par l'administration et ne sont pas débitées par {vendor}. Chaque débit me sera notifié avec ses justificatifs que je pourrais contester auprès de {vendor} ({contact}).",
     en:
       "I authorise {vendor} to charge my saved payment card, without further authorisation, up to 90 days after the vehicle is returned, for: fees recorded at the return (late return, kilometres driven over the booked allowance, missing fuel, cleaning), damage recorded at the return inspection, tolls, towing fees, post-parking charges (FPS) and other sums paid by {vendor} because of the rental, including those notified after return, as well as traffic-ticket admin fees. Return and admin fees are those of the current price schedule. Fines for which I am designated as driver are sent to me directly by the authorities and are not charged by {vendor}. Each charge will be notified to me with supporting documents, which I may dispute with {vendor} ({contact}).",
-    legalReviewPending: true,
+    // Confirmed final by LOCAZ (26 Oct 2026).
+    legalReviewPending: false,
   },
 }
 

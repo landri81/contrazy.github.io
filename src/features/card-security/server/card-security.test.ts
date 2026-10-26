@@ -120,7 +120,7 @@ describe("consent text (Spec v2.1 §6)", () => {
     expect(text.en).toContain("fees recorded at the return (late return, kilometres driven over the booked allowance, missing fuel, cleaning)")
     expect(text.fr.endsWith("avec ses justificatifs que je pourrais contester auprès de LOCAZ (contact@locaz.fr).")).toBe(true)
     expect(text.hash).not.toBe(renderCardConsentText(consentPartiesFor(LOCAZ), "card-90d-v1").hash)
-    expect(text.legalReviewPending).toBe(true)
+    expect(text.legalReviewPending).toBe(false)
   })
 
   it("never names traffic-fine amounts as chargeable, only the admin fee", () => {
