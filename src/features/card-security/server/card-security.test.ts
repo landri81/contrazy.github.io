@@ -118,7 +118,7 @@ describe("consent text (Spec v2.1 §6)", () => {
     expect(text.version).toBe("card-90d-v2")
     expect(text.fr).toContain("frais constatés à la restitution (retard de restitution, kilomètres parcourus au-delà du forfait réservé, carburant manquant, nettoyage)")
     expect(text.en).toContain("fees recorded at the return (late return, kilometres driven over the booked allowance, missing fuel, cleaning)")
-    expect(text.fr.endsWith("auprès de LOCAZ (contact@locaz.fr).")).toBe(true)
+    expect(text.fr.endsWith("avec ses justificatifs que je pourrais contester auprès de LOCAZ (contact@locaz.fr).")).toBe(true)
     expect(text.hash).not.toBe(renderCardConsentText(consentPartiesFor(LOCAZ), "card-90d-v1").hash)
     expect(text.legalReviewPending).toBe(true)
   })
