@@ -312,6 +312,10 @@ enum PostChargeType {
   TOWING
   FPS
   TICKET_ADMIN_FEE
+  /// Return fees of the rental agreement (C10, for LOCAZ M8.1): late return, km over the allowance, cleaning.
+  LATE_RETURN
+  EXTRA_KM
+  CLEANING
   OTHER
 }
 

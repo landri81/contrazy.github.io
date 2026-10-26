@@ -7,7 +7,7 @@ import { normalizeLocale } from "@/lib/i18n/locale-utils"
 
 export const dynamic = "force-dynamic"
 
-type ChargeTypeKey = "damage" | "fuel" | "toll" | "towing" | "fps" | "ticket_admin_fee" | "other"
+type ChargeTypeKey = "damage" | "fuel" | "toll" | "towing" | "fps" | "ticket_admin_fee" | "late_return" | "extra_km" | "cleaning" | "other"
 
 export async function generateMetadata() {
   const t = await getTranslations("chargeLink")

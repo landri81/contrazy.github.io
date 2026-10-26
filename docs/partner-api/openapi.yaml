@@ -840,7 +840,7 @@ components:
         hold: { $ref: "#/components/schemas/Hold" }
     ChargeType:
       type: string
-      enum: [damage, fuel, toll, towing, fps, ticket_admin_fee, other]
+      enum: [damage, fuel, toll, towing, fps, ticket_admin_fee, late_return, extra_km, cleaning, other]
     ChargeCreate:
       type: object
       required: [type, amount]

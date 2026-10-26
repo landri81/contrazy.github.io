@@ -4586,6 +4586,9 @@
       "towing": "Towing",
       "fps": "Post-parking charge (FPS)",
       "ticket_admin_fee": "Traffic ticket admin fee",
+      "late_return": "Late return",
+      "extra_km": "Extra kilometres",
+      "cleaning": "Vehicle cleaning",
       "other": "Other charge"
     },
     "paySaved": "Pay {amount} with the card ending {last4}",

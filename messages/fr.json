@@ -4586,6 +4586,9 @@
       "towing": "Fourrière",
       "fps": "Forfait post-stationnement (FPS)",
       "ticket_admin_fee": "Frais de gestion de contravention",
+      "late_return": "Retard de restitution",
+      "extra_km": "Kilomètres supplémentaires",
+      "cleaning": "Nettoyage du véhicule",
       "other": "Autre montant"
     },
     "paySaved": "Payer {amount} avec la carte se terminant par {last4}",

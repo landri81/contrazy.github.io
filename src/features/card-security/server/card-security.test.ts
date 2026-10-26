@@ -99,15 +99,27 @@ beforeEach(() => {
 })
 
 describe("consent text (Spec v2.1 §6)", () => {
-  it("is the Spec French clause for LOCAZ, with the English translation, a version and a stable hash", () => {
-    const text = renderCardConsentText(consentPartiesFor(LOCAZ))
+  it("keeps v1, the Spec French clause for LOCAZ, with the English translation, a version and a stable hash", () => {
+    const text = renderCardConsentText(consentPartiesFor(LOCAZ), "card-90d-v1")
 
     expect(text.fr).toBe(SPEC_FR)
     expect(text.en).toContain("I authorise LOCAZ to charge my saved payment card, without further authorisation, up to 90 days after the vehicle is returned")
     expect(text.en.endsWith("I may dispute it with LOCAZ (contact@locaz.fr).")).toBe(true)
-    expect(text.version).toBe(CURRENT_CARD_CONSENT_VERSION)
+    expect(text.version).toBe("card-90d-v1")
     expect(text.hash).toMatch(/^[0-9a-f]{64}$/)
-    expect(renderCardConsentText(consentPartiesFor(LOCAZ)).hash).toBe(text.hash)
+    expect(renderCardConsentText(consentPartiesFor(LOCAZ), "card-90d-v1").hash).toBe(text.hash)
+    expect(text.legalReviewPending).toBe(true)
+  })
+
+  it("shows v2 today: the return fees of the price schedule are named (C10, LOCAZ M8.1)", () => {
+    const text = renderCardConsentText(consentPartiesFor(LOCAZ))
+
+    expect(CURRENT_CARD_CONSENT_VERSION).toBe("card-90d-v2")
+    expect(text.version).toBe("card-90d-v2")
+    expect(text.fr).toContain("frais constatés à la restitution (retard de restitution, kilomètres parcourus au-delà du forfait réservé, carburant manquant, nettoyage)")
+    expect(text.en).toContain("fees recorded at the return (late return, kilometres driven over the booked allowance, missing fuel, cleaning)")
+    expect(text.fr.endsWith("auprès de LOCAZ (contact@locaz.fr).")).toBe(true)
+    expect(text.hash).not.toBe(renderCardConsentText(consentPartiesFor(LOCAZ), "card-90d-v1").hash)
     expect(text.legalReviewPending).toBe(true)
   })
 
@@ -134,8 +146,8 @@ describe("consent log", () => {
 
     expect(record).toMatchObject({
       transactionId: "tx1",
-      termsVersion: text.version,
-      textFr: SPEC_FR,
+      termsVersion: "card-90d-v2",
+      textFr: text.fr,
       textEn: text.en,
       textHash: text.hash,
       locale: "fr",

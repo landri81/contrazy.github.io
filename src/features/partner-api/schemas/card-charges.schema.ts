@@ -14,7 +14,8 @@ export const partnerHoldCancelSchema = z.object({}).strict()
 export const partnerBookingReturnedSchema = z.object({ returnedAt: isoDateTime("returnedAt") })
 export const partnerDetachCardSchema = z.object({}).strict()
 
-export const PARTNER_CHARGE_TYPES = ["damage", "fuel", "toll", "towing", "fps", "ticket_admin_fee", "other"] as const
+/** Charge types partners send; the return fees (late_return, extra_km, cleaning) since C10. */
+export const PARTNER_CHARGE_TYPES = ["damage", "fuel", "toll", "towing", "fps", "ticket_admin_fee", "late_return", "extra_km", "cleaning", "other"] as const
 
 export const partnerChargeCreateSchema = z.object({
   type: z.enum(PARTNER_CHARGE_TYPES),
