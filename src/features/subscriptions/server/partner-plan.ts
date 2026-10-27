@@ -1,5 +1,6 @@
 import { SubscriptionBillingInterval, SubscriptionPlanKey, VendorSubscriptionStatus, type VendorSubscription } from "@prisma/client"
 
+import type { SuperAdminActor } from "@/lib/auth/super-admin-actor"
 import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
@@ -16,7 +17,7 @@ export function isPartnerPlanActive(subscription: Pick<VendorSubscription, "part
   return Boolean(subscription?.partnerPlan && subscription.status === VendorSubscriptionStatus.ACTIVE)
 }
 
-type Actor = { id: string; email: string }
+type Actor = SuperAdminActor
 
 export class PartnerPlanError extends Error {
   constructor(public readonly code: "vendor_not_found" | "not_on_partner_plan" | "stripe_cancel_failed", message: string) {
@@ -71,6 +72,7 @@ export async function grantPartnerPlan(vendorId: string, actor: Actor, note?: st
     await tx.auditLog.create({
       data: {
         actorId: actor.id,
+        actorType: "SUPER_ADMIN",
         action: "vendor_subscription.partner_plan_granted",
         entityType: "VendorSubscription",
         entityId: subscription.id,
@@ -92,7 +94,7 @@ export async function revokePartnerPlan(vendorId: string, actor: Actor) {
       data: { status: VendorSubscriptionStatus.CANCELED, currentPeriodEnd: new Date(), partnerPlan: false },
     })
     await tx.auditLog.create({
-      data: { actorId: actor.id, action: "vendor_subscription.partner_plan_revoked", entityType: "VendorSubscription", entityId: subscription.id, metadata: { vendorId } },
+      data: { actorId: actor.id, actorType: "SUPER_ADMIN", action: "vendor_subscription.partner_plan_revoked", entityType: "VendorSubscription", entityId: subscription.id, metadata: { vendorId } },
     })
     return subscription
   })

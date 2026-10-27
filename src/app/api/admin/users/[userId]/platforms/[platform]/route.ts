@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server"
 
 import { connectPlatform, disconnectPlatform, PlatformConnectionError } from "@/features/partner-platforms/server/platform-connections"
-import { USER_ROLES } from "@/lib/auth/roles"
-import { getAuthSession } from "@/lib/auth/session"
+import { getSuperAdminActor } from "@/lib/auth/super-admin-actor"
 import { prisma } from "@/lib/db/prisma"
 import { isPartnerPlatform } from "@/lib/partner-platforms/catalogue"
 
 type Params = { params: Promise<{ userId: string; platform: string }> }
-
-/** Super admins only: a platform connection issues a key with full partner access to the vendor account. */
-async function requireSuperAdmin() {
-  const session = await getAuthSession()
-  if (!session?.user?.id || !session.user.email || session.user.role !== USER_ROLES.SUPER_ADMIN) return null
-  return { id: session.user.id, email: session.user.email }
-}
 
 async function resolve(params: Params["params"]) {
   const { userId, platform } = await params
@@ -32,9 +24,9 @@ function failure(error: unknown) {
   return NextResponse.json({ success: false, message: "The platform connection failed." }, { status: 500 })
 }
 
-/** Connects the platform (LOCAZ) to this vendor account. */
+/** Connects the platform (LOCAZ) to this vendor account. Super admins only: the key has full partner access to it. */
 export async function POST(_request: Request, { params }: Params) {
-  const actor = await requireSuperAdmin()
+  const actor = await getSuperAdminActor()
   if (!actor) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
   const target = await resolve(params)
   if ("error" in target) return target.error
@@ -48,7 +40,7 @@ export async function POST(_request: Request, { params }: Params) {
 
 /** Disconnects it: the platform is told, the key revoked and the webhook endpoint removed. */
 export async function DELETE(_request: Request, { params }: Params) {
-  const actor = await requireSuperAdmin()
+  const actor = await getSuperAdminActor()
   if (!actor) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
   const target = await resolve(params)
   if ("error" in target) return target.error

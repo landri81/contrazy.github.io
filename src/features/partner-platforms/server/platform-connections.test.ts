@@ -84,6 +84,15 @@ describe("connectPlatform", () => {
     expect(JSON.stringify(auditCreate.mock.calls[0][0].data)).not.toContain("whsec_new")
   })
 
+  it("works for the super admin of the environment variables, who has no user row: creator left empty", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ connected: true }), { status: 200 }))
+    await connectPlatform("vendor_locaz", "locaz", { id: null, email: "admin@contrazy.com" })
+
+    expect(createKey.mock.calls[0][0].userId).toBeNull()
+    expect(createConnection.mock.calls[0][0].data.connectedById).toBeNull()
+    expect(auditCreate.mock.calls[0][0].data).toMatchObject({ actorId: null, actorType: "SUPER_ADMIN" })
+  })
+
   it("undoes the key and the webhook when LOCAZ refuses or cannot be reached", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: "key not marked for LOCAZ" }), { status: 403 }))
     await expect(connectPlatform("vendor_locaz", "locaz", actor)).rejects.toMatchObject({ code: "platform_refused" })

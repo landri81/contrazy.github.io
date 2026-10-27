@@ -1,6 +1,7 @@
 import { createPartnerApiKey, resolvePartnerApiKeyMode, revokePartnerApiKey } from "@/features/partner-api/server/api-keys"
 import { createPartnerWebhookEndpoint, deletePartnerWebhookEndpoint } from "@/features/partner-webhooks/server/endpoints"
 import { hasActiveSubscription } from "@/features/subscriptions/server/feature-gates"
+import type { SuperAdminActor } from "@/lib/auth/super-admin-actor"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
 import { PARTNER_API_SCOPES } from "@/lib/partner-api/scopes"
@@ -32,7 +33,7 @@ export class PlatformConnectionError extends Error {
   }
 }
 
-type Actor = { id: string; email: string }
+type Actor = SuperAdminActor
 
 const HANDOVER_TIMEOUT_MS = 15_000
 
@@ -123,6 +124,7 @@ export async function connectPlatform(vendorId: string, platform: PartnerPlatfor
     await tx.auditLog.create({
       data: {
         actorId: actor.id,
+        actorType: "SUPER_ADMIN",
         action: "partner_platform.connected",
         entityType: "PartnerPlatformConnection",
         entityId: connection.id,
@@ -159,7 +161,7 @@ export async function disconnectPlatform(vendorId: string, platform: PartnerPlat
   await prisma.$transaction(async (tx) => {
     await tx.partnerPlatformConnection.update({ where: { id: connection.id }, data: { disconnectedAt: new Date() } })
     await tx.auditLog.create({
-      data: { actorId: actor.id, action: "partner_platform.disconnected", entityType: "PartnerPlatformConnection", entityId: connection.id, metadata: { vendorId, platform, notified } },
+      data: { actorId: actor.id, actorType: "SUPER_ADMIN", action: "partner_platform.disconnected", entityType: "PartnerPlatformConnection", entityId: connection.id, metadata: { vendorId, platform, notified } },
     })
   })
   return { notified }

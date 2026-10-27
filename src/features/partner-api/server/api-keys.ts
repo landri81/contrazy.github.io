@@ -113,7 +113,8 @@ export async function countActivePartnerApiKeys(vendorId: string) {
 
 export async function createPartnerApiKey(input: {
   vendorId: string
-  userId: string
+  /** Null for the super admin of the environment variables, who has no user row. */
+  userId: string | null
   mode: PartnerApiKeyMode
   data: CreatePartnerApiKeyInput
   /** Only for keys issued by a super admin platform connection (see partner-platforms). */
@@ -159,7 +160,7 @@ export async function createPartnerApiKey(input: {
   return { apiKey: serializePartnerApiKey(apiKey), secret: generated.key }
 }
 
-export async function revokePartnerApiKey(input: { vendorId: string; userId: string; keyId: string }) {
+export async function revokePartnerApiKey(input: { vendorId: string; userId: string | null; keyId: string }) {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.partnerApiKey.findFirst({
       where: { id: input.keyId, vendorId: input.vendorId },
