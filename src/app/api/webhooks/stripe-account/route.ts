@@ -7,6 +7,7 @@ import {
   toSubscriptionPlanKey,
   upsertVendorSubscriptionFromStripeSubscription,
 } from "@/features/subscriptions/server/subscription-service"
+import { isPartnerPlanActive } from "@/features/subscriptions/server/partner-plan"
 import { isAlreadyProcessed } from "@/features/webhooks/stripe/utils/idempotency"
 import { persistWebhookEvent } from "@/features/webhooks/stripe/utils/log-event"
 import { env } from "@/lib/env"
@@ -25,7 +26,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const billingInterval = toSubscriptionBillingInterval(session.metadata?.billingInterval) ?? "MONTHLY"
 
   if (vendorId && stripeCustomerId) {
-    await prisma.vendorSubscription.upsert({
+    // A vendor on the partner plan who opens a checkout keeps it until the paid subscription itself arrives (the sync
+    // below replaces it once Stripe reports that subscription active).
+    const existing = await prisma.vendorSubscription.findUnique({ where: { vendorId } })
+    if (existing && isPartnerPlanActive(existing)) {
+      await prisma.vendorSubscription.update({ where: { vendorId }, data: { stripeCustomerId } })
+    } else await prisma.vendorSubscription.upsert({
       where: { vendorId },
       create: {
         vendorId,

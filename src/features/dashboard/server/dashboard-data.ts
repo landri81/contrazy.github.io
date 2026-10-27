@@ -2890,6 +2890,11 @@ export type AdminVendorSubscriptionRecord = {
   qrCodesUsed: number
   smsWhatsappUsed: number
   teamUsersUsed: number
+  /** Partner plan granted by a super admin (Enterprise, no Stripe billing). */
+  partnerPlan: boolean
+  partnerGrantedAt: string | null
+  partnerGrantedBy: string | null
+  partnerNote: string | null
 }
 
 export type AdminVendorProfileRecord = {
@@ -2978,6 +2983,10 @@ export async function getAdminVendorProfile(
         qrCodesUsed: sub.qrCodesUsed,
         smsWhatsappUsed: sub.smsWhatsappUsed,
         teamUsersUsed: sub.teamUsersUsed,
+        partnerPlan: sub.partnerPlan && sub.status === "ACTIVE",
+        partnerGrantedAt: sub.partnerGrantedAt ? formatDate(sub.partnerGrantedAt) : null,
+        partnerGrantedBy: sub.partnerGrantedBy,
+        partnerNote: sub.partnerNote,
       }
     : null
 

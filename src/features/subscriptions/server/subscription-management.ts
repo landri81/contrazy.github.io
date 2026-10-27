@@ -40,6 +40,7 @@ import type {
   ChangePlanResult,
   SerializedSubscription,
 } from "@/features/subscriptions/types"
+import { isPartnerPlanActive } from "@/features/subscriptions/server/partner-plan"
 import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
@@ -93,6 +94,7 @@ function serializeSubscription(sub: VendorSubscription): SerializedSubscription 
     trialEnd: sub.trialEnd?.toISOString() ?? null,
     stripeSubscriptionId: sub.stripeSubscriptionId,
     stripeCustomerId: sub.stripeCustomerId,
+    partnerPlan: isPartnerPlanActive(sub),
   }
 }
 

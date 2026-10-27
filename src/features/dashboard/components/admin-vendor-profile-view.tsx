@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Link } from "@/i18n/navigation"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { cn } from "@/lib/utils"
+import { PartnerPlanActions } from "@/features/dashboard/components/admin-partner-plan-actions"
 import { UserDeleteAction, UserRoleActions, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
 import { AdminDocumentDeleteButton } from "@/features/dashboard/components/admin-document-delete-button"
 import { AdminVendorLinksTable } from "@/features/dashboard/components/admin-vendor-links-table"
@@ -613,9 +614,12 @@ function LinkLifecycleTree({
 export async function AdminVendorProfileView({
   data,
   activeTab,
+  isSuperAdmin = false,
 }: {
   data: AdminVendorProfileRecord
   activeTab: VendorManagerTab
+  /** Super admins see the partner plan controls. */
+  isSuperAdmin?: boolean
 }) {
   const t = await getTranslations("dashboard.admin.vendorManager")
   const user = data.user
@@ -785,13 +789,30 @@ export async function AdminVendorProfileView({
           )
         ) : null}
 
+        {activeTab === "subscription" && isSuperAdmin && data.user.vendorProfile ? (
+          <div className="mb-6">
+            <PagePanel title={t("subscription.partner.title")} description={t("subscription.partner.description")}>
+              <PartnerPlanActions
+                userId={data.user.id}
+                active={data.subscription?.partnerPlan ?? false}
+                grantedAt={data.subscription?.partnerGrantedAt ?? null}
+                grantedBy={data.subscription?.partnerGrantedBy ?? null}
+                note={data.subscription?.partnerNote ?? null}
+              />
+            </PagePanel>
+          </div>
+        ) : null}
+
         {activeTab === "subscription" ? (
           data.subscription ? (
             <div className="space-y-6">
               <PagePanel title={t("subscription.title")} description={t("subscription.description")}>
                 <DetailGrid
                   items={[
-                    { label: t("subscription.fields.plan"), value: data.subscription.planKey },
+                    {
+                      label: t("subscription.fields.plan"),
+                      value: data.subscription.partnerPlan ? `${data.subscription.planKey} · ${t("subscription.partner.badge")}` : data.subscription.planKey,
+                    },
                     { label: t("subscription.fields.interval"), value: data.subscription.billingInterval },
                     {
                       label: t("subscription.fields.status"),

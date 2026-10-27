@@ -12,6 +12,7 @@ import type Stripe from "stripe"
 
 import { hasActiveSubscription } from "@/features/subscriptions/server/feature-gates"
 import { ensureUsageWindow } from "@/features/subscriptions/server/subscription-usage"
+import { isPartnerPlanActive } from "@/features/subscriptions/server/partner-plan"
 import { prisma } from "@/lib/db/prisma"
 import { stripe } from "@/lib/integrations/stripe"
 
@@ -216,6 +217,14 @@ export async function upsertVendorSubscriptionFromStripeSubscription(
     throw new Error(`Unable to resolve vendor for Stripe subscription ${stripeSubscription.id}`)
   }
 
+  // A partner plan stays until the vendor pays for a plan itself: events of an old or unpaid Stripe subscription
+  // (cancelled, incomplete, …) do not replace it.
+  const existing = await prisma.vendorSubscription.findUnique({ where: { vendorId } })
+  const incomingStatus = normalizeStripeSubscriptionStatus(stripeSubscription.status)
+  if (existing && isPartnerPlanActive(existing) && incomingStatus !== VendorSubscriptionStatus.ACTIVE && incomingStatus !== VendorSubscriptionStatus.TRIALING) {
+    return existing
+  }
+
   const planKey =
     toSubscriptionPlanKey(stripeSubscription.metadata.planKey) ??
     toSubscriptionPlanKey(stripeSubscription.items.data[0]?.price.metadata.planKey) ??
@@ -268,6 +277,8 @@ export async function upsertVendorSubscriptionFromStripeSubscription(
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       trialStart: toDate(stripeSubscription.trial_start),
       trialEnd: toDate(stripeSubscription.trial_end),
+      // A paid subscription the vendor started replaces the partner plan.
+      partnerPlan: false,
     },
   })
 

@@ -2850,7 +2850,27 @@
             "sms": "SMS / WhatsApp used",
             "team": "Team seats used"
           },
-          "empty": "This vendor does not have a subscription record yet."
+          "empty": "This vendor does not have a subscription record yet.",
+          "partner": {
+            "title": "Partner plan",
+            "description": "Free Enterprise plan for LYNAEL's own brands (such as LOCAZ): no Stripe billing, no end date, no usage limit. Only super admins see this.",
+            "badge": "Partner (free)",
+            "explain": "Granting it gives this vendor the Enterprise plan for free, with no end date. A Stripe subscription still running is cancelled first, so the vendor is not charged.",
+            "noteLabel": "Note",
+            "notePlaceholder": "Why (e.g. LOCAZ, LYNAEL brand)",
+            "grant": "Grant the partner plan",
+            "activeTitle": "Partner plan active",
+            "granted": "Granted on {date} by {by}.",
+            "noteValue": "Note: {note}",
+            "revoke": "Withdraw the partner plan",
+            "revokeConfirm": "The subscription ends now and the vendor will need to subscribe.",
+            "revokeYes": "Withdraw",
+            "cancel": "Cancel",
+            "errors": {
+              "failed": "The partner plan could not be updated.",
+              "network": "Network error: try again."
+            }
+          }
         },
         "access": {
           "roleTitle": "Role management",
@@ -4409,6 +4429,8 @@
       "usageResets": "Usage resets on {date}",
       "plansTitle": "Plans",
       "invoiceHistoryTitle": "Invoice history",
+      "partnerTitle": "Partner plan, offered by Contrazy",
+      "partnerBody": "Enterprise plan with no usage limit and no billing: nothing to pay or renew.",
       "dangerZoneTitle": "Danger zone",
       "cancelSubTitle": "Cancel subscription",
       "cancelSubDesc": "Your access continues until {date}. You can reactivate before that date.",

@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   X,
   XCircle,
-} from "lucide-react"
+ BadgeCheck } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 
@@ -609,6 +609,8 @@ export function VendorBillingWorkspace({
   const sub = workspace.subscription
   const isActive = workspace.access.allowed
   const isCanceling = sub?.cancelAtPeriodEnd === true && isActive
+  // Partner plan (granted by Contrazy): nothing to change, cancel or pay here.
+  const isPartner = sub?.partnerPlan === true && isActive
   const isRecovery = workspace.access.isRecoveryState
   const canFreshCheckout = workspace.access.canStartFreshCheckout
 
@@ -982,6 +984,16 @@ export function VendorBillingWorkspace({
     <div className="space-y-8">
       <SubscriptionStatusBand subscription={sub} />
 
+      {isPartner ? (
+        <div className="flex items-start gap-3 rounded-[22px] border border-emerald-200 bg-emerald-50/60 px-5 py-4" data-testid="billing-partner-plan">
+          <BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-hidden />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-emerald-800">{t("partnerTitle")}</p>
+            <p className="text-sm text-emerald-700">{t("partnerBody")}</p>
+          </div>
+        </div>
+      ) : null}
+
       {/* Canceling banner */}
       <AnimatePresence>
         {isCanceling && (
@@ -1023,6 +1035,7 @@ export function VendorBillingWorkspace({
       </section>
 
       {/* Plan grid */}
+      {isPartner ? null : (
       <section className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("plansTitle")}</h2>
@@ -1058,6 +1071,7 @@ export function VendorBillingWorkspace({
           loading={planLoading}
         />
       </section>
+      )}
 
       {/* Payment methods */}
       <section className="space-y-4">
@@ -1091,7 +1105,7 @@ export function VendorBillingWorkspace({
       />
 
       {/* Danger zone */}
-      {!isCanceling && (
+      {!isCanceling && !isPartner && (
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{t("dangerZoneTitle")}</h2>
           <div className="rounded-[18px] border border-red-200/60 bg-background p-5 shadow-sm">

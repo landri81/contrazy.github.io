@@ -2850,7 +2850,27 @@
             "sms": "SMS / WhatsApp utilisés",
             "team": "Sièges équipe utilisés"
           },
-          "empty": "Ce vendeur ne possède pas encore d'enregistrement d'abonnement."
+          "empty": "Ce vendeur ne possède pas encore d'enregistrement d'abonnement.",
+          "partner": {
+            "title": "Plan partenaire",
+            "description": "Plan Enterprise gratuit pour les marques de LYNAEL (comme LOCAZ) : sans facturation Stripe, sans date de fin, sans limite d’usage. Visible des super admins uniquement.",
+            "badge": "Partenaire (offert)",
+            "explain": "L’accorder donne gratuitement le plan Enterprise à ce vendeur, sans date de fin. Un abonnement Stripe encore en cours est d’abord annulé : le vendeur n’est pas débité.",
+            "noteLabel": "Note",
+            "notePlaceholder": "Pourquoi (ex. LOCAZ, marque LYNAEL)",
+            "grant": "Accorder le plan partenaire",
+            "activeTitle": "Plan partenaire actif",
+            "granted": "Accordé le {date} par {by}.",
+            "noteValue": "Note : {note}",
+            "revoke": "Retirer le plan partenaire",
+            "revokeConfirm": "L’abonnement s’arrête maintenant et le vendeur devra s’abonner.",
+            "revokeYes": "Retirer",
+            "cancel": "Annuler",
+            "errors": {
+              "failed": "Le plan partenaire n’a pas pu être modifié.",
+              "network": "Erreur réseau : réessayez."
+            }
+          }
         },
         "access": {
           "roleTitle": "Gestion des rôles",
@@ -4409,6 +4429,8 @@
       "usageResets": "L'utilisation se réinitialise le {date}",
       "plansTitle": "Plans",
       "invoiceHistoryTitle": "Historique des factures",
+      "partnerTitle": "Plan partenaire offert par Contrazy",
+      "partnerBody": "Plan Enterprise sans limite d’usage et sans facturation : rien à payer ni à renouveler.",
       "dangerZoneTitle": "Zone de danger",
       "cancelSubTitle": "Annuler l'abonnement",
       "cancelSubDesc": "Votre accès continue jusqu'au {date}. Vous pouvez réactiver avant cette date.",

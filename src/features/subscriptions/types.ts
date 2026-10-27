@@ -14,6 +14,8 @@ export type SerializedSubscription = {
   trialEnd: string | null
   stripeSubscriptionId: string | null
   stripeCustomerId: string | null
+  /** Partner plan granted by a super admin: no plan change, no cancellation, no Stripe billing. */
+  partnerPlan: boolean
 }
 
 export type BillingAccessInfo = {
