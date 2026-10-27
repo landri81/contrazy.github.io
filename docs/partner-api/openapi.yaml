@@ -204,6 +204,41 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "410": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/checkout/identity:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: startCheckoutIdentity
+      summary: Start the identity check (Stripe Identity) of the checkout
+      description: >-
+        Scope `bookings:write`. `returnUrl` must be on one of the vendor's allowed origins (422
+        `return_url_not_allowed`). Open Stripe's modal with `clientSecret` and `publishableKey` (Stripe.js
+        `verifyIdentity`), or send the customer to `url`. The result arrives by webhook (`booking.identity_verified`) and
+        in the checkout state. 409 `step_not_available` once the payment started; 403 `plan_feature_unavailable` when the
+        vendor's plan has no identity check.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [returnUrl]
+              properties:
+                returnUrl: { type: string, format: uri }
+      responses:
+        "200":
+          description: The identity session for the browser.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutIdentity" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/cancel:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -1098,6 +1133,13 @@ components:
               requirementId: { type: string }
               slotIndex: { type: integer, minimum: 0 }
               fileId: { type: string }
+    CheckoutIdentity:
+      type: object
+      required: [clientSecret, url, publishableKey]
+      properties:
+        clientSecret: { type: string, description: "Stripe VerificationSession client secret: single use, 24 hours; never log or store it." }
+        url: { type: string, format: uri }
+        publishableKey: { type: string }
     WebhookEventType:
       type: string
       enum:

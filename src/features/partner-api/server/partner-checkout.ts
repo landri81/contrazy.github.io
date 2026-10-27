@@ -1,4 +1,5 @@
 import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
+import { startClientIdentityVerification } from "@/features/client-flow/server/steps/start-identity"
 import { submitClientDocuments } from "@/features/client-flow/server/steps/submit-documents"
 import { presentPartnerCheckout } from "@/features/partner-api/checkout-presenter"
 import {
@@ -6,20 +7,22 @@ import {
   CHECKOUT_FILE_TYPES,
   partnerCheckoutDocumentFieldsSchema,
   type PartnerCheckoutDocumentsSubmitInput,
+  type PartnerCheckoutIdentity,
   type PartnerCheckoutUploadedFile,
 } from "@/features/partner-api/schemas/checkout.schema"
 import { signCheckoutFile, verifyCheckoutFile } from "@/features/partner-api/server/checkout-files"
 import { uploadCheckoutDocument } from "@/features/partner-api/server/checkout-upload"
-import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
+import { assertReturnUrlAllowed, requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { normalizeRequirementFileCount } from "@/features/transactions/contract-flow"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
+import { getStripePublishableKey } from "@/lib/integrations/stripe"
 import { PartnerApiError, type PartnerApiErrorCode } from "@/lib/partner-api/errors"
 
 /** Embedded checkout (M10): the partner drives the customer's steps on its own site; see the API README. */
 
-type Caller = { vendorProfile: { id: string } }
+type Caller = { vendorProfile: { id: string; partnerAllowedOrigins?: string[] } }
 
 /** The booking as the customer flow sees it (same include as Contrazy's pages), for this vendor only. */
 export async function loadCheckoutTransaction(caller: Caller, bookingId: string) {
@@ -91,4 +94,21 @@ export async function submitPartnerCheckoutDocuments(caller: Caller, bookingId: 
   const result = await submitClientDocuments(link, documents)
   if (result.status !== 200) throw new PartnerApiError(STEP_REFUSALS[result.status] ?? "invalid_request", result.body.message ?? "The documents were refused.")
   return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+}
+
+/**
+ * `POST /bookings/:id/checkout/identity`: Stripe Identity for the booking, as Contrazy's page starts it; the partner
+ * opens Stripe's modal with `clientSecret` (Contrazy's publishable key), or sends the customer to `url`, which comes
+ * back to `returnUrl` (one of the vendor's allowed origins).
+ */
+export async function startPartnerCheckoutIdentity(caller: Caller, bookingId: string, input: { returnUrl: string }): Promise<PartnerCheckoutIdentity> {
+  assertReturnUrlAllowed(input.returnUrl, caller.vendorProfile.partnerAllowedOrigins ?? [])
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+  const result = await startClientIdentityVerification(link.id, link.token, { returnUrl: input.returnUrl })
+  if (result.status === 409) throw new PartnerApiError("step_not_available", result.body.message ?? "Identity details can no longer be changed after payment has started.")
+  if (result.status === 422) throw new PartnerApiError("plan_feature_unavailable", result.body.message ?? "Identity verification is not available for this vendor.")
+  if (result.status === 404) throw new PartnerApiError("not_found", result.body.message ?? "No booking matches this reference for this vendor.")
+  if (result.status !== 200 || !result.body.clientSecret || !result.body.url) throw new Error(result.body.message ?? "The identity check could not start.")
+  return { clientSecret: result.body.clientSecret, url: result.body.url, publishableKey: getStripePublishableKey() }
 }

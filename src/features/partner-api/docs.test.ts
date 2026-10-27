@@ -26,7 +26,7 @@ const {
   partnerHoldCreateSchema,
 } = await import("@/features/partner-api/schemas/card-charges.schema")
 const { partnerWebhookEndpointCreateSchema } = await import("@/features/partner-webhooks/schemas/endpoint.schema")
-const { partnerCheckoutDocumentsSubmitSchema } = await import("@/features/partner-api/schemas/checkout.schema")
+const { partnerCheckoutDocumentsSubmitSchema, partnerCheckoutIdentitySchema } = await import("@/features/partner-api/schemas/checkout.schema")
 const { buildPartnerBookingRecord } = await import("@/features/partner-webhooks/__fixtures__/partner-booking")
 const { buildPartnerPingPayload, buildPartnerWebhookPayload } = await import("@/features/partner-webhooks/payload")
 const { presentCreatedPartnerBooking, presentPartnerBooking, presentPartnerCharge } = await import("@/features/partner-api/booking-presenter")
@@ -128,6 +128,7 @@ describe("request fixtures parse with the routes' schemas", () => {
     "customers.detach-card.json": partnerDetachCardSchema,
     "webhook-endpoints.create.json": partnerWebhookEndpointCreateSchema,
     "bookings.checkout-documents.json": partnerCheckoutDocumentsSubmitSchema,
+    "bookings.checkout-identity.json": partnerCheckoutIdentitySchema,
   } as const
 
   it("has one fixture per request body, and no other", () => {
