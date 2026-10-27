@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 
 import { AppProviders } from "@/app/providers"
 import { routing } from "@/i18n/routing"
+import { TRANSLATION_GUARD_SCRIPT } from "@/lib/dom/translation-guard"
 import { normalizeLocale } from "@/lib/i18n/locale-utils"
 import { getSiteUrl } from "@/lib/site-url"
 import "@/app/globals.css"
@@ -79,6 +80,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       lang={locale}
       className="h-full antialiased"
     >
+      <head>
+        {/* Before React starts: a page translated by the browser must not crash on its next update. */}
+        <script dangerouslySetInnerHTML={{ __html: TRANSLATION_GUARD_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
           <AppProviders>{children}</AppProviders>
