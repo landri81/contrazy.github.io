@@ -77,11 +77,14 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
   const paymentRequired = (transaction.amount ?? 0) > 0 || (transaction.depositAmount ?? 0) > 0
   const cardRequired = isCardSecurityRequired(transaction)
   const kycStatus = transaction.kycVerification?.status
+  const next = NEXT_STEP[getNextClientStep(transaction)]
+  // Contrazy's pages show the saved card inside the payment step; partners get it as its own step.
+  const nextStep: PartnerCheckoutNextStep = status === "completed" ? "complete" : next === "payment" && state.nextFinanceStage === "card_security" ? "card" : next
 
   return {
     bookingId: transaction.id,
     status,
-    nextStep: status === "completed" ? "complete" : NEXT_STEP[getNextClientStep(transaction)],
+    nextStep,
     expiresAt: transaction.link?.expiresAt?.toISOString() ?? null,
     steps: {
       documents: { required: hasDocumentsStep(transaction) && transaction.requirements.some((requirement) => requirement.required), done: state.hasDocs },

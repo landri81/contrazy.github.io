@@ -113,7 +113,7 @@ describe("presentPartnerCheckout", () => {
       depositAuthorization: { status: "AUTHORIZED" },
       payments: [{ kind: "SERVICE_PAYMENT", status: "SUCCEEDED" }],
     }
-    expect(presentPartnerCheckout(booking(paid), NOW)).toMatchObject({ nextStep: "payment", payment: { stage: "card" }, steps: { payment: { done: true }, card: { done: false } } })
+    expect(presentPartnerCheckout(booking(paid), NOW)).toMatchObject({ nextStep: "card", payment: { stage: "card" }, steps: { payment: { done: true }, card: { done: false } } })
 
     const done = presentPartnerCheckout(booking({ ...paid, cardSecurity: { status: "SECURED" }, status: "COMPLETED" }), NOW)
     expect(done).toMatchObject({ status: "completed", nextStep: "complete", payment: { stage: "complete" }, steps: { card: { done: true } } })
