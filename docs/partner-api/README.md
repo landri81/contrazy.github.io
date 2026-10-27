@@ -131,8 +131,9 @@ The checkout state:
 }
 ```
 
-- `nextStep` is `profile` only when the booking lacks the customer's postal address: send it with the booking
-  (`customer.address`) or update the booking.
+- `nextStep` is `profile` only when the booking lacks part of the customer's profile: send `customer.address`
+  (`line1`, `postalCode`, `city`, `country`), `customer.birthDate` and `customer.birthPlace` when you create the
+  booking.
 - Customer evidence: send the customer's IP and browser on every write, in `Contrazy-Customer-Ip` and
   `Contrazy-Customer-User-Agent`. Contrazy keeps them with the step, as its own pages do (the signature evidence uses
   them).

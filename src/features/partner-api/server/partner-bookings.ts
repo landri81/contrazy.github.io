@@ -21,6 +21,7 @@ import {
   presentPartnerBooking,
   type PartnerBookingRecord,
 } from "@/features/partner-api/booking-presenter"
+import { clientProfileFromPartnerCustomer } from "@/features/partner-api/customer-profile"
 import {
   parseRentalDetails,
   validateBookingWindow,
@@ -265,11 +266,7 @@ export async function createPartnerBooking(
         const clientProfile = await tx.clientProfile.create({
           data: {
             vendorId: vendorProfile.id,
-            firstName: customer.firstName,
-            lastName: customer.lastName,
-            fullName: `${customer.firstName} ${customer.lastName}`,
-            email: customer.email,
-            phone: customer.phone ?? null,
+            ...clientProfileFromPartnerCustomer(customer),
           },
         })
         const transaction = await createPreparedVendorTransaction(tx, prepared, {

@@ -14,7 +14,8 @@ export const PARTNER_CHECKOUT_STEPS = ["documents", "identity", "contract", "sig
 export type PartnerCheckoutStepKey = (typeof PARTNER_CHECKOUT_STEPS)[number]
 
 /**
- * Where the customer is. `profile` only when the booking lacks the customer's address (update the booking); `details`
+ * Where the customer is. `profile` only when the booking was created without the customer's address, birth date and
+ * birth place; `details`
  * and `check_in` run on Contrazy's pages only (partner bookings have no custom questions; keep `checkIn` off for an
  * embedded checkout).
  */

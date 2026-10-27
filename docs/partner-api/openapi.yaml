@@ -764,6 +764,17 @@ components:
             email: { type: string, format: email }
             phone: { type: string, description: "International format, e.g. +33612345678." }
             locale: { type: string, enum: [fr, en, it], default: en, description: "`it` customers get the English flow." }
+            address:
+              type: object
+              description: With birthDate and birthPlace, completes the customer's profile (embedded checkout needs no profile screen).
+              required: [line1, postalCode, city, country]
+              properties:
+                line1: { type: string, maxLength: 160 }
+                postalCode: { type: string, maxLength: 12 }
+                city: { type: string, maxLength: 100 }
+                country: { type: string, pattern: "^[A-Z]{2}$", description: ISO 3166-1 alpha-2. }
+            birthDate: { type: string, format: date }
+            birthPlace: { type: string, maxLength: 100 }
         startAt: { type: string, format: date-time }
         endAt: { type: string, format: date-time }
         timezone: { type: string, default: Europe/Paris, description: "IANA time zone." }

@@ -5,7 +5,10 @@
     "lastName": "Martin",
     "email": "alice.martin@locaz.test",
     "phone": "+33612345678",
-    "locale": "fr"
+    "locale": "fr",
+    "address": { "line1": "12 rue de France", "postalCode": "06000", "city": "Nice", "country": "FR" },
+    "birthDate": "1988-05-20",
+    "birthPlace": "Nice"
   },
   "startAt": "2026-11-05T10:00:00+01:00",
   "endAt": "2026-11-08T18:00:00+01:00",

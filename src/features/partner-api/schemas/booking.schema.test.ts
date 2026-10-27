@@ -35,6 +35,21 @@ describe("partnerBookingCreateSchema", () => {
     ])
   })
 
+  it("accepts the customer's address, birth date and birth place (embedded checkout: the profile is complete)", () => {
+    const base = buildBookingPayload() as { customer: Record<string, unknown> }
+    const parsed = partnerBookingCreateSchema.parse({
+      ...base,
+      customer: { ...base.customer, address: { line1: "12 rue de France", postalCode: "06000", city: "Nice", country: "fr" }, birthDate: "1988-05-20", birthPlace: "Nice" },
+    })
+    expect(parsed.customer).toMatchObject({ address: { line1: "12 rue de France", postalCode: "06000", city: "Nice", country: "FR" }, birthDate: "1988-05-20", birthPlace: "Nice" })
+    expect(partnerBookingCreateSchema.parse(base).customer.address).toBeUndefined()
+
+    const bad = (patch: Record<string, unknown>) => issuesOf({ ...base, customer: { ...base.customer, ...patch } })
+    expect(bad({ address: { line1: "12 rue de France", postalCode: "06000", city: "Nice", country: "France" } }).join()).toContain("address.country")
+    expect(bad({ birthDate: "20/05/1988" }).join()).toContain("birthDate")
+    expect(bad({ birthDate: "2999-01-01" }).join()).toContain("birthDate must be a past date")
+  })
+
   it("refuses endAt equal to or before startAt", () => {
     expect(issuesOf(buildBookingPayload({ endAt: "2026-11-02T09:00:00+01:00" }))).toContain("endAt: endAt must be after startAt")
     expect(issuesOf(buildBookingPayload({ endAt: "2026-11-01T09:00:00+01:00" }))).toContain("endAt: endAt must be after startAt")

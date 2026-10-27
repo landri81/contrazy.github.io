@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { requirementItemSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { STEP_SWITCH_KEYS, type StepSwitchKey } from "@/features/transactions/step-switches"
+import { parseDateOnlyInput } from "@/lib/date-only"
 import { DEFAULT_BOOKING_TIMEZONE, isValidIanaTimezone } from "@/lib/partner-api/bookings"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import { requiredText } from "@/lib/validation/text-schemas"
@@ -117,6 +118,28 @@ const customerSchema = z.object({
     .refine((value) => PHONE_PATTERN.test(value.replace(/[\s().-]/g, "")), "phone must be in international format, e.g. +33612345678")
     .optional(),
   locale: z.enum(["fr", "en", "it"]).default("en"),
+  /**
+   * Embedded checkout (M10): with the postal address, birth date and birth place the customer's profile is complete,
+   * so the partner's site needs no profile screen. Optional; without them Contrazy's pages ask.
+   */
+  address: z
+    .object({
+      line1: requiredText("address.line1", INPUT_LIMITS.address),
+      postalCode: z.string().trim().min(2, "address.postalCode is required").max(12),
+      city: requiredText("address.city", INPUT_LIMITS.city),
+      country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "address.country must be an ISO 3166-1 alpha-2 code, e.g. FR"),
+    })
+    .optional(),
+  birthDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "birthDate must be a date, e.g. 1988-05-20")
+    .refine((value) => {
+      const parsed = parseDateOnlyInput(value)
+      return Boolean(parsed) && parsed! <= new Date()
+    }, "birthDate must be a past date")
+    .optional(),
+  birthPlace: requiredText("birthPlace", INPUT_LIMITS.city).optional(),
 })
 
 const metadataSchema = z
