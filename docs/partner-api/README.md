@@ -91,6 +91,66 @@ Customers with locale `it` get the English flow. `returnUrl` must be on one of t
 customer finishes or cancels, the last screen offers "Return to <partner>" to
 `returnUrl?booking=<externalRef>&status=completed|cancelled` (automatic after 5 s, can be stopped).
 
+## Embedded checkout (the customer stays on your site)
+
+Instead of sending the customer to `customerUrl`, a partner can show every step on its own site and drive it through
+the calls below (scope `bookings:write`, state readable with `bookings:read`). The steps, their order, their rules and
+the webhooks are the same as on Contrazy's pages; only the screens are yours. Read the state, show the screen for
+`nextStep`, send the step, repeat until `nextStep` is `complete`.
+
+| Call | Body | Answer |
+| --- | --- | --- |
+| `GET /bookings/{id}/checkout` | | the checkout state |
+| `POST /bookings/{id}/checkout/documents/files` | multipart `requirementId`, `slotIndex`, `file` | `{ fileId, requirementId, slotIndex, fileName }` |
+| `POST /bookings/{id}/checkout/documents` | `{ files: [{ requirementId, slotIndex, fileId }] }` | the checkout state |
+| `POST /bookings/{id}/checkout/identity` | `{ returnUrl }` | `{ clientSecret, url, publishableKey }` |
+| `GET /bookings/{id}/checkout/contract` | | `{ html, version, locale }` |
+| `POST /bookings/{id}/checkout/contract/accept` | `{ version }` | the checkout state |
+| `POST /bookings/{id}/checkout/signature` | `{ method, image \| typedName, font?, city?, timezone }` | the checkout state |
+| `POST /bookings/{id}/checkout/payment` | | `{ stage, clientSecret, stripeAccountId, publishableKey, amount, currency }` |
+| `POST /bookings/{id}/checkout/payment/confirm` | `{ paymentIntentId }` | the checkout state |
+| `POST /bookings/{id}/checkout/card` | `{ consentVersion, consentText }` | `{ clientSecret, stripeAccountId, publishableKey }` |
+| `POST /bookings/{id}/checkout/card/confirm` | `{ setupIntentId }` | the checkout state |
+
+The checkout state:
+
+```json
+{
+  "bookingId": "cm…",
+  "status": "open",
+  "nextStep": "documents",
+  "expiresAt": "2026-11-05T10:30:00.000Z",
+  "steps": { "documents": { "required": true, "done": false }, "identity": { "required": true, "done": false },
+             "contract": { "required": true, "done": false }, "signature": { "required": true, "done": false },
+             "payment": { "required": true, "done": false }, "card": { "required": true, "done": false } },
+  "requirements": [{ "id": "cm…", "label": "Permis de conduire", "instructions": null, "category": "DRIVER_LICENSE",
+                     "required": true, "fileCount": 2, "slotLabels": ["Recto", "Verso"], "files": [], "complete": false }],
+  "identity": { "required": true, "selfie": false, "status": "not_started" },
+  "contract": { "required": true, "accepted": false, "signed": false },
+  "payment": { "stage": "rental", "amount": 15700, "depositAmount": 80000, "currency": "eur" }
+}
+```
+
+- `nextStep` is `profile` only when the booking lacks the customer's postal address: send it with the booking
+  (`customer.address`) or update the booking.
+- Customer evidence: send the customer's IP and browser on every write, in `Contrazy-Customer-Ip` and
+  `Contrazy-Customer-User-Agent`. Contrazy keeps them with the step, as its own pages do (the signature evidence uses
+  them).
+- Files: JPEG, PNG, WebP, HEIC or PDF, 10 MB at most. Upload each file (`documents/files`), then submit the step with
+  every `fileId` at once (`documents`); submitting again replaces the files. A `fileId` is valid for its booking only.
+  Your server sends the files on; do not keep ID documents yourself.
+- Identity: open Stripe's identity modal with `clientSecret` and `publishableKey` (Stripe.js `verifyIdentity`), or send
+  the customer to `url`; `returnUrl` must be on one of your allowed origins. The result arrives by webhook
+  (`booking.identity_verified`) and in the state.
+- Contract: show `html` in your page, then accept with its `version`; a contract changed since the customer read it
+  answers `409 version_mismatch`.
+- Payment and card: confirm in the browser with Stripe.js initialised with `publishableKey` and
+  `{ stripeAccount: stripeAccountId }`, then call the matching confirm route. Card data never reaches you or Contrazy's
+  servers. `stage` says whether this payment is the deposit hold or the rental payment; call `payment` again until the
+  state moves on to `card` or `complete`.
+- A step that is not the current one, or no longer changeable (payment started), answers `409 step_not_available`; a
+  cancelled or expired booking answers `410 checkout_closed`.
+
 ## Saved card, hold, return, charges
 
 ```mermaid
@@ -205,6 +265,11 @@ type is in [`fixtures/webhooks/`](./fixtures/webhooks). Payloads carry the booki
 e-mail, and per-event facts; never ID documents, selfies, card data or Stripe ids.
 
 ## Changelog
+
+### Embedded checkout (in progress)
+
+- Checkout state and step calls so a partner shows every customer step on its own site (above). Routes appear in
+  `openapi.yaml` as they ship.
 
 ### 2026-11-01 (first version)
 

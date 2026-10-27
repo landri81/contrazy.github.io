@@ -18,6 +18,7 @@ security:
 tags:
   - name: Connectivity
   - name: Bookings
+  - name: Embedded checkout
   - name: Holds
   - name: Cards
   - name: Charges
@@ -125,6 +126,22 @@ paths:
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Embedded checkout]
+      operationId: getCheckout
+      summary: The checkout state, for a partner that shows the customer's steps on its own site
+      description: Scope `bookings:read`. Steps asked and done, the next step, documents asked, identity, contract and payment stage.
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "404": { $ref: "#/components/responses/Error" }
 
   /bookings/{id}/cancel:
     parameters:
@@ -915,6 +932,73 @@ components:
         metadata: { type: [object, "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    CheckoutStep:
+      type: object
+      required: [required, done]
+      properties:
+        required: { type: boolean }
+        done: { type: boolean }
+    Checkout:
+      type: object
+      required: [bookingId, status, nextStep, expiresAt, steps, requirements, identity, contract, payment]
+      properties:
+        bookingId: { type: string }
+        status: { type: string, enum: [open, completed, cancelled, expired] }
+        nextStep: { type: string, enum: [profile, details, check_in, documents, identity, contract, signature, payment, card, complete] }
+        expiresAt: { type: [string, "null"], format: date-time }
+        steps:
+          type: object
+          required: [documents, identity, contract, signature, payment, card]
+          properties:
+            documents: { $ref: "#/components/schemas/CheckoutStep" }
+            identity: { $ref: "#/components/schemas/CheckoutStep" }
+            contract: { $ref: "#/components/schemas/CheckoutStep" }
+            signature: { $ref: "#/components/schemas/CheckoutStep" }
+            payment: { $ref: "#/components/schemas/CheckoutStep" }
+            card: { $ref: "#/components/schemas/CheckoutStep" }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [id, label, category, required, fileCount, slotLabels, files, complete]
+            properties:
+              id: { type: string }
+              label: { type: string }
+              instructions: { type: [string, "null"] }
+              category: { type: string }
+              required: { type: boolean }
+              fileCount: { type: integer }
+              slotLabels: { type: array, items: { type: string } }
+              files:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    slot: { type: integer }
+                    slotLabel: { type: [string, "null"] }
+                    fileName: { type: [string, "null"] }
+                    uploadedAt: { type: string, format: date-time }
+              complete: { type: boolean }
+        identity:
+          type: object
+          properties:
+            required: { type: boolean }
+            selfie: { type: boolean }
+            status: { type: string, enum: [not_started, pending, verified, failed] }
+        contract:
+          type: object
+          properties:
+            required: { type: boolean }
+            accepted: { type: boolean }
+            signed: { type: boolean }
+        payment:
+          type: object
+          properties:
+            stage: { type: string, enum: [deposit, rental, card, complete] }
+            amount: { type: integer, minimum: 0, description: Rental payment in cents (0 when none). }
+            depositAmount: { type: integer, minimum: 0, description: Deposit in cents (0 when none). }
+            currency: { type: string }
     WebhookEventType:
       type: string
       enum:
