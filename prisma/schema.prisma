@@ -365,12 +365,12 @@ model User {
 }
 
 model VendorProfile {
-  id                      String                   @id @default(cuid())
-  userId                  String                   @unique
+  id                      String                      @id @default(cuid())
+  userId                  String                      @unique
   ownerFirstName          String?
   ownerLastName           String?
   businessName            String?
-  businessSlug            String?                  @unique
+  businessSlug            String?                     @unique
   businessEmail           String?
   supportEmail            String?
   businessPhone           String?
@@ -382,12 +382,12 @@ model VendorProfile {
   businessLogoPublicId    String?
   businessLogoFileName    String?
   stripeAccountId         String?
-  stripeConnectionStatus  StripeConnectionStatus   @default(NOT_CONNECTED)
-  reviewStatus            VendorStatus             @default(PENDING)
-  preferredLocale         LocaleCode               @default(en)
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeConnectionStatus  StripeConnectionStatus      @default(NOT_CONNECTED)
+  reviewStatus            VendorStatus                @default(PENDING)
+  preferredLocale         LocaleCode                  @default(en)
+  createdAt               DateTime                    @default(now())
+  updatedAt               DateTime                    @updatedAt
+  user                    User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   clients                 ClientProfile[]
   contractTemplates       ContractTemplate[]
   checklistTemplates      ChecklistTemplate[]
@@ -396,9 +396,10 @@ model VendorProfile {
   invitations             Invitation[]
   webhookEvents           WebhookEvent[]
   subscription            VendorSubscription?
+  platformConnections     PartnerPlatformConnection[]
   partnerApiKeys          PartnerApiKey[]
   partnerIdempotencyKeys  PartnerIdempotencyKey[]
-  partnerAllowedOrigins   String[]                 @default([])
+  partnerAllowedOrigins   String[]                    @default([])
   partnerWebhookEndpoints PartnerWebhookEndpoint[]
   partnerCustomers        PartnerCustomer[]
 }
@@ -930,20 +931,39 @@ model AuditLog {
   @@index([entityType, entityId])
 }
 
+/// A partner platform (LOCAZ) connected to a vendor account by a super admin: the API key and webhook endpoint created
+/// for it, so it can be disconnected (key revoked, endpoint removed) from the same place.
+model PartnerPlatformConnection {
+  id                String        @id @default(cuid())
+  vendorId          String
+  platform          String
+  apiKeyId          String
+  webhookEndpointId String?
+  connectedById     String?
+  connectedAt       DateTime      @default(now())
+  disconnectedAt    DateTime?
+  vendor            VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId, platform])
+}
+
 model PartnerApiKey {
-  id          String            @id @default(cuid())
-  vendorId    String
-  name        String
-  prefix      String
-  hashedKey   String            @unique
-  scopes      String[]
-  mode        PartnerApiKeyMode @default(TEST)
-  lastUsedAt  DateTime?
-  createdById String?
-  revokedAt   DateTime?
-  createdAt   DateTime          @default(now())
-  vendor      VendorProfile     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  createdBy   User?             @relation("PartnerApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  id              String            @id @default(cuid())
+  vendorId        String
+  name            String
+  prefix          String
+  hashedKey       String            @unique
+  scopes          String[]
+  mode            PartnerApiKeyMode @default(TEST)
+  lastUsedAt      DateTime?
+  createdById     String?
+  revokedAt       DateTime?
+  /// Set only on keys a super admin issues through a platform connection (e.g. "locaz"): the platform checks it with
+  /// the ping route before trusting the key. Vendors cannot create such keys themselves.
+  platformPartner String?
+  createdAt       DateTime          @default(now())
+  vendor          VendorProfile     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdBy       User?             @relation("PartnerApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([vendorId, createdAt])
   @@index([createdById])

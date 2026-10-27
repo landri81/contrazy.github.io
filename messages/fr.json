@@ -2851,6 +2851,23 @@
             "team": "Sièges équipe utilisés"
           },
           "empty": "Ce vendeur ne possède pas encore d'enregistrement d'abonnement.",
+          "platform": {
+            "title": "Plateformes partenaires",
+            "description": "Connecter LOCAZ à ce compte vendeur : Contrazy crée la clé API et le webhook et les transmet à LOCAZ. Visible des super admins uniquement.",
+            "explain": "Non connecté. La connexion donne à {name} un accès partenaire complet à ce compte vendeur (réservations, débits, remboursements, événements). Le compte doit être approuvé, relié à Stripe et avec un abonnement actif.",
+            "connected": "Connecté à {name}",
+            "details": "Depuis le {date} · clé {key} · {mode}",
+            "connect": "Connecter {name}",
+            "reconnect": "Reconnecter {name}",
+            "disconnect": "Déconnecter",
+            "disconnectConfirm": "{name} repasse en simulation et la clé est révoquée.",
+            "disconnectYes": "Déconnecter",
+            "cancel": "Annuler",
+            "errors": {
+              "failed": "La connexion a échoué.",
+              "network": "Erreur réseau : réessayez."
+            }
+          },
           "partner": {
             "title": "Plan partenaire",
             "description": "Plan Enterprise gratuit pour les marques de LYNAEL (comme LOCAZ) : sans facturation Stripe, sans date de fin, sans limite d’usage. Visible des super admins uniquement.",

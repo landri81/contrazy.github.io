@@ -14,5 +14,7 @@ export const GET = withPartnerApi(async (request, { requestId }) => {
     keyPrefix: apiKey.prefix,
     mode: apiKey.mode,
     scopes: apiKey.scopes,
+    // Set only on keys a super admin issued through a platform connection: the platform checks it before trusting them.
+    platformPartner: apiKey.platformPartner ?? null,
   })
 })

@@ -116,6 +116,8 @@ export async function createPartnerApiKey(input: {
   userId: string
   mode: PartnerApiKeyMode
   data: CreatePartnerApiKeyInput
+  /** Only for keys issued by a super admin platform connection (see partner-platforms). */
+  platformPartner?: string | null
 }) {
   const generated = generatePartnerApiKey(input.mode)
 
@@ -129,6 +131,7 @@ export async function createPartnerApiKey(input: {
         scopes: input.data.scopes,
         mode: input.mode,
         createdById: input.userId,
+        platformPartner: input.platformPartner ?? null,
       },
     })
 

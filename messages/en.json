@@ -2851,6 +2851,23 @@
             "team": "Team seats used"
           },
           "empty": "This vendor does not have a subscription record yet.",
+          "platform": {
+            "title": "Partner platforms",
+            "description": "Connect LOCAZ to this vendor account: Contrazy creates the API key and the webhook and hands them to LOCAZ. Only super admins see this.",
+            "explain": "Not connected. Connecting gives {name} full partner access to this vendor account (bookings, charges, refunds, events). The account needs to be approved, connected to Stripe and on an active plan.",
+            "connected": "Connected to {name}",
+            "details": "Since {date} · key {key} · {mode}",
+            "connect": "Connect {name}",
+            "reconnect": "Reconnect {name}",
+            "disconnect": "Disconnect",
+            "disconnectConfirm": "{name} goes back to its simulation and the key is revoked.",
+            "disconnectYes": "Disconnect",
+            "cancel": "Cancel",
+            "errors": {
+              "failed": "The connection failed.",
+              "network": "Network error: try again."
+            }
+          },
           "partner": {
             "title": "Partner plan",
             "description": "Free Enterprise plan for LYNAEL's own brands (such as LOCAZ): no Stripe billing, no end date, no usage limit. Only super admins see this.",

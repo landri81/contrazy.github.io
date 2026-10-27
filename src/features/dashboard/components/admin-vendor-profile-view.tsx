@@ -6,6 +6,8 @@ import { Link } from "@/i18n/navigation"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
 import { cn } from "@/lib/utils"
 import { PartnerPlanActions } from "@/features/dashboard/components/admin-partner-plan-actions"
+import { PlatformConnectionActions } from "@/features/dashboard/components/admin-platform-connection-actions"
+import { getPlatformConnection } from "@/features/partner-platforms/server/platform-connections"
 import { UserDeleteAction, UserRoleActions, VendorReviewActions } from "@/features/dashboard/components/admin-user-actions"
 import { AdminDocumentDeleteButton } from "@/features/dashboard/components/admin-document-delete-button"
 import { AdminVendorLinksTable } from "@/features/dashboard/components/admin-vendor-links-table"
@@ -623,6 +625,11 @@ export async function AdminVendorProfileView({
 }) {
   const t = await getTranslations("dashboard.admin.vendorManager")
   const user = data.user
+  const platformConnection =
+    activeTab === "subscription" && isSuperAdmin && data.user.vendorProfile ? await getPlatformConnection(data.user.vendorProfile.id, "locaz") : null
+  const locazConnection = platformConnection
+    ? { connectedAt: platformConnection.connectedAt.toISOString(), keyPrefix: platformConnection.keyPrefix, keyMode: platformConnection.keyMode }
+    : null
   const vendorProfile = data.user.vendorProfile
   const links = data.links
   const transactionsQuery = buildTransactionsQuery(links)
@@ -799,6 +806,14 @@ export async function AdminVendorProfileView({
                 grantedBy={data.subscription?.partnerGrantedBy ?? null}
                 note={data.subscription?.partnerNote ?? null}
               />
+            </PagePanel>
+          </div>
+        ) : null}
+
+        {activeTab === "subscription" && isSuperAdmin && data.user.vendorProfile ? (
+          <div className="mb-6">
+            <PagePanel title={t("subscription.platform.title")} description={t("subscription.platform.description")}>
+              <PlatformConnectionActions userId={data.user.id} platform="locaz" platformName="LOCAZ" connection={locazConnection} />
             </PagePanel>
           </div>
         ) : null}
