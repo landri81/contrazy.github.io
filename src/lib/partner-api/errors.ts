@@ -42,6 +42,10 @@ export type PartnerApiErrorCode =
   | "charge_not_refundable"
   | "refund_too_large"
   | "payment_not_refundable"
+  | "step_not_available"
+  | "checkout_closed"
+  | "invalid_file"
+  | "version_mismatch"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -90,6 +94,11 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   charge_not_refundable: 409,
   refund_too_large: 422,
   payment_not_refundable: 409,
+  // Embedded checkout (M10).
+  step_not_available: 409,
+  checkout_closed: 410,
+  invalid_file: 422,
+  version_mismatch: 409,
 }
 
 export class PartnerApiError extends Error {

@@ -69,6 +69,8 @@ export const partnerCheckoutDocumentsSubmitSchema = z.object({
     .max(40),
 })
 
+export type PartnerCheckoutDocumentsSubmitInput = z.infer<typeof partnerCheckoutDocumentsSubmitSchema>
+
 /** `POST /bookings/:id/checkout/identity`: where Stripe's hosted check sends the customer back (an allowed origin). */
 export const partnerCheckoutIdentitySchema = z.object({
   returnUrl: z.string().trim().url("returnUrl must be an absolute URL").max(2000),

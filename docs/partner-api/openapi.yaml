@@ -143,6 +143,67 @@ paths:
               schema: { $ref: "#/components/schemas/Checkout" }
         "404": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/checkout/documents/files:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: uploadCheckoutFile
+      summary: Store one document of the checkout, for a slot of a requirement
+      description: >-
+        Scope `bookings:write`. Multipart `requirementId`, `slotIndex`, `file` (JPEG, PNG, WebP, HEIC or PDF, 10 MB at
+        most). Answers a signed `fileId`, valid 24 hours for this booking, requirement and slot only. Send the customer's
+        IP and browser in `Contrazy-Customer-Ip` and `Contrazy-Customer-User-Agent`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [requirementId, slotIndex, file]
+              properties:
+                requirementId: { type: string }
+                slotIndex: { type: integer, minimum: 0 }
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: The stored file.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutUploadedFile" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/documents:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: submitCheckoutDocuments
+      summary: Submit the documents step, every file at once
+      description: >-
+        Scope `bookings:write`. The same checks as Contrazy's page: every required slot filled, files of this booking
+        only; submitting again replaces the files. 409 `step_not_available` once the payment started, 410
+        `checkout_closed` for a cancelled or expired booking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckoutDocumentsSubmit" }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/cancel:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -678,6 +739,10 @@ components:
                 - charge_not_refundable
                 - refund_too_large
                 - payment_not_refundable
+                - step_not_available
+                - checkout_closed
+                - invalid_file
+                - version_mismatch
             message: { type: string }
             details: { type: object }
         request_id: { type: string }
@@ -1010,6 +1075,29 @@ components:
             amount: { type: integer, minimum: 0, description: Rental payment in cents (0 when none). }
             depositAmount: { type: integer, minimum: 0, description: Deposit in cents (0 when none). }
             currency: { type: string }
+    CheckoutUploadedFile:
+      type: object
+      required: [fileId, requirementId, slotIndex, fileName]
+      properties:
+        fileId: { type: string }
+        requirementId: { type: string }
+        slotIndex: { type: integer }
+        fileName: { type: [string, "null"] }
+    CheckoutDocumentsSubmit:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          minItems: 1
+          maxItems: 40
+          items:
+            type: object
+            required: [requirementId, slotIndex, fileId]
+            properties:
+              requirementId: { type: string }
+              slotIndex: { type: integer, minimum: 0 }
+              fileId: { type: string }
     WebhookEventType:
       type: string
       enum:
