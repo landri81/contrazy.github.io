@@ -118,6 +118,7 @@ describe("GET /api/partner/v1/ping", () => {
       keyPrefix: record.prefix,
       mode: "TEST",
       scopes: ["bookings:read", "bookings:write"],
+      platformPartner: null,
     })
     expect(db.auditRows).toHaveLength(0)
     expect(readLogs()).not.toContain(key)
