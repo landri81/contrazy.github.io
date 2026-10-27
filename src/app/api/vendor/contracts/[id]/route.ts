@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import { ensureVendorPreparationAllowed, ensureVendorSubscriptionEligible, requireVendorProfileAccess } from "@/lib/auth/guards"
 import { extractManagedContractTemplateInlineImageAssets } from "@/features/contracts/contract-template-inline-assets"
 import { stripContractMarkup } from "@/features/contracts/contract-content"
@@ -6,6 +7,7 @@ import {
   assertValidVendorContractTemplateInlineImages,
   deleteContractTemplateInlineImageIfUnreferenced,
 } from "@/features/contracts/server/contract-template-assets"
+import { setDefaultContractTemplate } from "@/features/contracts/server/default-template"
 import { contractTemplatePayloadSchema } from "@/features/dashboard/schemas/vendor-operations.schema"
 import { sanitizeContractTemplateContent } from "@/features/contracts/server/contract-rendering"
 import { prisma } from "@/lib/db/prisma"
@@ -134,5 +136,44 @@ export async function DELETE(
   } catch (error) {
     console.error("Delete Contract Template Error:", error)
     return NextResponse.json({ success: false, message: "Failed to delete template" }, { status: 500 })
+  }
+}
+
+const setDefaultSchema = z.object({ isDefault: z.literal(true) })
+
+/** Makes this template the default: the contract partner bookings (LOCAZ) use when they name no template. */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const { dbUser, vendorProfile } = await requireVendorProfileAccess()
+    const { response } = await ensureVendorSubscriptionEligible(vendorProfile.id)
+
+    if (response) {
+      return response
+    }
+
+    const blockedResponse = ensureVendorPreparationAllowed(vendorProfile)
+
+    if (blockedResponse) {
+      return blockedResponse
+    }
+
+    if (!setDefaultSchema.safeParse(await request.json().catch(() => null)).success) {
+      return NextResponse.json({ success: false, message: "Invalid request" }, { status: 400 })
+    }
+
+    const updated = await setDefaultContractTemplate(vendorProfile.id, id, dbUser.id)
+
+    if (!updated) {
+      return NextResponse.json({ success: false, message: "Template not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error("Set Default Contract Template Error:", error)
+    return NextResponse.json({ success: false, message: "Failed to set the default template" }, { status: 500 })
   }
 }

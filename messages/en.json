@@ -2081,6 +2081,11 @@
         "errorDeleteDesc": "Unable to delete this template right now.",
         "successDelete": "Template deleted",
         "successDeleteDesc": "{name} has been removed.",
+        "setDefaultBtn": "Set as default",
+        "successDefault": "Default template updated",
+        "successDefaultDesc": "{name} is now used when a partner platform such as LOCAZ asks for a contract.",
+        "errorDefault": "Could not set the default",
+        "errorDefaultDesc": "Unable to change the default template right now.",
         "networkError": "Network error",
         "networkErrorDesc": "Unable to delete this template right now.",
         "filterOptions": {

@@ -11,6 +11,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Star,
   Trash2,
 } from "lucide-react"
 import { useMemo, useRef, useState } from "react"
@@ -138,6 +139,7 @@ export function ContractTemplateList({
   const [isLoading, setIsLoading] = useState(false)
   const [deletingTemplate, setDeletingTemplate] = useState<ContractTemplate | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null)
 
   const hasReachedTemplateLimit =
     templateLimit !== null && pagination.totalCount >= templateLimit
@@ -272,6 +274,50 @@ export function ContractTemplateList({
       sort: criteria.sort,
       page: nextPage,
     })
+  }
+
+  async function handleSetDefault(template: ContractTemplate) {
+    if (settingDefaultId) {
+      return
+    }
+
+    setSettingDefaultId(template.id)
+
+    try {
+      const response = await fetch(`/api/vendor/contracts/${template.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDefault: true }),
+      })
+
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        toast({
+          variant: "error",
+          title: t("errorDefault"),
+          description: payload?.message ?? t("errorDefaultDesc"),
+        })
+        return
+      }
+
+      // One default per vendor: the badge moves to this template.
+      setTemplates((current) => current.map((item) => ({ ...item, isDefault: item.id === template.id })))
+      toast({
+        variant: "success",
+        title: t("successDefault"),
+        description: t("successDefaultDesc", { name: template.name }),
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        variant: "error",
+        title: t("networkError"),
+        description: t("errorDefaultDesc"),
+      })
+    } finally {
+      setSettingDefaultId(null)
+    }
   }
 
   async function handleConfirmDelete() {
@@ -628,6 +674,24 @@ export function ContractTemplateList({
 
                             <TableCell className="px-5 py-4 text-right">
                               <div className="flex justify-end gap-2">
+                                {!template.isDefault ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSetDefault(template)}
+                                    disabled={!canEdit || Boolean(settingDefaultId)}
+                                    data-testid="contract-template-set-default"
+                                  >
+                                    {settingDefaultId === template.id ? (
+                                      <Loader2 className="size-4 animate-spin" />
+                                    ) : (
+                                      <Star className="size-4" />
+                                    )}
+                                    {t("setDefaultBtn")}
+                                  </Button>
+                                ) : null}
+
                                 {canEdit ? (
                                   <DashboardRouteLink
                                     href={`/vendor/contracts/${template.id}/edit`}
@@ -702,6 +766,25 @@ export function ContractTemplateList({
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-1">
+                                  {!template.isDefault ? (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleSetDefault(template)}
+                                      disabled={!canEdit || Boolean(settingDefaultId)}
+                                      className="size-8 rounded-full"
+                                      aria-label={`${t("setDefaultBtn")}: ${template.name}`}
+                                      title={t("setDefaultBtn")}
+                                    >
+                                      {settingDefaultId === template.id ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                      ) : (
+                                        <Star className="size-4" />
+                                      )}
+                                    </Button>
+                                  ) : null}
+
                                   {canEdit ? (
                                     <DashboardRouteLink
                                       href={`/vendor/contracts/${template.id}/edit`}

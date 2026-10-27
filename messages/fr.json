@@ -2081,6 +2081,11 @@
         "errorDeleteDesc": "Impossible de supprimer ce modèle pour l'instant.",
         "successDelete": "Modèle supprimé",
         "successDeleteDesc": "{name} a été supprimé.",
+        "setDefaultBtn": "Définir par défaut",
+        "successDefault": "Modèle par défaut mis à jour",
+        "successDefaultDesc": "{name} est désormais utilisé quand une plateforme partenaire comme LOCAZ demande un contrat.",
+        "errorDefault": "Impossible de définir le modèle par défaut",
+        "errorDefaultDesc": "Impossible de changer le modèle par défaut pour l'instant.",
         "networkError": "Erreur réseau",
         "networkErrorDesc": "Impossible de supprimer ce modèle pour l'instant.",
         "filterOptions": {
