@@ -86,21 +86,27 @@ export const partnerCheckoutContractAcceptSchema = z.object({
 
 const PNG_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/
 
-/** `POST /bookings/:id/checkout/signature`: a drawn signature (PNG) or a typed name in a handwriting font. */
+/**
+ * `POST /bookings/:id/checkout/signature`: the signature as a PNG (drawn, or the typed name drawn in a handwriting font,
+ * as Contrazy's page does: the signed PDF shows the image), with the typed name and font when typed, and the city of
+ * signature printed on the contract.
+ */
 export const partnerCheckoutSignatureSchema = z
   .object({
     method: z.enum(["draw", "type"]),
-    image: z.string().max(700_000).regex(PNG_DATA_URL, "image must be a PNG data URL").optional(),
+    image: z.string().max(700_000).regex(PNG_DATA_URL, "image must be a PNG data URL"),
     typedName: z.string().trim().min(2).max(120).optional(),
     font: z.string().trim().max(100).optional(),
-    city: z.string().trim().max(100).optional(),
+    city: z.string().trim().min(1, "city is required").max(100),
     timezone: z.string().trim().min(1).max(64),
   })
   .strict()
-  .refine((body) => (body.method === "draw" ? Boolean(body.image) : Boolean(body.typedName)), {
-    message: "a drawn signature needs image, a typed one needs typedName",
-    path: ["method"],
+  .refine((body) => body.method === "draw" || Boolean(body.typedName), {
+    message: "a typed signature needs typedName",
+    path: ["typedName"],
   })
+
+export type PartnerCheckoutSignatureInput = z.infer<typeof partnerCheckoutSignatureSchema>
 
 /** `POST /bookings/:id/checkout/payment` answer: confirm it in the browser with Stripe.js on the connected account. */
 export type PartnerCheckoutPayment = {

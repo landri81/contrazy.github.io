@@ -106,7 +106,7 @@ the webhooks are the same as on Contrazy's pages; only the screens are yours. Re
 | `POST /bookings/{id}/checkout/identity` | `{ returnUrl }` | `{ clientSecret, url, publishableKey }` |
 | `GET /bookings/{id}/checkout/contract` | | `{ html, version, locale }` |
 | `POST /bookings/{id}/checkout/contract/accept` | `{ version }` | the checkout state |
-| `POST /bookings/{id}/checkout/signature` | `{ method, image \| typedName, font?, city?, timezone }` | the checkout state |
+| `POST /bookings/{id}/checkout/signature` | `{ method, image, typedName?, font?, city, timezone }` | the checkout state |
 | `POST /bookings/{id}/checkout/payment` | | `{ stage, clientSecret, stripeAccountId, publishableKey, amount, currency }` |
 | `POST /bookings/{id}/checkout/payment/confirm` | `{ paymentIntentId }` | the checkout state |
 | `POST /bookings/{id}/checkout/card` | `{ consentVersion, consentText }` | `{ clientSecret, stripeAccountId, publishableKey }` |
@@ -144,7 +144,9 @@ The checkout state:
   the customer to `url`; `returnUrl` must be on one of your allowed origins. The result arrives by webhook
   (`booking.identity_verified`) and in the state.
 - Contract: show `html` in your page, then accept with its `version`; a contract changed since the customer read it
-  answers `409 version_mismatch`.
+  answers `409 version_mismatch`. Signature: `image` is always a PNG data URL (the drawn signature, or the typed name
+  drawn in a handwriting font, with `typedName` and `font`): the signed PDF shows it. `city` (of signature) is printed on
+  the contract; the customer's IP from `Contrazy-Customer-Ip` is kept as evidence.
 - Payment and card: confirm in the browser with Stripe.js initialised with `publishableKey` and
   `{ stripeAccount: stripeAccountId }`, then call the matching confirm route. Card data never reaches you or Contrazy's
   servers. `stage` says whether this payment is the deposit hold or the rental payment; call `payment` again until the

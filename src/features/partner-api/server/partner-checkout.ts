@@ -1,4 +1,8 @@
-import { canRevisitClientStep, clientFlowTransactionInclude } from "@/features/client-flow/server/client-flow-data"
+import { createHash } from "node:crypto"
+
+import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, getClientFlowState, hasContractStep } from "@/features/client-flow/server/client-flow-data"
+import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
+import { signClientContract } from "@/features/client-flow/server/steps/sign-contract"
 import { startClientIdentityVerification } from "@/features/client-flow/server/steps/start-identity"
 import { submitClientDocuments } from "@/features/client-flow/server/steps/submit-documents"
 import { presentPartnerCheckout } from "@/features/partner-api/checkout-presenter"
@@ -7,7 +11,9 @@ import {
   CHECKOUT_FILE_TYPES,
   partnerCheckoutDocumentFieldsSchema,
   type PartnerCheckoutDocumentsSubmitInput,
+  type PartnerCheckoutContract,
   type PartnerCheckoutIdentity,
+  type PartnerCheckoutSignatureInput,
   type PartnerCheckoutUploadedFile,
 } from "@/features/partner-api/schemas/checkout.schema"
 import { signCheckoutFile, verifyCheckoutFile } from "@/features/partner-api/server/checkout-files"
@@ -111,4 +117,45 @@ export async function startPartnerCheckoutIdentity(caller: Caller, bookingId: st
   if (result.status === 404) throw new PartnerApiError("not_found", result.body.message ?? "No booking matches this reference for this vendor.")
   if (result.status !== 200 || !result.body.clientSecret || !result.body.url) throw new Error(result.body.message ?? "The identity check could not start.")
   return { clientSecret: result.body.clientSecret, url: result.body.url, publishableKey: getStripePublishableKey() }
+}
+
+/** The populated agreement and its version: a hash of exactly what the customer reads. */
+function checkoutContract(transaction: CheckoutTransaction): PartnerCheckoutContract {
+  if (!hasContractStep(transaction)) throw new PartnerApiError("step_not_available", "This booking has no contract to sign.")
+  const html = buildPopulatedContractContent(transaction)
+  return { html, version: `v_${createHash("sha256").update(html).digest("hex").slice(0, 32)}`, locale: transaction.locale }
+}
+
+/** `GET /bookings/:id/checkout/contract`: the agreement to show on the partner's page. */
+export async function getPartnerCheckoutContract(caller: Caller, bookingId: string): Promise<PartnerCheckoutContract> {
+  return checkoutContract(await loadCheckoutTransaction(caller, bookingId))
+}
+
+function stepRefusal(result: { status: number; body: { message?: string } }, fallback: string): PartnerApiError {
+  return new PartnerApiError(STEP_REFUSALS[result.status] ?? "invalid_request", result.body.message ?? fallback)
+}
+
+/** `POST /bookings/:id/checkout/contract/accept`: the customer read this version; a changed contract is refused. */
+export async function acceptPartnerCheckoutContract(caller: Caller, bookingId: string, input: { version: string }) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+  if (checkoutContract(transaction).version !== input.version) throw new PartnerApiError("version_mismatch", "The contract changed since the customer read it: show it again.")
+  const result = await reviewClientContract(link)
+  if (result.status !== 200) throw stepRefusal(result, "The contract review was refused.")
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+}
+
+/** `POST /bookings/:id/checkout/signature`: the accepted contract signed, with the customer's IP as evidence. */
+export async function signPartnerCheckout(caller: Caller, bookingId: string, input: PartnerCheckoutSignatureInput, ipAddress: string | null) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+  checkoutContract(transaction)
+  if (!getClientFlowState(transaction).reviewedContract) throw new PartnerApiError("step_not_available", "Accept the contract before signing it.")
+  const result = await signClientContract(
+    link.id,
+    { signatureDataUrl: input.image, signedTimezone: input.timezone, signatureMethod: input.method, typedValue: input.typedName ?? null, fontKey: input.font ?? null, signatureCity: input.city },
+    ipAddress
+  )
+  if (result.status !== 200) throw stepRefusal(result, "The signature was refused.")
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
 }

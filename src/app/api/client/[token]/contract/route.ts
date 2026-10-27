@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server"
 
-import { persistReviewedContractSnapshot } from "@/features/contracts/server/contract-artifacts"
-import {
-  canRevisitClientStep,
-  clientFlowTransactionInclude,
-  getNextClientStep,
-} from "@/features/client-flow/server/client-flow-data"
-import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
-import { getClientLinkAccessContext, markTransactionLinkOpened } from "@/features/transactions/server/transaction-links"
-import { prisma } from "@/lib/db/prisma"
+import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
+import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 
 export async function POST(
   request: Request,
@@ -32,53 +25,9 @@ export async function POST(
       return NextResponse.json({ success: false, message: "This secure link is no longer available." }, { status: 410 })
     }
 
-    const { link } = linkContext
-    const transactionId = link.transaction.id
-    const currentTransaction = await prisma.transaction.findUnique({
-      where: { id: transactionId },
-      include: clientFlowTransactionInclude,
-    })
+    const result = await reviewClientContract(linkContext.link)
 
-    if (!currentTransaction) {
-      return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
-    }
-
-    if (!canRevisitClientStep(currentTransaction, "contract")) {
-      return NextResponse.json(
-        { success: false, message: "The agreement can no longer be changed after payment has started." },
-        { status: 409 }
-      )
-    }
-
-    await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
-
-    await prisma.transaction.update({
-      where: { id: transactionId },
-      data: {
-        status: currentTransaction.status === "SIGNED" ? currentTransaction.status : "CONTRACT_GENERATED",
-      },
-    })
-
-    await persistReviewedContractSnapshot(prisma, transactionId)
-
-    await recordTransactionEvent(prisma, {
-      transactionId,
-      type: "CONTRACT_REVIEWED",
-      title: "Agreement reviewed",
-      detail: "The client reviewed the populated agreement.",
-      dedupeKey: `event:contract-reviewed:${transactionId}`,
-    })
-
-    const transaction = await prisma.transaction.findUnique({
-      where: { id: transactionId },
-      include: clientFlowTransactionInclude,
-    })
-
-    if (!transaction) {
-      return NextResponse.json({ success: false, message: "Transaction not found" }, { status: 404 })
-    }
-
-    return NextResponse.json({ success: true, nextStep: getNextClientStep(transaction) })
+    return NextResponse.json(result.body, { status: result.status })
   } catch (error) {
     console.error("Save Contract Review Error:", error)
     return NextResponse.json({ success: false, message: "Failed to save contract review" }, { status: 500 })

@@ -239,6 +239,79 @@ paths:
         "410": { $ref: "#/components/responses/Error" }
         "422": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/checkout/contract:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Embedded checkout]
+      operationId: getCheckoutContract
+      summary: The agreement to show in the checkout
+      description: Scope `bookings:read`. The populated agreement (HTML) and its version, to send back when the customer accepts it. 409 `step_not_available` when the booking has no contract.
+      responses:
+        "200":
+          description: The agreement.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutContract" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/contract/accept:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: acceptCheckoutContract
+      summary: The customer read and accepted the agreement
+      description: Scope `bookings:write`. 409 `version_mismatch` when the agreement changed since the customer read it (show it again); 409 `step_not_available` once the payment started.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version: { type: string }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/signature:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: signCheckout
+      summary: Sign the accepted agreement
+      description: >-
+        Scope `bookings:write`. The signed PDF is generated as on Contrazy's page. `image` is a PNG data URL (drawn, or
+        the typed name drawn in a handwriting font); `city` is printed on the contract; send the customer's IP in
+        `Contrazy-Customer-Ip` (kept as evidence). 409 `step_not_available` before the contract is accepted or once the
+        payment started.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckoutSignature" }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/cancel:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -1140,6 +1213,23 @@ components:
         clientSecret: { type: string, description: "Stripe VerificationSession client secret: single use, 24 hours; never log or store it." }
         url: { type: string, format: uri }
         publishableKey: { type: string }
+    CheckoutContract:
+      type: object
+      required: [html, version, locale]
+      properties:
+        html: { type: string, description: The populated agreement (sanitised HTML). }
+        version: { type: string }
+        locale: { type: string }
+    CheckoutSignature:
+      type: object
+      required: [method, image, city, timezone]
+      properties:
+        method: { type: string, enum: [draw, type] }
+        image: { type: string, description: PNG data URL of the signature. }
+        typedName: { type: string, description: "Required when method is type." }
+        font: { type: string }
+        city: { type: string, maxLength: 100 }
+        timezone: { type: string, description: IANA time zone of the customer. }
     WebhookEventType:
       type: string
       enum:
