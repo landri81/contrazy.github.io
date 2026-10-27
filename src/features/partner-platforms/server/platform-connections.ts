@@ -100,8 +100,9 @@ export async function connectPlatform(vendorId: string, platform: PartnerPlatfor
   try {
     const endpoint = await createPartnerWebhookEndpoint(caller, { url: target.webhookUrl, description: `${target.name} (platform connection)`, eventTypes: [...PARTNER_WEBHOOK_EVENT_TYPES] })
     endpointId = endpoint.id
-    if (!vendor.partnerAllowedOrigins.includes(target.origin)) {
-      await prisma.vendorProfile.update({ where: { id: vendorId }, data: { partnerAllowedOrigins: { push: target.origin } } })
+    const missingOrigins = target.allowedOrigins.filter((origin) => !vendor.partnerAllowedOrigins.includes(origin))
+    if (missingOrigins.length) {
+      await prisma.vendorProfile.update({ where: { id: vendorId }, data: { partnerAllowedOrigins: { push: missingOrigins } } })
     }
     const handover = await postToPlatform(
       target.provisionUrl,

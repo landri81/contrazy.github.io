@@ -75,7 +75,8 @@ describe("connectPlatform", () => {
 
     expect(createKey.mock.calls[0][0]).toMatchObject({ vendorId: "vendor_locaz", platformPartner: "locaz", data: { scopes: ["bookings:read", "bookings:write", "charges:write", "webhooks:write"] } })
     expect(createEndpoint.mock.calls[0][1]).toMatchObject({ url: "https://www.locaz.co/api/integrations/contrazy/events" })
-    expect(updateVendor.mock.calls[0][0].data).toEqual({ partnerAllowedOrigins: { push: "https://www.locaz.co" } })
+    // locaz.co redirects to www.locaz.co and LOCAZ may build its return URLs on either: both allowed.
+    expect(updateVendor.mock.calls[0][0].data).toEqual({ partnerAllowedOrigins: { push: ["https://www.locaz.co", "https://locaz.co"] } })
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe("https://www.locaz.co/api/integrations/contrazy/provision")
     expect(JSON.parse(init.body)).toMatchObject({ action: "connect", apiUrl: "https://www.contrazy.com", apiKey: expect.stringMatching(/^cz_test_/), webhookSecret: "whsec_new", vendorId: "vendor_locaz", vendorName: "LOCAZ" })
