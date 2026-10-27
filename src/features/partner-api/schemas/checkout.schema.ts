@@ -116,6 +116,11 @@ export type PartnerCheckoutPayment = {
   publishableKey: string
   amount: number
   currency: string
+  /**
+   * For the deposit only: held on the card (`hold`, released at most `days` later) or charged and refunded within
+   * `days` (`charge`, long deposits), so the customer is told which.
+   */
+  deposit: { method: "hold" | "charge"; days: number } | null
 }
 
 /** `POST /bookings/:id/checkout/payment/confirm`. */
@@ -123,13 +128,20 @@ export const partnerCheckoutPaymentConfirmSchema = z.object({
   paymentIntentId: z.string().trim().regex(/^pi_[A-Za-z0-9]+$/, "paymentIntentId must be a Stripe PaymentIntent id"),
 })
 
-/** `POST /bookings/:id/checkout/card`: the consent the customer accepted, as shown on the partner's page. */
-export const partnerCheckoutCardSchema = z.object({
+/**
+ * `POST /bookings/:id/checkout/card/consent`: the customer's consent to later charges on the saved card, in the exact
+ * words the partner showed (French and English, with their version). Needed before the rental payment saves the card,
+ * and before `/card`. Recording it again changes nothing.
+ */
+export const partnerCheckoutCardConsentSchema = z.object({
   consentVersion: z.string().trim().min(1).max(64),
-  consentText: z.string().trim().min(20).max(4000),
+  textFr: z.string().trim().min(20).max(4000),
+  textEn: z.string().trim().min(20).max(4000),
 })
 
-/** `POST /bookings/:id/checkout/card` answer: confirm the SetupIntent in the browser with Stripe.js. */
+export type PartnerCheckoutCardConsentInput = z.infer<typeof partnerCheckoutCardConsentSchema>
+
+/** `POST /bookings/:id/checkout/card` answer (no body; consent first): confirm the SetupIntent in the browser with Stripe.js. */
 export type PartnerCheckoutCard = { clientSecret: string; stripeAccountId: string; publishableKey: string }
 
 /** `POST /bookings/:id/checkout/card/confirm`. */

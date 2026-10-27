@@ -1,18 +1,29 @@
 import { createHash } from "node:crypto"
 
+import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security/card-security-state"
+import { ConsentPartiesMissingError, partnerCardConsentText } from "@/features/card-security/consent-texts"
+import { CardSecurityError, findCardConsent, recordCardConsent } from "@/features/card-security/server/card-security"
+import { loadClientCardSecurityContext } from "@/features/card-security/server/client-card-security"
 import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, getClientFlowState, hasContractStep } from "@/features/client-flow/server/client-flow-data"
+import { confirmClientCardSetup, startClientCardSetup } from "@/features/client-flow/server/steps/card-setup"
+import { confirmClientPayment } from "@/features/client-flow/server/steps/confirm-payment"
 import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
 import { signClientContract } from "@/features/client-flow/server/steps/sign-contract"
 import { startClientIdentityVerification } from "@/features/client-flow/server/steps/start-identity"
+import { startClientPayment } from "@/features/client-flow/server/steps/start-payment"
 import { submitClientDocuments } from "@/features/client-flow/server/steps/submit-documents"
 import { presentPartnerCheckout } from "@/features/partner-api/checkout-presenter"
 import {
   CHECKOUT_FILE_MAX_BYTES,
   CHECKOUT_FILE_TYPES,
   partnerCheckoutDocumentFieldsSchema,
+  type PartnerCheckoutCard,
+  type PartnerCheckoutCardConsentInput,
   type PartnerCheckoutDocumentsSubmitInput,
   type PartnerCheckoutContract,
   type PartnerCheckoutIdentity,
+  type PartnerCheckoutNextStep,
+  type PartnerCheckoutPayment,
   type PartnerCheckoutSignatureInput,
   type PartnerCheckoutUploadedFile,
 } from "@/features/partner-api/schemas/checkout.schema"
@@ -157,5 +168,150 @@ export async function signPartnerCheckout(caller: Caller, bookingId: string, inp
     ipAddress
   )
   if (result.status !== 200) throw stepRefusal(result, "The signature was refused.")
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+}
+
+/** The money steps follow Contrazy's order: refused while the checkout is on another step. */
+function assertCurrentStep(transaction: CheckoutTransaction, step: PartnerCheckoutNextStep, message: string) {
+  const current = presentPartnerCheckout(transaction).nextStep
+  if (current !== step) throw new PartnerApiError("step_not_available", `${message} The checkout is on \`${current}\`.`)
+}
+
+/** A PaymentIntent or SetupIntent id Stripe does not know on the vendor's account. */
+function unknownIntent(error: unknown) {
+  return (error as { code?: string } | null)?.code === "resource_missing"
+}
+
+const CONSENT_FIRST = "Record the customer's card consent (`card/consent`) first: this booking keeps the card for later charges."
+
+/**
+ * `POST /bookings/:id/checkout/payment`: the PaymentIntent of the next money stage (the deposit hold or charge, then the
+ * rental payment, which also saves the card when the booking keeps it), created as on Contrazy's page. The partner
+ * confirms it in the browser with Stripe.js on the vendor's connected account.
+ */
+export async function startPartnerCheckoutPayment(caller: Caller, bookingId: string): Promise<PartnerCheckoutPayment> {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+  assertCurrentStep(transaction, "payment", "Nothing is to be paid now.")
+
+  let result: Awaited<ReturnType<typeof startClientPayment>>
+  try {
+    result = await startClientPayment({ link }, link.token)
+  } catch (error) {
+    if (error instanceof CardSecurityError) throw new PartnerApiError("invalid_request", error.message)
+    throw error
+  }
+  const { body } = result
+  if (body.code === "consent_required") throw new PartnerApiError("consent_required", CONSENT_FIRST)
+  if (result.status === 422) throw new PartnerApiError("stripe_not_connected", "The vendor's Stripe account is not ready to take payments.")
+  if (result.status !== 200 || body.redirect || !body.clientSecret || !body.stripeAccountId || !body.publishableKey || body.amountCents === undefined || !body.currency) {
+    throw new PartnerApiError("step_not_available", "Nothing is to be paid now.")
+  }
+
+  return {
+    stage: body.isDeposit ? "deposit" : "rental",
+    clientSecret: body.clientSecret,
+    stripeAccountId: body.stripeAccountId,
+    publishableKey: body.publishableKey,
+    amount: body.amountCents,
+    currency: body.currency.toLowerCase(),
+    deposit: body.isDeposit ? { method: body.depositStrategy === "CHARGE_REFUND" ? "charge" : "hold", days: body.depositHoldDays ?? 7 } : null,
+  }
+}
+
+/** `POST /bookings/:id/checkout/payment/confirm`: the PaymentIntent read at Stripe and recorded; the checkout state back. */
+export async function confirmPartnerCheckoutPayment(caller: Caller, bookingId: string, input: { paymentIntentId: string }) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+
+  let result: Awaited<ReturnType<typeof confirmClientPayment>>
+  try {
+    result = await confirmClientPayment(link.id, input.paymentIntentId)
+  } catch (error) {
+    if (unknownIntent(error)) throw new PartnerApiError("invalid_request", "No PaymentIntent matches this id on the vendor's account.")
+    throw error
+  }
+  if (result.status === 403) throw new PartnerApiError("invalid_request", "This PaymentIntent belongs to another booking.")
+  if (result.status === 422) throw new PartnerApiError("payment_failed", result.body.message ?? "The payment was not successful.")
+  if (result.status !== 200) throw stepRefusal(result, "The payment could not be confirmed.")
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+}
+
+/**
+ * `POST /bookings/:id/checkout/card/consent`: the customer's consent to later charges on the saved card, in the exact
+ * words the partner showed (French and English), with the customer's IP and browser. Before the rental payment that
+ * saves the card, or before `/card`. Once recorded, or once the card is saved, calling it again changes nothing.
+ */
+export async function recordPartnerCheckoutCardConsent(
+  caller: Caller,
+  bookingId: string,
+  input: PartnerCheckoutCardConsentInput,
+  evidence: { ip: string | null; userAgent: string | null }
+) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  await openLink(transaction)
+  if (!isCardSecurityRequired(transaction)) throw new PartnerApiError("step_not_available", "This booking does not keep a card.")
+
+  if (!hasSecuredCard(transaction) && !(await findCardConsent(prisma, transaction.id))) {
+    try {
+      await recordCardConsent(prisma, {
+        transaction: { id: transaction.id, externalRef: transaction.externalRef, locale: transaction.locale, vendor: transaction.vendor },
+        ip: evidence.ip,
+        userAgent: evidence.userAgent,
+        text: partnerCardConsentText({ version: input.consentVersion, fr: input.textFr, en: input.textEn }),
+      })
+    } catch (error) {
+      if (error instanceof ConsentPartiesMissingError) throw new PartnerApiError("step_requires_configuration", error.message)
+      throw error
+    }
+  }
+
+  return presentPartnerCheckout(transaction)
+}
+
+/** The card-security context of Contrazy's routes, its refusals as partner errors. */
+async function cardContext(token: string) {
+  const context = await loadClientCardSecurityContext(token)
+  if (!context.error) return context
+  const status = context.error.status
+  if (status === 422) throw new PartnerApiError("stripe_not_connected", "The vendor's Stripe account is not ready to save cards.")
+  if (status === 409) throw new PartnerApiError("step_not_available", "This booking does not keep a card.")
+  throw new PartnerApiError(STEP_REFUSALS[status] ?? "invalid_request", "This booking's card cannot be saved.")
+}
+
+/**
+ * `POST /bookings/:id/checkout/card`: the card saved on its own, when nothing is charged now (consent first). The
+ * partner confirms the SetupIntent in the browser with Stripe.js on the vendor's connected account.
+ */
+export async function startPartnerCheckoutCard(caller: Caller, bookingId: string): Promise<PartnerCheckoutCard> {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+  assertCurrentStep(transaction, "card", "The card is saved on its own only once nothing is left to pay.")
+
+  const result = await startClientCardSetup(await cardContext(link.token))
+  if (result.body.code === "consent_required") throw new PartnerApiError("consent_required", CONSENT_FIRST)
+  if (result.status === 422) throw new PartnerApiError("invalid_request", result.body.message ?? "The customer's e-mail is needed to save a card.")
+  if (result.body.next || !result.body.clientSecret || !result.body.stripeAccountId || !result.body.publishableKey) {
+    throw new PartnerApiError("step_not_available", "No card is to be saved now.")
+  }
+  return { clientSecret: result.body.clientSecret, stripeAccountId: result.body.stripeAccountId, publishableKey: result.body.publishableKey }
+}
+
+/** `POST /bookings/:id/checkout/card/confirm`: the SetupIntent read at Stripe, the card marked saved; the checkout state back. */
+export async function confirmPartnerCheckoutCard(caller: Caller, bookingId: string, input: { setupIntentId: string }) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  const link = await openLink(transaction)
+
+  let result: Awaited<ReturnType<typeof confirmClientCardSetup>>
+  try {
+    result = await confirmClientCardSetup(await cardContext(link.token), input.setupIntentId)
+  } catch (error) {
+    if (unknownIntent(error)) throw new PartnerApiError("invalid_request", "No SetupIntent matches this id on the vendor's account.")
+    throw error
+  }
+  if (result.status === 403) throw new PartnerApiError("invalid_request", "This SetupIntent belongs to another booking.")
+  if (result.status === 422) throw new PartnerApiError("payment_failed", result.body.message ?? "The card could not be saved.")
+  if (result.body.code === "consent_required") throw new PartnerApiError("consent_required", CONSENT_FIRST)
+  if (result.status !== 200) throw new PartnerApiError("invalid_request", result.body.message ?? "The card could not be confirmed.")
   return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
 }

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import type { CardSecurity, ConsentRecord, PartnerCustomer, Prisma, PrismaClient } from "@prisma/client"
 import type Stripe from "stripe"
 
-import { consentPartiesFor, CURRENT_CARD_CONSENT_VERSION, renderCardConsentText } from "@/features/card-security/consent-texts"
+import { consentPartiesFor, CURRENT_CARD_CONSENT_VERSION, renderCardConsentText, type RenderedConsentText } from "@/features/card-security/consent-texts"
 import { recordCardSecuredEvent } from "@/features/partner-webhooks/server/charge-events"
 import type { StripeGateway } from "@/lib/integrations/stripe-gateway"
 
@@ -87,13 +87,14 @@ export function consentTextFor(transaction: Pick<ConsentTransaction, "vendor">) 
 /**
  * Logs the customer's consent with the exact text shown, its version and hash,
  * IP and browser (Spec v2.1 §6, §14). Written server-side before any card form
- * is shown, so no card is ever saved without it. Never updated.
+ * is shown, so no card is ever saved without it. Never updated. `text` is the
+ * partner's own wording when its checkout showed it (M10); Contrazy's otherwise.
  */
 export async function recordCardConsent(
   db: DatabaseClient,
-  input: { transaction: ConsentTransaction; ip: string | null; userAgent: string | null }
+  input: { transaction: ConsentTransaction; ip: string | null; userAgent: string | null; text?: RenderedConsentText }
 ): Promise<ConsentRecord> {
-  const text = consentTextFor(input.transaction)
+  const text = input.text ?? consentTextFor(input.transaction)
 
   return db.consentRecord.create({
     data: {

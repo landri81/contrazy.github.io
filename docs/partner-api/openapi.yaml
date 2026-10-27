@@ -312,6 +312,145 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "410": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/checkout/payment:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: startCheckoutPayment
+      summary: Start the next payment of the checkout (deposit hold, then rental payment)
+      description: >-
+        Scope `bookings:write`, no body. The PaymentIntent of the next money stage, on the vendor's connected account:
+        `stage` says whether it is the deposit hold (or charge) or the rental payment. Confirm it in the browser with
+        Stripe.js initialised with `publishableKey` and `{ stripeAccount: stripeAccountId }`, then call `payment/confirm`;
+        call this route again until the state moves on to `card` or `complete`. When the booking keeps the card for later
+        charges, the rental payment saves it: record the consent first (`card/consent`), or 409 `consent_required`. 409
+        `step_not_available` while the checkout is on an earlier step or nothing is left to pay.
+      responses:
+        "200":
+          description: The PaymentIntent for the browser.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutPayment" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/payment/confirm:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: confirmCheckoutPayment
+      summary: Record the payment Stripe.js confirmed
+      description: >-
+        Scope `bookings:write`. The PaymentIntent is read at Stripe (the browser is never trusted) and recorded, with the
+        card it saved. 402 `payment_failed` when Stripe refused it: `message` is Stripe's text for the customer; start a
+        new payment. The `booking.payment_succeeded` webhook follows.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentIntentId]
+              properties:
+                paymentIntentId: { type: string, pattern: "^pi_[A-Za-z0-9]+$" }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "402": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/card/consent:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: recordCheckoutCardConsent
+      summary: Record the customer's consent to later charges on the saved card
+      description: >-
+        Scope `bookings:write`. The exact words you showed the customer, in French and English, with your version name;
+        Contrazy keeps them with their hash, the customer's IP (`Contrazy-Customer-Ip`) and browser
+        (`Contrazy-Customer-User-Agent`). Before the rental payment that saves the card, or before `card`. Once recorded,
+        or once the card is saved, calling it again changes nothing. 409 `step_not_available` when the booking keeps no card.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckoutCardConsent" }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/card:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: startCheckoutCard
+      summary: Save the card on its own, when nothing is charged now
+      description: >-
+        Scope `bookings:write`, no body. A SetupIntent (usage off_session) on the vendor's connected account, when the
+        checkout is on `card`: confirm it with Stripe.js (`confirmSetup`), then call `card/confirm`. 409
+        `consent_required` before the consent; 409 `step_not_available` on another step.
+      responses:
+        "200":
+          description: The SetupIntent for the browser.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutCard" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /bookings/{id}/checkout/card/confirm:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: confirmCheckoutCard
+      summary: Record the card Stripe.js saved
+      description: >-
+        Scope `bookings:write`. The SetupIntent is read at Stripe and the card marked saved (`booking.card_secured`
+        webhook). 402 `payment_failed` when Stripe refused the card: `message` is Stripe's text for the customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setupIntentId]
+              properties:
+                setupIntentId: { type: string, pattern: "^seti_[A-Za-z0-9]+$" }
+      responses:
+        "200":
+          description: The checkout state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "402": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/cancel:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -851,6 +990,8 @@ components:
                 - checkout_closed
                 - invalid_file
                 - version_mismatch
+                - consent_required
+                - payment_failed
             message: { type: string }
             details: { type: object }
         request_id: { type: string }
@@ -1230,6 +1371,41 @@ components:
         font: { type: string }
         city: { type: string, maxLength: 100 }
         timezone: { type: string, description: IANA time zone of the customer. }
+    CheckoutPayment:
+      type: object
+      required: [stage, clientSecret, stripeAccountId, publishableKey, amount, currency, deposit]
+      properties:
+        stage: { type: string, enum: [deposit, rental] }
+        clientSecret: { type: string, description: "PaymentIntent client secret: for Stripe.js only; never log or store it." }
+        stripeAccountId: { type: string, description: The vendor's connected account (Stripe.js `stripeAccount`). }
+        publishableKey: { type: string }
+        amount: { type: integer, description: In cents. }
+        currency: { type: string }
+        deposit:
+          description: >-
+            For the deposit only (null for the rental payment): held on the card and released at most `days` later
+            (`hold`), or charged and refunded within `days` (`charge`, long deposits). Tell the customer which.
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [method, days]
+              properties:
+                method: { type: string, enum: [hold, charge] }
+                days: { type: integer }
+    CheckoutCardConsent:
+      type: object
+      required: [consentVersion, textFr, textEn]
+      properties:
+        consentVersion: { type: string, maxLength: 64 }
+        textFr: { type: string, minLength: 20, maxLength: 4000, description: The French words shown. }
+        textEn: { type: string, minLength: 20, maxLength: 4000, description: The English words shown. }
+    CheckoutCard:
+      type: object
+      required: [clientSecret, stripeAccountId, publishableKey]
+      properties:
+        clientSecret: { type: string, description: "SetupIntent client secret: for Stripe.js only; never log or store it." }
+        stripeAccountId: { type: string }
+        publishableKey: { type: string }
     WebhookEventType:
       type: string
       enum:

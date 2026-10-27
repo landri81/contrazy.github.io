@@ -107,9 +107,10 @@ the webhooks are the same as on Contrazy's pages; only the screens are yours. Re
 | `GET /bookings/{id}/checkout/contract` | | `{ html, version, locale }` |
 | `POST /bookings/{id}/checkout/contract/accept` | `{ version }` | the checkout state |
 | `POST /bookings/{id}/checkout/signature` | `{ method, image, typedName?, font?, city, timezone }` | the checkout state |
-| `POST /bookings/{id}/checkout/payment` | | `{ stage, clientSecret, stripeAccountId, publishableKey, amount, currency }` |
+| `POST /bookings/{id}/checkout/payment` | | `{ stage, clientSecret, stripeAccountId, publishableKey, amount, currency, deposit }` |
 | `POST /bookings/{id}/checkout/payment/confirm` | `{ paymentIntentId }` | the checkout state |
-| `POST /bookings/{id}/checkout/card` | `{ consentVersion, consentText }` | `{ clientSecret, stripeAccountId, publishableKey }` |
+| `POST /bookings/{id}/checkout/card/consent` | `{ consentVersion, textFr, textEn }` | the checkout state |
+| `POST /bookings/{id}/checkout/card` | | `{ clientSecret, stripeAccountId, publishableKey }` |
 | `POST /bookings/{id}/checkout/card/confirm` | `{ setupIntentId }` | the checkout state |
 
 The checkout state:
@@ -149,8 +150,12 @@ The checkout state:
   the contract; the customer's IP from `Contrazy-Customer-Ip` is kept as evidence.
 - Payment and card: confirm in the browser with Stripe.js initialised with `publishableKey` and
   `{ stripeAccount: stripeAccountId }`, then call the matching confirm route. Card data never reaches you or Contrazy's
-  servers. `stage` says whether this payment is the deposit hold or the rental payment; call `payment` again until the
-  state moves on to `card` or `complete`.
+  servers. `stage` says whether this payment is the deposit or the rental payment; for the deposit, `deposit.method` says
+  whether it is held on the card (`hold`) or charged and refunded (`charge`) within `deposit.days`. Call `payment` again until the
+  state moves on to `card` or `complete`. When the booking keeps the card for later charges (`steps.card.required`),
+  the rental payment saves it: record the customer's consent first (`card/consent`, the exact words you showed), or the
+  payment answers `409 consent_required`. `card` (the card saved on its own) comes only when no rental payment saves it. A
+  card Stripe refused answers `402 payment_failed` on the confirm route, with Stripe's message for the customer: start again.
 - A step that is not the current one, or no longer changeable (payment started), answers `409 step_not_available`; a
   cancelled or expired booking answers `410 checkout_closed`.
 

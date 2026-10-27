@@ -46,6 +46,8 @@ export type PartnerApiErrorCode =
   | "checkout_closed"
   | "invalid_file"
   | "version_mismatch"
+  | "consent_required"
+  | "payment_failed"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -99,6 +101,8 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   checkout_closed: 410,
   invalid_file: 422,
   version_mismatch: 409,
+  consent_required: 409,
+  payment_failed: 402,
 }
 
 export class PartnerApiError extends Error {

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server"
 
-import { CardSecurityError, ensurePartnerCustomer, findCardConsent, startCardSetup } from "@/features/card-security/server/card-security"
 import { loadClientCardSecurityContext } from "@/features/card-security/server/client-card-security"
-import { prisma } from "@/lib/db/prisma"
+import { startClientCardSetup } from "@/features/client-flow/server/steps/card-setup"
 import { normalizeLocale, withLocalePath } from "@/lib/i18n/locale-utils"
-import { getStripePublishableKey, stripeGateway } from "@/lib/integrations/stripe"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -23,47 +21,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ to
       return context.error
     }
 
-    const { transaction, stripeAccountId, financeStage } = context
+    const result = await startClientCardSetup(context)
 
-    if (financeStage !== "card_security") {
-      const next = financeStage === "complete" ? "complete" : "payment"
-      return NextResponse.json({ success: true, redirect: withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/${next}`) })
+    if (result.body.next) {
+      return NextResponse.json({ success: true, redirect: withLocalePath(normalizeLocale(context.transaction.locale), `/t/${token}/${result.body.next}`) })
     }
 
-    const consent = await findCardConsent(prisma, transaction.id)
-
-    if (!consent) {
-      return NextResponse.json({ success: false, code: "consent_required", message: "Please accept the card terms first." }, { status: 409 })
-    }
-
-    const profile = transaction.clientProfile
-    const partnerCustomer = await ensurePartnerCustomer(prisma, stripeGateway, {
-      vendorId: transaction.vendorId,
-      stripeAccountId,
-      email: profile?.email ?? "",
-      name: profile?.fullName ?? null,
-      phone: profile?.phone ?? null,
-    })
-    const intent = await startCardSetup(prisma, stripeGateway, {
-      transactionId: transaction.id,
-      stripeAccountId,
-      partnerCustomer,
-      termsVersion: consent.termsVersion,
-      reference: transaction.reference,
-    })
-
-    return NextResponse.json({
-      success: true,
-      clientSecret: intent.client_secret,
-      setupIntentId: intent.id,
-      stripeAccountId,
-      publishableKey: getStripePublishableKey(),
-    })
+    return NextResponse.json(result.body, { status: result.status })
   } catch (error) {
-    if (error instanceof CardSecurityError && error.code === "customer_email_missing") {
-      return NextResponse.json({ success: false, code: error.code, message: error.message }, { status: 422 })
-    }
-
     console.error("Card setup intent error", error instanceof Error ? error.message : error)
     return NextResponse.json({ success: false, message: "Failed to initialize the card form" }, { status: 500 })
   }

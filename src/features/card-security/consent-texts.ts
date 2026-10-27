@@ -61,9 +61,20 @@ export function renderCardConsentText(
   const values = { vendor: input.vendorName.trim(), contact: input.contactEmail.trim() }
   const fr = fill(template.fr, values)
   const en = fill(template.en, values)
-  const hash = createHash("sha256").update(`${version}\n${fr}\n${en}`, "utf8").digest("hex")
 
-  return { version, fr, en, hash, legalReviewPending: template.legalReviewPending }
+  return { version, fr, en, hash: consentTextHash(version, fr, en), legalReviewPending: template.legalReviewPending }
+}
+
+function consentTextHash(version: string, fr: string, en: string) {
+  return createHash("sha256").update(`${version}\n${fr}\n${en}`, "utf8").digest("hex")
+}
+
+/**
+ * The consent text a partner showed on its own checkout (embedded checkout, M10): its words and version, hashed the
+ * same way. The partner answers for the wording; Contrazy keeps exactly what it was sent.
+ */
+export function partnerCardConsentText(input: { version: string; fr: string; en: string }): RenderedConsentText {
+  return { version: input.version, fr: input.fr, en: input.en, hash: consentTextHash(input.version, input.fr, input.en), legalReviewPending: false }
 }
 
 export class ConsentPartiesMissingError extends Error {
