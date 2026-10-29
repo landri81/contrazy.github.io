@@ -10,6 +10,8 @@ const cents = z.number().int("amount must be whole cents").positive("amount must
 export const partnerHoldCreateSchema = z.object({ amount: cents, force: z.boolean().optional() })
 export const partnerHoldCaptureSchema = z.object({ amount: cents.optional() })
 export const partnerHoldCancelSchema = z.object({}).strict()
+/** `POST /bookings/:id/hold/renew`: the same amount by default, or a new one. */
+export const partnerHoldRenewSchema = z.object({ amount: cents.optional() }).strict()
 
 export const partnerBookingReturnedSchema = z.object({ returnedAt: isoDateTime("returnedAt") })
 export const partnerDetachCardSchema = z.object({}).strict()

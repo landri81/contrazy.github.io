@@ -177,6 +177,9 @@ sequenceDiagram
     L->>C: POST /bookings/{id}/hold {amount}
     C->>S: manual-capture authorization, off session
     C-->>L: 201 hold authorized + booking.hold_authorized
+    Note over L,C: Rental over ~6 days: renew before the hold lapses
+    L->>C: POST /bookings/{id}/hold/renew
+    C->>S: new authorization first, then the old one cancelled
     Note over L,C: Vehicle returned
     L->>C: POST /bookings/{id}/hold/capture {amount} or /hold/cancel
     L->>C: POST /bookings/{id}/returned {returnedAt}
@@ -193,8 +196,9 @@ sequenceDiagram
 - **Consent.** The card terms (`card-90d-v1`, French binding text with English alongside) name the vendor and its
   support e-mail; Contrazy stores the exact text, version, hash, time, IP and browser before any card form opens.
 - **Hold.** Place it when the vehicle is handed over, not at booking. Card holds lapse after about 7 days: for
-  rentals over 6 days rely on the saved card (or send `force: true`). A hold the bank lets lapse becomes
-  `released`.
+  rentals over 6 days send `force: true` and renew the hold every few days with `POST /bookings/{id}/hold/renew`
+  (the new hold is authorized before the old one is released; a declined renewal keeps the current hold), or rely
+  on the saved card. A hold the bank lets lapse becomes `released`.
 - **Window.** Charges are accepted until `windowEndsAt` (exact instant). Charges created before it can still be
   retried and paid through their link after it.
 - **Charges.** Contrazy checks only hard rules; LOCAZ applies its caps and price schedule first. FPS, tolls and

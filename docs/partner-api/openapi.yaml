@@ -580,6 +580,39 @@ paths:
               schema: { $ref: "#/components/schemas/HoldResponse" }
         "409": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/hold/renew:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Holds]
+      operationId: renewPickupHold
+      summary: Renew the hold before it lapses (long rentals)
+      description: >-
+        Scope `bookings:write`, `Idempotency-Key` required. A bank keeps a card hold for about 7 days: for a longer
+        rental, renew it before then. A new hold is authorized off session on the saved card first, then the current
+        one is released, so the booking is never without a hold; `booking.hold_authorized` follows for the new one.
+        Without `amount`, the current amount. 409 `hold_not_active` (no authorized card hold) or `card_not_secured`;
+        402 `hold_failed` when the card is declined or needs the customer: the current hold stays as it is.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                amount: { $ref: "#/components/schemas/Cents" }
+      responses:
+        "200":
+          description: Renewed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HoldResponse" }
+        "402": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/refunds:
     parameters:
       - $ref: "#/components/parameters/BookingId"

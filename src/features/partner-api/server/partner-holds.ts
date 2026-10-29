@@ -1,8 +1,8 @@
 import { AuditActorType, type PartnerApiKey, type VendorProfile } from "@prisma/client"
 import type { z } from "zod"
 
-import { PickupHoldError, placePickupHold } from "@/features/card-security/server/pickup-hold"
-import type { partnerHoldCreateSchema } from "@/features/partner-api/schemas/card-charges.schema"
+import { PickupHoldError, placePickupHold, renewPickupHold } from "@/features/card-security/server/pickup-hold"
+import type { partnerHoldCreateSchema, partnerHoldRenewSchema } from "@/features/partner-api/schemas/card-charges.schema"
 import { requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { buildHold } from "@/features/partner-webhooks/payload"
 import { DepositSettlementError, settleDepositHold } from "@/features/transactions/server/deposit-settlement"
@@ -36,6 +36,27 @@ export async function createPartnerHold(caller: HoldCaller, bookingId: string, i
 
   try {
     await placePickupHold(prisma, stripeGateway, { transaction: booking, amount: input.amount, force: input.force, idempotencyKey })
+  } catch (error) {
+    if (error instanceof PickupHoldError) {
+      throw new PartnerApiError(error.code, error.message, { details: error.details })
+    }
+
+    throw error
+  }
+
+  return presentHold(caller, bookingId)
+}
+
+/** Renews the pickup hold before it lapses: the new hold first, then the old one released (long rentals). */
+export async function renewPartnerHold(caller: HoldCaller, bookingId: string, input: z.infer<typeof partnerHoldRenewSchema>, idempotencyKey: string) {
+  if (!caller.vendorProfile.stripeAccountId) {
+    throw new PartnerApiError("stripe_not_connected", "Connect a Stripe account before placing holds.")
+  }
+
+  const booking = await loadHoldBooking(caller, bookingId)
+
+  try {
+    await renewPickupHold(prisma, stripeGateway, { transaction: booking, amount: input.amount, idempotencyKey })
   } catch (error) {
     if (error instanceof PickupHoldError) {
       throw new PartnerApiError(error.code, error.message, { details: error.details })

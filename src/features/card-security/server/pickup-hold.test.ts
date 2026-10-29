@@ -18,7 +18,7 @@ vi.mock("@/features/transactions/server/transaction-finance", () => ({
 }))
 vi.mock("@/lib/integrations/resend", () => ({ sendVendorFeeReceiptEmail: () => Promise.resolve() }))
 
-const { placePickupHold, PickupHoldError, rentalLengthDays } = await import("./pickup-hold")
+const { placePickupHold, renewPickupHold, PickupHoldError, rentalLengthDays } = await import("./pickup-hold")
 const { settleDepositHold, DepositSettlementError } = await import("@/features/transactions/server/deposit-settlement")
 const { createInMemoryStripeGateway } = await import("@/lib/integrations/stripe-gateway")
 
@@ -206,5 +206,61 @@ describe("settling the hold at return", () => {
       settleDepositHold(createDb() as never, gateway, { transaction: booking({ hold: { status: "RELEASED" } }), action: "release", actor })
     ).rejects.toMatchObject({ code: "not_active" })
     await expect(settleDepositHold(createDb() as never, gateway, { transaction: booking(), action: "capture", actor })).rejects.toMatchObject({ code: "not_found" })
+  })
+})
+
+describe("renewing the hold on a long rental", () => {
+  it("authorizes the new hold first, then cancels the old one, and points the booking at the new intent", async () => {
+    const gateway = createInMemoryStripeGateway()
+    const transaction = await authorizedHold(gateway)
+    const oldIntentId = transaction.depositAuthorization!.stripeIntentId!
+
+    await renewPickupHold(createDb() as never, gateway, { transaction, idempotencyKey: "renew-1" })
+
+    const methods = gateway.paymentsFake.calls.filter((c) => c.method === "createPaymentIntent" || c.method === "cancelPaymentIntent").map((c) => c.method)
+    // The setup hold, then the renewal: created before the old one is cancelled.
+    expect(methods).toEqual(["createPaymentIntent", "createPaymentIntent", "cancelPaymentIntent"])
+    const renewal = gateway.paymentsFake.calls.filter((c) => c.method === "createPaymentIntent")[1]
+    expect(renewal).toMatchObject({
+      idempotencyKey: expect.stringMatching(/^pickup-hold-renew:tx1:[0-9a-f]{32}$/),
+      params: { amount: 80000, payment_method: "pm_card_visa", capture_method: "manual", off_session: true, metadata: { financeStage: "deposit_authorization", renewalOf: oldIntentId } },
+    })
+    expect((await gateway.payments.retrievePaymentIntent(oldIntentId, { account: ACCOUNT })).status).toBe("canceled")
+    const renewed = upsertDepositAuthorizationFromIntent.mock.calls[0][2] as Stripe.PaymentIntent
+    expect(renewed.id).not.toBe(oldIntentId)
+    expect(renewed).toMatchObject({ status: "requires_capture", amount_capturable: 80000 })
+  })
+
+  it("keeps the current hold when the card declines the renewal", async () => {
+    const gateway = createInMemoryStripeGateway()
+    const held = await authorizedHold(gateway)
+    const transaction = { ...held, cardSecurity: { ...held.cardSecurity!, paymentMethodId: "pm_card_chargeCustomerFail" } }
+
+    const error = await renewPickupHold(createDb() as never, gateway, { transaction, idempotencyKey: "renew-2" }).catch((e) => e)
+
+    expect(error).toMatchObject({ code: "hold_failed", details: { declineCode: "generic_decline" } })
+    expect(gateway.paymentsFake.calls.some((c) => c.method === "cancelPaymentIntent")).toBe(false)
+    expect((await gateway.payments.retrievePaymentIntent(held.depositAuthorization!.stripeIntentId!, { account: ACCOUNT })).status).toBe("requires_capture")
+    expect(upsertDepositAuthorizationFromIntent).not.toHaveBeenCalled()
+  })
+
+  it("renews once for a repeated request with the same key", async () => {
+    const gateway = createInMemoryStripeGateway()
+    const transaction = await authorizedHold(gateway)
+
+    await renewPickupHold(createDb() as never, gateway, { transaction, idempotencyKey: "renew-3" })
+    await renewPickupHold(createDb() as never, gateway, { transaction, idempotencyKey: "renew-3" }).catch(() => undefined)
+
+    const keys = gateway.paymentsFake.calls.filter((c) => c.method === "createPaymentIntent").slice(1).map((c) => c.idempotencyKey)
+    expect(new Set(keys).size).toBe(1)
+  })
+
+  it.each([
+    ["no card security", { card: null }, "card_not_secured"],
+    ["no hold", { hold: null }, "hold_not_active"],
+    ["a released hold", { hold: { status: "RELEASED" } }, "hold_not_active"],
+    ["a charged-and-refunded deposit", { hold: { depositStrategy: "CHARGE_REFUND" } }, "hold_not_active"],
+  ] as const)("refuses a booking with %s", async (_label, overrides, code) => {
+    await expect(renewPickupHold(createDb() as never, createInMemoryStripeGateway(), { transaction: booking(overrides as never), idempotencyKey: "k" })).rejects.toMatchObject({ code })
   })
 })
