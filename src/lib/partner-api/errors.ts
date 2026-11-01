@@ -48,6 +48,7 @@ export type PartnerApiErrorCode =
   | "version_mismatch"
   | "consent_required"
   | "payment_failed"
+  | "contract_incomplete"
 
 export type PartnerApiErrorBody = {
   error: {
@@ -96,6 +97,8 @@ const DEFAULT_STATUS: Record<PartnerApiErrorCode, number> = {
   charge_not_refundable: 409,
   refund_too_large: 422,
   payment_not_refundable: 409,
+  // A rental contract with a required field empty is never signed (LOCAZ QA V-04).
+  contract_incomplete: 422,
   // Embedded checkout (M10).
   step_not_available: 409,
   checkout_closed: 410,

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { buildContractRentalContext } from "@/features/contracts/rental-placeholders"
 import {
   localizeCustomerDetailsSectionHeading,
+  emptyContractFields,
   renderContractContent,
 } from "@/features/contracts/server/contract-rendering"
 import { getNextFinanceStage, type FinanceTransaction } from "@/features/transactions/server/transaction-finance"
@@ -411,6 +412,28 @@ export function canCancelClientFlow(transaction: ClientFlowTransaction) {
   }
 
   return getNextClientStep(transaction) !== "complete"
+}
+
+/**
+ * Required contract fields this booking would leave empty (LOCAZ QA V-04). A contract already rendered before
+ * signature keeps what it shows; otherwise the template is checked against the booking.
+ */
+export function emptyRequiredContractFields(transaction: ClientFlowTransaction): string[] {
+  const templateContent = transaction.contractArtifact?.templateContentSnapshot ?? transaction.contractTemplate?.content
+  if (!templateContent) return []
+  return emptyContractFields({
+    templateContent,
+    clientProfile: transaction.clientProfile,
+    vendorName: transaction.vendor?.businessName,
+    transactionReference: transaction.reference,
+    amount: transaction.amount,
+    depositAmount: transaction.depositAmount,
+    signatureCity: transaction.signatureCity,
+    serviceDate: transaction.serviceDate,
+    locale: transaction.locale,
+    customerDetails: buildTransactionCustomFieldRenderEntries(transaction.customFields),
+    rental: buildContractRentalContext(transaction),
+  })
 }
 
 export function buildPopulatedContractContent(transaction: ClientFlowTransaction) {

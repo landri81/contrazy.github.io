@@ -196,11 +196,12 @@ function buildCustomerDetailsSection(
   return `<h2>${escapeContractHtml(getCustomerDetailsSectionTitle(locale))}</h2>${rows}`
 }
 
-export function renderContractContent(input: RenderContractContentInput) {
+/** Every `{{…}}` placeholder of the client, vendor, amounts and signature, with its value for this contract. */
+function placeholderValues(input: RenderContractContentInput) {
   const clientName = buildClientDisplayName(input.clientProfile)
   const signedTimestamp = input.signedAt ? input.signedAt.toISOString() : ""
 
-  const replacements = new Map<string, string>([
+  return new Map<string, string>([
     ["{{clientName}}", escapeContractHtml(clientName)],
     ["{{clientFirstName}}", escapeContractHtml(input.clientProfile?.firstName?.trim() || "")],
     ["{{clientLastName}}", escapeContractHtml(input.clientProfile?.lastName?.trim() || "")],
@@ -215,7 +216,7 @@ export function renderContractContent(input: RenderContractContentInput) {
     ["{{clientAddress}}", escapeContractHtml(input.clientProfile?.address || "")],
     ["{{clientCountry}}", escapeContractHtml(input.clientProfile?.country || "")],
     ["{{vendorName}}", escapeContractHtml(input.vendorName || "Vendor")],
-    ["{{transactionReference}}", escapeContractHtml(input.transactionReference)],
+    ["{{transactionReference}}", escapeContractHtml(input.transactionReference ?? "")],
     ["{{paymentAmount}}", escapeContractHtml(formatMoney(input.amount))],
     ["{{depositAmount}}", escapeContractHtml(formatMoney(input.depositAmount))],
     ["{{signatureCity}}", escapeContractHtml(input.signatureCity?.trim() || "")],
@@ -244,7 +245,43 @@ export function renderContractContent(input: RenderContractContentInput) {
     ],
     ["{{signedTimestamp}}", escapeContractHtml(signedTimestamp)],
   ])
+}
 
+/**
+ * Fields a rental contract is never signed without, when its template uses them (LOCAZ QA V-04: a contract signed
+ * with the vehicle, the dates or the deposit left blank is useless in a dispute).
+ */
+export const CONTRACT_REQUIRED_TOKENS = [
+  "{{clientName}}",
+  "{{clientFirstName}}",
+  "{{clientLastName}}",
+  "{{clientBirthDate}}",
+  "{{clientBirthCity}}",
+  "{{clientAddress}}",
+  "{{rental.vehicle}}",
+  "{{rental.plate}}",
+  "{{rental.start}}",
+  "{{rental.end}}",
+  "{{rental.pickupPlace}}",
+  "{{rental.returnPlace}}",
+  "{{rental.protection}}",
+  "{{rental.deductible}}",
+  "{{rental.deposit}}",
+] as const
+
+/** The required placeholders the template uses that would print nothing for this contract. */
+export function emptyContractFields(input: RenderContractContentInput): string[] {
+  const values = placeholderValues(input)
+  const template = input.templateContent
+  return CONTRACT_REQUIRED_TOKENS.filter((token) => {
+    if (!template.includes(token)) return false
+    const value = token.startsWith("{{rental.") ? applyRentalPlaceholders(token, input.rental, input.locale) : (values.get(token) ?? "")
+    return clearUnknownPlaceholders(value).replace(/<[^>]*>/g, "").trim() === ""
+  })
+}
+
+export function renderContractContent(input: RenderContractContentInput) {
+  const replacements = placeholderValues(input)
   let renderedHtml = normalizeContractTemplateMarkup(input.templateContent)
 
   for (const [token, value] of replacements.entries()) {

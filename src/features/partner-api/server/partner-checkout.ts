@@ -4,7 +4,7 @@ import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security
 import { ConsentPartiesMissingError, partnerCardConsentText } from "@/features/card-security/consent-texts"
 import { CardSecurityError, findCardConsent, recordCardConsent } from "@/features/card-security/server/card-security"
 import { loadClientCardSecurityContext } from "@/features/card-security/server/client-card-security"
-import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, getClientFlowState, hasContractStep } from "@/features/client-flow/server/client-flow-data"
+import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, emptyRequiredContractFields, getClientFlowState, hasContractStep } from "@/features/client-flow/server/client-flow-data"
 import { confirmClientCardSetup, startClientCardSetup } from "@/features/client-flow/server/steps/card-setup"
 import { confirmClientPayment } from "@/features/client-flow/server/steps/confirm-payment"
 import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
@@ -162,6 +162,9 @@ export async function signPartnerCheckout(caller: Caller, bookingId: string, inp
   const link = await openLink(transaction)
   checkoutContract(transaction)
   if (!getClientFlowState(transaction).reviewedContract) throw new PartnerApiError("step_not_available", "Accept the contract before signing it.")
+  // A rental contract with a required field empty is never signed (LOCAZ QA V-04): the partner completes the booking.
+  const empty = emptyRequiredContractFields(transaction)
+  if (empty.length) throw new PartnerApiError("contract_incomplete", `The contract cannot be signed: ${empty.join(", ")} empty.`, { details: { fields: empty } })
   const result = await signClientContract(
     link.id,
     { signatureDataUrl: input.image, signedTimezone: input.timezone, signatureMethod: input.method, typedValue: input.typedName ?? null, fontKey: input.font ?? null, signatureCity: input.city },

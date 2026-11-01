@@ -160,6 +160,9 @@ The checkout state:
   the rental payment saves it: record the customer's consent first (`card/consent`, the exact words you showed), or the
   payment answers `409 consent_required`. `card` (the card saved on its own) comes only when no rental payment saves it. A
   card Stripe refused answers `402 payment_failed` on the confirm route, with Stripe's message for the customer: start again.
+- Signature: a rental contract whose template uses a required field (customer name, birth date and place, address,
+  vehicle, plate, dates, places, protection, deductible, deposit) that the booking leaves empty is never signed:
+  `422 contract_incomplete` with `details.fields`. Complete the booking, then the customer signs.
 - A step that is not the current one, or no longer changeable (payment started), answers `409 step_not_available`; a
   cancelled or expired booking answers `410 checkout_closed`.
 

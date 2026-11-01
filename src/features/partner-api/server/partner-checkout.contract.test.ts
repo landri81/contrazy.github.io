@@ -108,6 +108,16 @@ describe("signature", () => {
     expect(sign).toHaveBeenCalledWith("link_1", { signatureDataUrl: PNG, signedTimezone: "Europe/Paris", signatureMethod: "type", typedValue: "Lina Martin", fontKey: "caveat", signatureCity: "Nice" }, "203.0.113.9")
   })
 
+  it("never signs a rental contract with a required field empty (QA V-04)", async () => {
+    findTransaction.mockResolvedValue(
+      transaction({ contractTemplate: { id: "tpl_1", content: "<p>Véhicule {{rental.vehicle}} immatriculé {{rental.plate}}</p>" }, contractArtifact: { reviewCompletedAt: new Date(), signedPdfUrl: null }, rentalDetails: null })
+    )
+    const refused = await signPartnerCheckout(caller, "tx_1", input, null).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(PartnerApiError)
+    expect(refused).toMatchObject({ code: "contract_incomplete", details: { fields: ["{{rental.vehicle}}", "{{rental.plate}}"] } })
+    expect(sign).not.toHaveBeenCalled()
+  })
+
   it("refuses to sign before the contract is accepted, and passes on the step's refusals", async () => {
     expect(await code(signPartnerCheckout(caller, "tx_1", input, null))).toBe("step_not_available")
     expect(sign).not.toHaveBeenCalled()

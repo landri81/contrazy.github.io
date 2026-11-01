@@ -1025,6 +1025,7 @@ components:
                 - version_mismatch
                 - consent_required
                 - payment_failed
+                - contract_incomplete
             message: { type: string }
             details: { type: object }
         request_id: { type: string }
