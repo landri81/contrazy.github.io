@@ -67,6 +67,17 @@ describe("buildRentalPlaceholderValues", () => {
   })
 })
 
+describe("price lines with the detail in their label (LOCAZ)", () => {
+  it("prints one unit without a unit of its own as label and amount, in French spacing", () => {
+    const rentalDetails = { ...payload.rental, priceLines: [{ label: "Attelage", quantity: 1, unit: "item", unitAmount: 1500, total: 1500 }, { label: "Location, 3 jours", quantity: 1, unitAmount: 15000, total: 15000 }] }
+    const table = buildRentalPlaceholderValues({ ...context, rentalDetails }, "fr")["{{rental.priceTable}}"]
+    expect(table).toContain("Attelage : 15,00 €")
+    expect(table).toContain("Location, 3 jours : 150,00 €")
+    expect(table).toContain("Total : 165,00 €")
+    expect(table).not.toContain("item")
+  })
+})
+
 describe("applyRentalPlaceholders", () => {
   it("escapes values and renders a standalone price table as a list", () => {
     const html = applyRentalPlaceholders(

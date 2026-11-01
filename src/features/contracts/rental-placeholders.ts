@@ -126,8 +126,15 @@ function formatQuantity(quantity: number, locale: RentalLocale) {
   return normalizeSpaces(new Intl.NumberFormat(intlLocale(locale), { maximumFractionDigits: 2 }).format(quantity))
 }
 
+/** "Label : 15,00 €" in French, "Label: €15.00" in English. */
+function labelled(label: string, value: string, locale: RentalLocale) {
+  return `${label}${locale === "fr" ? " : " : ": "}${value}`
+}
+
 function buildPriceLineTexts(rental: RentalDetails, currency: string, locale: RentalLocale) {
   return rental.priceLines.map((line) => {
+    // One unit with no unit of its own (the partner put the detail in the label, e.g. LOCAZ): just the amount.
+    if (line.quantity === 1 && (!line.unit || line.unit === "item")) return labelled(line.label, formatRentalMoney(line.total, currency, locale), locale)
     const quantity = `${formatQuantity(line.quantity, locale)}${line.unit ? ` ${line.unit}` : ""}`
     return `${line.label} — ${quantity} × ${formatRentalMoney(line.unitAmount, currency, locale)} = ${formatRentalMoney(line.total, currency, locale)}`
   })
@@ -135,7 +142,7 @@ function buildPriceLineTexts(rental: RentalDetails, currency: string, locale: Re
 
 function buildPriceTotalText(rental: RentalDetails, currency: string, locale: RentalLocale) {
   const total = rental.priceLines.reduce((sum, line) => sum + line.total, 0)
-  return `${copy[locale].total}: ${formatRentalMoney(total, currency, locale)}`
+  return labelled(copy[locale].total, formatRentalMoney(total, currency, locale), locale)
 }
 
 /** Plain-text values for every rental placeholder (empty strings when the data is missing). */
