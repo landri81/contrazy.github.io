@@ -75,7 +75,7 @@ details and the `steps` to run:
 
 | Step | Customer sees |
 | --- | --- |
-| `identity` (+ `selfie`) | Stripe Identity document check (with a selfie match) |
+| `identity` (+ `selfie`) | Stripe Identity check of an ID card or passport (with a selfie match); the person must be the booking's customer (name, and birth date when sent) |
 | `documents` | document upload |
 | `contract` | contract review and signature (rental fields filled in) |
 | `checkIn` / `checkOut` | photo and mileage / fuel reports |
@@ -126,7 +126,7 @@ The checkout state:
              "payment": { "required": true, "done": false }, "card": { "required": true, "done": false } },
   "requirements": [{ "id": "cm…", "label": "Permis de conduire", "instructions": null, "category": "DRIVER_LICENSE",
                      "required": true, "fileCount": 2, "slotLabels": ["Recto", "Verso"], "files": [], "complete": false }],
-  "identity": { "required": true, "selfie": false, "status": "not_started" },
+  "identity": { "required": true, "selfie": false, "status": "not_started", "reason": null },
   "contract": { "required": true, "accepted": false, "signed": false },
   "payment": { "stage": "rental", "amount": 15700, "depositAmount": 80000, "currency": "eur" }
 }
@@ -143,7 +143,11 @@ The checkout state:
   Your server sends the files on; do not keep ID documents yourself.
 - Identity: open Stripe's identity modal with `clientSecret` and `publishableKey` (Stripe.js `verifyIdentity`), or send
   the customer to `url`; `returnUrl` must be on one of your allowed origins. The result arrives by webhook
-  (`booking.identity_verified`) and in the state.
+  (`booking.identity_verified` / `booking.identity_failed`) and in the state. `status: "pending"` means Stripe is still
+  checking: wait for `verified` before the next steps. Partner bookings accept an ID card or a passport (the licence is a
+  separate document), and Contrazy compares the name and birth date Stripe read with the booking's customer. A failed
+  check carries `reason`: `name_mismatch`, `birth_date_mismatch`, `selfie` or `document`; the customer can start a new
+  check.
 - Contract: show `html` in your page, then accept with its `version`; a contract changed since the customer read it
   answers `409 version_mismatch`. Signature: `image` is always a PNG data URL (the drawn signature, or the typed name
   drawn in a handwriting font, with `typedName` and `font`): the signed PDF shows it. `city` (of signature) is printed on

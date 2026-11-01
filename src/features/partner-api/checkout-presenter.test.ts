@@ -80,7 +80,7 @@ describe("presentPartnerCheckout", () => {
     })
     expect(checkout.requirements[0]).toMatchObject({ id: "req_licence", category: "DRIVER_LICENSE", fileCount: 2, slotLabels: ["Recto", "Verso"], files: [], complete: false })
     expect(checkout.payment).toEqual({ stage: "deposit", amount: 15_700, depositAmount: 80_000, currency: "eur" })
-    expect(checkout.identity).toEqual({ required: true, selfie: false, status: "not_started" })
+    expect(checkout.identity).toEqual({ required: true, selfie: false, status: "not_started", reason: null })
   })
 
   it("asks the profile when the booking lacks the customer's birth place or address", () => {
@@ -129,5 +129,16 @@ describe("presentPartnerCheckout", () => {
   it("closed: a cancelled booking, an expired link", () => {
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "CANCELLED", expiresAt: null } }), NOW).status).toBe("cancelled")
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "ACTIVE", expiresAt: new Date("2026-11-05T08:00:00Z") } }), NOW).status).toBe("expired")
+  })
+})
+
+describe("identityFailure (QA V-03)", () => {
+  it("tells the partner why the check failed", async () => {
+    const { identityFailure } = await import("./checkout-presenter")
+    expect(identityFailure({ summary: "profile_mismatch:name" })).toBe("name_mismatch")
+    expect(identityFailure({ summary: "profile_mismatch:birth_date" })).toBe("birth_date_mismatch")
+    expect(identityFailure({ summary: "The selfie did not match", selfieErrorCode: "selfie_face_mismatch" })).toBe("selfie")
+    expect(identityFailure({ summary: "document_expired", selfieErrorCode: null })).toBe("document")
+    expect(identityFailure(null)).toBe("document")
   })
 })

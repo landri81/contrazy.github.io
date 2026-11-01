@@ -19,6 +19,8 @@ const state = vi.hoisted(() => ({
   gateway: null as unknown as InMemoryStripeGateway,
   kyc: new Map<string, Row>(),
   transactions: new Map<string, Row>(),
+  /** The booking as the profile match reads it (null: a dashboard booking). */
+  booking: null as Row | null,
   events: [] as Row[],
   usageIncrements: 0,
 }))
@@ -40,6 +42,12 @@ vi.mock("@/lib/db/prisma", () => {
         state.kyc.set(where.transactionId, row)
         return row
       },
+      upsert: async ({ where, create, update }: { where: { transactionId: string }; create: Row; update: Row }) => {
+        const current = state.kyc.get(where.transactionId)
+        const row = current ? { ...current, ...update } : { selfieCheck: "NOT_REQUESTED", selfieErrorCode: null, ...create }
+        state.kyc.set(where.transactionId, row)
+        return row
+      },
     },
     transaction: {
       update: async ({ where, data }: { where: { id: string }; data: Row }) => {
@@ -50,7 +58,12 @@ vi.mock("@/lib/db/prisma", () => {
     },
   }
 
-  return { prisma: { $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx) } }
+  return {
+    prisma: {
+      $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+      transaction: { findUnique: async () => state.booking },
+    },
+  }
 })
 
 vi.mock("@/lib/integrations/stripe", () => ({
@@ -60,6 +73,7 @@ vi.mock("@/lib/integrations/stripe", () => ({
         state.gateway.identity.createVerificationSession(params),
       retrieveVerificationSession: (id: string) => state.gateway.identity.retrieveVerificationSession(id),
       retrieveVerificationReport: (id: string) => state.gateway.identity.retrieveVerificationReport(id),
+      retrieveVerifiedOutputs: (id: string) => state.gateway.identity.retrieveVerifiedOutputs(id),
     },
   },
 }))
@@ -103,6 +117,7 @@ beforeEach(() => {
   state.gateway = createInMemoryStripeGateway()
   state.kyc.clear()
   state.transactions.clear()
+  state.booking = null
   state.events.length = 0
   state.usageIncrements = 0
 })
@@ -142,6 +157,56 @@ describe("identity.verification_session.verified", () => {
 
     expect(storedKyc()).toEqual({ status: "VERIFIED", selfieCheck: "VERIFIED", selfieErrorCode: null })
     expect(state.usageIncrements).toBe(0)
+  })
+})
+
+describe("identity.verification_session.verified on a partner booking (QA V-03)", () => {
+  const partner = (birthDate: string | null = "1988-05-20") => ({
+    source: "PARTNER_API",
+    clientProfile: { firstName: "Claire", lastName: "Recette-Pro", birthDate: birthDate ? new Date(`${birthDate}T00:00:00Z`) : null },
+  })
+  const kycSummary = () => state.kyc.get(TRANSACTION_ID)?.summary
+
+  it("verifies the customer the partner sent", async () => {
+    state.booking = partner()
+    const session = await finishSession(true, { status: "verified", outputs: { firstName: "CLAIRE", lastName: "RECETTE PRO", dob: "1988-05-20" } })
+
+    await handleIdentitySessionVerified(session, "evt_1")
+
+    expect(storedKyc()).toMatchObject({ status: "VERIFIED", selfieCheck: "VERIFIED" })
+    expect(state.transactions.get(TRANSACTION_ID)).toEqual({ status: "KYC_VERIFIED" })
+  })
+
+  it("refuses another person's document, with the reason, and does not count it as verified", async () => {
+    state.booking = partner()
+    const session = await finishSession(true, { status: "verified", outputs: { firstName: "Jean", lastName: "Autre", dob: "1988-05-20" } })
+
+    await handleIdentitySessionVerified(session, "evt_1")
+
+    expect(storedKyc()).toMatchObject({ status: "FAILED" })
+    expect(kycSummary()).toBe("profile_mismatch:name")
+    expect(state.transactions.get(TRANSACTION_ID)).toBeUndefined()
+    expect(state.usageIncrements).toBe(0)
+    expect(state.events.map((event) => event.type)).toEqual(["KYC_FAILED", "WEBHOOK_PROCESSED"])
+  })
+
+  it("refuses a different birth date", async () => {
+    state.booking = partner()
+    const session = await finishSession(false, { status: "verified", outputs: { firstName: "Claire", lastName: "Recette-Pro", dob: "1990-01-01" } })
+
+    await handleIdentitySessionVerified(session, "evt_1")
+
+    expect(kycSummary()).toBe("profile_mismatch:birth_date")
+  })
+
+  it("keeps the verification when Stripe gives nothing to compare, and records that it was not compared", async () => {
+    state.booking = partner()
+    const session = await finishSession(true, { status: "verified" })
+
+    await handleIdentitySessionVerified(session, "evt_1")
+
+    expect(storedKyc()).toMatchObject({ status: "VERIFIED" })
+    expect(state.events.some((event) => String(event.title).includes("not compared"))).toBe(true)
   })
 })
 

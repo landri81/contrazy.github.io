@@ -80,6 +80,8 @@ export async function startClientIdentityVerification(linkId: string, token: str
         token,
       },
       requireSelfie: transaction.requireSelfie,
+      // Partner bookings (LOCAZ) take the licence as a separate document: identity by ID card or passport (QA V-03).
+      governmentIdOnly: transaction.source === "PARTNER_API",
     })
   )
 

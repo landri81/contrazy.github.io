@@ -1344,6 +1344,11 @@ components:
             required: { type: boolean }
             selfie: { type: boolean }
             status: { type: string, enum: [not_started, pending, verified, failed] }
+            reason:
+              type: string
+              nullable: true
+              enum: [name_mismatch, birth_date_mismatch, selfie, document]
+              description: Why a failed check failed (null otherwise). Partner bookings accept an ID card or passport, and the verified name and birth date must be the booking's customer's.
         contract:
           type: object
           properties:

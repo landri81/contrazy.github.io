@@ -10,6 +10,9 @@ import { z } from "zod"
 export const CUSTOMER_IP_HEADER = "Contrazy-Customer-Ip"
 export const CUSTOMER_USER_AGENT_HEADER = "Contrazy-Customer-User-Agent"
 
+/** Why an identity check failed: another person's name or birth date, the selfie, or the document itself. */
+export type PartnerIdentityFailure = "name_mismatch" | "birth_date_mismatch" | "selfie" | "document"
+
 export const PARTNER_CHECKOUT_STEPS = ["documents", "identity", "contract", "signature", "payment", "card"] as const
 export type PartnerCheckoutStepKey = (typeof PARTNER_CHECKOUT_STEPS)[number]
 
@@ -43,7 +46,8 @@ export type PartnerCheckout = {
   expiresAt: string | null
   steps: Record<PartnerCheckoutStepKey, { required: boolean; done: boolean }>
   requirements: PartnerCheckoutRequirement[]
-  identity: { required: boolean; selfie: boolean; status: "not_started" | "pending" | "verified" | "failed" }
+  /** `reason` only on a failed check: the customer is told what to do (QA V-03). */
+  identity: { required: boolean; selfie: boolean; status: "not_started" | "pending" | "verified" | "failed"; reason: PartnerIdentityFailure | null }
   contract: { required: boolean; accepted: boolean; signed: boolean }
   payment: { stage: "deposit" | "rental" | "card" | "complete"; amount: number; depositAmount: number; currency: string }
 }

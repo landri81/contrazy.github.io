@@ -13,6 +13,12 @@ import type { StripeGateway } from "@/lib/integrations/stripe-gateway"
 /** Document types accepted when a selfie is required: each carries a face photo to match against. */
 export const SELFIE_ALLOWED_DOCUMENT_TYPES = ["driving_license", "id_card", "passport"] as const
 
+/**
+ * Partner bookings (LOCAZ, QA V-03): the identity document is an ID card or a passport; the driving licence is a
+ * separate document of the booking, so it cannot stand in for the identity check.
+ */
+export const GOVERNMENT_ID_DOCUMENT_TYPES = ["id_card", "passport"] as const
+
 /** Selfie check failure codes documented by Stripe Identity. */
 export const SELFIE_ERROR_CODES = [
   "selfie_document_missing_photo",
@@ -38,22 +44,25 @@ export function isSelfieErrorCode(code: unknown): code is SelfieErrorCode {
 }
 
 /**
- * Parameters of the hosted Stripe Identity session. Without a selfie the
- * request is exactly what it was before C4 (no `options` key at all).
+ * Parameters of the hosted Stripe Identity session. Without a selfie and without `governmentIdOnly` the request is
+ * exactly what it was before C4 (no `options` key at all).
  */
 export function buildIdentityVerificationSessionParams(input: {
   returnUrl: string
   metadata: Record<string, string>
   requireSelfie: boolean
+  /** ID card or passport only (partner bookings). */
+  governmentIdOnly?: boolean
 }): Stripe.Identity.VerificationSessionCreateParams {
   const params: Stripe.Identity.VerificationSessionCreateParams = {
     type: "document",
     return_url: input.returnUrl,
     metadata: input.metadata,
   }
+  const allowedTypes = input.governmentIdOnly ? [...GOVERNMENT_ID_DOCUMENT_TYPES] : [...SELFIE_ALLOWED_DOCUMENT_TYPES]
 
   if (!input.requireSelfie) {
-    return params
+    return input.governmentIdOnly ? { ...params, options: { document: { allowed_types: allowedTypes } } } : params
   }
 
   return {
@@ -62,7 +71,7 @@ export function buildIdentityVerificationSessionParams(input: {
       document: {
         require_matching_selfie: true,
         require_live_capture: true,
-        allowed_types: [...SELFIE_ALLOWED_DOCUMENT_TYPES],
+        allowed_types: allowedTypes,
       },
     },
   }

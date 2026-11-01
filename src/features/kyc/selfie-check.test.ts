@@ -21,6 +21,13 @@ async function createSession(requireSelfie: boolean) {
 }
 
 describe("buildIdentityVerificationSessionParams", () => {
+  it("asks for an ID card or a passport only on partner bookings, with or without a selfie (QA V-03)", () => {
+    const withSelfie = buildIdentityVerificationSessionParams({ returnUrl: RETURN_URL, metadata: METADATA, requireSelfie: true, governmentIdOnly: true })
+    expect(withSelfie.options?.document).toMatchObject({ require_matching_selfie: true, allowed_types: ["id_card", "passport"] })
+    const documentOnly = buildIdentityVerificationSessionParams({ returnUrl: RETURN_URL, metadata: METADATA, requireSelfie: false, governmentIdOnly: true })
+    expect(documentOnly.options).toEqual({ document: { allowed_types: ["id_card", "passport"] } })
+  })
+
   it("sends the pre-C4 document session, with no options key, when no selfie is required", async () => {
     const { gateway, session } = await createSession(false)
 

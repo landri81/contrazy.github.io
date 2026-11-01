@@ -9,7 +9,8 @@ import {
   type ClientFlowStep,
   type ClientFlowTransaction,
 } from "@/features/client-flow/server/client-flow-data"
-import type { PartnerCheckout, PartnerCheckoutNextStep, PartnerCheckoutRequirement } from "@/features/partner-api/schemas/checkout.schema"
+import { PROFILE_MISMATCH_PREFIX } from "@/features/kyc/profile-match"
+import type { PartnerCheckout, PartnerCheckoutNextStep, PartnerCheckoutRequirement, PartnerIdentityFailure } from "@/features/partner-api/schemas/checkout.schema"
 import { isRequirementSlotSatisfied } from "@/features/transactions/contract-flow"
 import type { FinanceStage } from "@/features/transactions/server/transaction-finance"
 
@@ -99,6 +100,7 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
       required: transaction.requiresKyc,
       selfie: transaction.requireSelfie,
       status: kycStatus === "VERIFIED" ? "verified" : kycStatus === "PENDING" ? "pending" : kycStatus === "FAILED" ? "failed" : "not_started",
+      reason: kycStatus === "FAILED" ? identityFailure(transaction.kycVerification) : null,
     },
     contract: { required: contractRequired, accepted: state.reviewedContract, signed: state.hasSignature },
     payment: {
@@ -108,4 +110,12 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
       currency: transaction.currency.toLowerCase(),
     },
   }
+}
+
+/** The failure the customer can act on, from what the identity webhooks stored (profile match, selfie, document). */
+export function identityFailure(kyc: { summary: string | null; selfieErrorCode?: string | null } | null | undefined): PartnerIdentityFailure {
+  if (kyc?.summary === `${PROFILE_MISMATCH_PREFIX}name`) return "name_mismatch"
+  if (kyc?.summary === `${PROFILE_MISMATCH_PREFIX}birth_date`) return "birth_date_mismatch"
+  if (kyc?.selfieErrorCode) return "selfie"
+  return "document"
 }

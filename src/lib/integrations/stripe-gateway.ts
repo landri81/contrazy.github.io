@@ -35,7 +35,18 @@ export type StripeGateway = {
     ): Promise<Stripe.Identity.VerificationSession>
     retrieveVerificationSession(id: string): Promise<Stripe.Identity.VerificationSession>
     retrieveVerificationReport(id: string): Promise<Stripe.Identity.VerificationReport>
+    /** The name and birth date Stripe read on the verified document; null when Stripe gives none. */
+    retrieveVerifiedOutputs(id: string): Promise<VerifiedIdentityOutputs | null>
   }
+}
+
+/** What Stripe Identity read on the document (`verified_outputs`, the birth date as YYYY-MM-DD). */
+export type VerifiedIdentityOutputs = { firstName: string | null; lastName: string | null; dob: string | null }
+
+function toVerifiedOutputs(outputs: Stripe.Identity.VerificationSession["verified_outputs"]): VerifiedIdentityOutputs | null {
+  if (!outputs) return null
+  const dob = outputs.dob?.year && outputs.dob.month && outputs.dob.day ? `${outputs.dob.year}-${String(outputs.dob.month).padStart(2, "0")}-${String(outputs.dob.day).padStart(2, "0")}` : null
+  return { firstName: outputs.first_name ?? null, lastName: outputs.last_name ?? null, dob }
 }
 
 function connected(call: StripeConnectedCall): Stripe.RequestOptions {
@@ -61,6 +72,9 @@ export function createStripeGateway(client: Stripe): StripeGateway {
       createVerificationSession: (params) => client.identity.verificationSessions.create(params),
       retrieveVerificationSession: (id) => client.identity.verificationSessions.retrieve(id),
       retrieveVerificationReport: (id) => client.identity.verificationReports.retrieve(id),
+      // The birth date is only returned when expanded explicitly (sensitive field).
+      retrieveVerifiedOutputs: async (id) =>
+        toVerifiedOutputs((await client.identity.verificationSessions.retrieve(id, { expand: ["verified_outputs", "verified_outputs.dob"] })).verified_outputs),
     },
   }
 }
@@ -68,7 +82,7 @@ export function createStripeGateway(client: Stripe): StripeGateway {
 type LastErrorCode = NonNullable<NonNullable<Stripe.Identity.VerificationSession["last_error"]>["code"]>
 
 export type FakeVerificationOutcome =
-  | { status: "verified" }
+  | { status: "verified"; outputs?: VerifiedIdentityOutputs }
   | { status: "requires_input"; errorCode: LastErrorCode; reason?: string }
   | { status: "processing" }
   | { status: "canceled" }
@@ -119,6 +133,7 @@ const SELFIE_CODES = new Set<string>([
 export function createInMemoryStripeGateway(): InMemoryStripeGateway {
   const sessions = new Map<string, Stripe.Identity.VerificationSession>()
   const reports = new Map<string, Stripe.Identity.VerificationReport>()
+  const outputs = new Map<string, VerifiedIdentityOutputs>()
   const createdSessions: Stripe.Identity.VerificationSessionCreateParams[] = []
   const reportRequests: string[] = []
   let sequence = 0
@@ -215,9 +230,14 @@ export function createInMemoryStripeGateway(): InMemoryStripeGateway {
 
         return structuredClone(report)
       },
+      async retrieveVerifiedOutputs(id) {
+        requireSession(id)
+        return outputs.get(id) ?? null
+      },
     },
     simulateOutcome(sessionId, outcome) {
       const session = requireSession(sessionId)
+      if (outcome.status === "verified" && outcome.outputs) outputs.set(sessionId, { ...outcome.outputs })
       const report = outcome.status === "verified" || outcome.status === "requires_input" ? buildReport(session, outcome) : null
 
       if (report) {
