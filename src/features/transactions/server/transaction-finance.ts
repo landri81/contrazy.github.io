@@ -230,7 +230,12 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
       signedAgreementUrl,
       locale,
       vendorLogoUrl,
-      documents
+      documents,
+      {
+        externalRef: transaction.externalRef,
+        vendorEmail: transaction.vendor?.supportEmail ?? transaction.vendor?.businessEmail ?? null,
+        vendorPhone: transaction.vendor?.businessPhone ?? null,
+      }
     )
 
     if (sent) {

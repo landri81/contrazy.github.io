@@ -145,8 +145,7 @@ function cdocumentList(docs: SubmittedDoc[], isFr: boolean): string {
   if (docs.length === 0) return ""
   const items = docs.map((d) => {
     const slot = d.slotLabel ? ` — ${escapeHtml(d.slotLabel)}` : ""
-    const name = d.fileName ? ` <span style="color:#9ca3af;font-size:13px">(${escapeHtml(d.fileName)})</span>` : ""
-    return `<li style="margin-bottom:5px">${escapeHtml(d.label)}${slot}${name}</li>`
+    return `<li style="margin-bottom:5px">${escapeHtml(d.label)}${slot}</li>`
   })
   return `<p style="margin:16px 0 8px;font-size:14px;font-weight:600;color:#374151">
     ${isFr ? "Documents soumis :" : "Submitted documents:"}
@@ -1061,13 +1060,17 @@ export async function sendTransactionCompletedEmail(
   signedAgreementUrl?: string | null,
   locale?: string,
   vendorLogoUrl?: string | null,
-  documents?: SubmittedDoc[]
+  documents?: SubmittedDoc[],
+  /** The partner's own booking number (a LOCAZ booking) and how to reach the vendor (LOCAZ QA E-04). */
+  context?: { externalRef?: string | null; vendorEmail?: string | null; vendorPhone?: string | null }
 ) {
   const isFr = locale === "fr"
   const safeClient = escapeHtml(clientName)
   const safeVendor = escapeHtml(vendorName)
   const safeRef = escapeHtml(transactionId)
   const docList = documents && documents.length > 0 ? cdocumentList(documents, isFr) : ""
+  const bookingRef = context?.externalRef?.trim() || null
+  const contact = [context?.vendorEmail, context?.vendorPhone].filter((value): value is string => Boolean(value?.trim())).map(escapeHtml).join(" · ")
 
   const html = isFr
     ? buildCleanEmailHtml(
@@ -1075,13 +1078,14 @@ export async function sendTransactionCompletedEmail(
           cp(`Bonjour ${safeClient},`),
           cp(`Votre transaction avec <strong>${safeVendor}</strong> a été complétée avec succès.`),
           cdivider(),
+          ...(bookingRef ? [cdetail("Réservation", escapeHtml(bookingRef))] : []),
           cdetail("Référence", safeRef),
           cdivider(),
           docList,
           signedAgreementUrl
             ? cp(`Votre accord signé est disponible : ${clink("Télécharger le contrat signé", signedAgreementUrl)}`)
             : "",
-          cp("Pour toute question, contactez le prestataire directement."),
+          cp(contact ? `Pour toute question, contactez ${safeVendor} : ${contact}.` : "Pour toute question, contactez le prestataire directement."),
           csig(true),
         ].join(""),
         { locale: "fr", vendorLogoUrl, vendorName }
@@ -1091,13 +1095,14 @@ export async function sendTransactionCompletedEmail(
           cp(`Hello ${safeClient},`),
           cp(`Your transaction with <strong>${safeVendor}</strong> has been successfully completed.`),
           cdivider(),
+          ...(bookingRef ? [cdetail("Booking", escapeHtml(bookingRef))] : []),
           cdetail("Reference", safeRef),
           cdivider(),
           docList,
           signedAgreementUrl
             ? cp(`Your signed agreement is available: ${clink("Download signed contract", signedAgreementUrl)}`)
             : "",
-          cp("If you have any questions, please contact the vendor directly."),
+          cp(contact ? `If you have any questions, contact ${safeVendor}: ${contact}.` : "If you have any questions, please contact the vendor directly."),
           csig(false),
         ].join(""),
         { locale: "en", vendorLogoUrl, vendorName }
@@ -1105,7 +1110,8 @@ export async function sendTransactionCompletedEmail(
 
   return deliverEmail({
     to,
-    subject: isFr ? `Transaction complétée — ${vendorName}` : `Transaction completed — ${vendorName}`,
+    // Each booking its own subject (LOCAZ QA E-04: one Gmail thread mixed every booking).
+    subject: `${isFr ? "Transaction complétée" : "Transaction completed"} — ${vendorName} · ${bookingRef ?? transactionId}`,
     html,
   })
 }

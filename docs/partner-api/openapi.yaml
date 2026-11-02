@@ -497,6 +497,22 @@ paths:
               schema: { type: string }
         "404": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/contract/signed:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Bookings]
+      operationId: getSignedContract
+      summary: The signed agreement (PDF)
+      description: Scope `bookings:read`. The agreement as signed by the customer, to hand to them (for example in their account). 404 until it is signed.
+      responses:
+        "200":
+          description: The signed agreement.
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/hold:
     parameters:
       - $ref: "#/components/parameters/BookingId"
