@@ -966,6 +966,10 @@ export function ContractTemplateEditor({
     "{{rental.deductible}}": t("sidebarFields.rentalDeductible"),
     "{{rental.deposit}}": t("sidebarFields.rentalDeposit"),
     "{{rental.priceTable}}": t("sidebarFields.rentalPriceTable"),
+    "{{rental.departureKm}}": t("sidebarFields.rentalDepartureKm"),
+    "{{rental.departureFuel}}": t("sidebarFields.rentalDepartureFuel"),
+    "{{rental.departureAt}}": t("sidebarFields.rentalDepartureAt"),
+    "{{rental.departureDamages}}": t("sidebarFields.rentalDepartureDamages"),
   }
 
   function rememberEditorSelection() {

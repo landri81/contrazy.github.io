@@ -3,6 +3,7 @@ import {
   canRevisitClientStep,
   clientFlowTransactionInclude,
   getNextClientStep,
+  isPickupContractPending,
 } from "@/features/client-flow/server/client-flow-data"
 import type { ClientStepResult } from "@/features/client-flow/server/steps/submit-documents"
 import { incrementVendorSubscriptionUsage } from "@/features/subscriptions/server/subscription-usage"
@@ -69,7 +70,10 @@ export async function signClientContract(linkId: string, input: ClientSignatureI
     return { status: 404, body: { success: false, message: "Transaction not found" } }
   }
 
-  if (!canRevisitClientStep(currentTransaction, "sign")) {
+  // A contract opened at pickup (LOCAZ M11.1) is signed after the booking was paid and completed.
+  const pickupContract = isPickupContractPending(currentTransaction)
+
+  if (!pickupContract && !canRevisitClientStep(currentTransaction, "sign")) {
     return { status: 409, body: { success: false, message: "The signature can no longer be changed after payment has started." } }
   }
 
@@ -147,10 +151,13 @@ export async function signClientContract(linkId: string, input: ClientSignatureI
     },
   })
 
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: { status: "SIGNED" },
-  })
+  // The completed booking stays completed: its payment and card steps were finished before the pickup.
+  if (!pickupContract) {
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { status: "SIGNED" },
+    })
+  }
 
   const signatureEventMeta = {
     signatureMethod,
@@ -184,7 +191,7 @@ export async function signClientContract(linkId: string, input: ClientSignatureI
 
   const nextStep = getNextClientStep(transaction)
 
-  if (nextStep === "complete") {
+  if (nextStep === "complete" && !pickupContract) {
     await completeTransactionWithoutPayment(prisma, transactionId)
   }
 

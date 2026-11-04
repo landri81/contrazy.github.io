@@ -2523,7 +2523,11 @@
           "rentalProtection": "Protection",
           "rentalDeductible": "Franchise",
           "rentalDeposit": "Dépôt de garantie",
-          "rentalPriceTable": "Tableau des prix"
+          "rentalPriceTable": "Tableau des prix",
+          "rentalDepartureKm": "Kilométrage au départ",
+          "rentalDepartureFuel": "Carburant au départ",
+          "rentalDepartureAt": "Heure de l'état des lieux",
+          "rentalDepartureDamages": "Dommages au départ"
         },
         "changesLocal": "Les modifications sont sauvegardées localement dans ce navigateur.",
         "changesSynced": "Toutes les modifications sont synchronisées avec la dernière sauvegarde manuelle.",

@@ -4,7 +4,7 @@ import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security
 import { ConsentPartiesMissingError, partnerCardConsentText } from "@/features/card-security/consent-texts"
 import { CardSecurityError, findCardConsent, recordCardConsent } from "@/features/card-security/server/card-security"
 import { loadClientCardSecurityContext } from "@/features/card-security/server/client-card-security"
-import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, emptyRequiredContractFields, getClientFlowState, hasContractStep } from "@/features/client-flow/server/client-flow-data"
+import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, emptyRequiredContractFields, getClientFlowState, hasContractDue, hasContractStep } from "@/features/client-flow/server/client-flow-data"
 import { confirmClientCardSetup, startClientCardSetup } from "@/features/client-flow/server/steps/card-setup"
 import { confirmClientPayment } from "@/features/client-flow/server/steps/confirm-payment"
 import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
@@ -132,7 +132,10 @@ export async function startPartnerCheckoutIdentity(caller: Caller, bookingId: st
 
 /** The populated agreement and its version: a hash of exactly what the customer reads. */
 function checkoutContract(transaction: CheckoutTransaction): PartnerCheckoutContract {
-  if (!hasContractStep(transaction)) throw new PartnerApiError("step_not_available", "This booking has no contract to sign.")
+  if (!hasContractDue(transaction)) {
+    const message = transaction.contractAtPickup && hasContractStep(transaction) ? "This booking's contract is signed at pickup: open it first (`contract/open`)." : "This booking has no contract to sign."
+    throw new PartnerApiError("step_not_available", message)
+  }
   const html = buildPopulatedContractContent(transaction)
   return { html, version: `v_${createHash("sha256").update(html).digest("hex").slice(0, 32)}`, locale: transaction.locale }
 }

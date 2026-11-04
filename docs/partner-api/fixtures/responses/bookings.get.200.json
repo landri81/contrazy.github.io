@@ -103,6 +103,7 @@
   ],
   "contract": {
     "required": true,
+    "openedAt": null,
     "signed": true,
     "signedAt": "2026-11-01T08:21:00.000Z",
     "signedPdfUrl": "https://contrazy.com/api/integrations/cloudinary/download?publicId=contracts%2Fcz-2026-0001-signed.pdf&resourceType=raw&format=pdf&fileName=CZ-2026-0001-signed.pdf"

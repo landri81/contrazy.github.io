@@ -4,7 +4,7 @@ import {
   buildPopulatedContractContent,
   getNextClientStep,
   getTransactionByToken,
-  hasContractStep,
+  hasContractDue,
   validateClientStep,
 } from "@/features/client-flow/server/client-flow-data"
 import { buildClientDisplayName } from "@/features/contracts/server/contract-rendering"
@@ -22,7 +22,7 @@ export default async function ClientContractPage(props: { params: Promise<{ loca
 
   validateClientStep(transaction, "contract")
 
-  if (!hasContractStep(transaction)) {
+  if (!hasContractDue(transaction)) {
     redirect(withLocalePath(normalizeLocale(transaction.locale), `/t/${token}/${getNextClientStep(transaction)}`))
   }
 

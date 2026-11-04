@@ -126,6 +126,29 @@ describe("presentPartnerCheckout", () => {
     expect(checkout).toMatchObject({ nextStep: "payment", payment: { stage: "rental", depositAmount: 0 } })
   })
 
+  it("contract at pickup (LOCAZ M11.1): skipped at booking, then read and signed once opened, on the completed booking", () => {
+    const verified = { contractAtPickup: true, contractOpenedAt: null, documents: [file(0), file(1)], kycVerification: { status: "VERIFIED" } }
+    const atBooking = presentPartnerCheckout(booking(verified), NOW)
+    expect(atBooking).toMatchObject({ nextStep: "payment", steps: { contract: { required: false, done: true }, signature: { required: false, done: true } }, contract: { atPickup: true, openedAt: null } })
+
+    const paid = { ...verified, depositAuthorization: { status: "AUTHORIZED" }, payments: [{ kind: "SERVICE_PAYMENT", status: "SUCCEEDED" }], cardSecurity: { status: "SECURED" }, status: "COMPLETED" }
+    expect(presentPartnerCheckout(booking(paid), NOW)).toMatchObject({ status: "completed", nextStep: "complete" })
+
+    const opened = { ...paid, contractOpenedAt: new Date("2026-11-12T08:40:00Z") }
+    expect(presentPartnerCheckout(booking(opened), NOW)).toMatchObject({
+      status: "completed",
+      nextStep: "contract",
+      steps: { contract: { required: true, done: false } },
+      contract: { required: true, accepted: false, signed: false, openedAt: "2026-11-12T08:40:00.000Z" },
+    })
+
+    const read = { ...opened, contractArtifact: { reviewCompletedAt: new Date(), signedPdfUrl: null } }
+    expect(presentPartnerCheckout(booking(read), NOW)).toMatchObject({ nextStep: "signature", contract: { accepted: true, signed: false } })
+
+    const signed = { ...opened, contractArtifact: { reviewCompletedAt: new Date(), signedPdfUrl: "https://x/signed.pdf" }, signatureRecord: { status: "SIGNED" } }
+    expect(presentPartnerCheckout(booking(signed), NOW)).toMatchObject({ status: "completed", nextStep: "complete", contract: { signed: true } })
+  })
+
   it("closed: a cancelled booking, an expired link", () => {
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "CANCELLED", expiresAt: null } }), NOW).status).toBe("cancelled")
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "ACTIVE", expiresAt: new Date("2026-11-05T08:00:00Z") } }), NOW).status).toBe("expired")

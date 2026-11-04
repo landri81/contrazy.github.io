@@ -67,6 +67,21 @@ describe("buildRentalPlaceholderValues", () => {
   })
 })
 
+describe("departure readings (LOCAZ M11.1, contract signed at pickup)", () => {
+  it("prints the check-in mileage, fuel, time and damage; empty before the check-in", () => {
+    expect(buildRentalPlaceholderValues(context, "fr")["{{rental.departureKm}}"]).toBe("")
+    const departure = { inspectedAt: "2026-11-02T07:45:00.000Z", odometerKm: 48_210, fuelEighths: 6 }
+    const values = buildRentalPlaceholderValues({ ...context, rentalDetails: { ...payload.rental, departure } }, "fr")
+    expect(values["{{rental.departureKm}}"]).toBe("48 210 km")
+    expect(values["{{rental.departureFuel}}"]).toBe("6/8")
+    expect(values["{{rental.departureAt}}"]).toContain("02 novembre 2026")
+    expect(values["{{rental.departureAt}}"]).toContain("08:45")
+    expect(values["{{rental.departureDamages}}"]).toBe("Aucun dommage signalé")
+    const damaged = buildRentalPlaceholderValues({ ...context, rentalDetails: { ...payload.rental, departure: { ...departure, damages: "Rayure arrière" } } }, "en")
+    expect(damaged["{{rental.departureDamages}}"]).toBe("Rayure arrière")
+  })
+})
+
 describe("price lines with the detail in their label (LOCAZ)", () => {
   it("prints one unit without a unit of its own as label and amount, in French spacing", () => {
     const rentalDetails = { ...payload.rental, priceLines: [{ label: "Attelage", quantity: 1, unit: "item", unitAmount: 1500, total: 1500 }, { label: "Location, 3 jours", quantity: 1, unitAmount: 15000, total: 15000 }] }

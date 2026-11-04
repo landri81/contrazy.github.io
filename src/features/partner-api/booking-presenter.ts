@@ -336,6 +336,8 @@ export function presentPartnerBooking(booking: PartnerBookingRecord, baseUrl: st
     steps: switches ? buildBookingStepProgress(switches, booking) : [],
     contract: {
       required: Boolean(switches?.contract),
+      atPickup: booking.contractAtPickup,
+      openedAt: iso(booking.contractOpenedAt),
       signed,
       signedAt: signed ? iso(booking.contractArtifact?.signedAt ?? booking.signatureRecord?.signedAt) : null,
       signedPdfUrl: signed

@@ -533,6 +533,10 @@ model Transaction {
   stripePaymentIntentId                  String?
   servicePaymentRequestedAt              DateTime?
   checkOutRequestedAt                    DateTime?
+  /// Partner bookings (LOCAZ M11.1): the contract is skipped at booking and signed at pickup, once the partner opens it
+  /// with the check-in readings (`POST /api/partner/v1/bookings/:id/contract/open`).
+  contractAtPickup                       Boolean                          @default(false)
+  contractOpenedAt                       DateTime?
   customerCompletedAt                    DateTime?
   signatureCity                          String?
   serviceDate                            DateTime?                        @db.Date

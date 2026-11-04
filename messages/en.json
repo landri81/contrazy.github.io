@@ -2523,7 +2523,11 @@
           "rentalProtection": "Protection",
           "rentalDeductible": "Deductible",
           "rentalDeposit": "Rental deposit",
-          "rentalPriceTable": "Price table"
+          "rentalPriceTable": "Price table",
+          "rentalDepartureKm": "Mileage at departure",
+          "rentalDepartureFuel": "Fuel at departure",
+          "rentalDepartureAt": "Check-in time",
+          "rentalDepartureDamages": "Damage at departure"
         },
         "changesLocal": "Changes are being saved locally in this browser.",
         "changesSynced": "All changes are synced with the last manual save.",

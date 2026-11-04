@@ -108,7 +108,7 @@ vi.mock("@/lib/db/prisma", () => {
     transactionRequirement: { deleteMany: vi.fn(async () => ({ count: 0 })) },
     transactionCustomField: { deleteMany: vi.fn(async () => ({ count: 0 })) },
     transactionReportField: { deleteMany: vi.fn(async () => ({ count: 0 })) },
-    transactionContractArtifact: { deleteMany: vi.fn(async () => ({ count: 0 })) },
+    transactionContractArtifact: { deleteMany: vi.fn(async () => ({ count: 0 })), updateMany: vi.fn(async () => ({ count: 1 })) },
   }
 
   prisma.$transaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma))
@@ -229,6 +229,7 @@ const { NextResponse } = await import("next/server")
 const collection = await import("@/app/api/partner/v1/bookings/route")
 const item = await import("@/app/api/partner/v1/bookings/[id]/route")
 const cancel = await import("@/app/api/partner/v1/bookings/[id]/cancel/route")
+const contractOpen = await import("@/app/api/partner/v1/bookings/[id]/contract/open/route")
 
 const BASE = "http://localhost/api/partner/v1/bookings"
 
@@ -471,6 +472,8 @@ describe("GET /api/partner/v1/bookings", () => {
 
     expect(body.contract).toEqual({
       required: true,
+      atPickup: false,
+      openedAt: null,
       signed: true,
       signedAt: "2026-11-02T08:30:00.000Z",
       signedPdfUrl: "https://files.contrazy.test/signed.pdf",
@@ -577,5 +580,60 @@ describe("POST /api/partner/v1/bookings/:id/cancel", () => {
     )
     expect(otherVendor.status).toBe(404)
     expect(links.cancelTransactionLink).not.toHaveBeenCalled()
+  })
+})
+
+describe("POST /api/partner/v1/bookings/:id/contract/open (LOCAZ M11.1)", () => {
+  const departure = { inspectedAt: "2026-11-02T07:45:00.000Z", odometerKm: 48_210, fuelEighths: 6, damages: "Rayure pare-chocs arrière" }
+
+  function open(key: string, id: string, body: unknown) {
+    return contractOpen.POST(request("POST", `${BASE}/${id}/contract/open`, key, body), params(id))
+  }
+
+  it("opens the pickup contract of a completed booking with the check-in readings, audited", async () => {
+    const key = storeKey()
+    const created = await createBooking(key, { contractAtPickup: true })
+    const row = db.transactions[0]
+    expect(row).toMatchObject({ contractAtPickup: true })
+    row.status = "COMPLETED"
+
+    const rental = { ...buildBookingPayload().rental, departure }
+    const response = await open(key, created.id, { rental })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.contract).toMatchObject({ atPickup: true, openedAt: expect.any(String), signed: false })
+    expect(row.rentalDetails).toMatchObject({ departure })
+    expect(db.auditRows.at(-1)?.data).toMatchObject({ action: "partner_api.contract_opened", entityId: created.id, metadata: { reopened: false } })
+
+    const again = await open(key, created.id, { rental: { ...rental, departure: { ...departure, odometerKm: 48_215 } } })
+    expect(again.status).toBe(200)
+    expect(db.auditRows.at(-1)?.data).toMatchObject({ metadata: { reopened: true } })
+  })
+
+  it("refuses a booking signed at booking, unfinished steps, a signed contract and a body without departure", async () => {
+    const key = storeKey()
+    const rental = { ...buildBookingPayload().rental, departure }
+    const atBooking = await createBooking(key, {}, "idem-a")
+    db.transactions[0].status = "COMPLETED"
+    expect((await (await open(key, atBooking.id, { rental })).json()).error.code).toBe("step_not_available")
+
+    const pickup = await createBooking(key, { externalRef: "LZ-TEST-0002", contractAtPickup: true }, "idem-b")
+    const row = db.transactions[1]
+    const unfinished = await open(key, pickup.id, { rental })
+    expect(unfinished.status).toBe(409)
+
+    row.status = "COMPLETED"
+    expect((await open(key, pickup.id, { rental: buildBookingPayload().rental })).status).toBe(400)
+
+    row.signatureRecord = { status: "SIGNED" }
+    row.contractArtifact = { signedPdfUrl: "https://x/signed.pdf" }
+    expect((await (await open(key, pickup.id, { rental })).json()).error.code).toBe("step_not_available")
+  })
+
+  it("refuses contractAtPickup without the contract step", async () => {
+    const key = storeKey()
+    const response = await create(key, buildBookingPayload({ contractAtPickup: true, steps: { ...buildBookingPayload().steps, contract: false } }))
+    expect(response.status).toBe(400)
   })
 })

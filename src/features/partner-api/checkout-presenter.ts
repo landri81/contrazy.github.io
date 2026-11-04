@@ -4,8 +4,9 @@ import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security
 import {
   getClientFlowState,
   getNextClientStep,
-  hasContractStep,
+  hasContractDue,
   hasDocumentsStep,
+  isPickupContractPending,
   type ClientFlowStep,
   type ClientFlowTransaction,
 } from "@/features/client-flow/server/client-flow-data"
@@ -74,13 +75,14 @@ function presentRequirements(transaction: ClientFlowTransaction): PartnerCheckou
 export function presentPartnerCheckout(transaction: ClientFlowTransaction, now = new Date()): PartnerCheckout {
   const state = getClientFlowState(transaction)
   const status = checkoutStatus(transaction, state.financeComplete, now)
-  const contractRequired = hasContractStep(transaction)
+  const contractRequired = hasContractDue(transaction)
   const paymentRequired = (transaction.amount ?? 0) > 0 || (transaction.depositAmount ?? 0) > 0
   const cardRequired = isCardSecurityRequired(transaction)
   const kycStatus = transaction.kycVerification?.status
   const next = NEXT_STEP[getNextClientStep(transaction)]
   // Contrazy's pages show the saved card inside the payment step; partners get it as its own step.
-  const nextStep: PartnerCheckoutNextStep = status === "completed" ? "complete" : next === "payment" && state.nextFinanceStage === "card_security" ? "card" : next
+  // A contract opened at pickup (LOCAZ M11.1) is the next step of a booking already completed.
+  const nextStep: PartnerCheckoutNextStep = isPickupContractPending(transaction) ? next : status === "completed" ? "complete" : next === "payment" && state.nextFinanceStage === "card_security" ? "card" : next
 
   return {
     bookingId: transaction.id,
@@ -102,7 +104,13 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
       status: kycStatus === "VERIFIED" ? "verified" : kycStatus === "PENDING" ? "pending" : kycStatus === "FAILED" ? "failed" : "not_started",
       reason: kycStatus === "FAILED" ? identityFailure(transaction.kycVerification) : null,
     },
-    contract: { required: contractRequired, accepted: state.reviewedContract, signed: state.hasSignature },
+    contract: {
+      required: contractRequired,
+      accepted: state.reviewedContract,
+      signed: state.hasSignature,
+      atPickup: transaction.contractAtPickup,
+      openedAt: transaction.contractOpenedAt?.toISOString() ?? null,
+    },
     payment: {
       stage: PAYMENT_STAGE[state.nextFinanceStage],
       amount: transaction.amount ?? 0,

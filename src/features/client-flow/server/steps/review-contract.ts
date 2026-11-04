@@ -3,6 +3,7 @@ import {
   canRevisitClientStep,
   clientFlowTransactionInclude,
   getNextClientStep,
+  isPickupContractPending,
 } from "@/features/client-flow/server/client-flow-data"
 import type { ClientStepResult } from "@/features/client-flow/server/steps/submit-documents"
 import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
@@ -27,18 +28,24 @@ export async function reviewClientContract(link: ActiveLink): Promise<ClientStep
     return { status: 404, body: { success: false, message: "Transaction not found" } }
   }
 
-  if (!canRevisitClientStep(currentTransaction, "contract")) {
+  // A contract opened at pickup (LOCAZ M11.1) is read after the booking was paid.
+  const pickupContract = isPickupContractPending(currentTransaction)
+
+  if (!pickupContract && !canRevisitClientStep(currentTransaction, "contract")) {
     return { status: 409, body: { success: false, message: "The agreement can no longer be changed after payment has started." } }
   }
 
   await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
 
-  await prisma.transaction.update({
-    where: { id: transactionId },
-    data: {
-      status: currentTransaction.status === "SIGNED" ? currentTransaction.status : "CONTRACT_GENERATED",
-    },
-  })
+  // The paid booking keeps its status: only a booking still in its steps moves to "contract generated".
+  if (!pickupContract) {
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        status: currentTransaction.status === "SIGNED" ? currentTransaction.status : "CONTRACT_GENERATED",
+      },
+    })
+  }
 
   await persistReviewedContractSnapshot(prisma, transactionId)
 

@@ -114,6 +114,26 @@ export function hasContractStep(transaction: Pick<ClientFlowTransaction, "contra
   )
 }
 
+type ContractTiming = Pick<ClientFlowTransaction, "contractTemplateId" | "contractTemplate" | "contractArtifact" | "contractAtPickup" | "contractOpenedAt">
+
+/**
+ * A partner booking whose contract is signed at pickup (LOCAZ M11.1) has no contract step until the partner opens it
+ * with the check-in readings: identity, documents, payment and card complete the booking without it.
+ */
+export function isContractDeferred(transaction: Pick<ClientFlowTransaction, "contractAtPickup" | "contractOpenedAt">) {
+  return transaction.contractAtPickup && !transaction.contractOpenedAt
+}
+
+/** The booking has a contract to read and sign now: none while a pickup contract waits to be opened. */
+export function hasContractDue(transaction: ContractTiming) {
+  return hasContractStep(transaction) && !isContractDeferred(transaction)
+}
+
+/** The pickup contract is open and not signed yet: it comes first, also on a completed booking. */
+export function isPickupContractPending(transaction: ClientFlowTransaction) {
+  return transaction.contractAtPickup && Boolean(transaction.contractOpenedAt) && hasContractStep(transaction) && !hasCompletedSignature(transaction)
+}
+
 export function isCheckInOutFlow(transaction: Pick<ClientFlowTransaction, "flowType">) {
   return transaction.flowType === TransactionFlowType.CHECK_IN_OUT
 }
@@ -222,7 +242,7 @@ export function hasRequiredDocuments(transaction: ClientFlowTransaction) {
 }
 
 export function hasReviewedContract(transaction: ClientFlowTransaction) {
-  if (!hasContractStep(transaction)) {
+  if (!hasContractDue(transaction)) {
     return true
   }
 
@@ -231,6 +251,11 @@ export function hasReviewedContract(transaction: ClientFlowTransaction) {
       transaction.contractArtifact.reviewCompletedAt ||
         transaction.contractArtifact.signedPdfUrl
     )
+  }
+
+  // A completed booking's status says nothing about a contract opened at pickup.
+  if (transaction.contractAtPickup) {
+    return false
   }
 
   return (
@@ -244,7 +269,7 @@ export function hasCustomFieldStep(transaction: Pick<ClientFlowTransaction, "cus
 }
 
 export function hasCompletedSignature(transaction: ClientFlowTransaction) {
-  if (!hasContractStep(transaction)) {
+  if (!hasContractDue(transaction)) {
     return true
   }
 
@@ -366,6 +391,11 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
     return "check-out"
   }
 
+  // LOCAZ M11.1: the contract opened at pickup is read and signed first, even once the booking is completed.
+  if (isPickupContractPending(transaction)) {
+    return state.reviewedContract ? "sign" : "contract"
+  }
+
   if (transaction.status === TransactionStatus.COMPLETED && state.financeComplete) {
     return "complete"
   }
@@ -386,11 +416,11 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
     return "details"
   }
 
-  if (hasContractStep(transaction) && !state.reviewedContract) {
+  if (hasContractDue(transaction) && !state.reviewedContract) {
     return "contract"
   }
 
-  if (hasContractStep(transaction) && !state.hasSignature) {
+  if (hasContractDue(transaction) && !state.hasSignature) {
     return "sign"
   }
 
@@ -486,13 +516,16 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
     Boolean(transaction.checkOutRequestedAt) &&
     !state.hasCheckOut
 
-  if (!isCheckOutOverride) {
+  // The contract opened at pickup (LOCAZ M11.1) is read and signed after the booking was paid.
+  const isPickupContractOverride = (currentStep === "contract" || currentStep === "sign") && isPickupContractPending(transaction)
+
+  if (!isCheckOutOverride && !isPickupContractOverride) {
     if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {
       redirect(getClientRoute(transaction, "complete"))
     }
   }
 
-  if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction)) {
+  if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction) && !isPickupContractOverride) {
     redirect(getClientRoute(transaction, getClientEditLockRedirectStep(transaction)))
   }
 
@@ -531,7 +564,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
         redirect(getClientRoute(transaction, "details"))
       }
-      if (!hasContractStep(transaction)) {
+      if (!hasContractDue(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
       }
       return state
@@ -562,7 +595,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
         redirect(getClientRoute(transaction, "details"))
       }
-      if (!hasContractStep(transaction)) {
+      if (!hasContractDue(transaction)) {
         redirect(getClientRoute(transaction, nextStep))
       }
       if (!state.reviewedContract) {
@@ -582,7 +615,7 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (!state.hasDocs) {
         redirect(getClientRoute(transaction, "documents"))
       }
-      if (hasContractStep(transaction) && !state.hasSignature) {
+      if (hasContractDue(transaction) && !state.hasSignature) {
         redirect(getClientRoute(transaction, "sign"))
       }
       if (state.hasCheckIn) {
@@ -602,10 +635,10 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
       if (hasCustomFieldStep(transaction) && !state.hasCustomFields) {
         redirect(getClientRoute(transaction, "details"))
       }
-      if (hasContractStep(transaction) && !state.reviewedContract) {
+      if (hasContractDue(transaction) && !state.reviewedContract) {
         redirect(getClientRoute(transaction, "contract"))
       }
-      if (hasContractStep(transaction) && !state.hasSignature) {
+      if (hasContractDue(transaction) && !state.hasSignature) {
         redirect(getClientRoute(transaction, "sign"))
       }
       if (state.financeComplete) {

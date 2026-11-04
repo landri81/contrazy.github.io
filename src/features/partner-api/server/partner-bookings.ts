@@ -27,6 +27,7 @@ import {
   validateBookingWindow,
   type PartnerBookingCreateInput,
   type PartnerBookingUpdateInput,
+  type PartnerContractOpenInput,
   type RentalDetails,
 } from "@/features/partner-api/schemas/booking.schema"
 import { incrementVendorSubscriptionUsageFields } from "@/features/subscriptions/server/subscription-usage"
@@ -282,6 +283,7 @@ export async function createPartnerBooking(
             rentalDetails: input.rental as Prisma.InputJsonValue,
             returnUrl: input.returnUrl ?? null,
             stepSwitches: switches as Prisma.InputJsonValue,
+            contractAtPickup: Boolean(input.contractAtPickup) && switches.contract && Boolean(contractTemplateId),
             partnerMetadata: partnerMetadata as unknown as Prisma.InputJsonValue,
           },
         })
@@ -500,6 +502,66 @@ export async function updatePartnerBooking(caller: PartnerCaller, bookingId: str
   )
 
   return getPartnerBooking(vendorProfile.id, { id: booking.id })
+}
+
+export const PARTNER_CONTRACT_OPENED_ACTION = "partner_api.contract_opened"
+
+/**
+ * `POST /bookings/:id/contract/open` (LOCAZ M11.1): the contract of a booking signed at pickup is opened with the rental
+ * as handed over (`rental.departure`, the check-in readings). The booking steps must be finished first. Until the
+ * customer signs, opening it again replaces the rental, and the customer reads the new version before signing.
+ */
+export async function openPartnerContract(caller: PartnerCaller, bookingId: string, input: PartnerContractOpenInput) {
+  const booking = await requirePartnerBooking(caller.vendorProfile.id, { id: bookingId })
+
+  if (!booking.contractAtPickup) {
+    throw new PartnerApiError("step_not_available", "This booking's contract is signed at booking, not at pickup.")
+  }
+
+  if (booking.status === "CANCELLED" || booking.link?.status === "CANCELLED") {
+    throw new PartnerApiError("checkout_closed", "This booking is cancelled.")
+  }
+
+  if (booking.status !== "COMPLETED") {
+    throw new PartnerApiError("step_not_available", "Finish the booking steps (identity, documents, payment, card) before the pickup contract.")
+  }
+
+  if (booking.signatureRecord?.status === "SIGNED" && booking.contractArtifact?.signedPdfUrl) {
+    throw new PartnerApiError("step_not_available", "The contract is already signed.")
+  }
+
+  const reopened = Boolean(booking.contractOpenedAt)
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.update({
+      where: { id: booking.id },
+      data: { rentalDetails: input.rental as Prisma.InputJsonValue, contractOpenedAt: booking.contractOpenedAt ?? new Date() },
+    })
+    // A version read before no longer matches the rental: the customer reads it again.
+    await tx.transactionContractArtifact.updateMany({
+      where: { transactionId: booking.id, signedPdfUrl: null },
+      data: { reviewCompletedAt: null, renderedContentBeforeSignature: null },
+    })
+    await tx.auditLog.create({
+      data: {
+        actorType: "SYSTEM",
+        action: PARTNER_CONTRACT_OPENED_ACTION,
+        entityType: "Transaction",
+        entityId: booking.id,
+        metadata: {
+          vendorId: booking.vendorId,
+          externalRef: booking.externalRef,
+          apiKeyId: caller.apiKey.id,
+          keyPrefix: caller.apiKey.prefix,
+          requestId: caller.requestId,
+          reopened,
+          departure: input.rental.departure ?? null,
+        },
+      },
+    })
+  })
+
+  return presentPartnerBooking(await requirePartnerBooking(caller.vendorProfile.id, { id: booking.id }), getAppBaseUrl())
 }
 
 /** Cancels the booking through the dashboard's `cancelTransactionLink`. Cancelling twice is a no-op. */

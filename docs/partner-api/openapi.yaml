@@ -513,6 +513,40 @@ paths:
               schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/contract/open:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Bookings]
+      operationId: openPickupContract
+      summary: Open the contract signed at pickup, with the check-in readings
+      description: |
+        Scope `bookings:write`. For a booking created with `contractAtPickup`: once its booking steps are finished, the
+        partner sends the rental as handed over (`rental.departure`: mileage, fuel, time, damage). The customer then reads
+        and signs it through `checkout/contract`, `checkout/contract/accept` and `checkout/signature`, and
+        `booking.contract_signed` follows. Until it is signed, opening it again replaces the rental and the customer reads
+        the new version. 409 `step_not_available` (signed at booking, steps unfinished, already signed), 410
+        `checkout_closed` (cancelled).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rental]
+              properties:
+                rental: { $ref: "#/components/schemas/Rental" }
+      responses:
+        "200":
+          description: The booking, with `contract.openedAt` set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Booking" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/hold:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -1114,6 +1148,16 @@ components:
               unit: { type: string }
               unitAmount: { $ref: "#/components/schemas/Cents" }
               total: { $ref: "#/components/schemas/Cents" }
+        departure:
+          type: object
+          description: The vehicle as handed over (check-in readings), printed on a contract signed at pickup (`{{rental.departure*}}` placeholders).
+          required: [inspectedAt, odometerKm, fuelEighths]
+          properties:
+            inspectedAt: { type: string, format: date-time }
+            odometerKm: { type: integer, minimum: 0, maximum: 2000000 }
+            fuelEighths: { type: integer, minimum: 0, maximum: 8 }
+            damages: { type: string, maxLength: 1000 }
+            reportRef: { type: string, maxLength: 60 }
     BookingCreate:
       type: object
       required: [externalRef, customer, startAt, endAt, rental, steps]
@@ -1149,6 +1193,9 @@ components:
         steps: { $ref: "#/components/schemas/StepSwitches" }
         returnUrl: { type: string, format: uri, description: "Must be on one of the vendor's allowed origins (422 otherwise)." }
         contractTemplateId: { type: string }
+        contractAtPickup:
+          type: boolean
+          description: The contract is skipped at booking and signed at pickup, after the check-in, once opened with `POST /bookings/{id}/contract/open`. Needs `steps.contract`.
         requirements: { type: array, maxItems: 20, items: { type: object } }
         qrCode: { type: boolean }
         metadata:
@@ -1294,6 +1341,8 @@ components:
           type: object
           properties:
             required: { type: boolean }
+            atPickup: { type: boolean }
+            openedAt: { type: [string, "null"], format: date-time }
             signed: { type: boolean }
             signedAt: { type: [string, "null"], format: date-time }
             signedPdfUrl: { type: [string, "null"], format: uri }
@@ -1372,6 +1421,8 @@ components:
             required: { type: boolean }
             accepted: { type: boolean }
             signed: { type: boolean }
+            atPickup: { type: boolean }
+            openedAt: { type: [string, "null"], format: date-time }
         payment:
           type: object
           properties:

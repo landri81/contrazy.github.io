@@ -13,7 +13,7 @@ import {
   hasCheckInStep,
   hasCheckOutStep,
   hasCustomFieldStep,
-  hasContractStep,
+  hasContractDue,
   hasDocumentsStep,
   isCheckInOutFlow,
   type ClientFlowStep,
@@ -52,7 +52,7 @@ export default async function TokenLayout({
   if (transaction.requiresKyc) enabledSteps.push("kyc")
   if (hasDocumentsStep(transaction)) enabledSteps.push("documents")
   if (hasCustomFieldStep(transaction)) enabledSteps.push("details")
-  if (hasContractStep(transaction)) {
+  if (hasContractDue(transaction)) {
     enabledSteps.push("contract", "sign")
   }
   if (isCheckInOut && hasCheckInStep(transaction)) {
@@ -86,8 +86,8 @@ export default async function TokenLayout({
   if (state.hasDocs && hasDocumentsStep(transaction)) completedSteps.push("documents")
   if (state.hasKyc && transaction.requiresKyc) completedSteps.push("kyc")
   if (state.hasCustomFields && hasCustomFieldStep(transaction)) completedSteps.push("details")
-  if (state.reviewedContract && hasContractStep(transaction)) completedSteps.push("contract")
-  if (state.hasSignature && hasContractStep(transaction)) completedSteps.push("sign")
+  if (state.reviewedContract && hasContractDue(transaction)) completedSteps.push("contract")
+  if (state.hasSignature && hasContractDue(transaction)) completedSteps.push("sign")
   if (isCheckInOut && state.hasCheckIn && hasCheckInStep(transaction)) completedSteps.push("check-in")
   if (shouldShowPaymentStep && state.financeComplete) completedSteps.push("payment")
   if (transaction.status === "COMPLETED" || state.financeComplete) completedSteps.push("complete")

@@ -26,13 +26,17 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.deductible}}",
   "{{rental.deposit}}",
   "{{rental.priceTable}}",
+  "{{rental.departureKm}}",
+  "{{rental.departureFuel}}",
+  "{{rental.departureAt}}",
+  "{{rental.departureDamages}}",
 ] as const
 
 type RentalLocale = "en" | "fr"
 
 const copy = {
-  en: { unlimited: "Unlimited mileage", perExtraKm: "per extra km", total: "Total" },
-  fr: { unlimited: "Kilométrage illimité", perExtraKm: "par km supplémentaire", total: "Total" },
+  en: { unlimited: "Unlimited mileage", perExtraKm: "per extra km", total: "Total", noDamage: "None reported" },
+  fr: { unlimited: "Kilométrage illimité", perExtraKm: "par km supplémentaire", total: "Total", noDamage: "Aucun dommage signalé" },
 } satisfies Record<RentalLocale, Record<string, string>>
 
 function resolveLocale(locale: string | null | undefined): RentalLocale {
@@ -174,6 +178,13 @@ export function buildRentalPlaceholderValues(
       rental && priceLines.length > 0
         ? [...priceLines, buildPriceTotalText(rental, currency, resolvedLocale)].join("; ")
         : "",
+    // The vehicle as handed over (check-in readings of a contract signed at pickup); empty until the partner sends them.
+    "{{rental.departureKm}}": rental?.departure
+      ? `${normalizeSpaces(new Intl.NumberFormat(intlLocale(resolvedLocale)).format(rental.departure.odometerKm))} km`
+      : "",
+    "{{rental.departureFuel}}": rental?.departure ? `${rental.departure.fuelEighths}/8` : "",
+    "{{rental.departureAt}}": rental?.departure ? formatRentalDateTime(rental.departure.inspectedAt, context?.timezone, resolvedLocale) : "",
+    "{{rental.departureDamages}}": rental?.departure ? rental.departure.damages || copy[resolvedLocale].noDamage : "",
   }
 }
 

@@ -82,6 +82,16 @@ export const rentalDetailsSchema = z.object({
   deposit: cents("deposit").optional(),
   fuelPolicy: optionalText("Fuel policy", 120),
   priceLines: z.array(rentalPriceLineSchema).max(50).default([]),
+  /** The vehicle as handed over (LOCAZ M11.1): the check-in readings printed on a contract signed at pickup. */
+  departure: z
+    .object({
+      inspectedAt: isoDateTime("departure.inspectedAt"),
+      odometerKm: z.number().int().min(0).max(2_000_000),
+      fuelEighths: z.number().int().min(0).max(8),
+      damages: optionalText("Damages", 1000),
+      reportRef: optionalText("Report reference", 60),
+    })
+    .optional(),
 })
 
 export type RentalDetails = z.infer<typeof rentalDetailsSchema>
@@ -174,6 +184,8 @@ export const partnerBookingCreateSchema = z
     steps: stepSwitchesInputSchema,
     returnUrl: returnUrlSchema.optional(),
     contractTemplateId: z.string().trim().min(1).max(64).optional(),
+    /** The contract is signed at pickup, after the check-in (LOCAZ M11.1): skipped at booking, opened with `contract/open`. */
+    contractAtPickup: z.boolean().optional(),
     requirements: z.array(requirementItemSchema).max(20).optional(),
     qrCode: z.boolean().optional(),
     metadata: metadataSchema.optional(),
@@ -198,6 +210,10 @@ export const partnerBookingCreateSchema = z
     if (data.steps.selfie && !data.steps.identity) {
       ctx.addIssue({ code: "custom", path: ["steps", "selfie"], message: "steps.selfie requires steps.identity" })
     }
+
+    if (data.contractAtPickup && data.steps.contract === false) {
+      ctx.addIssue({ code: "custom", path: ["contractAtPickup"], message: "contractAtPickup needs steps.contract" })
+    }
   })
 
 export type PartnerBookingCreateInput = z.infer<typeof partnerBookingCreateSchema>
@@ -215,6 +231,13 @@ export const partnerBookingUpdateSchema = z
   .refine((data) => Object.values(data).some((value) => value !== undefined), "Provide at least one field to update")
 
 export type PartnerBookingUpdateInput = z.infer<typeof partnerBookingUpdateSchema>
+
+/** `POST /bookings/:id/contract/open`: the rental as handed over, with the check-in readings (`rental.departure`). */
+export const partnerContractOpenSchema = z.strictObject({
+  rental: rentalDetailsSchema.refine((rental) => Boolean(rental.departure), { path: ["departure"], message: "departure is required to open the contract" }),
+})
+
+export type PartnerContractOpenInput = z.infer<typeof partnerContractOpenSchema>
 
 export const partnerBookingCancelSchema = z.object({
   reason: requiredText("reason", INPUT_LIMITS.cancelReason),

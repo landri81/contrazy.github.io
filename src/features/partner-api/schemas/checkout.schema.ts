@@ -48,7 +48,8 @@ export type PartnerCheckout = {
   requirements: PartnerCheckoutRequirement[]
   /** `reason` only on a failed check: the customer is told what to do (QA V-03). */
   identity: { required: boolean; selfie: boolean; status: "not_started" | "pending" | "verified" | "failed"; reason: PartnerIdentityFailure | null }
-  contract: { required: boolean; accepted: boolean; signed: boolean }
+  /** `atPickup`: signed at pickup once the partner opens it (`POST /bookings/:id/contract/open`, LOCAZ M11.1). */
+  contract: { required: boolean; accepted: boolean; signed: boolean; atPickup: boolean; openedAt: string | null }
   payment: { stage: "deposit" | "rental" | "card" | "complete"; amount: number; depositAmount: number; currency: string }
 }
 
