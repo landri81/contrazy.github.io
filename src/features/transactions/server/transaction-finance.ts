@@ -328,12 +328,13 @@ async function sendCompletionNotifications(db: DatabaseClient, transaction: Fina
 }
 
 async function markTransactionCompleted(db: DatabaseClient, transaction: FinanceTransaction) {
-  if (transaction.status !== TransactionStatus.COMPLETED) {
-    await db.transaction.update({
-      where: { id: transaction.id },
-      data: { status: TransactionStatus.COMPLETED },
-    })
-  }
+  // Claimed in one statement: the customer's confirmation and Stripe's webhook both get here for the same payment, and
+  // only the call that completes the transaction sends the completion e-mails (they went twice to the customer and the
+  // vendor).
+  const claimed = await db.transaction.updateMany({
+    where: { id: transaction.id, status: { not: TransactionStatus.COMPLETED } },
+    data: { status: TransactionStatus.COMPLETED },
+  })
 
   if (transaction.link && !transaction.link.completedAt) {
     await markTransactionLinkCompleted(db, {
@@ -350,16 +351,15 @@ async function markTransactionCompleted(db: DatabaseClient, transaction: Finance
     dedupeKey: `event:completed:${transaction.id}`,
   })
 
-  await sendCompletionNotifications(db, transaction)
+  if (claimed.count > 0) await sendCompletionNotifications(db, transaction)
 }
 
 async function markClientOnboardingCompleted(db: DatabaseClient, transaction: FinanceTransaction) {
-  if (!transaction.customerCompletedAt) {
-    await db.transaction.update({
-      where: { id: transaction.id },
-      data: { customerCompletedAt: new Date() },
-    })
-  }
+  // Claimed in one statement, as for the completion: the e-mails go once.
+  const claimed = await db.transaction.updateMany({
+    where: { id: transaction.id, customerCompletedAt: null },
+    data: { customerCompletedAt: new Date() },
+  })
 
   await recordTransactionEvent(db, {
     transactionId: transaction.id,
@@ -369,7 +369,7 @@ async function markClientOnboardingCompleted(db: DatabaseClient, transaction: Fi
     dedupeKey: `event:customer-completed:${transaction.id}`,
   })
 
-  await sendCompletionNotifications(db, transaction)
+  if (claimed.count > 0) await sendCompletionNotifications(db, transaction)
 }
 
 export async function completeTransactionWithoutPayment(db: DatabaseClient, transactionId: string) {
