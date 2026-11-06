@@ -8,6 +8,7 @@ import {
   upsertVendorSubscriptionFromStripeSubscription,
 } from "@/features/subscriptions/server/subscription-service"
 import { isPartnerPlanActive } from "@/features/subscriptions/server/partner-plan"
+import { handleIdentitySessionRequiresInput, handleIdentitySessionVerified } from "@/features/webhooks/stripe/handlers/identity"
 import { isAlreadyProcessed } from "@/features/webhooks/stripe/utils/idempotency"
 import { persistWebhookEvent } from "@/features/webhooks/stripe/utils/log-event"
 import { env } from "@/lib/env"
@@ -118,6 +119,19 @@ export async function POST(req: Request) {
       case "invoice.payment_succeeded":
       case "invoice.payment_failed": {
         const result = await handleInvoiceEvent(event.data.object as Stripe.Invoice)
+        vendorId = result.vendorId
+        transactionId = result.transactionId
+        break
+      }
+      // Identity sessions live on the platform account, so their events come here, not to the Connect webhook
+      // (until 6 Nov 2026 they were only logged: a check stayed PENDING after Stripe's result).
+      case "identity.verification_session.verified":
+      case "identity.verification_session.requires_input": {
+        const session = event.data.object as Stripe.Identity.VerificationSession
+        const result =
+          event.type === "identity.verification_session.verified"
+            ? await handleIdentitySessionVerified(session, event.id)
+            : await handleIdentitySessionRequiresInput(session, event.id)
         vendorId = result.vendorId
         transactionId = result.transactionId
         break

@@ -12,6 +12,7 @@ import { signClientContract } from "@/features/client-flow/server/steps/sign-con
 import { startClientIdentityVerification } from "@/features/client-flow/server/steps/start-identity"
 import { startClientPayment } from "@/features/client-flow/server/steps/start-payment"
 import { submitClientDocuments } from "@/features/client-flow/server/steps/submit-documents"
+import { syncPendingIdentity } from "@/features/kyc/pending-identity"
 import { presentPartnerCheckout } from "@/features/partner-api/checkout-presenter"
 import {
   CHECKOUT_FILE_MAX_BYTES,
@@ -51,7 +52,12 @@ export async function loadCheckoutTransaction(caller: Caller, bookingId: string)
 
 /** `GET /bookings/:id/checkout`. */
 export async function getPartnerCheckout(caller: Caller, bookingId: string) {
-  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  // The partner polls this while its page shows "checking": a pending identity check is read from Stripe.
+  const identity = await syncPendingIdentity(transaction.kycVerification)
+  if (identity === "settled") return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+  const checkout = presentPartnerCheckout(transaction)
+  return identity === "unsubmitted" ? { ...checkout, identity: { ...checkout.identity, status: "not_started" as const } } : checkout
 }
 
 type CheckoutTransaction = Awaited<ReturnType<typeof loadCheckoutTransaction>>

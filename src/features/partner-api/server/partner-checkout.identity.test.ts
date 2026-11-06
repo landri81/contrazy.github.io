@@ -23,8 +23,12 @@ vi.mock("@/features/partner-api/server/partner-bookings", async () => {
 })
 vi.mock("@/features/transactions/server/transaction-links", () => ({ getClientLinkAccessContext: (...a: unknown[]) => linkContext(...a) }))
 vi.mock("@/features/client-flow/server/steps/start-identity", () => ({ startClientIdentityVerification: (...a: unknown[]) => startIdentity(...a) }))
+const syncIdentity = vi.fn()
+const present = vi.fn()
+vi.mock("@/features/kyc/pending-identity", () => ({ syncPendingIdentity: (...a: unknown[]) => syncIdentity(...a) }))
+vi.mock("@/features/partner-api/checkout-presenter", () => ({ presentPartnerCheckout: (...a: unknown[]) => present(...a) }))
 
-const { startPartnerCheckoutIdentity } = await import("./partner-checkout")
+const { getPartnerCheckout, startPartnerCheckoutIdentity } = await import("./partner-checkout")
 const { PartnerApiError } = await import("@/lib/partner-api/errors")
 
 const caller = { vendorProfile: { id: "vendor_locaz", partnerAllowedOrigins: ["https://www.locaz.co", "https://locaz.co"] } }
@@ -56,5 +60,38 @@ describe("startPartnerCheckoutIdentity", () => {
     expect(await code(startPartnerCheckoutIdentity(caller, "tx_1", { returnUrl: RETURN }))).toBe("plan_feature_unavailable")
     linkContext.mockResolvedValueOnce({ state: "cancelled", link: {} })
     expect(await code(startPartnerCheckoutIdentity(caller, "tx_1", { returnUrl: RETURN }))).toBe("checkout_closed")
+  })
+})
+
+/** LOCAZ LZ-2026-000277 (6 Nov 2026): Stripe refused the document in 2 seconds, the partner's page waited for ever. */
+describe("getPartnerCheckout, a pending identity check", () => {
+  const pending = { id: "tx_1", status: "DOCS_SUBMITTED", kycVerification: { status: "PENDING", providerReference: "vs_1" } }
+  const presented = (status: string) => ({ nextStep: "identity", identity: { required: true, selfie: false, status, reason: null } })
+
+  it("asks Stripe and presents the stored result", async () => {
+    const failed = { ...pending, kycVerification: { status: "FAILED", providerReference: "vs_1" } }
+    findTransaction.mockResolvedValueOnce(pending).mockResolvedValueOnce(failed)
+    syncIdentity.mockResolvedValueOnce("settled")
+    present.mockReturnValueOnce(presented("failed"))
+    expect((await getPartnerCheckout(caller, "tx_1")).identity.status).toBe("failed")
+    expect(syncIdentity).toHaveBeenCalledWith(pending.kycVerification)
+    expect(present).toHaveBeenCalledWith(failed)
+  })
+
+  it("offers to start again when Stripe's window was closed before anything was sent", async () => {
+    findTransaction.mockResolvedValueOnce(pending)
+    syncIdentity.mockResolvedValueOnce("unsubmitted")
+    present.mockReturnValueOnce(presented("pending"))
+    expect((await getPartnerCheckout(caller, "tx_1")).identity).toEqual({ required: true, selfie: false, status: "not_started", reason: null })
+  })
+
+  it("keeps waiting while Stripe processes, and reads once when nothing is pending", async () => {
+    for (const outcome of ["waiting", null]) {
+      findTransaction.mockResolvedValueOnce(pending)
+      syncIdentity.mockResolvedValueOnce(outcome)
+      present.mockReturnValueOnce(presented("pending"))
+      expect((await getPartnerCheckout(caller, "tx_1")).identity.status).toBe("pending")
+    }
+    expect(findTransaction).toHaveBeenCalledTimes(2)
   })
 })
