@@ -138,6 +138,11 @@ export function isCheckInOutFlow(transaction: Pick<ClientFlowTransaction, "flowT
   return transaction.flowType === TransactionFlowType.CHECK_IN_OUT
 }
 
+/** The vendor refused the documents (LOCAZ T21): the customer uploads them again, before anything else, even once paid. */
+export function areDocumentsRejected(transaction: Pick<ClientFlowTransaction, "documentsRejectedAt" | "stepSwitches">) {
+  return Boolean(transaction.documentsRejectedAt) && hasDocumentsStep(transaction)
+}
+
 /** Documents step: always shown for dashboard transactions, hidden when a partner booking switched it off. */
 export function hasDocumentsStep(transaction: Pick<ClientFlowTransaction, "stepSwitches">) {
   return !isStepSwitchedOff(parseStepSwitches(transaction.stepSwitches), "documents")
@@ -323,7 +328,7 @@ function hasCompletedClientProfile(
 
 export function getClientFlowState(transaction: ClientFlowTransaction) {
   const hasProfile = hasCompletedClientProfile(transaction)
-  const hasDocs = hasRequiredDocuments(transaction)
+  const hasDocs = hasRequiredDocuments(transaction) && !areDocumentsRejected(transaction)
   // PENDING means an identity check was started and the client may proceed while verification completes or awaits review.
   const hasKyc =
     !transaction.requiresKyc ||
@@ -368,10 +373,12 @@ export function hasStartedClientFinance(
 export function canRevisitClientStep(
   transaction: Pick<
     ClientFlowTransaction,
-    "payments" | "depositAuthorization" | "events" | "servicePaymentRequestedAt"
+    "payments" | "depositAuthorization" | "events" | "servicePaymentRequestedAt" | "documentsRejectedAt" | "stepSwitches"
   >,
   step: ClientFlowStep
 ) {
+  // Refused documents (LOCAZ T21) are sent again whatever the payment.
+  if (step === "documents" && areDocumentsRejected(transaction)) return true
   return editableClientFlowSteps.has(step) && !hasStartedClientFinance(transaction)
 }
 
@@ -389,6 +396,11 @@ export function getNextClientStep(transaction: ClientFlowTransaction): ClientFlo
     !state.hasCheckOut
   ) {
     return "check-out"
+  }
+
+  // LOCAZ T21: refused documents come first, even once the booking is completed.
+  if (areDocumentsRejected(transaction)) {
+    return state.hasProfile ? "documents" : "profile"
   }
 
   // LOCAZ M11.1: the contract opened at pickup is read and signed first, even once the booking is completed.
@@ -518,14 +530,15 @@ export function validateClientStep(transaction: ClientFlowTransaction, currentSt
 
   // The contract opened at pickup (LOCAZ M11.1) is read and signed after the booking was paid.
   const isPickupContractOverride = (currentStep === "contract" || currentStep === "sign") && isPickupContractPending(transaction)
+  const isRejectedDocumentsOverride = currentStep === "documents" && areDocumentsRejected(transaction)
 
-  if (!isCheckOutOverride && !isPickupContractOverride) {
+  if (!isCheckOutOverride && !isPickupContractOverride && !isRejectedDocumentsOverride) {
     if (transaction.status === TransactionStatus.COMPLETED && currentStep !== "complete") {
       redirect(getClientRoute(transaction, "complete"))
     }
   }
 
-  if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction) && !isPickupContractOverride) {
+  if (editableClientFlowSteps.has(currentStep) && hasStartedClientFinance(transaction) && !isPickupContractOverride && !isRejectedDocumentsOverride) {
     redirect(getClientRoute(transaction, getClientEditLockRedirectStep(transaction)))
   }
 

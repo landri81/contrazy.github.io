@@ -149,6 +149,31 @@ describe("presentPartnerCheckout", () => {
     expect(presentPartnerCheckout(booking(signed), NOW)).toMatchObject({ status: "completed", nextStep: "complete", contract: { signed: true } })
   })
 
+  it("refused documents (LOCAZ T21): the completed booking opens again on the documents, with the reason, until new ones arrive", () => {
+    const completed = {
+      documents: [file(0), file(1)],
+      kycVerification: { status: "VERIFIED" },
+      contractArtifact: { reviewCompletedAt: new Date(), signedPdfUrl: "https://x/signed.pdf" },
+      signatureRecord: { status: "SIGNED" },
+      depositAuthorization: { status: "AUTHORIZED" },
+      payments: [{ kind: "SERVICE_PAYMENT", status: "SUCCEEDED" }],
+      cardSecurity: { status: "SECURED" },
+      status: "COMPLETED",
+    }
+    expect(presentPartnerCheckout(booking(completed), NOW)).toMatchObject({ status: "completed", nextStep: "complete", documentsRejection: null })
+
+    const refused = { ...completed, documentsRejectedAt: new Date("2026-11-05T08:55:00Z"), documentsRejectionReason: "Permis expiré : envoyez un permis en cours de validité." }
+    expect(presentPartnerCheckout(booking(refused), NOW)).toMatchObject({
+      status: "open",
+      nextStep: "documents",
+      steps: { documents: { required: true, done: false }, payment: { done: true }, card: { done: true } },
+      documentsRejection: { reason: "Permis expiré : envoyez un permis en cours de validité.", at: "2026-11-05T08:55:00.000Z" },
+    })
+
+    // A booking that asks no documents is never held by a refusal.
+    expect(presentPartnerCheckout(booking({ ...refused, stepSwitches: { identity: true, documents: false, contract: true, payment: true, cardSecurity: true, hold: true } }), NOW)).toMatchObject({ status: "completed", documentsRejection: null })
+  })
+
   it("closed: a cancelled booking, an expired link", () => {
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "CANCELLED", expiresAt: null } }), NOW).status).toBe("cancelled")
     expect(presentPartnerCheckout(booking({ link: { token: "tok", status: "ACTIVE", expiresAt: new Date("2026-11-05T08:00:00Z") } }), NOW).status).toBe("expired")

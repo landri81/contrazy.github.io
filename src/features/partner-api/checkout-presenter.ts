@@ -2,6 +2,7 @@ import { TransactionLinkStatus, TransactionStatus } from "@prisma/client"
 
 import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security/card-security-state"
 import {
+  areDocumentsRejected,
   getClientFlowState,
   getNextClientStep,
   hasContractDue,
@@ -44,7 +45,8 @@ function slotLabels(value: unknown): string[] {
 function checkoutStatus(transaction: ClientFlowTransaction, financeComplete: boolean, now: Date): PartnerCheckout["status"] {
   const link = transaction.link
   if (link?.status === TransactionLinkStatus.CANCELLED || transaction.status === TransactionStatus.CANCELLED) return "cancelled"
-  if (transaction.status === TransactionStatus.COMPLETED && financeComplete) return "completed"
+  // Refused documents (LOCAZ T21) open the checkout again for them.
+  if (transaction.status === TransactionStatus.COMPLETED && financeComplete && !areDocumentsRejected(transaction)) return "completed"
   if (link?.expiresAt && link.expiresAt.getTime() <= now.getTime()) return "expired"
   return "open"
 }
@@ -82,7 +84,9 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
   const next = NEXT_STEP[getNextClientStep(transaction)]
   // Contrazy's pages show the saved card inside the payment step; partners get it as its own step.
   // A contract opened at pickup (LOCAZ M11.1) is the next step of a booking already completed.
-  const nextStep: PartnerCheckoutNextStep = isPickupContractPending(transaction) ? next : status === "completed" ? "complete" : next === "payment" && state.nextFinanceStage === "card_security" ? "card" : next
+  // Refused documents (LOCAZ T21) are sent again first, a completed booking too.
+  const nextStep: PartnerCheckoutNextStep =
+    areDocumentsRejected(transaction) || isPickupContractPending(transaction) ? next : status === "completed" ? "complete" : next === "payment" && state.nextFinanceStage === "card_security" ? "card" : next
 
   return {
     bookingId: transaction.id,
@@ -111,6 +115,10 @@ export function presentPartnerCheckout(transaction: ClientFlowTransaction, now =
       atPickup: transaction.contractAtPickup,
       openedAt: transaction.contractOpenedAt?.toISOString() ?? null,
     },
+    documentsRejection:
+      areDocumentsRejected(transaction) && transaction.documentsRejectedAt
+        ? { reason: transaction.documentsRejectionReason ?? "", at: transaction.documentsRejectedAt.toISOString() }
+        : null,
     payment: {
       stage: PAYMENT_STAGE[state.nextFinanceStage],
       amount: transaction.amount ?? 0,

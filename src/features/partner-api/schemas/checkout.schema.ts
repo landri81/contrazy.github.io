@@ -50,8 +50,15 @@ export type PartnerCheckout = {
   identity: { required: boolean; selfie: boolean; status: "not_started" | "pending" | "verified" | "failed"; reason: PartnerIdentityFailure | null }
   /** `atPickup`: signed at pickup once the partner opens it (`POST /bookings/:id/contract/open`, LOCAZ M11.1). */
   contract: { required: boolean; accepted: boolean; signed: boolean; atPickup: boolean; openedAt: string | null }
+  /** The documents the vendor refused (`POST /bookings/:id/documents/reject`, LOCAZ T21), until the customer sends new ones. */
+  documentsRejection: { reason: string; at: string } | null
   payment: { stage: "deposit" | "rental" | "card" | "complete"; amount: number; depositAmount: number; currency: string }
 }
+
+/** `POST /bookings/:id/documents/reject`: why the documents are refused, shown to the customer as it is. */
+export const partnerDocumentsRejectSchema = z.object({ reason: z.string().trim().min(3).max(500) })
+
+export type PartnerDocumentsRejectInput = z.infer<typeof partnerDocumentsRejectSchema>
 
 /** Files the documents step accepts: phone photos and PDF, 10 MB at most. */
 export const CHECKOUT_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"] as const

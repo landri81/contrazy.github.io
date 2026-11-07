@@ -42,6 +42,9 @@ export async function submitClientDocuments(link: ActiveLink, documents: unknown
   }
 
   await markTransactionLinkOpened(prisma, { linkId: link.id, transactionId })
+  // Documents sent again after the vendor refused them (LOCAZ T21): the booking keeps its status (a completed booking is
+  // not completed a second time); the refusal is cleared.
+  const resubmission = Boolean(currentTransaction.documentsRejectedAt)
 
   const requirements = await prisma.transactionRequirement.findMany({
     where: { transactionId },
@@ -260,15 +263,15 @@ export async function submitClientDocuments(link: ActiveLink, documents: unknown
 
     await tx.transaction.update({
       where: { id: transactionId },
-      data: { status: "DOCS_SUBMITTED" },
+      data: resubmission ? { documentsRejectedAt: null, documentsRejectionReason: null } : { status: "DOCS_SUBMITTED" },
     })
 
     await recordTransactionEvent(tx, {
       transactionId,
       type: "DOCUMENTS_SUBMITTED",
-      title: "Client requirements submitted",
+      title: resubmission ? "Client requirements submitted again" : "Client requirements submitted",
       detail: `${validatedDocuments.length} required item(s) were submitted.`,
-      dedupeKey: `event:documents:${transactionId}`,
+      dedupeKey: resubmission ? `event:documents:${transactionId}:${currentTransaction.documentsRejectedAt!.getTime()}` : `event:documents:${transactionId}`,
     })
   })
 
@@ -283,7 +286,7 @@ export async function submitClientDocuments(link: ActiveLink, documents: unknown
 
   const nextStep = getNextClientStep(transaction)
 
-  if (nextStep === "complete") {
+  if (nextStep === "complete" && currentTransaction.status !== "COMPLETED") {
     await completeTransactionWithoutPayment(prisma, transactionId)
   }
 

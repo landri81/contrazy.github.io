@@ -267,6 +267,7 @@ enum TransactionEventType {
   CONTRACT_SNAPSHOT_CREATED
   PROFILE_SUBMITTED
   DOCUMENTS_SUBMITTED
+  DOCUMENTS_REJECTED
   CUSTOM_FIELDS_SUBMITTED
   KYC_STARTED
   KYC_VERIFIED
@@ -537,6 +538,11 @@ model Transaction {
   /// with the check-in readings (`POST /api/partner/v1/bookings/:id/contract/open`).
   contractAtPickup                       Boolean                          @default(false)
   contractOpenedAt                       DateTime?
+  /// Partner bookings (LOCAZ T21): the vendor refused the documents (unreadable, expired, not matching…) with this reason
+  /// (`POST /api/partner/v1/bookings/:id/documents/reject`). The customer uploads them again, even after payment; the
+  /// next submission clears both.
+  documentsRejectedAt                    DateTime?
+  documentsRejectionReason               String?
   customerCompletedAt                    DateTime?
   signatureCity                          String?
   serviceDate                            DateTime?                        @db.Date

@@ -547,6 +547,40 @@ paths:
         "409": { $ref: "#/components/responses/Error" }
         "410": { $ref: "#/components/responses/Error" }
 
+  /bookings/{id}/documents/reject:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    post:
+      tags: [Embedded checkout]
+      operationId: rejectDocuments
+      summary: Refuse the documents the customer sent, so they send new ones
+      description: |
+        Scope `bookings:write`. The partner checked the documents and refuses them (unreadable, expired, not matching the
+        booking…): `reason` is shown to the customer as it is. The documents step opens again, even after payment, and
+        comes first (`nextStep`); a completed booking answers `status: open` and keeps its status otherwise. The checkout
+        answers `documentsRejection` until new documents arrive through `checkout/documents`, which clears it and sends
+        `booking.documents_submitted`. The secure link stays open at least seven days. Refusing again replaces the
+        reason. 409 `step_not_available` (the booking asks for no documents), 410 `checkout_closed` (cancelled).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500 }
+      responses:
+        "200":
+          description: The checkout state, with `documentsRejection`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkout" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "410": { $ref: "#/components/responses/Error" }
+
   /bookings/{id}/hold:
     parameters:
       - $ref: "#/components/parameters/BookingId"
@@ -1364,7 +1398,7 @@ components:
         done: { type: boolean }
     Checkout:
       type: object
-      required: [bookingId, status, nextStep, expiresAt, steps, requirements, identity, contract, payment]
+      required: [bookingId, status, nextStep, expiresAt, steps, requirements, identity, contract, payment, documentsRejection]
       properties:
         bookingId: { type: string }
         status: { type: string, enum: [open, completed, cancelled, expired] }
@@ -1423,6 +1457,13 @@ components:
             signed: { type: boolean }
             atPickup: { type: boolean }
             openedAt: { type: [string, "null"], format: date-time }
+        documentsRejection:
+          type: [object, "null"]
+          description: The documents the partner refused (`POST /bookings/{id}/documents/reject`), until the customer sends new ones.
+          required: [reason, at]
+          properties:
+            reason: { type: string }
+            at: { type: string, format: date-time }
         payment:
           type: object
           properties:

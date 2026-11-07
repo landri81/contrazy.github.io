@@ -8,18 +8,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const findTransaction = vi.fn()
 const linkContext = vi.fn()
 const submitDocuments = vi.fn()
+const updateTransaction = vi.fn()
+const updateLink = vi.fn()
+const recordEvent = vi.fn()
 
 vi.mock("server-only", () => ({}))
 vi.mock("@/lib/env", () => ({ env: { JWT_ENCRYPTION_SECRET: "s".repeat(40) } }))
 vi.mock("@/lib/integrations/resend", () => ({}))
 vi.mock("@/lib/integrations/stripe", () => ({}))
 vi.mock("@/lib/integrations/cloudinary", () => ({ cloudinary: {} }))
-vi.mock("@/lib/db/prisma", () => ({ prisma: { transaction: { findUnique: (...a: unknown[]) => findTransaction(...a) } } }))
+vi.mock("@/lib/db/prisma", () => {
+  const tx = { transaction: { update: (...a: unknown[]) => updateTransaction(...a) }, transactionLink: { update: (...a: unknown[]) => updateLink(...a) } }
+  return { prisma: { transaction: { findUnique: (...a: unknown[]) => findTransaction(...a) }, $transaction: (run: (client: typeof tx) => unknown) => run(tx) } }
+})
+vi.mock("@/features/transactions/server/transaction-events", () => ({ recordTransactionEvent: (...a: unknown[]) => recordEvent(...a) }))
 vi.mock("@/features/partner-api/server/partner-bookings", () => ({ requirePartnerBooking: async (_vendorId: string, where: { id: string }) => ({ id: where.id }) }))
 vi.mock("@/features/transactions/server/transaction-links", () => ({ getClientLinkAccessContext: (...a: unknown[]) => linkContext(...a) }))
 vi.mock("@/features/client-flow/server/steps/submit-documents", () => ({ submitClientDocuments: (...a: unknown[]) => submitDocuments(...a) }))
 
-const { uploadPartnerCheckoutFile, submitPartnerCheckoutDocuments } = await import("./partner-checkout")
+const { uploadPartnerCheckoutFile, submitPartnerCheckoutDocuments, rejectPartnerCheckoutDocuments } = await import("./partner-checkout")
 const { PartnerApiError } = await import("@/lib/partner-api/errors")
 
 const SECRET = "s".repeat(40)
@@ -129,5 +136,38 @@ describe("submitPartnerCheckoutDocuments", () => {
 
     submitDocuments.mockResolvedValueOnce({ status: 400, body: { success: false, message: "Upload every required file before continuing." } })
     expect(await code(submitPartnerCheckoutDocuments(caller, "tx_1", { files: [{ fileId: recto.fileId, requirementId: "req_licence", slotIndex: 0 }] }, SECRET))).toBe("invalid_request")
+  })
+})
+
+describe("rejectPartnerCheckoutDocuments (LOCAZ T21)", () => {
+  const NOW = new Date("2026-11-08T10:00:00Z")
+  const reason = "Permis expiré : envoyez un permis en cours de validité."
+
+  it("records the reason, keeps the link open seven days, logs the refusal and answers the checkout asking the documents again", async () => {
+    const sent = { documents: [{ id: "doc_0", requirementId: "req_licence", label: "Permis de conduire", slotIndex: 0, uploadedAt: NOW }, { id: "doc_1", requirementId: "req_licence", label: "Permis de conduire", slotIndex: 1, uploadedAt: NOW }] }
+    findTransaction
+      .mockResolvedValueOnce(transaction({ ...sent, link: { id: "link_1", token: "tok_1", status: "ACTIVE", expiresAt: new Date("2026-11-09T10:00:00Z") } }))
+      .mockResolvedValueOnce(transaction({ ...sent, documentsRejectedAt: NOW, documentsRejectionReason: reason, link: { id: "link_1", token: "tok_1", status: "ACTIVE", expiresAt: new Date("2026-11-15T10:00:00Z") } }))
+    const checkout = await rejectPartnerCheckoutDocuments(caller, "tx_1", { reason }, NOW)
+    expect(updateTransaction).toHaveBeenCalledWith({ where: { id: "tx_1" }, data: { documentsRejectedAt: NOW, documentsRejectionReason: reason } })
+    expect(updateLink).toHaveBeenCalledWith({ where: { id: "link_1" }, data: { expiresAt: new Date("2026-11-15T10:00:00Z") } })
+    expect(recordEvent).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ transactionId: "tx_1", type: "DOCUMENTS_REJECTED", detail: reason }))
+    // This fixture has no customer profile yet: the presenter test checks the documents come first with one.
+    expect(checkout).toMatchObject({ status: "open", steps: { documents: { done: false } }, documentsRejection: { reason, at: NOW.toISOString() } })
+  })
+
+  it("leaves a link that stays open longer as it is", async () => {
+    findTransaction.mockResolvedValue(transaction({ link: { id: "link_1", token: "tok_1", status: "ACTIVE", expiresAt: new Date("2026-12-31T10:00:00Z") } }))
+    await rejectPartnerCheckoutDocuments(caller, "tx_1", { reason }, NOW)
+    expect(updateLink).not.toHaveBeenCalled()
+  })
+
+  it("refuses a booking that asks no documents, and a closed checkout", async () => {
+    findTransaction.mockResolvedValue(transaction({ stepSwitches: { documents: false, payment: true } }))
+    expect(await code(rejectPartnerCheckoutDocuments(caller, "tx_1", { reason }, NOW))).toBe("step_not_available")
+    findTransaction.mockResolvedValue(transaction())
+    linkContext.mockResolvedValue({ state: "cancelled" })
+    expect(await code(rejectPartnerCheckoutDocuments(caller, "tx_1", { reason }, NOW))).toBe("checkout_closed")
+    expect(updateTransaction).not.toHaveBeenCalled()
   })
 })

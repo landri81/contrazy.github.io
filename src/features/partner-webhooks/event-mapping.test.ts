@@ -25,6 +25,7 @@ const EXPECTED: Record<TransactionEventType, string | null> = {
   CONTRACT_SNAPSHOT_CREATED: null,
   PROFILE_SUBMITTED: "booking.profile_submitted",
   DOCUMENTS_SUBMITTED: "booking.documents_submitted",
+  DOCUMENTS_REJECTED: null,
   CUSTOM_FIELDS_SUBMITTED: null,
   KYC_STARTED: null,
   KYC_VERIFIED: "booking.identity_verified",

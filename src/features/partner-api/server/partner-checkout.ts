@@ -4,7 +4,7 @@ import { hasSecuredCard, isCardSecurityRequired } from "@/features/card-security
 import { ConsentPartiesMissingError, partnerCardConsentText } from "@/features/card-security/consent-texts"
 import { CardSecurityError, findCardConsent, recordCardConsent } from "@/features/card-security/server/card-security"
 import { loadClientCardSecurityContext } from "@/features/card-security/server/client-card-security"
-import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, emptyRequiredContractFields, getClientFlowState, hasContractDue, hasContractStep } from "@/features/client-flow/server/client-flow-data"
+import { buildPopulatedContractContent, canRevisitClientStep, clientFlowTransactionInclude, emptyRequiredContractFields, getClientFlowState, hasContractDue, hasContractStep, hasDocumentsStep } from "@/features/client-flow/server/client-flow-data"
 import { confirmClientCardSetup, startClientCardSetup } from "@/features/client-flow/server/steps/card-setup"
 import { confirmClientPayment } from "@/features/client-flow/server/steps/confirm-payment"
 import { reviewClientContract } from "@/features/client-flow/server/steps/review-contract"
@@ -21,6 +21,7 @@ import {
   type PartnerCheckoutCard,
   type PartnerCheckoutCardConsentInput,
   type PartnerCheckoutDocumentsSubmitInput,
+  type PartnerDocumentsRejectInput,
   type PartnerCheckoutContract,
   type PartnerCheckoutIdentity,
   type PartnerCheckoutNextStep,
@@ -32,6 +33,7 @@ import { signCheckoutFile, verifyCheckoutFile } from "@/features/partner-api/ser
 import { uploadCheckoutDocument } from "@/features/partner-api/server/checkout-upload"
 import { assertReturnUrlAllowed, requirePartnerBooking } from "@/features/partner-api/server/partner-bookings"
 import { normalizeRequirementFileCount } from "@/features/transactions/contract-flow"
+import { recordTransactionEvent } from "@/features/transactions/server/transaction-events"
 import { getClientLinkAccessContext } from "@/features/transactions/server/transaction-links"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
@@ -116,6 +118,38 @@ export async function submitPartnerCheckoutDocuments(caller: Caller, bookingId: 
 
   const result = await submitClientDocuments(link, documents)
   if (result.status !== 200) throw new PartnerApiError(STEP_REFUSALS[result.status] ?? "invalid_request", result.body.message ?? "The documents were refused.")
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+}
+
+/** How long the customer has to send the documents again, at least (the link is extended to it when it ends sooner). */
+const REJECTED_DOCUMENTS_LINK_DAYS = 7
+
+/**
+ * `POST /bookings/:id/documents/reject` (LOCAZ T21): the vendor refuses the documents the customer sent (unreadable,
+ * expired, not matching the booking…), with the reason the customer is shown. The documents step opens again, even after
+ * payment, and comes first; the booking keeps its status. The secure link stays open for at least seven days. Refusing
+ * again replaces the reason.
+ */
+export async function rejectPartnerCheckoutDocuments(caller: Caller, bookingId: string, input: PartnerDocumentsRejectInput, now = new Date()) {
+  const transaction = await loadCheckoutTransaction(caller, bookingId)
+  if (!hasDocumentsStep(transaction) || !transaction.requirements.some((requirement) => requirement.required)) {
+    throw new PartnerApiError("step_not_available", "This booking asks for no documents.")
+  }
+  await openLink(transaction)
+  const minimumExpiry = new Date(now.getTime() + REJECTED_DOCUMENTS_LINK_DAYS * 24 * 60 * 60 * 1000)
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.update({ where: { id: transaction.id }, data: { documentsRejectedAt: now, documentsRejectionReason: input.reason } })
+    if (transaction.link?.expiresAt && transaction.link.expiresAt < minimumExpiry) {
+      await tx.transactionLink.update({ where: { id: transaction.link.id }, data: { expiresAt: minimumExpiry } })
+    }
+    await recordTransactionEvent(tx, {
+      transactionId: transaction.id,
+      type: "DOCUMENTS_REJECTED",
+      title: "Documents refused by the vendor",
+      detail: input.reason,
+      dedupeKey: `event:documents-rejected:${transaction.id}:${now.getTime()}`,
+    })
+  })
   return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
 }
 
