@@ -257,6 +257,12 @@ export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
         description: "Existing damage reported at the check-in.",
         sampleValue: "Scratch on the rear bumper",
       },
+      {
+        label: "Departure check (one sentence)",
+        token: "{{rental.departureReport}}",
+        description: "The check-in readings in one sentence: time, mileage, fuel and damage. Place it on its own line: it is left out of a contract signed before the check-in.",
+        sampleValue: "Departure check of 12 November 2026, 09:40: mileage 48,210 km, fuel 6/8. Damage noted: None reported.",
+      },
     ],
   },
   signatureContractMergeFieldGroup,
