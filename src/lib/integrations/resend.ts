@@ -50,7 +50,9 @@ function buildCleanEmailHtml(
     ? `© ${year} Contrazy — Tous droits réservés.`
     : `© ${year} Contrazy — All rights reserved.`
 
-  const contrazyDark = "https://contrazy.com/logo/logo-contrazy-dark.png"
+  // The dark logo on a white tile baked into the image: mail apps in dark mode darken the background but not images,
+  // so a transparent dark logo disappeared there (LOCAZ, Outlook on iPhone, 8 Nov 2026).
+  const contrazyDark = "https://contrazy.com/logo/logo-contrazy-email.png"
 
   let logoHtml: string
   if (options?.vendorLogoUrl && options?.vendorName) {
@@ -63,13 +65,13 @@ function buildCleanEmailHtml(
           </td>
           <td style="vertical-align:middle;padding-right:14px;color:#cbd5e1;font-size:20px;font-weight:200;line-height:1">×</td>
           <td style="vertical-align:middle">
-            <img src="${escapeHtml(contrazyDark)}" height="22" alt="Contrazy"
-              style="max-width:110px;display:block" />
+            <img src="${escapeHtml(contrazyDark)}" width="109" height="34" alt="Contrazy"
+              style="width:109px;height:34px;display:block" />
           </td>
         </tr>
       </table>`
   } else {
-    logoHtml = `<img src="${escapeHtml(contrazyDark)}" height="28" alt="Contrazy" style="display:block;max-width:140px" />`
+    logoHtml = `<img src="${escapeHtml(contrazyDark)}" width="115" height="36" alt="Contrazy" style="width:115px;height:36px;display:block" />`
   }
 
   return `<!DOCTYPE html>
