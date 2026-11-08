@@ -80,6 +80,15 @@ describe("departure readings (LOCAZ M11.1, contract signed at pickup)", () => {
     const damaged = buildRentalPlaceholderValues({ ...context, rentalDetails: { ...payload.rental, departure: { ...departure, damages: "Rayure arrière" } } }, "en")
     expect(damaged["{{rental.departureDamages}}"]).toBe("Rayure arrière")
   })
+
+  it("says the readings in one sentence, and leaves its paragraph out before the check-in", () => {
+    const departure = { inspectedAt: "2026-11-02T07:45:00.000Z", odometerKm: 48_210, fuelEighths: 6 }
+    const template = "<p>1.1 - Nature</p><p>{{rental.departureReport}}</p><p>1.2 - État</p>"
+    const signed = applyRentalPlaceholders(template, { ...context, rentalDetails: { ...payload.rental, departure } }, "fr")
+    expect(signed).toContain("État des lieux de départ du 02 novembre 2026")
+    expect(signed).toContain("kilométrage 48 210 km, carburant 6/8. Dommages constatés : Aucun dommage signalé.")
+    expect(applyRentalPlaceholders(template, context, "fr")).toBe("<p>1.1 - Nature</p><p>1.2 - État</p>")
+  })
 })
 
 describe("the partner's contact numbers (LOCAZ D-09, M13.13)", () => {

@@ -30,6 +30,7 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.departureFuel}}",
   "{{rental.departureAt}}",
   "{{rental.departureDamages}}",
+  "{{rental.departureReport}}",
   "{{rental.lessorPhone}}",
   "{{rental.assistancePhone}}",
 ] as const
@@ -37,8 +38,20 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
 type RentalLocale = "en" | "fr"
 
 const copy = {
-  en: { unlimited: "Unlimited mileage", perExtraKm: "per extra km", total: "Total", noDamage: "None reported" },
-  fr: { unlimited: "Kilométrage illimité", perExtraKm: "par km supplémentaire", total: "Total", noDamage: "Aucun dommage signalé" },
+  en: {
+    unlimited: "Unlimited mileage",
+    perExtraKm: "per extra km",
+    total: "Total",
+    noDamage: "None reported",
+    departureReport: "Departure check of {at}: mileage {km}, fuel {fuel}. Damage noted: {damages}.",
+  },
+  fr: {
+    unlimited: "Kilométrage illimité",
+    perExtraKm: "par km supplémentaire",
+    total: "Total",
+    noDamage: "Aucun dommage signalé",
+    departureReport: "État des lieux de départ du {at} : kilométrage {km}, carburant {fuel}. Dommages constatés : {damages}.",
+  },
 } satisfies Record<RentalLocale, Record<string, string>>
 
 function resolveLocale(locale: string | null | undefined): RentalLocale {
@@ -187,6 +200,14 @@ export function buildRentalPlaceholderValues(
     "{{rental.departureFuel}}": rental?.departure ? `${rental.departure.fuelEighths}/8` : "",
     "{{rental.departureAt}}": rental?.departure ? formatRentalDateTime(rental.departure.inspectedAt, context?.timezone, resolvedLocale) : "",
     "{{rental.departureDamages}}": rental?.departure ? rental.departure.damages || copy[resolvedLocale].noDamage : "",
+    // The check-in readings in one sentence (LOCAZ, 9 Nov 2026): a contract signed at booking has none, so its paragraph goes.
+    "{{rental.departureReport}}": rental?.departure
+      ? copy[resolvedLocale].departureReport
+          .replace("{at}", formatRentalDateTime(rental.departure.inspectedAt, context?.timezone, resolvedLocale))
+          .replace("{km}", `${normalizeSpaces(new Intl.NumberFormat(intlLocale(resolvedLocale)).format(rental.departure.odometerKm))} km`)
+          .replace("{fuel}", `${rental.departure.fuelEighths}/8`)
+          .replace("{damages}", rental.departure.damages || copy[resolvedLocale].noDamage)
+      : "",
     "{{rental.lessorPhone}}": rental?.lessorPhone ?? "",
     "{{rental.assistancePhone}}": rental?.assistancePhone ?? "",
   }
@@ -210,6 +231,7 @@ function buildPriceTableHtml(context: ContractRentalContext | null | undefined, 
 }
 
 const STANDALONE_PRICE_TABLE_PATTERN = /<p[^>]*>\s*\{\{\s*rental\.priceTable\s*\}\}\s*<\/p>/gi
+const STANDALONE_DEPARTURE_REPORT_PATTERN = /<p[^>]*>\s*\{\{\s*rental\.departureReport\s*\}\}\s*<\/p>/gi
 
 /** Replaces the `{{rental.*}}` tokens in template HTML. Unknown rental tokens are left for the caller to clear. */
 export function applyRentalPlaceholders(
@@ -219,6 +241,8 @@ export function applyRentalPlaceholders(
 ) {
   const values = buildRentalPlaceholderValues(context, locale)
   let rendered = html.replace(STANDALONE_PRICE_TABLE_PATTERN, () => buildPriceTableHtml(context, locale))
+  // No check-in yet (a contract signed at booking): the readings' paragraph is left out, not printed empty.
+  if (!values["{{rental.departureReport}}"]) rendered = rendered.replace(STANDALONE_DEPARTURE_REPORT_PATTERN, "")
 
   for (const token of RENTAL_PLACEHOLDER_TOKENS) {
     rendered = rendered.replaceAll(token, escapeContractHtml(values[token]))
