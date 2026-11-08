@@ -1171,6 +1171,8 @@ components:
         deductible: { $ref: "#/components/schemas/Cents" }
         deposit: { $ref: "#/components/schemas/Cents" }
         fuelPolicy: { type: string }
+        lessorPhone: { type: string, maxLength: 40, description: "The partner's phone, printed by {{rental.lessorPhone}}." }
+        assistancePhone: { type: string, maxLength: 40, description: "The 24/7 assistance line, printed by {{rental.assistancePhone}}." }
         priceLines:
           type: array
           items:

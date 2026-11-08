@@ -30,6 +30,8 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.departureFuel}}",
   "{{rental.departureAt}}",
   "{{rental.departureDamages}}",
+  "{{rental.lessorPhone}}",
+  "{{rental.assistancePhone}}",
 ] as const
 
 type RentalLocale = "en" | "fr"
@@ -185,6 +187,8 @@ export function buildRentalPlaceholderValues(
     "{{rental.departureFuel}}": rental?.departure ? `${rental.departure.fuelEighths}/8` : "",
     "{{rental.departureAt}}": rental?.departure ? formatRentalDateTime(rental.departure.inspectedAt, context?.timezone, resolvedLocale) : "",
     "{{rental.departureDamages}}": rental?.departure ? rental.departure.damages || copy[resolvedLocale].noDamage : "",
+    "{{rental.lessorPhone}}": rental?.lessorPhone ?? "",
+    "{{rental.assistancePhone}}": rental?.assistancePhone ?? "",
   }
 }
 

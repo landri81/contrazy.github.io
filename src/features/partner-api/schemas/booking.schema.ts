@@ -81,6 +81,9 @@ export const rentalDetailsSchema = z.object({
   deductible: cents("deductible").optional(),
   deposit: cents("deposit").optional(),
   fuelPolicy: optionalText("Fuel policy", 120),
+  /** The partner's own contact numbers for the contract (LOCAZ D-09, M13.13): its phone and its 24/7 assistance line. */
+  lessorPhone: optionalText("Lessor phone", 40),
+  assistancePhone: optionalText("Assistance phone", 40),
   priceLines: z.array(rentalPriceLineSchema).max(50).default([]),
   /** The vehicle as handed over (LOCAZ M11.1): the check-in readings printed on a contract signed at pickup. */
   departure: z
