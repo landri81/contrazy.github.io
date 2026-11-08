@@ -18,6 +18,16 @@ export function isCloudinaryAssetUrl(url: string | null | undefined) {
   return typeof url === "string" && url.includes(CLOUDINARY_HOST_FRAGMENT) && url.includes(CLOUDINARY_UPLOAD_SEGMENT)
 }
 
+/**
+ * The same Cloudinary image with its plain border cut off (e_trim), for a logo shown small: a square logo with a wide
+ * white margin was a speck next to the Contrazy logo in the e-mails (LOCAZ, 8 Nov 2026). Other URLs are kept.
+ */
+export function trimmedCloudinaryImageUrl(url: string) {
+  const marker = "/image/upload/"
+  if (!isCloudinaryAssetUrl(url) || !url.includes(marker) || url.includes(`${marker}e_trim`)) return url
+  return url.replace(marker, `${marker}e_trim/`)
+}
+
 export function isPdfAssetUrl(url: string | null | undefined, fileName?: string | null) {
   const normalizedUrl = normalizeLower(url)
   const normalizedFileName = normalizeLower(fileName)

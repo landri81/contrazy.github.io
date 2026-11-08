@@ -2,6 +2,7 @@ import { Resend } from "resend"
 
 import { CONTRAZY_COMPANY } from "@/lib/config/contrazy-company"
 import { env } from "@/lib/env"
+import { trimmedCloudinaryImageUrl } from "@/lib/integrations/cloudinary-assets"
 import { getSiteUrl } from "@/lib/site-url"
 
 export const resend = new Resend(env.RESEND_API_KEY)
@@ -60,8 +61,8 @@ function buildCleanEmailHtml(
       <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
         <tr>
           <td style="vertical-align:middle;padding-right:14px">
-            <img src="${escapeHtml(options.vendorLogoUrl)}" height="34" alt="${escapeHtml(options.vendorName)}"
-              style="max-width:120px;height:34px;object-fit:contain;display:block;border-radius:4px" />
+            <img src="${escapeHtml(trimmedCloudinaryImageUrl(options.vendorLogoUrl))}" height="52" alt="${escapeHtml(options.vendorName)}"
+              style="max-width:160px;height:52px;object-fit:contain;display:block;border-radius:4px" />
           </td>
           <td style="vertical-align:middle;padding-right:14px;color:#cbd5e1;font-size:20px;font-weight:200;line-height:1">×</td>
           <td style="vertical-align:middle">
