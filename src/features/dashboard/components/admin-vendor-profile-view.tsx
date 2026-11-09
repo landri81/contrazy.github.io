@@ -23,6 +23,7 @@ import type {
   AdminVendorProfileRecord,
 } from "@/features/dashboard/server/dashboard-data"
 import { getStatusTone } from "@/features/dashboard/server/dashboard-data"
+import { displayPhone } from "@/lib/phone-display"
 
 type VendorManagerTab = "overview" | "transactions" | "subscription" | "access"
 type AdminVendorTransactionsSearchParams = {
@@ -749,7 +750,7 @@ export async function AdminVendorProfileView({
                     { label: t("overview.fields.businessName"), value: formatOptional(vendorProfile.businessName) },
                     { label: t("overview.fields.registrationNumber"), value: formatOptional(vendorProfile.registrationNumber) },
                     { label: t("overview.fields.supportEmail"), value: formatOptional(vendorProfile.supportEmail) },
-                    { label: t("overview.fields.phone"), value: formatOptional(vendorProfile.businessPhone) },
+                    { label: t("overview.fields.phone"), value: formatOptional(vendorProfile.businessPhone ? displayPhone(vendorProfile.businessPhone) : null) },
                     { label: t("overview.fields.country"), value: formatOptional(vendorProfile.businessCountry) },
                     { label: t("overview.fields.address"), value: formatOptional(vendorProfile.businessAddress) },
                     { label: t("overview.fields.vatNumber"), value: formatOptional(vendorProfile.vatNumber) },

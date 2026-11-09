@@ -11,6 +11,7 @@ import { TableQueryShell } from "@/features/dashboard/components/table-query-she
 import { VendorSignatureImageDialog } from "@/features/dashboard/components/vendor-signature-image-dialog"
 import { VendorTableExportDialog } from "@/features/dashboard/components/vendor-table-export-dialog"
 import { resolveDocumentAssetUrl } from "@/lib/integrations/cloudinary-assets"
+import { displayPhone } from "@/lib/phone-display"
 import type {
   AdminContactDetailRecord,
   AdminContactListData,
@@ -1179,7 +1180,7 @@ export async function AdminUserDetailView({ user }: { user: AdminUserDetailRecor
                 { label: t("businessProfile.businessName"), value: vp.businessName || "—" },
                 { label: t("businessProfile.businessEmail"), value: vp.businessEmail || "—" },
                 { label: t("businessProfile.supportEmail"), value: vp.supportEmail || "—" },
-                { label: t("businessProfile.phone"), value: vp.businessPhone || "—" },
+                { label: t("businessProfile.phone"), value: vp.businessPhone ? displayPhone(vp.businessPhone) : "—" },
                 { label: t("businessProfile.address"), value: vp.businessAddress || "—" },
                 { label: t("businessProfile.country"), value: vp.businessCountry || "—" },
                 {

@@ -3,6 +3,7 @@ import { Resend } from "resend"
 import { CONTRAZY_COMPANY } from "@/lib/config/contrazy-company"
 import { env } from "@/lib/env"
 import { trimmedCloudinaryImageUrl } from "@/lib/integrations/cloudinary-assets"
+import { displayPhone } from "@/lib/phone-display"
 import { getSiteUrl } from "@/lib/site-url"
 
 export const resend = new Resend(env.RESEND_API_KEY)
@@ -1073,7 +1074,7 @@ export async function sendTransactionCompletedEmail(
   const safeRef = escapeHtml(transactionId)
   const docList = documents && documents.length > 0 ? cdocumentList(documents, isFr) : ""
   const bookingRef = context?.externalRef?.trim() || null
-  const contact = [context?.vendorEmail, context?.vendorPhone].filter((value): value is string => Boolean(value?.trim())).map(escapeHtml).join(" · ")
+  const contact = [context?.vendorEmail?.trim(), context?.vendorPhone ? displayPhone(context.vendorPhone) : null].filter((value): value is string => Boolean(value)).map(escapeHtml).join(" · ")
 
   const html = isFr
     ? buildCleanEmailHtml(
