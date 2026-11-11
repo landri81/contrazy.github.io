@@ -18,6 +18,7 @@ security:
 tags:
   - name: Connectivity
   - name: Bookings
+  - name: Checklists
   - name: Embedded checkout
   - name: Holds
   - name: Cards
@@ -48,6 +49,58 @@ paths:
         "403": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
 
+  /checklists:
+    get:
+      tags: [Checklists]
+      operationId: listChecklists
+      summary: The vendor's checklists, with their items and example images
+      description: >-
+        Scope `bookings:read`. The checklists the vendor keeps in Contrazy (Settings › Checklists), items in order. Show
+        them on your own pages, and send the items you use as booking `requirements`: `exampleImage.url`, `publicId` and
+        `fileName` go back as `exampleImageUrl`, `exampleImagePublicId` and `exampleImageFileName`.
+      responses:
+        "200":
+          description: The checklists.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, updatedAt, items]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        description: { type: [string, "null"] }
+                        updatedAt: { type: string, format: date-time }
+                        items:
+                          type: array
+                          items:
+                            type: object
+                            required: [id, label, type, category, required, fileCount, slotLabels]
+                            properties:
+                              id: { type: string }
+                              label: { type: string }
+                              description: { type: [string, "null"] }
+                              type: { type: string, enum: [DOCUMENT, PHOTO, CAPTURE, TEXT] }
+                              category: { type: string }
+                              customCategoryLabel: { type: [string, "null"] }
+                              required: { type: boolean }
+                              fileCount: { type: integer }
+                              slotLabels: { type: array, items: { type: string } }
+                              exampleImage:
+                                type: [object, "null"]
+                                properties:
+                                  url: { type: string }
+                                  publicId: { type: [string, "null"] }
+                                  fileName: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /bookings:
     post:
       tags: [Bookings]
@@ -1429,6 +1482,7 @@ components:
               required: { type: boolean }
               fileCount: { type: integer }
               slotLabels: { type: array, items: { type: string } }
+              exampleImageUrl: { type: [string, "null"], description: "The vendor's example image (public), to show next to the upload." }
               files:
                 type: array
                 items:

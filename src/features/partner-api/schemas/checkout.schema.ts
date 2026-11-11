@@ -34,6 +34,8 @@ export type PartnerCheckoutRequirement = {
   required: boolean
   fileCount: number
   slotLabels: string[]
+  /** The vendor's example image (public), shown next to the upload. */
+  exampleImageUrl: string | null
   files: PartnerCheckoutFile[]
   complete: boolean
 }

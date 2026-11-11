@@ -83,6 +83,10 @@ details and the `steps` to run:
 | `cardSecurity` | accepts the 90-day card terms, then saves a card (with the payment, or alone) |
 | `hold` | deposit hold during the flow (most rentals use the pickup hold instead) |
 
+`GET /checklists` lists the vendor's checklists (Settings › Checklists) with their items and example images. A
+partner can show them on its own pages and send the items it uses as `requirements`, example image included, so the
+vendor edits them once in Contrazy. In the embedded checkout each requirement carries its `exampleImageUrl`.
+
 Switched-off steps show as "not required" to the customer. The response has `customerUrl` (send it to the
 customer) and the step progress. Bookings can be changed with `PATCH` until the customer opens the link, and
 cancelled with `POST /bookings/{id}/cancel`.
@@ -284,6 +288,11 @@ type is in [`fixtures/webhooks/`](./fixtures/webhooks). Payloads carry the booki
 e-mail, and per-event facts; never ID documents, selfies, card data or Stripe ids.
 
 ## Changelog
+
+### 2026-11-11
+
+- `GET /checklists`: the vendor's checklists with items and example images.
+- Embedded checkout: `exampleImageUrl` on each requirement.
 
 ### Embedded checkout (in progress)
 

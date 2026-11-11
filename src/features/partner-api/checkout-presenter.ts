@@ -62,6 +62,8 @@ function presentRequirements(transaction: ClientFlowTransaction): PartnerCheckou
       required: requirement.required,
       fileCount: requirement.requiredFileCount,
       slotLabels: slotLabels(requirement.fileSlotLabels),
+      // The vendor's example (a public image), shown next to the upload.
+      exampleImageUrl: requirement.exampleImageUrl ?? null,
       files: documents.map((document) => ({
         id: document.id,
         slot: document.slotIndex,

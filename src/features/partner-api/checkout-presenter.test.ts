@@ -26,7 +26,7 @@ const profile = {
   companyName: null,
 }
 
-const licence = { id: "req_licence", label: "Permis de conduire", instructions: null, type: "DOCUMENT", category: "DRIVER_LICENSE", requiredFileCount: 2, fileSlotLabels: ["Recto", "Verso"], required: true }
+const licence = { id: "req_licence", label: "Permis de conduire", instructions: null, type: "DOCUMENT", category: "DRIVER_LICENSE", requiredFileCount: 2, fileSlotLabels: ["Recto", "Verso"], required: true, exampleImageUrl: "https://res.cloudinary.com/x/permis-exemple.jpg" }
 const file = (slotIndex: number) => ({ id: `doc_${slotIndex}`, requirementId: "req_licence", label: "Permis de conduire", slotIndex, slotLabel: slotIndex ? "Verso" : "Recto", fileName: `permis-${slotIndex}.jpg`, assetUrl: `https://res.cloudinary.com/x/${slotIndex}.jpg`, publicId: `p${slotIndex}`, textValue: null, uploadedAt: new Date("2026-11-05T08:50:00Z") })
 
 /** A LOCAZ booking as the partner API creates it: documents, identity, contract, payment, deposit hold, card. */
@@ -78,7 +78,7 @@ describe("presentPartnerCheckout", () => {
       payment: { required: true, done: false },
       card: { required: true, done: false },
     })
-    expect(checkout.requirements[0]).toMatchObject({ id: "req_licence", category: "DRIVER_LICENSE", fileCount: 2, slotLabels: ["Recto", "Verso"], files: [], complete: false })
+    expect(checkout.requirements[0]).toMatchObject({ id: "req_licence", category: "DRIVER_LICENSE", fileCount: 2, slotLabels: ["Recto", "Verso"], exampleImageUrl: "https://res.cloudinary.com/x/permis-exemple.jpg", files: [], complete: false })
     expect(checkout.payment).toEqual({ stage: "deposit", amount: 15_700, depositAmount: 80_000, currency: "eur" })
     expect(checkout.identity).toEqual({ required: true, selfie: false, status: "not_started", reason: null })
   })
