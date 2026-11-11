@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
 import type { ChecklistTemplate, ChecklistItem } from "@prisma/client"
 import {
+  Copy,
   FileText,
   GripVertical,
   Image as ImageIcon,
@@ -491,6 +492,35 @@ export function ChecklistTemplateList({
     }
   }
 
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
+
+  /** A copy with every item and example image, to adapt for another type of vehicle (LOCAZ, 11 Nov 2026). */
+  async function handleDuplicate(template: (typeof templates)[number]) {
+    if (!canEdit || duplicatingId) {
+      return
+    }
+    setDuplicatingId(template.id)
+    try {
+      const response = await fetch(`/api/vendor/checklists/${template.id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: t("duplicateName", { name: template.name }) }),
+      })
+      const result = await response.json().catch(() => null)
+      if (response.ok && result?.id) {
+        setTemplates((current) => [result, ...current])
+        toast({ variant: "success", title: t("duplicatedTitle"), description: t("duplicated", { name: result.name }) })
+        return
+      }
+      toast({ variant: "error", title: t("duplicateFailedTitle"), description: result?.message ?? t("duplicateFailed") })
+    } catch (error) {
+      console.error(error)
+      toast({ variant: "error", title: t("duplicateFailedTitle"), description: t("duplicateFailed") })
+    } finally {
+      setDuplicatingId(null)
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!canEdit || !confirm(t("confirmDelete"))) {
       return
@@ -866,6 +896,18 @@ export function ChecklistTemplateList({
                     disabled={!canEdit}
                   >
                     <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => void handleDuplicate(template)}
+                    disabled={!canEdit || duplicatingId !== null}
+                    aria-label={t("duplicate")}
+                    title={t("duplicate")}
+                    data-testid={`checklist-duplicate-${template.id}`}
+                  >
+                    <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"

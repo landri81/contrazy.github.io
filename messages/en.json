@@ -2002,7 +2002,13 @@
         "slotLabelsTitle": "File slot labels",
         "slotLabelsHint": "Each slot becomes a separate upload prompt for the client.",
         "slotLabel": "Slot {index}",
-        "slotLabelPlaceholder": "Label for slot {index}"
+        "slotLabelPlaceholder": "Label for slot {index}",
+        "duplicate": "Duplicate",
+        "duplicateName": "{name} (copy)",
+        "duplicatedTitle": "Checklist duplicated",
+        "duplicated": "“{name}” was created with the same items and example images. Edit it for the other vehicle type.",
+        "duplicateFailedTitle": "Duplicate failed",
+        "duplicateFailed": "The checklist could not be duplicated. Try again."
       },
       "requirementExampleImage": {
         "label": "Example image",

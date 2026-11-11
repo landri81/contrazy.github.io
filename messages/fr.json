@@ -2002,7 +2002,13 @@
         "slotLabelsTitle": "Libellés des emplacements",
         "slotLabelsHint": "Chaque emplacement devient une demande de téléversement distincte pour le client.",
         "slotLabel": "Emplacement {index}",
-        "slotLabelPlaceholder": "Libellé de l’emplacement {index}"
+        "slotLabelPlaceholder": "Libellé de l’emplacement {index}",
+        "duplicate": "Dupliquer",
+        "duplicateName": "{name} (copie)",
+        "duplicatedTitle": "Checklist dupliquée",
+        "duplicated": "« {name} » a été créée avec les mêmes éléments et images d’exemple. Modifiez-la pour l’autre type de véhicule.",
+        "duplicateFailedTitle": "Duplication impossible",
+        "duplicateFailed": "La checklist n’a pas pu être dupliquée. Réessayez."
       },
       "requirementExampleImage": {
         "label": "Image d'exemple",
