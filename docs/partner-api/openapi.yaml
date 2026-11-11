@@ -101,6 +101,37 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /contract-templates:
+    get:
+      tags: [Contracts]
+      operationId: listContractTemplates
+      summary: The vendor's contract templates (name and default, never their text)
+      description: >-
+        Scope `bookings:read`. The contracts the vendor keeps in Contrazy, the default first. Send one as the booking's
+        `contractTemplateId` (for example a contract per vehicle type); without it the vendor's default applies.
+      responses:
+        "200":
+          description: The contract templates.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, isDefault, updatedAt]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        description: { type: [string, "null"] }
+                        isDefault: { type: boolean }
+                        updatedAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
   /bookings:
     post:
       tags: [Bookings]

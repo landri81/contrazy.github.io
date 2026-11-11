@@ -87,6 +87,9 @@ details and the `steps` to run:
 partner can show them on its own pages and send the items it uses as `requirements`, example image included, so the
 vendor edits them once in Contrazy. In the embedded checkout each requirement carries its `exampleImageUrl`.
 
+`GET /contract-templates` lists the vendor's contracts (name, description, default; never their text). Send one as
+the booking's `contractTemplateId`, for example a contract per vehicle type; without it the default applies.
+
 Switched-off steps show as "not required" to the customer. The response has `customerUrl` (send it to the
 customer) and the step progress. Bookings can be changed with `PATCH` until the customer opens the link, and
 cancelled with `POST /bookings/{id}/cancel`.
@@ -293,6 +296,7 @@ e-mail, and per-event facts; never ID documents, selfies, card data or Stripe id
 
 - `GET /checklists`: the vendor's checklists with items and example images.
 - Embedded checkout: `exampleImageUrl` on each requirement.
+- `GET /contract-templates`: the vendor's contracts (name and default), to choose one per booking.
 
 ### Embedded checkout (in progress)
 
