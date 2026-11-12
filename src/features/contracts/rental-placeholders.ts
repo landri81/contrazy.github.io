@@ -33,6 +33,15 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.departureReport}}",
   "{{rental.lessorPhone}}",
   "{{rental.assistancePhone}}",
+  "{{rental.category}}",
+  "{{rental.fuel}}",
+  "{{rental.mainDriverLicence}}",
+  "{{rental.extraDrivers}}",
+  "{{rental.companyName}}",
+  "{{rental.companySiret}}",
+  "{{rental.companyVat}}",
+  "{{rental.termsLink}}",
+  "{{rental.lateFee}}",
 ] as const
 
 type RentalLocale = "en" | "fr"
@@ -44,6 +53,8 @@ const copy = {
     total: "Total",
     noDamage: "None reported",
     departureReport: "Departure check of {at}: mileage {km}, fuel {fuel}. Damage noted: {damages}.",
+    noExtraDriver: "No additional driver authorised.",
+    licence: "licence no. {number}",
   },
   fr: {
     unlimited: "Kilométrage illimité",
@@ -51,6 +62,8 @@ const copy = {
     total: "Total",
     noDamage: "Aucun dommage signalé",
     departureReport: "État des lieux de départ du {at} : kilométrage {km}, carburant {fuel}. Dommages constatés : {damages}.",
+    noExtraDriver: "Aucun conducteur secondaire autorisé.",
+    licence: "permis n° {number}",
   },
 } satisfies Record<RentalLocale, Record<string, string>>
 
@@ -210,7 +223,28 @@ export function buildRentalPlaceholderValues(
       : "",
     "{{rental.lessorPhone}}": rental?.lessorPhone ?? "",
     "{{rental.assistancePhone}}": rental?.assistancePhone ?? "",
+    // The contract's own fields for the vehicle, the drivers and the renting company (LOCAZ, 12 Nov 2026).
+    "{{rental.category}}": rental?.vehicle.category ?? "",
+    "{{rental.fuel}}": rental?.vehicle.fuel ?? "",
+    "{{rental.mainDriverLicence}}": rental?.drivers?.mainLicenceNumber ?? "",
+    "{{rental.extraDrivers}}": rental?.drivers ? formatExtraDrivers(rental.drivers.extra, resolvedLocale) : "",
+    "{{rental.companyName}}": rental?.company?.name ?? "",
+    "{{rental.companySiret}}": rental?.company?.siret ?? "",
+    "{{rental.companyVat}}": rental?.company?.vatNumber ?? "",
+    "{{rental.termsLink}}": rental?.termsUrl ?? "",
+    "{{rental.lateFee}}": rental?.lateFee ?? "",
   }
+}
+
+/** "Marie Durand (permis n° 12AB34567)" per extra driver; the sentence saying none when the partner sent an empty list. */
+function formatExtraDrivers(drivers: NonNullable<RentalDetails["drivers"]>["extra"], locale: RentalLocale) {
+  if (drivers.length === 0) return copy[locale].noExtraDriver
+  return drivers
+    .map((driver) => {
+      const name = `${driver.firstName} ${driver.lastName}`
+      return driver.licenceNumber ? `${name} (${copy[locale].licence.replace("{number}", driver.licenceNumber)})` : name
+    })
+    .join("; ")
 }
 
 /** Price lines as a list block; lists render the same in the viewer, the print page and the PDF fallback. */
@@ -243,6 +277,9 @@ export function applyRentalPlaceholders(
   let rendered = html.replace(STANDALONE_PRICE_TABLE_PATTERN, () => buildPriceTableHtml(context, locale))
   // No check-in yet (a contract signed at booking): the readings' paragraph is left out, not printed empty.
   if (!values["{{rental.departureReport}}"]) rendered = rendered.replace(STANDALONE_DEPARTURE_REPORT_PATTERN, "")
+  // The terms as a link the signer can open, not only their address in the text.
+  const termsUrl = values["{{rental.termsLink}}"]
+  if (termsUrl) rendered = rendered.replaceAll("{{rental.termsLink}}", `<a href="${escapeContractHtml(termsUrl)}">${escapeContractHtml(termsUrl)}</a>`)
 
   for (const token of RENTAL_PLACEHOLDER_TOKENS) {
     rendered = rendered.replaceAll(token, escapeContractHtml(values[token]))

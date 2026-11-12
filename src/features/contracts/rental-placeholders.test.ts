@@ -128,6 +128,49 @@ describe("applyRentalPlaceholders", () => {
   })
 })
 
+describe("contract fields for the vehicle, the drivers and the company (LOCAZ, 12 Nov 2026)", () => {
+  const rental = {
+    ...payload.rental,
+    vehicle: { ...payload.rental.vehicle, category: "Utilitaire 3 m³", fuel: "Diesel" },
+    drivers: { mainLicenceNumber: "12AB34567", extra: [{ firstName: "Marie", lastName: "Durand", licenceNumber: "98CD76543" }, { firstName: "Paul", lastName: "Martin" }] },
+    company: { name: "Transports Exemple SAS", siret: "12345678900012", vatNumber: "FR12345678900" },
+    termsUrl: "https://locaz.example/legal/terms?v=1&lang=fr",
+    lateFee: "15,00 € par heure commencée, au plus 90,00 € par jour",
+  }
+
+  it("fills the category, fuel, licences, extra drivers, company and late fee (fr)", () => {
+    const values = buildRentalPlaceholderValues({ ...context, rentalDetails: rental }, "fr")
+
+    expect(values["{{rental.category}}"]).toBe("Utilitaire 3 m³")
+    expect(values["{{rental.fuel}}"]).toBe("Diesel")
+    expect(values["{{rental.mainDriverLicence}}"]).toBe("12AB34567")
+    expect(values["{{rental.extraDrivers}}"]).toBe("Marie Durand (permis n° 98CD76543); Paul Martin")
+    expect(values["{{rental.companyName}}"]).toBe("Transports Exemple SAS")
+    expect(values["{{rental.companySiret}}"]).toBe("12345678900012")
+    expect(values["{{rental.companyVat}}"]).toBe("FR12345678900")
+    expect(values["{{rental.lateFee}}"]).toBe("15,00 € par heure commencée, au plus 90,00 € par jour")
+  })
+
+  it("says no extra driver is authorised when the partner sends none, and stays empty when it sends nothing", () => {
+    const none = { ...rental, drivers: { extra: [] } }
+    expect(buildRentalPlaceholderValues({ ...context, rentalDetails: none }, "fr")["{{rental.extraDrivers}}"]).toBe("Aucun conducteur secondaire autorisé.")
+    expect(buildRentalPlaceholderValues({ ...context, rentalDetails: none }, "en")["{{rental.extraDrivers}}"]).toBe("No additional driver authorised.")
+    expect(buildRentalPlaceholderValues(context, "fr")["{{rental.extraDrivers}}"]).toBe("")
+    expect(buildRentalPlaceholderValues(context, "fr")["{{rental.fuel}}"]).toBe("")
+  })
+
+  it("prints the terms as an escaped link the signer can open, kept by the contract sanitiser", () => {
+    const html = renderContractContent({ templateContent: "<p>CGV : {{rental.termsLink}}</p>", transactionReference: "TX-3", locale: "fr", rental: { ...context, rentalDetails: rental } })
+
+    expect(html).toContain('<a href="https://locaz.example/legal/terms?v=1&amp;lang=fr" target="_blank" rel="noreferrer noopener">https://locaz.example/legal/terms?v=1&amp;lang=fr</a>')
+    expect(html).not.toContain("{{")
+  })
+
+  it("refuses a terms address that is not https", () => {
+    expect(buildRentalPlaceholderValues({ ...context, rentalDetails: { ...rental, termsUrl: "http://locaz.example/terms" } }, "fr")["{{rental.termsLink}}"]).toBe("")
+  })
+})
+
 describe("renderContractContent with rental placeholders", () => {
   const template =
     "<p>{{rental.vehicle}} / {{rental.plate}} / {{rental.start}}</p><p>{{rental.priceTable}}</p><p>X{{rental.unknown}}Y{{nothing}}Z</p><p>{{transactionReference}}</p>"

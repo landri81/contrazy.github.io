@@ -1230,7 +1230,8 @@ components:
           properties:
             model: { type: string }
             plate: { type: string }
-            category: { type: string }
+            category: { type: string, description: "Printed by {{rental.category}}." }
+            fuel: { type: string, maxLength: 40, description: "The vehicle's fuel (Diesel), printed by {{rental.fuel}}." }
         pickup:
           type: object
           required: [place]
@@ -1257,6 +1258,31 @@ components:
         fuelPolicy: { type: string }
         lessorPhone: { type: string, maxLength: 40, description: "The partner's phone, printed by {{rental.lessorPhone}}." }
         assistancePhone: { type: string, maxLength: 40, description: "The 24/7 assistance line, printed by {{rental.assistancePhone}}." }
+        drivers:
+          type: object
+          description: "The drivers named on the contract. With an empty extra list, {{rental.extraDrivers}} says no additional driver is authorised."
+          properties:
+            mainLicenceNumber: { type: string, maxLength: 40, description: "Printed by {{rental.mainDriverLicence}}." }
+            extra:
+              type: array
+              maxItems: 10
+              items:
+                type: object
+                required: [firstName, lastName]
+                properties:
+                  firstName: { type: string }
+                  lastName: { type: string }
+                  licenceNumber: { type: string, maxLength: 40 }
+        company:
+          type: object
+          required: [name]
+          description: "The renting company of a company booking: {{rental.companyName}}, {{rental.companySiret}}, {{rental.companyVat}}."
+          properties:
+            name: { type: string, maxLength: 120 }
+            siret: { type: string, maxLength: 20 }
+            vatNumber: { type: string, maxLength: 20 }
+        termsUrl: { type: string, format: uri, maxLength: 300, description: "https only; printed as a link by {{rental.termsLink}}." }
+        lateFee: { type: string, maxLength: 200, description: "The late-return rule in the booking's language, printed by {{rental.lateFee}}." }
         priceLines:
           type: array
           items:

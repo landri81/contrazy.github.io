@@ -58,12 +58,48 @@ export const rentalPriceLineSchema = z
     message: "total must equal quantity x unitAmount",
   })
 
+const extraDriverSchema = z.object({
+  firstName: requiredText("Driver first name", INPUT_LIMITS.personName),
+  lastName: requiredText("Driver last name", INPUT_LIMITS.personName),
+  licenceNumber: optionalText("Driver licence number", 40),
+})
+
 export const rentalDetailsSchema = z.object({
   vehicle: z.object({
     model: requiredText("Vehicle model", 120),
     plate: optionalText("Plate", 20),
     category: optionalText("Category", 60),
+    /** As the partner names it ("Diesel"): printed on the contract (LOCAZ, 12 Nov 2026). */
+    fuel: optionalText("Fuel", 40),
   }),
+  /**
+   * The drivers named on the contract (LOCAZ, 12 Nov 2026): the main driver's licence number and each extra driver.
+   * Sent with an empty `extra` list, the contract says no extra driver is authorised.
+   */
+  drivers: z
+    .object({
+      mainLicenceNumber: optionalText("Main driver licence number", 40),
+      extra: z.array(extraDriverSchema).max(10).default([]),
+    })
+    .optional(),
+  /** The renting company of a company booking, with its identifiers for the contract. */
+  company: z
+    .object({
+      name: requiredText("Company name", 120),
+      siret: optionalText("SIRET", 20),
+      vatNumber: optionalText("VAT number", 20),
+    })
+    .optional(),
+  /** The partner's published terms (https), printed on the contract as a link. */
+  termsUrl: z
+    .string()
+    .trim()
+    .max(300, "termsUrl must be 300 characters or fewer")
+    .url("termsUrl must be a URL")
+    .refine((value) => value.startsWith("https://"), "termsUrl must start with https://")
+    .optional(),
+  /** The partner's late-return rule in the booking's language ("15,00 € par heure commencée, au plus 90,00 € par jour"). */
+  lateFee: optionalText("Late fee", 200),
   pickup: placeSchema,
   return: placeSchema,
   mileage: z
