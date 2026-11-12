@@ -1972,6 +1972,8 @@
         "typePhoto": "Photo",
         "typeText": "Saisie de texte",
         "required": "Champ obligatoire",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
         "addRequirement": "Ajouter une exigence",
         "cancelBtn": "Annuler",
         "saving": "Enregistrement...",

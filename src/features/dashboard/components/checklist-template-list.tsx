@@ -12,6 +12,8 @@ import {
   Pencil,
   Plus,
   Trash2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -419,6 +421,19 @@ export function ChecklistTemplateList({
     }
   }
 
+  // The vendor's own order (LOCAZ, 12 Nov 2026: one tour of the vehicle); saved as the items' order. Not while a
+  // picture is uploading or being removed (those are tracked by position).
+  const busyImages = Object.values(uploadingByIndex).some(Boolean) || Object.values(removingByIndex).some(Boolean)
+  function moveItem(index: number, offset: -1 | 1) {
+    setItems((current) => {
+      const target = index + offset
+      if (target < 0 || target >= current.length) return current
+      const next = [...current]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
   async function removeItem(index: number) {
     const currentImage = items[index]?.exampleImage
 
@@ -780,15 +795,39 @@ export function ChecklistTemplateList({
                         </div>
                       </div>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => void removeItem(index)}
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        disabled={!canEdit || isSaving}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => moveItem(index, -1)}
+                          disabled={!canEdit || isSaving || busyImages || index === 0}
+                          aria-label={t("moveUp")}
+                          title={t("moveUp")}
+                          data-testid="checklist-item-up"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => moveItem(index, 1)}
+                          disabled={!canEdit || isSaving || busyImages || index === items.length - 1}
+                          aria-label={t("moveDown")}
+                          title={t("moveDown")}
+                          data-testid="checklist-item-down"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => void removeItem(index)}
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          disabled={!canEdit || isSaving}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

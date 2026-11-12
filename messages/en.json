@@ -1972,6 +1972,8 @@
         "typePhoto": "Photo",
         "typeText": "Text Input",
         "required": "Required field",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
         "addRequirement": "Add Requirement",
         "cancelBtn": "Cancel",
         "saving": "Saving...",
