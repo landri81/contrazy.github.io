@@ -284,8 +284,14 @@ export const contractMergeFieldGroups: ContractMergeFieldGroup[] = [
       {
         label: "Additional drivers",
         token: "{{rental.extraDrivers}}",
-        description: "Each additional driver with their licence number, or the sentence saying none is authorised.",
-        sampleValue: "Marie Durand (licence no. 98CD76543)",
+        description: "Each additional driver with their licence number, or the sentence saying none is authorised. Place it on its own line: it is left out when the partner sends no driver list.",
+        sampleValue: "Additional drivers authorised: Marie Durand (licence no. 98CD76543).",
+      },
+      {
+        label: "Renting company (one sentence)",
+        token: "{{rental.company}}",
+        description: "\"On behalf of the company … (SIRET …, VAT no. …)\". Place it on its own line: it is left out for a person renting.",
+        sampleValue: "On behalf of the company Transports Exemple SAS (SIRET 12345678900012, VAT no. FR12345678900).",
       },
       {
         label: "Company name",

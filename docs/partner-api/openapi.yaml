@@ -1276,7 +1276,7 @@ components:
         company:
           type: object
           required: [name]
-          description: "The renting company of a company booking: {{rental.companyName}}, {{rental.companySiret}}, {{rental.companyVat}}."
+          description: "The renting company of a company booking: {{rental.company}} (one sentence, its line left out when absent), {{rental.companyName}}, {{rental.companySiret}}, {{rental.companyVat}}."
           properties:
             name: { type: string, maxLength: 120 }
             siret: { type: string, maxLength: 20 }

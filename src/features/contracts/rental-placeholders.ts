@@ -40,6 +40,7 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.companyName}}",
   "{{rental.companySiret}}",
   "{{rental.companyVat}}",
+  "{{rental.company}}",
   "{{rental.termsLink}}",
   "{{rental.lateFee}}",
 ] as const
@@ -54,7 +55,11 @@ const copy = {
     noDamage: "None reported",
     departureReport: "Departure check of {at}: mileage {km}, fuel {fuel}. Damage noted: {damages}.",
     noExtraDriver: "No additional driver authorised.",
+    extraDrivers: "Additional drivers authorised: {drivers}.",
     licence: "licence no. {number}",
+    company: "On behalf of the company {name}",
+    siret: "SIRET {siret}",
+    vat: "VAT no. {vat}",
   },
   fr: {
     unlimited: "Kilométrage illimité",
@@ -63,7 +68,11 @@ const copy = {
     noDamage: "Aucun dommage signalé",
     departureReport: "État des lieux de départ du {at} : kilométrage {km}, carburant {fuel}. Dommages constatés : {damages}.",
     noExtraDriver: "Aucun conducteur secondaire autorisé.",
+    extraDrivers: "Conducteurs secondaires autorisés : {drivers}.",
     licence: "permis n° {number}",
+    company: "Pour le compte de la société {name}",
+    siret: "SIRET {siret}",
+    vat: "n° de TVA {vat}",
   },
 } satisfies Record<RentalLocale, Record<string, string>>
 
@@ -231,20 +240,28 @@ export function buildRentalPlaceholderValues(
     "{{rental.companyName}}": rental?.company?.name ?? "",
     "{{rental.companySiret}}": rental?.company?.siret ?? "",
     "{{rental.companyVat}}": rental?.company?.vatNumber ?? "",
+    "{{rental.company}}": rental?.company ? formatCompany(rental.company, resolvedLocale) : "",
     "{{rental.termsLink}}": rental?.termsUrl ?? "",
     "{{rental.lateFee}}": rental?.lateFee ?? "",
   }
 }
 
-/** "Marie Durand (permis n° 12AB34567)" per extra driver; the sentence saying none when the partner sent an empty list. */
+/** "Conducteurs secondaires autorisés : Marie Durand (permis n° 12AB34567)."; the sentence saying none for an empty list. */
 function formatExtraDrivers(drivers: NonNullable<RentalDetails["drivers"]>["extra"], locale: RentalLocale) {
   if (drivers.length === 0) return copy[locale].noExtraDriver
-  return drivers
+  const names = drivers
     .map((driver) => {
       const name = `${driver.firstName} ${driver.lastName}`
       return driver.licenceNumber ? `${name} (${copy[locale].licence.replace("{number}", driver.licenceNumber)})` : name
     })
     .join("; ")
+  return copy[locale].extraDrivers.replace("{drivers}", names)
+}
+
+/** "Pour le compte de la société Transports Exemple SAS (SIRET 12345678900012, n° de TVA FR12345678900)." */
+function formatCompany(company: NonNullable<RentalDetails["company"]>, locale: RentalLocale) {
+  const ids = [company.siret ? copy[locale].siret.replace("{siret}", company.siret) : null, company.vatNumber ? copy[locale].vat.replace("{vat}", company.vatNumber) : null].filter(Boolean)
+  return `${copy[locale].company.replace("{name}", company.name)}${ids.length ? ` (${ids.join(", ")})` : ""}.`
 }
 
 /** Price lines as a list block; lists render the same in the viewer, the print page and the PDF fallback. */
@@ -266,6 +283,9 @@ function buildPriceTableHtml(context: ContractRentalContext | null | undefined, 
 
 const STANDALONE_PRICE_TABLE_PATTERN = /<p[^>]*>\s*\{\{\s*rental\.priceTable\s*\}\}\s*<\/p>/gi
 const STANDALONE_DEPARTURE_REPORT_PATTERN = /<p[^>]*>\s*\{\{\s*rental\.departureReport\s*\}\}\s*<\/p>/gi
+/** Lines a contract leaves out when the partner sent nothing for them (a person renting, no driver list). */
+const OPTIONAL_LINES = ["{{rental.company}}", "{{rental.extraDrivers}}"] as const
+const standaloneLine = (token: string) => new RegExp(`<p[^>]*>\\s*${token.replace(/[{}.]/g, (char) => `\\${char}`)}\\s*</p>`, "gi")
 
 /** Replaces the `{{rental.*}}` tokens in template HTML. Unknown rental tokens are left for the caller to clear. */
 export function applyRentalPlaceholders(
@@ -277,6 +297,7 @@ export function applyRentalPlaceholders(
   let rendered = html.replace(STANDALONE_PRICE_TABLE_PATTERN, () => buildPriceTableHtml(context, locale))
   // No check-in yet (a contract signed at booking): the readings' paragraph is left out, not printed empty.
   if (!values["{{rental.departureReport}}"]) rendered = rendered.replace(STANDALONE_DEPARTURE_REPORT_PATTERN, "")
+  for (const token of OPTIONAL_LINES) if (!values[token]) rendered = rendered.replace(standaloneLine(token), "")
   // The terms as a link the signer can open, not only their address in the text.
   const termsUrl = values["{{rental.termsLink}}"]
   if (termsUrl) rendered = rendered.replaceAll("{{rental.termsLink}}", `<a href="${escapeContractHtml(termsUrl)}">${escapeContractHtml(termsUrl)}</a>`)

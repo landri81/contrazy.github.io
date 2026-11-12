@@ -144,7 +144,8 @@ describe("contract fields for the vehicle, the drivers and the company (LOCAZ, 1
     expect(values["{{rental.category}}"]).toBe("Utilitaire 3 m³")
     expect(values["{{rental.fuel}}"]).toBe("Diesel")
     expect(values["{{rental.mainDriverLicence}}"]).toBe("12AB34567")
-    expect(values["{{rental.extraDrivers}}"]).toBe("Marie Durand (permis n° 98CD76543); Paul Martin")
+    expect(values["{{rental.extraDrivers}}"]).toBe("Conducteurs secondaires autorisés : Marie Durand (permis n° 98CD76543); Paul Martin.")
+    expect(values["{{rental.company}}"]).toBe("Pour le compte de la société Transports Exemple SAS (SIRET 12345678900012, n° de TVA FR12345678900).")
     expect(values["{{rental.companyName}}"]).toBe("Transports Exemple SAS")
     expect(values["{{rental.companySiret}}"]).toBe("12345678900012")
     expect(values["{{rental.companyVat}}"]).toBe("FR12345678900")
@@ -164,6 +165,13 @@ describe("contract fields for the vehicle, the drivers and the company (LOCAZ, 1
 
     expect(html).toContain('<a href="https://locaz.example/legal/terms?v=1&amp;lang=fr" target="_blank" rel="noreferrer noopener">https://locaz.example/legal/terms?v=1&amp;lang=fr</a>')
     expect(html).not.toContain("{{")
+  })
+
+  it("leaves out the company and drivers lines when the partner sent nothing for them", () => {
+    const template = "<p>A</p><p>{{rental.company}}</p><p>{{rental.extraDrivers}}</p><p>B</p>"
+    expect(applyRentalPlaceholders(template, context, "fr")).toBe("<p>A</p><p>B</p>")
+    const person = { ...rental, company: undefined, drivers: { extra: [] } }
+    expect(applyRentalPlaceholders(template, { ...context, rentalDetails: person }, "en")).toBe("<p>A</p><p>No additional driver authorised.</p><p>B</p>")
   })
 
   it("refuses a terms address that is not https", () => {
