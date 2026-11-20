@@ -150,7 +150,7 @@ export async function rejectPartnerCheckoutDocuments(caller: Caller, bookingId: 
       dedupeKey: `event:documents-rejected:${transaction.id}:${now.getTime()}`,
     })
   })
-  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId))
+  return presentPartnerCheckout(await loadCheckoutTransaction(caller, bookingId), now)
 }
 
 /**

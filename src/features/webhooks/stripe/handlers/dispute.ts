@@ -58,16 +58,29 @@ async function findTransactionByPaymentIntent(paymentIntentId: string): Promise<
   }
 }
 
+/** Looks a few more times before giving up (see `handleDisputeCreated`). */
+export const DISPUTE_LOOKUP = { retries: 4, delayMs: 1_500, freshMinutes: 60 }
+
+type DisputeLookupOptions = { now?: Date; wait?: (ms: number) => Promise<void> }
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
 /**
  * Handles `charge.dispute.created`.
  *
  * Creates (or resets to OPEN) the Dispute record for the transaction and
  * records a timeline event so the vendor sees it immediately.
+ *
+ * A dispute can arrive before its payment is saved here: Stripe's test card 4000 0000 0000 0259 opens one in the
+ * same second as the charge, and the event came 0.2 s before the Payment row (LOCAZ acceptance T8 #13, 20 Nov 2026),
+ * so it was dropped. The payment is looked up again for a few seconds; a dispute opened within the last hour that still
+ * matches nothing throws, so the event is kept FAILED and Stripe sends it again instead of it being lost.
  */
 export async function handleDisputeCreated(
   dispute: Stripe.Dispute,
   eventId: string,
-  eventType: string
+  eventType: string,
+  options: DisputeLookupOptions = {}
 ): Promise<WebhookHandlerResult> {
   const paymentIntentId = extractPaymentIntentId(dispute)
 
@@ -75,9 +88,21 @@ export async function handleDisputeCreated(
     return { vendorId: null, transactionId: null }
   }
 
-  const match = await findTransactionByPaymentIntent(paymentIntentId)
+  const wait = options.wait ?? sleep
+  let match = await findTransactionByPaymentIntent(paymentIntentId)
+
+  for (let attempt = 0; !match && attempt < DISPUTE_LOOKUP.retries; attempt++) {
+    await wait(DISPUTE_LOOKUP.delayMs)
+    match = await findTransactionByPaymentIntent(paymentIntentId)
+  }
 
   if (!match) {
+    const ageMs = (options.now ?? new Date()).getTime() - dispute.created * 1000
+
+    if (ageMs < DISPUTE_LOOKUP.freshMinutes * 60_000) {
+      throw new Error(`Dispute ${dispute.id}: no payment found yet for its PaymentIntent, Stripe will send it again`)
+    }
+
     return { vendorId: null, transactionId: null }
   }
 

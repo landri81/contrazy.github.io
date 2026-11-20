@@ -100,7 +100,25 @@ describe("Stripe dispute handlers (C8)", () => {
     state.postCharges.set("pi_charge_9", { transactionId: "txn_9", vendorId: "ven_1" })
     expect(await handleDisputeCreated(stripeDispute({ payment_intent: "pi_charge_9" }), "evt_4", "charge.dispute.created")).toEqual({ vendorId: "ven_1", transactionId: "txn_9" })
 
-    expect(await handleDisputeCreated(stripeDispute({ payment_intent: "pi_unknown" }), "evt_5", "charge.dispute.created")).toEqual({ vendorId: null, transactionId: null })
+    const wait = vi.fn(async () => {})
+    expect(await handleDisputeCreated(stripeDispute({ payment_intent: "pi_unknown" }), "evt_5", "charge.dispute.created", { now: new Date("2026-11-20T12:00:00Z"), wait })).toEqual({ vendorId: null, transactionId: null })
+    expect(wait).toHaveBeenCalledTimes(4)
     expect(state.events.map((event) => event.transactionId)).toEqual(["txn_9"])
+  })
+
+  it("waits for a payment saved just after its dispute (test card 0259, LOCAZ T8 #13), and has Stripe resend a fresh one it cannot match", async () => {
+    state.payments.clear()
+    // The Payment row appears while the handler waits.
+    const wait = vi.fn(async () => {
+      if (wait.mock.calls.length === 2) state.payments.set("pi_rental_1", { transactionId: "txn_1", transaction: { vendor: { id: "ven_1" } } })
+    })
+    const justNow = new Date("2026-11-20T10:00:02Z")
+    expect(await handleDisputeCreated(stripeDispute(), "evt_6", "charge.dispute.created", { now: justNow, wait })).toEqual({ vendorId: "ven_1", transactionId: "txn_1" })
+    expect(wait).toHaveBeenCalledTimes(2)
+    expect(state.disputes.get("txn_1")).toMatchObject({ status: "OPEN", kind: "CHARGEBACK", reason: "fraudulent" })
+
+    // Still nothing after the retries, minutes after it opened: the event fails, so Stripe sends it again.
+    await expect(handleDisputeCreated(stripeDispute({ id: "dp_test_2", payment_intent: "pi_later" }), "evt_7", "charge.dispute.created", { now: justNow, wait: async () => {} })).rejects.toThrow(/Stripe will send it again/)
+    expect(state.events.map((event) => event.transactionId)).toEqual(["txn_1"])
   })
 })
