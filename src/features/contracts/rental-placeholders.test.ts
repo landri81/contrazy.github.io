@@ -174,6 +174,18 @@ describe("contract fields for the vehicle, the drivers and the company (LOCAZ, 1
     expect(applyRentalPlaceholders(template, { ...context, rentalDetails: person }, "en")).toBe("<p>A</p><p>No additional driver authorised.</p><p>B</p>")
   })
 
+  it("prints which terms version the renter accepted and when, after the link (LOCAZ, 20 Nov 2026)", () => {
+    const accepted = { ...rental, termsVersion: "4.4", termsAcceptedAt: "2026-11-20T10:45:00.000Z" }
+    const html = applyRentalPlaceholders("<p>• Respecter les CGV LOCAZ en vigueur. {{rental.termsLink}}</p>", { ...context, timezone: "Europe/Paris", rentalDetails: accepted }, "fr")
+    expect(html).toContain("</a> CGV version 4.4 lues et acceptées par le Locataire le ")
+    expect(html).toContain("11:45")
+    // Accepted by signing (a booking made at the counter): no date, the signature is the acceptance.
+    const bySigning = applyRentalPlaceholders("<p>{{rental.termsLink}}</p>", { ...context, rentalDetails: { ...rental, termsVersion: "4.4" } }, "fr")
+    expect(bySigning).toContain("</a> En signant, le Locataire déclare avoir lu et accepté les CGV version 4.4.")
+    // Nothing sent: the link alone, as before.
+    expect(applyRentalPlaceholders("<p>{{rental.termsLink}}</p>", { ...context, rentalDetails: rental }, "fr")).not.toContain("CGV version")
+  })
+
   it("refuses a terms address that is not https", () => {
     expect(buildRentalPlaceholderValues({ ...context, rentalDetails: { ...rental, termsUrl: "http://locaz.example/terms" } }, "fr")["{{rental.termsLink}}"]).toBe("")
   })

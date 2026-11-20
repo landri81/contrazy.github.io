@@ -100,6 +100,12 @@ export const rentalDetailsSchema = z.object({
     .optional(),
   /** The partner's late-return rule in the booking's language ("15,00 € par heure commencée, au plus 90,00 € par jour"). */
   lateFee: optionalText("Late fee", 200),
+  /**
+   * The terms version the renter accepted, and when (LOCAZ, 20 Nov 2026): printed next to the terms link. A version
+   * without a date says that signing the contract accepts it (a booking made at the counter).
+   */
+  termsVersion: optionalText("Terms version", 20),
+  termsAcceptedAt: z.string().datetime({ offset: true, message: "termsAcceptedAt must be an ISO date-time" }).optional(),
   pickup: placeSchema,
   return: placeSchema,
   mileage: z

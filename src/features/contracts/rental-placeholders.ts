@@ -42,6 +42,7 @@ export const RENTAL_PLACEHOLDER_TOKENS = [
   "{{rental.companyVat}}",
   "{{rental.company}}",
   "{{rental.termsLink}}",
+  "{{rental.termsAcceptance}}",
   "{{rental.lateFee}}",
 ] as const
 
@@ -60,6 +61,8 @@ const copy = {
     company: "On behalf of the company {name}",
     siret: "SIRET {siret}",
     vat: "VAT no. {vat}",
+    termsAccepted: "Terms and conditions version {version} read and accepted by the Renter on {at}.",
+    termsBySigning: "By signing, the Renter declares having read and accepted the terms and conditions version {version}.",
   },
   fr: {
     unlimited: "Kilométrage illimité",
@@ -73,6 +76,8 @@ const copy = {
     company: "Pour le compte de la société {name}",
     siret: "SIRET {siret}",
     vat: "n° de TVA {vat}",
+    termsAccepted: "CGV version {version} lues et acceptées par le Locataire le {at}.",
+    termsBySigning: "En signant, le Locataire déclare avoir lu et accepté les CGV version {version}.",
   },
 } satisfies Record<RentalLocale, Record<string, string>>
 
@@ -242,6 +247,12 @@ export function buildRentalPlaceholderValues(
     "{{rental.companyVat}}": rental?.company?.vatNumber ?? "",
     "{{rental.company}}": rental?.company ? formatCompany(rental.company, resolvedLocale) : "",
     "{{rental.termsLink}}": rental?.termsUrl ?? "",
+    // Which terms the renter accepted, and when (LOCAZ, 20 Nov 2026), printed after the link.
+    "{{rental.termsAcceptance}}": rental?.termsVersion
+      ? rental.termsAcceptedAt
+        ? copy[resolvedLocale].termsAccepted.replace("{version}", rental.termsVersion).replace("{at}", formatRentalDateTime(rental.termsAcceptedAt, context?.timezone, resolvedLocale))
+        : copy[resolvedLocale].termsBySigning.replace("{version}", rental.termsVersion)
+      : "",
     "{{rental.lateFee}}": rental?.lateFee ?? "",
   }
 }
@@ -299,8 +310,11 @@ export function applyRentalPlaceholders(
   if (!values["{{rental.departureReport}}"]) rendered = rendered.replace(STANDALONE_DEPARTURE_REPORT_PATTERN, "")
   for (const token of OPTIONAL_LINES) if (!values[token]) rendered = rendered.replace(standaloneLine(token), "")
   // The terms as a link the signer can open, not only their address in the text.
+  // The terms as a link the signer can open, with which version was accepted and when (LOCAZ, 20 Nov 2026): the
+  // templates print the link only, so the acceptance follows it.
   const termsUrl = values["{{rental.termsLink}}"]
-  if (termsUrl) rendered = rendered.replaceAll("{{rental.termsLink}}", `<a href="${escapeContractHtml(termsUrl)}">${escapeContractHtml(termsUrl)}</a>`)
+  const acceptance = values["{{rental.termsAcceptance}}"]
+  if (termsUrl) rendered = rendered.replaceAll("{{rental.termsLink}}", `<a href="${escapeContractHtml(termsUrl)}">${escapeContractHtml(termsUrl)}</a>${acceptance ? ` ${escapeContractHtml(acceptance)}` : ""}`)
 
   for (const token of RENTAL_PLACEHOLDER_TOKENS) {
     rendered = rendered.replaceAll(token, escapeContractHtml(values[token]))
