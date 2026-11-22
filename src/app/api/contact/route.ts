@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
 import { sendContactAutoReply, sendAdminContactNotification } from "@/lib/integrations/resend"
+import { allowAttempt } from "@/lib/security/auth-rate-limit"
 import { INPUT_LIMITS } from "@/lib/validation/input-limits"
 import { emailText, requiredText } from "@/lib/validation/text-schemas"
 
@@ -37,6 +38,11 @@ export async function POST(request: Request) {
       headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       headersList.get("x-real-ip") ??
       null
+
+    // A few messages an hour per address: the form can't be used to flood an inbox (security review, 22 Nov 2026).
+    if (!allowAttempt("contact", { ip: ipAddress })) {
+      return NextResponse.json({ success: false, message: "Too many messages. Please try again later." }, { status: 429 })
+    }
 
     const contact = await prisma.contactMessage.create({
       data: {

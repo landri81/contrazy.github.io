@@ -10,9 +10,22 @@ import { verifyPassword } from "@/features/auth/server/password"
 import { env } from "@/lib/env"
 import { prisma } from "@/lib/db/prisma"
 import { isSuperAdminEmail, USER_ROLES } from "@/lib/auth/roles"
+import { allowAttempt, requestIp } from "@/lib/security/auth-rate-limit"
 
 /** The session id of the super admin signed in with the env credentials (no user row). */
 const SUPER_ADMIN_ENV_USER_ID = "super-admin-env-user"
+
+/**
+ * The super admin's own session, whose role is not read from a user row: flagged at sign-in, or (sessions opened before
+ * 22 Nov 2026) the env sign-in's id, or a super admin role held with the super admin's address.
+ */
+function isSuperAdminSession(token: { sub?: string; email?: string | null; role?: UserRole; superAdminSignIn?: boolean }) {
+  if (token.superAdminSignIn !== undefined) return token.superAdminSignIn
+  return token.sub === SUPER_ADMIN_ENV_USER_ID || (token.role === USER_ROLES.SUPER_ADMIN && isSuperAdminEmail(token.email, env.SUPER_ADMIN_EMAIL))
+}
+
+/** How often a signed-in user's role is read again, so a demoted or deleted account loses its access quickly. */
+const ROLE_RECHECK_MS = 5 * 60_000
 
 /** Compares two secrets in constant time (hashed first, so their lengths do not leak). */
 function sameSecret(given: string, expected: string | undefined) {
@@ -44,11 +57,16 @@ export const authOptions: NextAuthOptions = {
         },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email?.trim().toLowerCase()
         const password = credentials?.password
 
         if (!email || !password) {
+          return null
+        }
+
+        // Too many attempts for this e-mail or from this address: refused like a wrong password (security review).
+        if (!allowAttempt("signIn", { email, ip: requestIp(req?.headers) })) {
           return null
         }
 
@@ -91,8 +109,17 @@ export const authOptions: NextAuthOptions = {
       // registered with that e-mail keeps its own role (security review, 22 Nov 2026).
       if (user && (user.id === SUPER_ADMIN_ENV_USER_ID || (account?.provider === "google" && isSuperAdminEmail(user.email, env.SUPER_ADMIN_EMAIL)))) {
         token.role = USER_ROLES.SUPER_ADMIN
+        token.superAdminSignIn = true
+        token.roleCheckedAt = Date.now()
       } else if (user) {
         token.role = (user as { role?: UserRole }).role ?? USER_ROLES.VENDOR
+        token.superAdminSignIn = false
+        token.roleCheckedAt = Date.now()
+      } else if (!isSuperAdminSession(token) && token.sub && Date.now() - (token.roleCheckedAt ?? 0) > ROLE_RECHECK_MS) {
+        // Read again from the user row: a demoted admin loses the role, a deleted account keeps no staff access.
+        const dbUser = await prisma.user.findUnique({ where: { id: token.sub }, select: { role: true } })
+        token.role = dbUser?.role ?? USER_ROLES.VENDOR
+        token.roleCheckedAt = Date.now()
       }
 
       if (!token.role && token.email) {

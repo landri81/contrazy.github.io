@@ -19,5 +19,9 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     role?: UserRole
+    /** When the role was last read from the database (ms): it is read again every few minutes. */
+    roleCheckedAt?: number
+    /** The super admin's own sign-in (env credentials or Google): its role is not read from a user row. */
+    superAdminSignIn?: boolean
   }
 }

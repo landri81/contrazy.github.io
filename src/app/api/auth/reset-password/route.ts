@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { hashPassword } from "@/features/auth/server/password"
+import { hashResetToken } from "@/features/auth/server/reset-token"
 import { resetPasswordSchema } from "@/features/auth/schemas/auth.schema"
 import { prisma } from "@/lib/db/prisma"
 
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     const resetResult = await prisma.$transaction(async (tx) => {
       const resetRecord = await tx.passwordResetToken.findFirst({
         where: {
-          token,
+          token: hashResetToken(token),
           expiresAt: { gte: now },
         },
         select: {

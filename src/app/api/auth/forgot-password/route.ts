@@ -1,8 +1,10 @@
-import { randomUUID } from "crypto"
+import { randomBytes } from "crypto"
 import { NextResponse } from "next/server"
 
 import { forgotPasswordSchema } from "@/features/auth/schemas/auth.schema"
+import { hashResetToken } from "@/features/auth/server/reset-token"
 import { prisma } from "@/lib/db/prisma"
+import { allowAttempt, requestIp } from "@/lib/security/auth-rate-limit"
 import { env } from "@/lib/env"
 import { sendPasswordResetEmail } from "@/lib/integrations/resend"
 import { resolveRequestLocale, toAbsoluteLocalizedAppUrl } from "@/lib/i18n/locale-utils"
@@ -24,6 +26,11 @@ export async function POST(request: Request) {
 
     const email = parsedBody.data.email.trim().toLowerCase()
 
+    // Too many requests for this e-mail or from this address: the same answer, and no e-mail (security review).
+    if (!allowAttempt("reset", { email, ip: requestIp(request.headers) })) {
+      return NextResponse.json({ success: true, message: "Reset request processed" })
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, email: true },
@@ -33,7 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "Reset request processed" })
     }
 
-    const token = randomUUID()
+    // Only its hash is stored (security review): the database alone can't reset a password.
+    const token = randomBytes(32).toString("base64url")
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60)
 
     await prisma.passwordResetToken.deleteMany({
@@ -43,7 +51,7 @@ export async function POST(request: Request) {
     await prisma.passwordResetToken.create({
       data: {
         userId: user.id,
-        token,
+        token: hashResetToken(token),
         expiresAt,
       },
     })

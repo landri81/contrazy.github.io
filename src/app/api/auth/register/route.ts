@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { hashPassword } from "@/features/auth/server/password"
 import { registerSchema } from "@/features/auth/schemas/auth.schema"
 import { isSuperAdminEmail } from "@/lib/auth/roles"
+import { allowAttempt, requestIp } from "@/lib/security/auth-rate-limit"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
 import { resolveRequestLocale } from "@/lib/i18n/locale-utils"
@@ -12,6 +13,13 @@ import { sendAdminNewVendorSignupEmail, sendVendorWelcomeEmail } from "@/lib/int
 export async function POST(request: Request) {
   try {
     const locale = resolveRequestLocale(request)
+
+    if (!allowAttempt("register", { ip: requestIp(request.headers) })) {
+      return NextResponse.json(
+        { success: false, code: "RATE_LIMITED", message: "Too many attempts. Please try again later." },
+        { status: 429 }
+      )
+    }
 
     let body: unknown
     try {
