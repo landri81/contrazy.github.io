@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { useSubmissionLock } from "@/features/client-flow/hooks/use-submission-lock"
+import { getClientKycUploadFolder } from "@/features/client-flow/lib/client-document-uploads"
 import { isPdfFile } from "@/lib/integrations/cloudinary-assets"
 
 type UploadedDoc = {
@@ -61,7 +62,11 @@ export function ClientKycForm({
     setIsUploading(true)
 
     try {
-      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", { method: "POST" })
+      const sigRes = await fetch("/api/integrations/cloudinary/sign-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: getClientKycUploadFolder(token) }),
+      })
       if (!sigRes.ok) {
         setError(t("uploadServiceError"))
         return

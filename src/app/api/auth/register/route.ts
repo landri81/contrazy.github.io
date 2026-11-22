@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 
 import { hashPassword } from "@/features/auth/server/password"
 import { registerSchema } from "@/features/auth/schemas/auth.schema"
+import { isSuperAdminEmail } from "@/lib/auth/roles"
 import { prisma } from "@/lib/db/prisma"
 import { env } from "@/lib/env"
 import { resolveRequestLocale } from "@/lib/i18n/locale-utils"
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
       select: { id: true },
     })
 
-    if (existingUser) {
+    // The super admin's address is never registered as an account (security review, 22 Nov 2026).
+    if (existingUser || isSuperAdminEmail(normalizedEmail, env.SUPER_ADMIN_EMAIL)) {
       return NextResponse.json(
         { success: false, code: "EMAIL_EXISTS", message: "Email already exists" },
         { status: 409 }

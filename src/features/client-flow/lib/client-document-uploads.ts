@@ -1,8 +1,13 @@
 export const CLIENT_DOCUMENT_UPLOAD_FOLDER = "conntrazy/client-documents"
 export const CLIENT_REPORT_UPLOAD_FOLDER = "conntrazy/report-assets"
+export const CLIENT_KYC_UPLOAD_FOLDER = "conntrazy/client-kyc"
 
 export function getClientDocumentUploadFolder(token: string) {
   return `${CLIENT_DOCUMENT_UPLOAD_FOLDER}/${token}`
+}
+
+export function getClientKycUploadFolder(token: string) {
+  return `${CLIENT_KYC_UPLOAD_FOLDER}/${token}`
 }
 
 export function getClientReportUploadFolder(token: string, reportType: string) {

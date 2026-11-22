@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto"
+
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { UserRole } from "@prisma/client"
 import { type NextAuthOptions } from "next-auth"
@@ -8,6 +10,15 @@ import { verifyPassword } from "@/features/auth/server/password"
 import { env } from "@/lib/env"
 import { prisma } from "@/lib/db/prisma"
 import { isSuperAdminEmail, USER_ROLES } from "@/lib/auth/roles"
+
+/** The session id of the super admin signed in with the env credentials (no user row). */
+const SUPER_ADMIN_ENV_USER_ID = "super-admin-env-user"
+
+/** Compares two secrets in constant time (hashed first, so their lengths do not leak). */
+function sameSecret(given: string, expected: string | undefined) {
+  if (!expected) return false
+  return timingSafeEqual(createHash("sha256").update(given).digest(), createHash("sha256").update(expected).digest())
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -41,9 +52,9 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        if (isSuperAdminEmail(email, env.SUPER_ADMIN_EMAIL) && password === env.SUPER_ADMIN_PASSWORD) {
+        if (isSuperAdminEmail(email, env.SUPER_ADMIN_EMAIL) && sameSecret(password, env.SUPER_ADMIN_PASSWORD)) {
           return {
-            id: "super-admin-env-user",
+            id: SUPER_ADMIN_ENV_USER_ID,
             name: "Super Admin",
             email: env.SUPER_ADMIN_EMAIL,
             role: USER_ROLES.SUPER_ADMIN,
@@ -75,8 +86,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user?.email && isSuperAdminEmail(user.email, env.SUPER_ADMIN_EMAIL)) {
+    async jwt({ token, user, account }) {
+      // Super admin only through its own sign-in (the env credentials) or Google proving the address: an account
+      // registered with that e-mail keeps its own role (security review, 22 Nov 2026).
+      if (user && (user.id === SUPER_ADMIN_ENV_USER_ID || (account?.provider === "google" && isSuperAdminEmail(user.email, env.SUPER_ADMIN_EMAIL)))) {
         token.role = USER_ROLES.SUPER_ADMIN
       } else if (user) {
         token.role = (user as { role?: UserRole }).role ?? USER_ROLES.VENDOR

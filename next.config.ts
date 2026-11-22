@@ -19,6 +19,23 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Baseline security headers (security review, 22 Nov 2026). No page of Contrazy is framed by another site, so only
+  // Contrazy itself may frame it; a full CSP waits for an inventory of Stripe, Google and Cloudinary sources.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=63072000" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ]
+  },
+
   async redirects() {
     return [
       // Auth convenience aliases
