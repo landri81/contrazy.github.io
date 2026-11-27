@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client"
 
+import { assertAllowedDatabase } from "./database-guard"
+
+// Staging must never open live's database, nor live staging's (wrong-database guard).
+assertAllowedDatabase()
+
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient
 }
